@@ -8,6 +8,7 @@ library(targets)
 # library(tarchetypes) # Load other packages as needed. # nolint
 library(tidyverse)
 library(tmap)
+library(stplanr)
 
 # Set target options:
 tar_option_set(
@@ -61,7 +62,7 @@ list(
     # source("data-raw/get_wpz.R")
     sf::read_sf("data-raw/workplaces_simple_edinburgh.geojson")
   }),
-  tar_target(jittered_desire_lines, {
+  tar_target(od_jittered, {
     remotes::install_github("dabreegster/odjitter", subdir = "r")
     odjitter::jitter(
       od = od_data,
@@ -70,6 +71,9 @@ list(
       subpoints_destinations = subpoints_destinations,
       disaggregation_threshold = 20
       )
+  }),
+  tar_target(routes, {
+    route(l = od_jittered[1:5, ], route_fun = cyclestreets::journey, plan = "balanced")
   }),
   tar_target(plot_zones, {
     # tm_shape(zones) +
