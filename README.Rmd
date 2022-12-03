@@ -29,8 +29,11 @@ Visualise the project as follows:
 targets::tar_visnetwork(targets_only = TRUE)
 ```
 
+The zones in the case study region are as follows:
 
-```{r, echo=FALSE}
-knitr::include_graphics("figures/test-plot.png")
+```{r zones, echo=FALSE}
+# knitr::include_graphics("figures/test-plot.png")
+tm_shape(zones) +
+  tm_polygons(col = "TotPop2011", palette = "viridis")
 ```
 

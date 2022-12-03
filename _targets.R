@@ -30,30 +30,23 @@ tar_source()
 list(
   # tar_target(dl_data, {
   #   setwd("inputdata")
-  #   gh_release_downlad("desire_lines_scotland.Rds")
+  #   gh_release_downlad()
   #   setwd("..")
   # }),
-  tar_target(zones_national,
+  tar_target(zones,
     command = {
       # For Edinburgh data (test):
-      readRDS("inputdata/iz_zones11_ed.Rds")
+      sf::read_sf("data-raw/zones_edinburgh.geojson")
       # For national data:
       # u = "https://github.com/ITSLeeds/cyclingPotentialEdinburgh/releases/download/1/zones_iz.Rds"
       # f = basename(u)
       # readRDS(f) # 1230 zones
     }),
   tar_target(plot_zones, {
-    # tm_shape(zones_national) +
-    m = tm_shape(zones_national) +
+    # tm_shape(zones) +
+    m = tm_shape(zones) +
       tm_fill(col = "TotPop2011", palette = "viridis")
     tmap_save(m, "figures/test-plot.png")
   }),
-  
-  tar_target(report, rmarkdown::render("README.Rmd"), format = "file")
-    
-#   format = "feather" # efficient storage of large data frames # nolint
-  # tar_target(
-  #   name = model,
-  #   command = coefficients(lm(y ~ x, data = data))
-  # )
+  tarchetypes::tar_render(report, path = "README.Rmd", params = list(zones))
 )
