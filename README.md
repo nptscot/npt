@@ -16,7 +16,7 @@ targets::tar_make()
 Visualise the project as follows:
 
 ``` r
-targets::tar_visnetwork()
+targets::tar_visnetwork(targets_only = TRUE)
 #> [31m── Attaching packages ─────────────────────────────────────── tidyverse 1.3.1 ──
 #> [39m[31m✔ ggplot2 3.4.0      ✔ purrr   0.3.5 
 #> ✔ tibble  3.1.8      ✔ dplyr   1.0.10

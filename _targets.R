@@ -35,7 +35,12 @@ list(
   # }),
   tar_target(zones_national,
     command = {
+      # For Edinburgh data (test):
       readRDS("inputdata/iz_zones11_ed.Rds")
+      # For national data:
+      # u = "https://github.com/ITSLeeds/cyclingPotentialEdinburgh/releases/download/1/zones_iz.Rds"
+      # f = basename(u)
+      # readRDS(f) # 1230 zones
     }),
   tar_target(plot_zones, {
     # tm_shape(zones_national) +
@@ -44,7 +49,7 @@ list(
     tmap_save(m, "figures/test-plot.png")
   }),
   
-  tar_target(report, rmarkdown::render("README.Rmd"))
+  tar_target(report, rmarkdown::render("README.Rmd"), format = "file")
     
 #   format = "feather" # efficient storage of large data frames # nolint
   # tar_target(

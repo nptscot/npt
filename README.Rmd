@@ -26,7 +26,7 @@ targets::tar_make()
 Visualise the project as follows:
 
 ```{r visnet}
-targets::tar_visnetwork()
+targets::tar_visnetwork(targets_only = TRUE)
 ```
 
 
