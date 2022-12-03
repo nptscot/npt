@@ -35,6 +35,7 @@ list(
   # }),
   tar_target(zones,
     command = {
+      
       # For Edinburgh data (test):
       sf::read_sf("data-raw/zones_edinburgh.geojson")
       # For national data:
@@ -42,6 +43,34 @@ list(
       # f = basename(u)
       # readRDS(f) # 1230 zones
     }),
+  tar_target(od_data, {
+    # desire_lines_raw = readRDS("inputdata/desire_lines_scotland.Rds")
+    # od_raw = as_tibble(sf::st_drop_geometry(desire_lines_raw))
+    # od_subset = od_raw %>% 
+    #   filter(geo_code1 %in% zones$InterZone) %>% 
+    #   filter(geo_code2 %in% zones$InterZone) %>% 
+    #   filter(all >= 10)
+    # write_csv(od_subset, "data-raw/od_subset.csv")
+    read_csv("data-raw/od_subset.csv")
+  }),
+  tar_target(subpoints_origins, {
+    # source("data-raw/get_wpz.R")
+    sf::read_sf("data-raw/oas.geojson")
+  }),
+  tar_target(subpoints_destinations, {
+    # source("data-raw/get_wpz.R")
+    sf::read_sf("data-raw/workplaces_simple_edinburgh.geojson")
+  }),
+  tar_target(jittered_desire_lines, {
+    remotes::install_github("dabreegster/odjitter", subdir = "r")
+    odjitter::jitter(
+      od = od_data,
+      zones = zones,
+      subpoints_origins = subpoints_origins,
+      subpoints_destinations = subpoints_destinations,
+      disaggregation_threshold = 20
+      )
+  }),
   tar_target(plot_zones, {
     # tm_shape(zones) +
     m = tm_shape(zones) +

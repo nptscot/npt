@@ -6,3 +6,6 @@ _targets
 inputdata/
 *.html
 *.Rds
+WorkplacesZones2011ScotlandCentroids.*
+OutputArea2011_PWC.*
+*.zip
