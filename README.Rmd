@@ -29,3 +29,8 @@ Visualise the project as follows:
 targets::tar_visnetwork()
 ```
 
+
+```{r, echo=FALSE}
+knitr::include_graphics("figures/test-plot.png")
+```
+

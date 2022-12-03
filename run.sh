@@ -9,3 +9,7 @@ nohup nice -4 R CMD BATCH run.R &
 
 # Removing .RData is recommended.
 # rm -f .RData
+
+# Get data:
+gh repo clone atumscot/inputdata
+cd inputdata

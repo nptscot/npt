@@ -6,6 +6,8 @@
 # Load packages required to define the pipeline:
 library(targets)
 # library(tarchetypes) # Load other packages as needed. # nolint
+library(tidyverse)
+library(tmap)
 
 # Set target options:
 tar_option_set(
@@ -26,13 +28,27 @@ tar_source()
 
 # Replace the target list below with your own:
 list(
-  tar_target(
-    name = data,
-    command = tibble(x = rnorm(100), y = rnorm(100))
+  # tar_target(dl_data, {
+  #   setwd("inputdata")
+  #   gh_release_downlad("desire_lines_scotland.Rds")
+  #   setwd("..")
+  # }),
+  tar_target(zones_national,
+    command = {
+      readRDS("inputdata/iz_zones11_ed.Rds")
+    }),
+  tar_target(plot_zones, {
+    # tm_shape(zones_national) +
+    m = tm_shape(zones_national) +
+      tm_fill(col = "TotPop2011", palette = "viridis")
+    tmap_save(m, "figures/test-plot.png")
+  }),
+  
+  tar_target(report, rmarkdown::render("README.Rmd"))
+    
 #   format = "feather" # efficient storage of large data frames # nolint
-  ),
-  tar_target(
-    name = model,
-    command = coefficients(lm(y ~ x, data = data))
-  )
+  # tar_target(
+  #   name = model,
+  #   command = coefficients(lm(y ~ x, data = data))
+  # )
 )
