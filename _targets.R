@@ -94,4 +94,5 @@ list(
     tmap_save(m, "figures/test-plot.png")
   }),
   tarchetypes::tar_render(report, path = "README.Rmd", params = list(zones, rnet))
+  # tar_source(files = "data-raw/test-tiles.R") # how to source script as target?
 )

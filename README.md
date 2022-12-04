@@ -13,6 +13,11 @@ To reproduced code in this repository run the following command
 targets::tar_make()
 ```
 
+This project uses `targets` for data processing pipeline management,
+with outputs like this:
+
+![](https://user-images.githubusercontent.com/1825120/205490893-b1627e3a-5102-4dbe-bc70-97e358e75506.png)
+
 Visualise the project as follows:
 
 ``` r

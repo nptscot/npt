@@ -17,8 +17,8 @@ leaflet() %>%
 scotland_lads = readRDS("inputdata/lads_scotland.Rds")
 edinburgh_boundary = scotland_lads %>% 
   filter(str_detect(lau118nm, "Edin"))
-bb = as.numeric(edinburgh_bb)
 edinburgh_bb = sf::st_bbox(edinburgh_boundary)
+bb = as.numeric(edinburgh_bb)
 
 m1 = leaflet() %>%
   addTiles() %>% 
