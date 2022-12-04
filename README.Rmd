@@ -40,3 +40,10 @@ tm_shape(zones) +
   tm_polygons(col = "TotPop2011", palette = "viridis")
 ```
 
+Baseline cycling levels are shown below:
+
+```{r overline}
+tm_shape(overline) +
+  tm_lines(lwd = "bicycle", scale = 9)
+```
+

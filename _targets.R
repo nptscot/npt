@@ -73,7 +73,15 @@ list(
       )
   }),
   tar_target(routes, {
-    route(l = od_jittered[1:5, ], route_fun = cyclestreets::journey, plan = "balanced")
+    # For testing:
+    # route(l = od_jittered[1:5, ], route_fun = cyclestreets::journey, plan = "balanced")
+    route(l = od_jittered, route_fun = cyclestreets::journey, plan = "balanced")
+  }),
+  tar_target(uptake, {
+    
+  }),
+  tar_target(overline, {
+    overline(routes, attrib = "bicycle")
   }),
   tar_target(plot_zones, {
     # tm_shape(zones) +
@@ -81,5 +89,5 @@ list(
       tm_fill(col = "TotPop2011", palette = "viridis")
     tmap_save(m, "figures/test-plot.png")
   }),
-  tarchetypes::tar_render(report, path = "README.Rmd", params = list(zones))
+  tarchetypes::tar_render(report, path = "README.Rmd", params = list(zones, overline))
 )

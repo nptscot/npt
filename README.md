@@ -32,3 +32,12 @@ targets::tar_visnetwork(targets_only = TRUE)
 The zones in the case study region are as follows:
 
 ![](README_files/figure-gfm/zones-1.png)<!-- -->
+
+Baseline cycling levels are shown below:
+
+``` r
+tm_shape(overline) +
+  tm_lines(lwd = "bicycle", scale = 9)
+```
+
+![](README_files/figure-gfm/overline-1.png)<!-- -->
