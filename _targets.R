@@ -80,8 +80,12 @@ list(
   tar_target(uptake, {
     
   }),
-  tar_target(overline, {
-    overline(routes, attrib = "bicycle")
+  tar_target(rnet, {
+    overline(routes, attrib = "bicycle") %>% 
+      dplyr::arrange(bicycle)
+  }),
+  tar_target(save_geojson, {
+    sf::write_sf(rnet, "overline.geojson", delete_dsn = TRUE)
   }),
   tar_target(plot_zones, {
     # tm_shape(zones) +
@@ -89,5 +93,5 @@ list(
       tm_fill(col = "TotPop2011", palette = "viridis")
     tmap_save(m, "figures/test-plot.png")
   }),
-  tarchetypes::tar_render(report, path = "README.Rmd", params = list(zones, overline))
+  tarchetypes::tar_render(report, path = "README.Rmd", params = list(zones, rnet))
 )

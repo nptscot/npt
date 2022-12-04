@@ -36,7 +36,7 @@ The zones in the case study region are as follows:
 Baseline cycling levels are shown below:
 
 ``` r
-tm_shape(overline) +
+tm_shape(rnet) +
   tm_lines(lwd = "bicycle", scale = 9)
 ```
 
