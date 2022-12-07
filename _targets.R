@@ -98,9 +98,12 @@ list(
       tm_fill(col = "TotPop2011", palette = "viridis")
     tmap_save(m, "figures/test-plot.png")
   }),
-  tar_target(visualise_rnet, {
-    tar_source("code/vis_network.R", rnet)
-  }),
+  # tar_target(visualise_rnet, {
+  #   # tar_source("code/vis_network.R")
+  #   # tarchetypes::tar_
+  # }),
+  tarchetypes::tar_render(visualise_rnet, path = "code/vis_network.Rmd", params = list(rnet)),
+  
   tar_target(calculate_benefits, {
     benefits = function(x) x
     benefits(routes)
