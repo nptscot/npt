@@ -63,19 +63,24 @@ list(
     sf::read_sf("data-raw/workplaces_simple_edinburgh.geojson")
   }),
   tar_target(od_jittered, {
-    remotes::install_github("dabreegster/odjitter", subdir = "r")
-    odjitter::jitter(
-      od = od_data,
-      zones = zones,
-      subpoints_origins = subpoints_origins,
-      subpoints_destinations = subpoints_destinations,
-      disaggregation_threshold = 20
-      )
+    # od_jittered = od_data # for no jittering:
+    # remotes::install_github("dabreegster/odjitter", subdir = "r")
+    # odjitter::jitter(
+    #   od = od_data,
+    #   zones = zones,
+    #   subpoints_origins = subpoints_origins,
+    #   subpoints_destinations = subpoints_destinations,
+    #   disaggregation_threshold = 20
+    #   )
+    # Read in test OD dataset for package development:
+    od_jittered = sf::read_sf("https://github.com/atumscot/atumscot/releases/download/v1/od_jittered_demo.geojson")
   }),
   tar_target(routes, {
     # For testing:
     # route(l = od_jittered[1:5, ], route_fun = cyclestreets::journey, plan = "balanced")
-    route(l = od_jittered, route_fun = cyclestreets::journey, plan = "balanced")
+    # route(l = od_jittered, route_fun = cyclestreets::journey, plan = "balanced")
+    od_jittered
+    readRDS(url("https://github.com/atumscot/atumscot/releases/download/v1/routes_edinburgh_simple.Rds"))
   }),
   tar_target(uptake, {
     
@@ -92,6 +97,13 @@ list(
     m = tm_shape(zones) +
       tm_fill(col = "TotPop2011", palette = "viridis")
     tmap_save(m, "figures/test-plot.png")
+  }),
+  tar_target(visualise_rnet, {
+    tar_source("code/vis_network.R", rnet)
+  }),
+  tar_target(calculate_benefits, {
+    benefits = function(x) x
+    benefits(routes)
   }),
   tarchetypes::tar_render(report, path = "README.Rmd", params = list(zones, rnet))
   # tar_source(files = "data-raw/test-tiles.R") # how to source script as target?
