@@ -21,8 +21,8 @@ edinburgh_bb = sf::st_bbox(edinburgh_boundary)
 bb = as.numeric(edinburgh_bb)
 
 m1 = leaflet() %>%
-  addTiles() %>% 
-  addPolylines(data = scotland_lads, color = "white", opacity = 0.2, weight = 2) %>% 
+  # addTiles() %>% 
+  # addPolylines(data = scotland_lads, color = "white", opacity = 0.2, weight = 2) %>% 
   addMapboxTiles(username = "robinlovelacep", layerId = "clb9bp00i0plf21ouq9hlds5m",
                  style_url = "mapbox://styles/robinlovelacep/clb9b4nbh001v14ticxn7p6sn") %>% 
   flyToBounds(lng1 = bb[1], lat1 = bb[2], lng2 = bb[3], lat2 = bb[4])
