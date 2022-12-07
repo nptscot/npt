@@ -6,12 +6,23 @@
 <!-- badges: start -->
 <!-- badges: end -->
 
-To reproduced code in this repository run the following command
-(requires dependencies and data to be present):
+To reproduced code in this repository first clone it, for example by
+installing the GitHub CLI tools and running:
+
+``` bash
+gh repo clone atumscot/atumscot
+```
+
+Then run the following command (requires dependencies and data to be
+present):
 
 ``` r
 targets::tar_make()
 ```
+
+Note: you need to have a CYCLESTREETS API key for this, see here for
+details:
+<https://rpackage.cyclestreets.net/reference/journey.html#details-1>
 
 This project uses `targets` for data processing pipeline management,
 with outputs like this:
