@@ -44,16 +44,21 @@ list(
       # f = basename(u)
       # readRDS(f) # 1230 zones
     }),
-  tar_target(od_data, {
-    # desire_lines_raw = readRDS("inputdata/desire_lines_scotland.Rds")
-    # od_raw = as_tibble(sf::st_drop_geometry(desire_lines_raw))
-    # od_subset = od_raw %>% 
-    #   filter(geo_code1 %in% zones$InterZone) %>% 
-    #   filter(geo_code2 %in% zones$InterZone) %>% 
-    #   filter(all >= 10)
-    # write_csv(od_subset, "data-raw/od_subset.csv")
+  tar_target(od_commute_raw, {
     read_csv("data-raw/od_subset.csv")
   }),
+  tar_target(od_schools_raw, {
+    read_csv("data-raw/od_subset.csv")
+  }),
+  # tar_target(od_data, {
+  #   # desire_lines_raw = readRDS("inputdata/desire_lines_scotland.Rds")
+  #   # od_raw = as_tibble(sf::st_drop_geometry(desire_lines_raw))
+  #   # od_subset = od_raw %>% 
+  #   #   filter(geo_code1 %in% zones$InterZone) %>% 
+  #   #   filter(geo_code2 %in% zones$InterZone) %>% 
+  #   #   filter(all >= 10)
+  #   # write_csv(od_subset, "data-raw/od_subset.csv")
+  # }),
   tar_target(subpoints_origins, {
     # source("data-raw/get_wpz.R")
     sf::read_sf("data-raw/oas.geojson")
@@ -62,7 +67,7 @@ list(
     # source("data-raw/get_wpz.R")
     sf::read_sf("data-raw/workplaces_simple_edinburgh.geojson")
   }),
-  tar_target(od_jittered, {
+  tar_target(od_commute_jittered, {
     # od_jittered = od_data # for no jittering:
     # remotes::install_github("dabreegster/odjitter", subdir = "r")
     # odjitter::jitter(
@@ -73,24 +78,36 @@ list(
     #   disaggregation_threshold = 20
     #   )
     # Read in test OD dataset for package development:
-    od_jittered = sf::read_sf("https://github.com/atumscot/atumscot/releases/download/v1/od_jittered_demo.geojson")
+    od_commute_jittered = sf::read_sf("https://github.com/atumscot/atumscot/releases/download/v1/od_jittered_demo.geojson")
+    od_commute_jittered
   }),
-  tar_target(routes, {
+  tar_target(routes_commute, {
     # For testing:
-    # route(l = od_jittered[1:5, ], route_fun = cyclestreets::journey, plan = "balanced")
-    # route(l = od_jittered, route_fun = cyclestreets::journey, plan = "balanced")
-    od_jittered
-    readRDS(url("https://github.com/atumscot/atumscot/releases/download/v1/routes_edinburgh_simple.Rds"))
+    route(l = od_commute_jittered[1:5, ], route_fun = cyclestreets::journey, plan = "balanced", silent = FALSE,
+          cols_extra = c("crow_fly_distance", "event", "whence", "speed", "itinerary",
+                         "plan", "note", "length", "quietness", "west", "south", "east",
+                         "north", "leaving", "arriving", "grammesCO2saved", "calories", "edition",
+                         "gradient_segment", "elevation_change", "provisionName")
+          )
+    # route(l = od_commute_jittered, route_fun = cyclestreets::journey, plan = "balanced")
+    # readRDS(url("https://github.com/atumscot/atumscot/releases/download/v1/routes_edinburgh_simple.Rds"))
   }),
-  tar_target(uptake, {
-    
+  tar_target(uptake_commute, {
+    # This function will live in the R folder
+    uptake_fun = function(x) {
+      # Uptake code here
+      routes_commute %>% 
+        mutate(bicycle_go_dutch = bicycle * 10)
+    }
+    uptake_fun(routes_commute)
   }),
-  tar_target(rnet, {
-    overline(routes, attrib = "bicycle") %>% 
+  tar_target(rnet_commute, {
+    overline(uptake_commute, attrib = c("bicycle", "bicycle_go_dutch")) %>% 
       dplyr::arrange(bicycle)
   }),
-  tar_target(save_geojson, {
-    sf::write_sf(rnet, "overline.geojson", delete_dsn = TRUE)
+  tar_target(save_outputs, {
+    saveRDS(rnet_commute, "outputs/rnet_commute.Rds")
+    saveRDS(uptake_commute, "outputs/uptake_commute.Rds")
   }),
   tar_target(plot_zones, {
     # tm_shape(zones) +
@@ -102,12 +119,12 @@ list(
   #   # tar_source("code/vis_network.R")
   #   # tarchetypes::tar_
   # }),
-  tarchetypes::tar_render(visualise_rnet, path = "code/vis_network.Rmd", params = list(rnet)),
+  tarchetypes::tar_render(visualise_rnet, path = "code/vis_network.Rmd", params = list(rnet_commute)),
   
   tar_target(calculate_benefits, {
     benefits = function(x) x
-    benefits(routes)
-  }),
-  tarchetypes::tar_render(report, path = "README.Rmd", params = list(zones, rnet))
+    benefits(routes_commute)
+  })
+  # tarchetypes::tar_render(report, path = "README.Rmd", params = list(zones, rnet))
   # tar_source(files = "data-raw/test-tiles.R") # how to source script as target?
 )
