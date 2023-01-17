@@ -1,0 +1,37 @@
+# Tippcanoe Instructions using WSL2
+
+cd /mnt/d/GitHub/atumscot/atumscot/outputs
+
+# Route network
+
+tippecanoe -o rnet.mbtiles \
+  --name=rnet \
+  --layer=rnet \
+  --attribution=UniverstyofLeeds \
+  -zg \
+  --minimum-zoom=6 \
+  --drop-smallest-as-needed \
+  --extend-zooms-if-still-dropping \
+  --maximum-tile-bytes=5000000 \
+  --simplification=10 \
+  --buffer=5 \
+  --force  rnet.geojson
+
+mb-util rnet.mbtiles --image_format=pbf rnet
+
+# Routes
+
+tippecanoe -o routes.mbtiles \
+  --name=routes \
+  --layer=routes \
+  --attribution=UniverstyofLeeds \
+  -zg \
+  --minimum-zoom=6 \
+  --drop-smallest-as-needed \
+  --extend-zooms-if-still-dropping \
+  --maximum-tile-bytes=5000000 \
+  --simplification=10 \
+  --buffer=5 \
+  --force  routes.geojson
+
+mb-util routes.mbtiles --image_format=pbf routes
