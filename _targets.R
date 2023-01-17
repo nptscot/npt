@@ -9,6 +9,7 @@ library(targets)
 library(tidyverse)
 library(tmap)
 library(stplanr)
+remotes::install_dev("cyclestreets")
 
 # Set target options:
 tar_option_set(
@@ -83,12 +84,7 @@ list(
   }),
   tar_target(routes_commute, {
     # For testing:
-    route(l = od_commute_jittered[1:5, ], route_fun = cyclestreets::journey, plan = "balanced", silent = FALSE,
-          cols_extra = c("crow_fly_distance", "event", "whence", "speed", "itinerary",
-                         "plan", "note", "length", "quietness", "west", "south", "east",
-                         "north", "leaving", "arriving", "grammesCO2saved", "calories", "edition",
-                         "gradient_segment", "elevation_change", "provisionName")
-          )
+    route(l = od_commute_jittered, route_fun = cyclestreets::journey, plan = "balanced")
     # route(l = od_commute_jittered, route_fun = cyclestreets::journey, plan = "balanced")
     # readRDS(url("https://github.com/atumscot/atumscot/releases/download/v1/routes_edinburgh_simple.Rds"))
   }),
