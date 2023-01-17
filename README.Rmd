@@ -40,7 +40,7 @@ This project uses `targets` for data processing pipeline management, with output
 Visualise the project as follows:
 
 ```{r visnet}
-targets::tar_visnetwork(targets_only = TRUE)
+# targets::tar_visnetwork(targets_only = TRUE)
 ```
 
 The zones in the case study region are as follows:
@@ -48,6 +48,7 @@ The zones in the case study region are as follows:
 ```{r zones, echo=FALSE}
 # targets::tar_load(zones)
 # knitr::include_graphics("figures/test-plot.png")
+tmap_mode("plot")
 tm_shape(zones) +
   tm_polygons(col = "TotPop2011", palette = "viridis")
 ```

@@ -105,6 +105,9 @@ list(
     overline(uptake_commute, attrib = c("bicycle", "bicycle_go_dutch")) %>% 
       dplyr::arrange(bicycle)
   }),
+  tar_target(rnet, {
+    rnet_commute
+  }),
   tar_target(save_outputs, {
     saveRDS(rnet_commute, "outputs/rnet_commute.Rds")
     saveRDS(uptake_commute, "outputs/uptake_commute.Rds")
@@ -124,7 +127,7 @@ list(
   tar_target(calculate_benefits, {
     benefits = function(x) x
     benefits(routes_commute)
-  })
-  # tarchetypes::tar_render(report, path = "README.Rmd", params = list(zones, rnet))
+  }),
+  tarchetypes::tar_render(report, path = "README.Rmd", params = list(zones, rnet))
   # tar_source(files = "data-raw/test-tiles.R") # how to source script as target?
 )
