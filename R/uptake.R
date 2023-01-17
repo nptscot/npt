@@ -1,34 +1,18 @@
 get_scenario_godutch = function(routes, purpose = "work") {
-  
   routes = routes %>% group_by(route_number)
-  if(purpose == "primary" | purpose == "secondary") {
-    routes = routes %>% 
-      mutate(
-        pcycle_godutch = pct::uptake_pct_godutch_school2(
-          # Prevent incorrect uptake values #491
-          case_when(length_route > 30000 ~ 30000, TRUE ~ length_route),
-          route_hilliness
-        ) 
-      )
-  } else {
-    routes = routes %>% 
-      mutate(
-        pcycle_godutch = pct::uptake_pct_godutch_2020(
-          # Prevent incorrect uptake values #491
-          case_when(length_route > 30000 ~ 30000, TRUE ~ length_route),
-          route_hilliness
-        )
-      )
-  }
+  routes = routes %>%
+    mutate(pcycle_godutch = pct::uptake_pct_godutch_2020(
+      # Prevent incorrect uptake values #491
+      case_when(length_route > 30000 ~ 30000, TRUE ~ length),
+      route_hilliness
+    ))
   
-  routes = routes %>% 
+  routes = routes %>%
     mutate(
-      pcycle_godutch = pcycle_godutch + (cyclists / all_modes), 
-      pcycle_godutch = case_when(
-        # Prevent the percentage of trips made by bike going above 100%:
+      pcycle_godutch = pcycle_godutch + (cyclists / all_modes),
+      pcycle_godutch = case_when(# Prevent the percentage of trips made by bike going above 100%:
         pcycle_godutch > 1 ~ 1,
-        TRUE ~ pcycle_godutch
-      ),
+        TRUE ~ pcycle_godutch),
       cyclists_godutch = pcycle_godutch * all_modes,
       bicycle_increase = cyclists_godutch - cyclists,
       drivers_godutch = drivers - (bicycle_increase * drivers / all_modes),
