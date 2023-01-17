@@ -10,6 +10,7 @@ library(tidyverse)
 library(tmap)
 library(stplanr)
 remotes::install_dev("cyclestreets")
+rds_folder = "rds"
 
 # Set target options:
 tar_option_set(
@@ -84,22 +85,37 @@ list(
   }),
   tar_target(routes_commute, {
     # For testing:
-    route(l = od_commute_jittered, route_fun = cyclestreets::journey, plan = "balanced")
     # route(l = od_commute_jittered, route_fun = cyclestreets::journey, plan = "balanced")
-    # readRDS(url("https://github.com/atumscot/atumscot/releases/download/v1/routes_edinburgh_simple.Rds"))
+    routes_work = list() # create the route_list object which grows as more routes added
+    routes_work = get_routes(od_commute_jittered, plan_types = "balanced", purpose = "commute",
+               folder = ".", batch = FALSE)
+  
   }),
   tar_target(uptake_commute, {
     # This function will live in the R folder
-    uptake_fun = function(x) {
-      # Uptake code here
-      routes_commute %>% 
-        mutate(bicycle_go_dutch = bicycle * 10)
-    }
-    uptake_fun(routes_commute)
+    get_scenario_go_dutch(routes_commute$balanced)
   }),
   tar_target(rnet_commute, {
     overline(uptake_commute, attrib = c("bicycle", "bicycle_go_dutch")) %>% 
       dplyr::arrange(bicycle)
+    
+    rnet_raw = stplanr::overline(
+      uptake_commute,
+      # attrib = c("cyclists", "cyclists_near", "cyclists_climate", "cyclists_30pc", "cyclists_godutch", 
+      attrib = c("bicycle", "bicycle_go_dutch", "quietness", "gradient_smooth"), # todo: add other modes
+      fun = list(sum = sum, mean = mean)
+    )
+    rnet = rnet_raw %>%
+      transmute(
+        bicycle = round(bicycle_sum),
+        # `Bicycle (Near Market)` = round(cyclists_near_sum),
+        bicycle_go_dutch = round(bicycle_go_dutch_sum),
+        # `Bicycle (Ebike)` = round(cyclists_ebike_sum),
+        Gradient = round(gradient_smooth_mean * 100),
+        Quietness = round(quietness_mean)
+        # col = cut(Quietness, quietness_breaks, labels = pal_quietness, right = FALSE)
+      )
+    
   }),
   tar_target(rnet, {
     rnet_commute

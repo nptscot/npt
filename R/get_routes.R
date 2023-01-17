@@ -24,25 +24,20 @@ get_routes = function(od, plan_types, purpose = "work", folder = ".", route_list
         routes_raw = stplanr::route(
           l = od,
           route_fun = cyclestreets::journey,
-          plan = plan,
+          plan = plan
           # comment-out this line to use default instance:
-          base_url = "http://5b44de2e26338760-api.cyclestreets.net",
-          pat = Sys.getenv("CYCLESTREETS_BATCH")
+          # base_url = "http://5b44de2e26338760-api.cyclestreets.net",
+          # pat = Sys.getenv("CYCLESTREETS_BATCH")
         ) 
       }
-      message("Filtering out the long ones")
-      if(plan == "fastest") {
-        routes_filtered = routes_raw %>% filter(length < max_fast_route_length)
-        fast_ids = unique(paste0(routes_filtered$geo_code1, routes_filtered$geo_code2))
-      } else {
-        routes_filtered = routes_raw %>% filter(paste0(geo_code1, geo_code2) %in% fast_ids)
-      }
-      # Assign route_number if routes came from batch routing:
-      if(is.null(routes_filtered$route_number)) {
-        routes_filtered$route_number = routes_filtered$id
-        routes_filtered$id = NULL
-      }
-      routes_filtered = routes_filtered %>% 
+      # message("Filtering out the long ones")
+      # if(plan == "fastest") {
+      #   routes_filtered = routes_raw %>% filter(length < max_fast_route_length)
+      #   fast_ids = unique(paste0(routes_filtered$geo_code1, routes_filtered$geo_code2))
+      # } else {
+      #   routes_filtered = routes_raw %>% filter(paste0(geo_code1, geo_code2) %in% fast_ids)
+      # }
+      routes_filtered = routes_raw %>% 
         rename(length_route = length) %>% 
         group_by(route_number) %>% 
         mutate(route_hilliness = mean(gradient_smooth)) %>% 

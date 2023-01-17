@@ -1,25 +1,26 @@
-get_scenario_godutch = function(routes, purpose = "work") {
+get_scenario_go_dutch = function(routes, purpose = "work") {
   routes = routes %>% group_by(route_number)
   routes = routes %>%
-    mutate(pcycle_godutch = pct::uptake_pct_godutch_2020(
+    mutate(pcycle_go_dutch = pct::uptake_pct_godutch_2020(
       # Prevent incorrect uptake values #491
-      case_when(length > 30000 ~ 30000, TRUE ~ length),
+      case_when(length_route > 30000 ~ 30000, TRUE ~ length_route),
       route_hilliness
     ))
   
   routes = routes %>%
     mutate(
-      pcycle_godutch = pcycle_godutch + (cyclists / all_modes),
-      pcycle_godutch = case_when(# Prevent the percentage of trips made by bike going above 100%:
-        pcycle_godutch > 1 ~ 1,
-        TRUE ~ pcycle_godutch),
-      cyclists_godutch = pcycle_godutch * all_modes,
-      bicycle_increase = cyclists_godutch - cyclists,
-      drivers_godutch = drivers - (bicycle_increase * drivers / all_modes),
-      passengers_godutch = passengers - (bicycle_increase * passengers / all_modes),
-      public_transport_godutch = public_transport - (bicycle_increase * public_transport / all_modes),
-      foot_godutch = foot - (bicycle_increase * foot / all_modes),
-      other_godutch = other - (bicycle_increase * other / all_modes)
+      pcycle_go_dutch = pcycle_go_dutch + (bicycle / all),
+      pcycle_go_dutch = case_when(# Prevent the percentage of trips made by bike going above 100%:
+        pcycle_go_dutch > 1 ~ 1,
+        TRUE ~ pcycle_go_dutch),
+      bicycle_go_dutch = pcycle_go_dutch * all,
+      bicycle_increase = bicycle_go_dutch - bicycle,
+      car_driver_go_dutch = car_driver - (bicycle_increase * car_driver / all),
+      car_passenger_go_dutch = car_passenger - (bicycle_increase * car_passenger / all),
+      public_transport = train + bus,
+      public_transport_go_dutch = public_transport - (bicycle_increase * public_transport / all),
+      foot_go_dutch = foot - (bicycle_increase * foot / all),
+      other_go_dutch = other - (bicycle_increase * other / all)
     )
   routes
 }
