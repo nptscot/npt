@@ -3,7 +3,7 @@ get_scenario_godutch = function(routes, purpose = "work") {
   routes = routes %>%
     mutate(pcycle_godutch = pct::uptake_pct_godutch_2020(
       # Prevent incorrect uptake values #491
-      case_when(length_route > 30000 ~ 30000, TRUE ~ length),
+      case_when(length > 30000 ~ 30000, TRUE ~ length),
       route_hilliness
     ))
   
