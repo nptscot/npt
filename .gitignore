@@ -10,3 +10,8 @@ WorkplacesZones2011ScotlandCentroids.*
 OutputArea2011_PWC.*
 *.zip
 overline.*
+*.pbf
+*.geojson
+*.mbtiles
+outputs/rnet/metadata.json
+outputs/routes/metadata.json
