@@ -58,7 +58,9 @@ list(
     od_subset = od_raw %>%
       filter(geo_code1 %in% zones$InterZone) %>%
       filter(geo_code2 %in% zones$InterZone) %>%
-      filter(all >= 10)
+      filter(dist_euclidean < 5000) %>% 
+      filter(dist_euclidean > 1000) %>% 
+      filter(all >= 50)
     # write_csv(od_subset, "data-raw/od_subset.csv")
   }),
   tar_target(subpoints_origins, {
@@ -80,19 +82,24 @@ list(
       zones = zones,
       subpoints_origins = subpoints_origins,
       subpoints_destinations = subpoints_destinations,
-      disaggregation_threshold = 20
+      disaggregation_threshold = 60
       )
+    odj$dist_euclidean_jittered = as.numeric(sf::st_length(odj))
+    odj
     # saveRDS(odj, "inputdata/od_commute_jittered.Rds")
     # Read in test OD dataset for package development:
     # sf::read_sf("https://github.com/nptscot/npt/releases/download/v1/od_jittered_demo.geojson")
   }),
   tar_target(od_commute_subset, {
-    od_commute_jittered %>% 
-      top_n(n = 100, wt = bicycle)
+    odcs = od_commute_jittered %>%
+      filter(dist_euclidean < 5000) %>% 
+      filter(dist_euclidean > 1000)
+    odcs
   }),
   tar_target(routes_commute, {
     # For testing:
     # route(l = od_commute_jittered, route_fun = cyclestreets::journey, plan = "balanced")
+    message("Calculating ", nrow(od_commute_subset), " routes")
     get_routes(od_commute_subset, plans = "balanced", purpose = "commute",
                folder = "outputdata", batch = FALSE)
   
