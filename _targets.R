@@ -9,6 +9,7 @@ library(targets)
 library(tidyverse)
 library(tmap)
 library(stplanr)
+library(sf)
 remotes::install_dev("cyclestreets")
 date_routing = "2023-01-18"
 # Set target options:
@@ -41,9 +42,9 @@ list(
       # For Edinburgh data (test):
       sf::read_sf("data-raw/zones_edinburgh.geojson")
       # For national data:
-      # u = "https://github.com/ITSLeeds/cyclingPotentialEdinburgh/releases/download/1/zones_iz.Rds"
-      # f = basename(u)
-      # readRDS(f) # 1230 zones
+      f = "iz_scotlands_uk.Rds"
+      piggyback::pb_download(file = f, repo = "nptscot/inputdata")
+      readRDS(f) # 1230 zones
     }),
   tar_target(od_commute_raw, {
     read_csv("data-raw/od_subset.csv")
