@@ -31,62 +31,66 @@ tar_source()
 
 # Replace the target list below with your own:
 list(
-  # tar_target(dl_data, {
-  #   setwd("inputdata")
-  #   gh_release_downlad()
-  #   setwd("..")
-  # }),
+  tar_target(dl_data, {
+    setwd("inputdata")
+    gh_release_downlad(tag = "v1")
+    setwd("..")
+  }),
   tar_target(zones,
     command = {
       
       # For Edinburgh data (test):
-      sf::read_sf("data-raw/zones_edinburgh.geojson")
+      # sf::read_sf("data-raw/zones_edinburgh.geojson")
       # For national data:
-      f = "iz_scotlands_uk.Rds"
-      piggyback::pb_download(file = f, repo = "nptscot/inputdata")
-      readRDS(f) # 1230 zones
+      readRDS("inputdata/zones_national_simple.Rds") # 1230 zones
     }),
   tar_target(od_commute_raw, {
-    read_csv("data-raw/od_subset.csv")
+    # read_csv("data-raw/od_subset.csv")
+    readRDS("inputdata/od_izo.Rds")
   }),
-  tar_target(od_schools_raw, {
-    read_csv("data-raw/od_subset.csv")
-  }),
-  # tar_target(od_data, {
-  #   # desire_lines_raw = readRDS("inputdata/desire_lines_scotland.Rds")
-  #   # od_raw = as_tibble(sf::st_drop_geometry(desire_lines_raw))
-  #   # od_subset = od_raw %>% 
-  #   #   filter(geo_code1 %in% zones$InterZone) %>% 
-  #   #   filter(geo_code2 %in% zones$InterZone) %>% 
-  #   #   filter(all >= 10)
-  #   # write_csv(od_subset, "data-raw/od_subset.csv")
+  # tar_target(od_schools_raw, {
+  #   # read_csv("data-raw/od_subset.csv")
+  #   # read_csv("data-raw/od_subset.csv")
   # }),
+  tar_target(od_data, {
+    desire_lines_raw = readRDS("inputdata/desire_lines_scotland.Rds")
+    od_raw = as_tibble(sf::st_drop_geometry(desire_lines_raw))
+    od_subset = od_raw %>%
+      filter(geo_code1 %in% zones$InterZone) %>%
+      filter(geo_code2 %in% zones$InterZone) %>%
+      filter(all >= 10)
+    # write_csv(od_subset, "data-raw/od_subset.csv")
+  }),
   tar_target(subpoints_origins, {
     # source("data-raw/get_wpz.R")
-    sf::read_sf("data-raw/oas.geojson")
+    # sf::read_sf("data-raw/oas.geojson")
+    readRDS("inputdata/oas.Rds")
   }),
   tar_target(subpoints_destinations, {
     # source("data-raw/get_wpz.R")
-    sf::read_sf("data-raw/workplaces_simple_edinburgh.geojson")
+    # sf::read_sf("data-raw/workplaces_simple_edinburgh.geojson")
+    readRDS("inputdata/workplaces_simple.Rds")
   }),
   tar_target(od_commute_jittered, {
     # od_jittered = od_data # for no jittering:
-    # remotes::install_github("dabreegster/odjitter", subdir = "r")
-    # odjitter::jitter(
-    #   od = od_data,
-    #   zones = zones,
-    #   subpoints_origins = subpoints_origins,
-    #   subpoints_destinations = subpoints_destinations,
-    #   disaggregation_threshold = 20
-    #   )
+    remotes::install_github("dabreegster/odjitter", subdir = "r")
+    odjitter::jitter(
+      od = od_data,
+      zones = zones,
+      subpoints_origins = subpoints_origins,
+      subpoints_destinations = subpoints_destinations,
+      disaggregation_threshold = 20
+      )
     # Read in test OD dataset for package development:
-    od_commute_jittered = sf::read_sf("https://github.com/nptscot/npt/releases/download/v1/od_jittered_demo.geojson")
-    od_commute_jittered
+    # sf::read_sf("https://github.com/nptscot/npt/releases/download/v1/od_jittered_demo.geojson")
+  }),
+  tar_target(od_commute_subset, {
+    od_commute_jittered[1:9, ]
   }),
   tar_target(routes_commute, {
     # For testing:
     # route(l = od_commute_jittered, route_fun = cyclestreets::journey, plan = "balanced")
-    routes_work = get_routes(od_commute_jittered, plans = "balanced",
+    routes_work = get_routes(od_commute_subset, plans = "balanced",
                              purpose = "commute", folder = "outputdata", batch = FALSE)
   
   }),

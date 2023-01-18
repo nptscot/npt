@@ -7,6 +7,7 @@ lads_scot = readRDS("inputdata/lads_scotland.Rds")
 boundary_edinburgh = lads_scot %>% 
   filter(str_detect(lau118nm, "Edinb"))
 
+od_data = readRDS("inputdata/od_izo.Rds")
 zones_national = readRDS("inputdata/iz_scotlands_uk.Rds")
 mapview::mapview(zones_national[1, ]) # v. detailed
 zones_national = rmapshaper::ms_simplify(zones_national, keep = 0.03)
@@ -28,13 +29,15 @@ dl_nrs()
 unzip("workplaces-zones-2011-scotland-centroids.zip")
 wpz_centroids = sf::read_sf("WorkplacesZones2011ScotlandCentroids.shp")
 plot(wpz_centroids$geometry)
+saveRDS(wpz_centroids, "inputdata/wpz_centroids.Rds")
 
 zones_scotland = readRDS("inputdata/zones_national_simple.Rds")
 nrow(wpz_centroids) / nrow(zones_scotland) # 4 workplace destinations for every zone..
 wpz_centroids = sf::st_transform(wpz_centroids, "EPSG:4326")
 zones_with_wpz = zones_scotland[wpz_centroids, ]
 nrow(zones_scotland) - nrow(zones_with_wpz) # 13 zones lack wpz centroid
-zones_without_wpz = zones_scotland %>% 
+# # Fails:
+zones_without_wpz = zones_scotland %>%
   filter(!InterZone %in% zones_with_wpz$InterZone)
 mapview::mapview(zones_without_wpz) # all of them are small -> geo centroid is fine
 zones_without_wpz_centroids = sf::st_point_on_surface(zones_without_wpz)
