@@ -90,8 +90,8 @@ list(
   tar_target(routes_commute, {
     # For testing:
     # route(l = od_commute_jittered, route_fun = cyclestreets::journey, plan = "balanced")
-    routes_work = get_routes(od_commute_subset, plans = "balanced",
-                             purpose = "commute", folder = "outputdata", batch = FALSE)
+    get_routes(od_commute_subset, plans = "balanced", purpose = "commute",
+               folder = "outputdata", batch = FALSE)
   
   }),
   tar_target(uptake_commute, {
