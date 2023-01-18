@@ -74,18 +74,21 @@ list(
   tar_target(od_commute_jittered, {
     # od_jittered = od_data # for no jittering:
     remotes::install_github("dabreegster/odjitter", subdir = "r")
-    odjitter::jitter(
+    set.seed(2023)
+    odj = odjitter::jitter(
       od = od_data,
       zones = zones,
       subpoints_origins = subpoints_origins,
       subpoints_destinations = subpoints_destinations,
       disaggregation_threshold = 20
       )
+    # saveRDS(odj, "inputdata/od_commute_jittered.Rds")
     # Read in test OD dataset for package development:
     # sf::read_sf("https://github.com/nptscot/npt/releases/download/v1/od_jittered_demo.geojson")
   }),
   tar_target(od_commute_subset, {
-    od_commute_jittered[1:9, ]
+    od_commute_jittered %>% 
+      top_n(n = 100, wt = bicycle)
   }),
   tar_target(routes_commute, {
     # For testing:
