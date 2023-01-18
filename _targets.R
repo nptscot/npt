@@ -10,8 +10,7 @@ library(tidyverse)
 library(tmap)
 library(stplanr)
 remotes::install_dev("cyclestreets")
-rds_folder = "rds"
-
+date_routing = "2023-01-18"
 # Set target options:
 tar_option_set(
   packages = c("tibble"), # packages that your targets need to run
@@ -86,13 +85,11 @@ list(
   tar_target(routes_commute, {
     # For testing:
     # route(l = od_commute_jittered, route_fun = cyclestreets::journey, plan = "balanced")
-    routes_work = list() # create the route_list object which grows as more routes added
-    routes_work = get_routes(od_commute_jittered, plan_types = "balanced", purpose = "commute",
-               folder = ".", batch = FALSE)
+    routes_work = get_routes(od_commute_jittered, plans = "balanced",
+                             purpose = "commute", folder = "outputdata", batch = FALSE)
   
   }),
   tar_target(uptake_commute, {
-    # This function will live in the R folder
     get_scenario_go_dutch(routes_commute$balanced)
   }),
   tar_target(rnet_commute, {
@@ -101,7 +98,6 @@ list(
     
     rnet_raw = stplanr::overline(
       uptake_commute,
-      # attrib = c("cyclists", "cyclists_near", "cyclists_climate", "cyclists_30pc", "cyclists_godutch", 
       attrib = c("bicycle", "bicycle_go_dutch", "quietness", "gradient_smooth"), # todo: add other modes
       fun = list(sum = sum, mean = mean)
     )
@@ -121,8 +117,8 @@ list(
     rnet_commute
   }),
   tar_target(save_outputs, {
-    saveRDS(rnet_commute, "outputs/rnet_commute.Rds")
-    saveRDS(uptake_commute, "outputs/uptake_commute.Rds")
+    saveRDS(rnet_commute, "outputdata/rnet_commute.Rds")
+    saveRDS(uptake_commute, "outputdata/uptake_commute.Rds")
   }),
   tar_target(plot_zones, {
     # tm_shape(zones) +

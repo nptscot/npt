@@ -15,3 +15,4 @@ overline.*
 *.mbtiles
 outputs/rnet/metadata.json
 outputs/routes/metadata.json
+outputdata/
