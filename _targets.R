@@ -79,7 +79,7 @@ list(
     #   disaggregation_threshold = 20
     #   )
     # Read in test OD dataset for package development:
-    od_commute_jittered = sf::read_sf("https://github.com/atumscot/atumscot/releases/download/v1/od_jittered_demo.geojson")
+    od_commute_jittered = sf::read_sf("https://github.com/nptscot/npt/releases/download/v1/od_jittered_demo.geojson")
     od_commute_jittered
   }),
   tar_target(routes_commute, {

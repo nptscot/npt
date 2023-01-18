@@ -11,5 +11,5 @@ nohup nice -4 R CMD BATCH run.R &
 # rm -f .RData
 
 # Get data:
-gh repo clone atumscot/inputdata
+gh repo clone nptscot/inputdata
 cd inputdata
