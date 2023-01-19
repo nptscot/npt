@@ -3,6 +3,7 @@ get_routes = function(od, plans, purpose = "work", folder = ".", batch = TRUE) {
   if (no_batch) {
     batch = FALSE
   }
+  route_list = sapply(plans, function(x) NULL)
   for(plan in plans) {
     message("Getting the ", plan, " routes for ", purpose, " journeys")
     file_name = paste0("routes_max_dist_", purpose, "_", plan, ".Rds") 
@@ -37,7 +38,6 @@ get_routes = function(od, plans, purpose = "work", folder = ".", batch = TRUE) {
       message("Saving ", savename_f)
       saveRDS(routes_filtered, savename_f)
     # }
-    route_list = as.list(plans)
     route_list[[paste(plan)]] = routes_filtered
   }
   route_list

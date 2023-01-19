@@ -29,6 +29,14 @@ options(clustermq.scheduler = "multicore")
 tar_source()
 # source("other_functions.R") # Source other scripts as needed. # nolint
 
+
+# Build parameters --------------------------------------------------------
+
+plans = c("fastest", "balanced")
+min_flow = 400 # Set to 1 for full build, set to high value (e.g. 200) for tests
+
+# Targets -----------------------------------------------------------------
+
 # Replace the target list below with your own:
 list(
   tar_target(dl_data, {
@@ -60,7 +68,7 @@ list(
       filter(geo_code2 %in% zones$InterZone) %>%
       filter(dist_euclidean < 20000) %>% 
       filter(dist_euclidean > 1000) %>% 
-      filter(all >= 10)
+      filter(all >= min_flow)
     # write_csv(od_subset, "data-raw/od_subset.csv")
   }),
   tar_target(subpoints_origins, {
@@ -101,36 +109,42 @@ list(
     # For testing:
     # route(l = od_commute_jittered, route_fun = cyclestreets::journey, plan = "balanced")
     message("Calculating ", nrow(od_commute_subset), " routes")
-    get_routes(od_commute_subset, plans = "balanced", purpose = "commute",
+    get_routes(od_commute_subset, plans = plans, purpose = "commute",
                folder = "outputdata", batch = FALSE)
   
   }),
   tar_target(uptake_commute, {
-    get_scenario_go_dutch(routes_commute$balanced)
+    uptake_list = sapply(plans, function(x) NULL)
+    for(p in plans) {
+      uptake_list[[p]] = get_scenario_go_dutch(routes_commute[[p]])
+    }
+    uptake_list
   }),
   tar_target(rnet_commute, {
-    overline(uptake_commute, attrib = c("bicycle", "bicycle_go_dutch")) %>% 
-      dplyr::arrange(bicycle)
-    
-    rnet_raw = stplanr::overline(
-      uptake_commute,
-      attrib = c("bicycle", "bicycle_go_dutch", "quietness", "gradient_smooth"), # todo: add other modes
-      fun = list(sum = sum, mean = mean)
-    )
-    rnet = rnet_raw %>%
-      transmute(
-        bicycle = round(bicycle_sum),
-        # `Bicycle (Near Market)` = round(cyclists_near_sum),
-        bicycle_go_dutch = round(bicycle_go_dutch_sum),
-        # `Bicycle (Ebike)` = round(cyclists_ebike_sum),
-        Gradient = round(gradient_smooth_mean * 100),
-        Quietness = round(quietness_mean)
-        # col = cut(Quietness, quietness_breaks, labels = pal_quietness, right = FALSE)
+    rnet_commute_list = sapply(plans, function(x) NULL)
+    for(p in plans) {
+      rnet_raw = stplanr::overline(
+        uptake_commute[[p]],
+        attrib = c("bicycle", "bicycle_go_dutch", "quietness", "gradient_smooth"), # todo: add other modes
+        fun = list(sum = sum, mean = mean)
       )
-    
+      rnet = rnet_raw %>%
+        transmute(
+          bicycle = round(bicycle_sum),
+          # `Bicycle (Near Market)` = round(cyclists_near_sum),
+          bicycle_go_dutch = round(bicycle_go_dutch_sum),
+          # `Bicycle (Ebike)` = round(cyclists_ebike_sum),
+          Gradient = round(gradient_smooth_mean * 100),
+          Quietness = round(quietness_mean)
+          # col = cut(Quietness, quietness_breaks, labels = pal_quietness, right = FALSE)
+        ) %>% 
+        dplyr::arrange(bicycle)
+      rnet_commute_list[[p]] = rnet
+    }
+    rnet_commute_list
   }),
   tar_target(rnet, {
-    rnet_commute
+    rnet_commute[[1]]
   }),
   tar_target(save_outputs, {
     saveRDS(rnet_commute, "outputdata/rnet_commute.Rds")

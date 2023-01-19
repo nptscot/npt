@@ -1,6 +1,6 @@
 
 ```{r}
-m = tmap::qtm(rnet_commute)
+m = tmap::qtm(rnet_commute$fastest)
 tmap::tmap_save(m, "figures/rnet-test.png")
 ```
 
