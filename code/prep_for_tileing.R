@@ -3,6 +3,7 @@ library(dplyr)
 
 rnet <- readRDS("outputs/rnet_commute.Rds")
 routes <- readRDS("outputs/uptake_commute.Rds")
+zones <- readRDS("../inputdata/iz_scotlands_uk.Rds")
 
 # Clean RNET
 rnet$bicycle <- round(rnet$bicycle)
@@ -35,10 +36,19 @@ routes_single <- routes %>%
 
 routes_single$route_number <- NULL
 
+# Clean Zones
+zones <- zones[,c("InterZone","TotPop2011","geometry")]
+
+
+# Write GeoJSON
+zones <- st_transform(zones, 4326)
+
 
 st_precision(rnet) <- 1000000
 st_precision(routes_single) <- 1000000
+st_precision(zones) <- 1000000
 
 st_write(rnet,"outputs/rnet.geojson", delete_dsn = TRUE)
 st_write(routes_single,"outputs/routes.geojson", delete_dsn = TRUE)
+st_write(zones,"outputs/zones.geojson", delete_dsn = TRUE)
 

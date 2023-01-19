@@ -36,3 +36,21 @@ tippecanoe -o routes.mbtiles \
   --force  routes.geojson
 
 mb-util routes.mbtiles --image_format=pbf routes
+
+# Zones
+
+tippecanoe -o zones.mbtiles \
+  --name=zones \
+  --layer=zones \
+  --attribution=UniverstyofLeeds \
+  -zg \
+  --minimum-zoom=6 \
+  --coalesce-smallest-as-needed \
+  --detect-shared-borders \
+  --extend-zooms-if-still-dropping \
+  --maximum-tile-bytes=5000000 \
+  --simplification=10 \
+  --buffer=5 \
+  --force  zones.geojson
+
+mb-util zones.mbtiles --image_format=pbf zones
