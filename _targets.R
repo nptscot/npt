@@ -33,7 +33,7 @@ tar_source()
 # Build parameters --------------------------------------------------------
 
 plans = c("fastest", "balanced")
-min_flow = 20 # Set to 1 for full build, set to high value (e.g. 400) for tests
+min_flow = 10 # Set to 1 for full build, set to high value (e.g. 400) for tests
 
 # Targets -----------------------------------------------------------------
 
