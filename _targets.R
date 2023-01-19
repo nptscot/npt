@@ -85,7 +85,8 @@ list(
       disaggregation_threshold = 40
       )
     odj$dist_euclidean_jittered = as.numeric(sf::st_length(odj))
-    odj
+    odj = odj %>% 
+      mutate(route_id = paste0(geo_code1, "_", geo_code2, "_", seq(nrow(odj))))
     # saveRDS(odj, "inputdata/od_commute_jittered.Rds")
     # Read in test OD dataset for package development:
     # sf::read_sf("https://github.com/nptscot/npt/releases/download/v1/od_jittered_demo.geojson")
