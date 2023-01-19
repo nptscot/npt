@@ -29,6 +29,14 @@ options(clustermq.scheduler = "multicore")
 tar_source()
 # source("other_functions.R") # Source other scripts as needed. # nolint
 
+
+# Build parameters --------------------------------------------------------
+
+plans = c("fastest", "balanced")
+min_flow = 10 # Set to 1 for full build, set to high value (e.g. 400) for tests
+
+# Targets -----------------------------------------------------------------
+
 # Replace the target list below with your own:
 list(
   tar_target(dl_data, {
@@ -60,7 +68,7 @@ list(
       filter(geo_code2 %in% zones$InterZone) %>%
       filter(dist_euclidean < 20000) %>% 
       filter(dist_euclidean > 1000) %>% 
-      filter(all >= 10)
+      filter(all >= min_flow)
     # write_csv(od_subset, "data-raw/od_subset.csv")
   }),
   tar_target(subpoints_origins, {
@@ -85,7 +93,8 @@ list(
       disaggregation_threshold = 40
       )
     odj$dist_euclidean_jittered = as.numeric(sf::st_length(odj))
-    odj
+    odj = odj %>% 
+      mutate(route_id = paste0(geo_code1, "_", geo_code2, "_", seq(nrow(odj))))
     # saveRDS(odj, "inputdata/od_commute_jittered.Rds")
     # Read in test OD dataset for package development:
     # sf::read_sf("https://github.com/nptscot/npt/releases/download/v1/od_jittered_demo.geojson")
@@ -100,36 +109,42 @@ list(
     # For testing:
     # route(l = od_commute_jittered, route_fun = cyclestreets::journey, plan = "balanced")
     message("Calculating ", nrow(od_commute_subset), " routes")
-    get_routes(od_commute_subset, plans = "balanced", purpose = "commute",
+    get_routes(od_commute_subset, plans = plans, purpose = "commute",
                folder = "outputdata", batch = FALSE)
   
   }),
   tar_target(uptake_commute, {
-    get_scenario_go_dutch(routes_commute$balanced)
+    uptake_list = sapply(plans, function(x) NULL)
+    for(p in plans) {
+      uptake_list[[p]] = get_scenario_go_dutch(routes_commute[[p]])
+    }
+    uptake_list
   }),
   tar_target(rnet_commute, {
-    overline(uptake_commute, attrib = c("bicycle", "bicycle_go_dutch")) %>% 
-      dplyr::arrange(bicycle)
-    
-    rnet_raw = stplanr::overline(
-      uptake_commute,
-      attrib = c("bicycle", "bicycle_go_dutch", "quietness", "gradient_smooth"), # todo: add other modes
-      fun = list(sum = sum, mean = mean)
-    )
-    rnet = rnet_raw %>%
-      transmute(
-        bicycle = round(bicycle_sum),
-        # `Bicycle (Near Market)` = round(cyclists_near_sum),
-        bicycle_go_dutch = round(bicycle_go_dutch_sum),
-        # `Bicycle (Ebike)` = round(cyclists_ebike_sum),
-        Gradient = round(gradient_smooth_mean * 100),
-        Quietness = round(quietness_mean)
-        # col = cut(Quietness, quietness_breaks, labels = pal_quietness, right = FALSE)
+    rnet_commute_list = sapply(plans, function(x) NULL)
+    for(p in plans) {
+      rnet_raw = stplanr::overline(
+        uptake_commute[[p]],
+        attrib = c("bicycle", "bicycle_go_dutch", "quietness", "gradient_smooth"), # todo: add other modes
+        fun = list(sum = sum, mean = mean)
       )
-    
+      rnet = rnet_raw %>%
+        transmute(
+          bicycle = round(bicycle_sum),
+          # `Bicycle (Near Market)` = round(cyclists_near_sum),
+          bicycle_go_dutch = round(bicycle_go_dutch_sum),
+          # `Bicycle (Ebike)` = round(cyclists_ebike_sum),
+          Gradient = round(gradient_smooth_mean * 100),
+          Quietness = round(quietness_mean)
+          # col = cut(Quietness, quietness_breaks, labels = pal_quietness, right = FALSE)
+        ) %>% 
+        dplyr::arrange(bicycle)
+      rnet_commute_list[[p]] = rnet
+    }
+    rnet_commute_list
   }),
   tar_target(rnet, {
-    rnet_commute
+    rnet_commute[[1]]
   }),
   tar_target(save_outputs, {
     saveRDS(rnet_commute, "outputdata/rnet_commute.Rds")
@@ -158,8 +173,9 @@ list(
     f = list.files(path = ".", pattern = "Rds")
     # Piggyback fails with error message so commented and using cust
     # piggyback::pb_upload(f) 
-    v = paste0("v", Sys.Date())
-    v = gsub(pattern = " ", replacement = "-", x = v)
+    commit = gert::git_log(max = 1)
+    v = paste0("v", Sys.time(), "_commit_", commit$commit)
+    v = gsub(pattern = " |:", replacement = "-", x = v)
     msg = glue::glue("gh release create {v} --generate-notes")
     message("Creating new release and folder to save the files: ", v)
     dir.create(v)
@@ -167,7 +183,7 @@ list(
     for(i in f) {
       gh_release_upload(file = i, tag = v)
       # Move into a new directory
-      file.rename(f, file.path(v, f))
+      file.rename(i, file.path(v, f))
     }
     # For rds based version:
     # For specific version:
