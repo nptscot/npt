@@ -156,10 +156,22 @@ list(
   tar_target(upload_data, {
     setwd("outputdata")
     f = list.files(path = ".", pattern = "Rds")
-    piggyback::pb_upload(f)
+    # Piggyback fails with error message so commented and using cust
+    # piggyback::pb_upload(f) 
+    v = paste0("v", Sys.Date())
+    v = gsub(pattern = " ", replacement = "-", x = v)
+    msg = glue::glue("gh release create {v} --generate-notes")
+    message("Creating new release and folder to save the files: ", v)
+    dir.create(v)
+    system(msg)
     for(i in f) {
-      gh_release_upload(file = i, tag = "v1")
+      gh_release_upload(file = i, tag = v)
+      # Move into a new directory
+      file.rename(f, file.path(v, f))
     }
+    # For rds based version:
+    # For specific version:
+    # system("gh release create v0.0.1 --generate-notes")
     setwd("..")
   })
   # tar_source(files = "data-raw/test-tiles.R") # how to source script as target?
