@@ -1,6 +1,7 @@
 # Tippcanoe Instructions using WSL2
 
 cd /mnt/d/GitHub/nptscot/npt/outputs
+cd /mnt/d/GitHub/atumscot/atumscot/outputs
 
 # Route network
 
