@@ -152,6 +152,15 @@ list(
     benefits = function(x) x
     benefits(routes_commute)
   }),
-  tarchetypes::tar_render(report, path = "README.Rmd", params = list(zones, rnet))
+  tarchetypes::tar_render(report, path = "README.Rmd", params = list(zones, rnet)),
+  tar_target(upload_data, {
+    setwd("outputdata")
+    f = list.files(path = ".", pattern = "Rds")
+    piggyback::pb_upload(f)
+    for(i in f) {
+      gh_release_upload(file = i, tag = "v1")
+    }
+    setwd("..")
+  })
   # tar_source(files = "data-raw/test-tiles.R") # how to source script as target?
 )
