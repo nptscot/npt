@@ -33,7 +33,7 @@ tar_source()
 # Build parameters --------------------------------------------------------
 
 plans = c("fastest", "balanced")
-min_flow = 400 # Set to 1 for full build, set to high value (e.g. 200) for tests
+min_flow = 20 # Set to 1 for full build, set to high value (e.g. 400) for tests
 
 # Targets -----------------------------------------------------------------
 
@@ -173,8 +173,9 @@ list(
     f = list.files(path = ".", pattern = "Rds")
     # Piggyback fails with error message so commented and using cust
     # piggyback::pb_upload(f) 
-    v = paste0("v", Sys.Date())
-    v = gsub(pattern = " ", replacement = "-", x = v)
+    commit = gert::git_log(max = 1)
+    v = paste0("v", Sys.time(), "_commit_", commit$commit)
+    v = gsub(pattern = " |:", replacement = "-", x = v)
     msg = glue::glue("gh release create {v} --generate-notes")
     message("Creating new release and folder to save the files: ", v)
     dir.create(v)
@@ -182,7 +183,7 @@ list(
     for(i in f) {
       gh_release_upload(file = i, tag = v)
       # Move into a new directory
-      file.rename(f, file.path(v, f))
+      file.rename(i, file.path(v, f))
     }
     # For rds based version:
     # For specific version:
