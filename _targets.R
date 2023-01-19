@@ -58,9 +58,9 @@ list(
     od_subset = od_raw %>%
       filter(geo_code1 %in% zones$InterZone) %>%
       filter(geo_code2 %in% zones$InterZone) %>%
-      filter(dist_euclidean < 5000) %>% 
+      filter(dist_euclidean < 20000) %>% 
       filter(dist_euclidean > 1000) %>% 
-      filter(all >= 50)
+      filter(all >= 10)
     # write_csv(od_subset, "data-raw/od_subset.csv")
   }),
   tar_target(subpoints_origins, {
@@ -82,7 +82,7 @@ list(
       zones = zones,
       subpoints_origins = subpoints_origins,
       subpoints_destinations = subpoints_destinations,
-      disaggregation_threshold = 60
+      disaggregation_threshold = 40
       )
     odj$dist_euclidean_jittered = as.numeric(sf::st_length(odj))
     odj
@@ -92,7 +92,7 @@ list(
   }),
   tar_target(od_commute_subset, {
     odcs = od_commute_jittered %>%
-      filter(dist_euclidean < 5000) %>% 
+      filter(dist_euclidean < 20000) %>% 
       filter(dist_euclidean > 1000)
     odcs
   }),
@@ -133,7 +133,8 @@ list(
   }),
   tar_target(save_outputs, {
     saveRDS(rnet_commute, "outputdata/rnet_commute.Rds")
-    saveRDS(uptake_commute, "outputdata/uptake_commute.Rds")
+    f = paste0("outputdata/routes_commute_", nrow(uptake_commute), "_rows.Rds")
+    saveRDS(uptake_commute, f)
   }),
   tar_target(plot_zones, {
     # tm_shape(zones) +
