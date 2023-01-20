@@ -148,7 +148,7 @@ list(
   }),
   tar_target(save_outputs, {
     saveRDS(rnet_commute, "outputdata/rnet_commute.Rds")
-    f = paste0("outputdata/routes_commute_", nrow(uptake_commute), "_rows.Rds")
+    f = paste0("outputdata/routes_commute_", nrow(od_commute_subset), "_rows.Rds")
     saveRDS(uptake_commute, f)
   }),
   tar_target(plot_zones, {
@@ -183,7 +183,7 @@ list(
     for(i in f) {
       gh_release_upload(file = i, tag = v)
       # Move into a new directory
-      file.rename(i, file.path(v, f))
+      file.rename(v, file.path(v, i))
     }
     # For rds based version:
     # For specific version:
