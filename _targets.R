@@ -169,13 +169,13 @@ list(
   }),
   tarchetypes::tar_render(report, path = "README.Rmd", params = list(zones, rnet)),
   tar_target(upload_data, {
+    commit = gert::git_log(max = 1)
+    v = paste0("v", Sys.time(), "_commit_", commit$commit)
+    v = gsub(pattern = " |:", replacement = "-", x = v)
     setwd("outputdata")
     f = list.files(path = ".", pattern = "Rds")
     # Piggyback fails with error message so commented and using cust
     # piggyback::pb_upload(f) 
-    commit = gert::git_log(max = 1)
-    v = paste0("v", Sys.time(), "_commit_", commit$commit)
-    v = gsub(pattern = " |:", replacement = "-", x = v)
     msg = glue::glue("gh release create {v} --generate-notes")
     message("Creating new release and folder to save the files: ", v)
     dir.create(v)
