@@ -192,3 +192,10 @@ list(
   })
   # tar_source(files = "data-raw/test-tiles.R") # how to source script as target?
 )
+# Explore results for Edinburgh
+tar_load(rnet)
+ed = sf::read_sf("data-raw/zones_edinburgh.geojson")
+rnet_ed = rnet[ed, ] 
+tmap_mode("view")
+tm_shape(rnet_ed) +
+  tm_lines()
