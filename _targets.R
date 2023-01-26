@@ -197,5 +197,16 @@ tar_load(rnet)
 ed = sf::read_sf("data-raw/zones_edinburgh.geojson")
 rnet_ed = rnet[ed, ] 
 tmap_mode("view")
+tar_load(zones)
+tar_load(subpoints_origins)
+tar_load(subpoints_destinations)
+
 tm_shape(rnet_ed) +
-  tm_lines()
+  tm_lines(lwd = "bicycle_go_dutch", scale = 19) +
+  tm_shape(ed) +
+  tm_borders(col = "red") +
+  tm_shape(subpoints_origins) +
+  tm_dots(col = "green") +
+  tm_shape(subpoints_destinations) +
+  tm_dots(col = "blue")
+  
