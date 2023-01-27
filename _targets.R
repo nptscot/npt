@@ -68,7 +68,7 @@ list(
       filter(geo_code2 %in% zones$InterZone) %>%
       filter(dist_euclidean < 20000) %>% 
       filter(dist_euclidean > 1000) %>% 
-      filter(all >= min_flow)
+      filter(all >= 1)
     # write_csv(od_subset, "data-raw/od_subset.csv")
   }),
   tar_target(subpoints_origins, {
@@ -169,6 +169,7 @@ list(
   }),
   tarchetypes::tar_render(report, path = "README.Rmd", params = list(zones, rnet)),
   tar_target(upload_data, {
+    length(visualise_rnet)
     commit = gert::git_log(max = 1)
     v = paste0("v", Sys.time(), "_commit_", commit$commit)
     v = gsub(pattern = " |:", replacement = "-", x = v)
@@ -193,20 +194,20 @@ list(
   # tar_source(files = "data-raw/test-tiles.R") # how to source script as target?
 )
 # Explore results for Edinburgh
-tar_load(rnet)
-ed = sf::read_sf("data-raw/zones_edinburgh.geojson")
-rnet_ed = rnet[ed, ] 
-tmap_mode("view")
-tar_load(zones)
-tar_load(subpoints_origins)
-tar_load(subpoints_destinations)
-
-tm_shape(rnet_ed) +
-  tm_lines(lwd = "bicycle_go_dutch", scale = 19) +
-  tm_shape(ed) +
-  tm_borders(col = "red") +
-  tm_shape(subpoints_origins) +
-  tm_dots(col = "green") +
-  tm_shape(subpoints_destinations) +
-  tm_dots(col = "blue")
+# tar_load(rnet)
+# ed = sf::read_sf("data-raw/zones_edinburgh.geojson")
+# rnet_ed = rnet[ed, ] 
+# tmap_mode("view")
+# tar_load(zones)
+# tar_load(subpoints_origins)
+# tar_load(subpoints_destinations)
+# 
+# tm_shape(rnet_ed) +
+#   tm_lines(lwd = "bicycle_go_dutch", scale = 19) +
+#   tm_shape(ed) +
+#   tm_borders(col = "red") +
+#   tm_shape(subpoints_origins) +
+#   tm_dots(col = "green") +
+#   tm_shape(subpoints_destinations) +
+#   tm_dots(col = "blue")
   

@@ -9,10 +9,10 @@ get_routes = function(od, plans, purpose = "work", folder = ".", batch = TRUE) {
     file_name = paste0("routes_max_dist_", purpose, "_", plan, ".Rds") 
     savename_f = file.path(folder, file_name)
     message("Getting the ", plan, " routes")
-    # if(file.exists(savename_f)) {
-    #   message("Routes already exist: reading from file")
-    #   routes_filtered = readRDS(savename_f)
-    # } else {
+    if(file.exists(savename_f)) {
+      message("Routes already exist: reading from file")
+      routes_filtered = readRDS(savename_f)
+    } else {
       if(batch) {
         routes_raw = cyclestreets::batch(
           desire_lines = od,
@@ -37,7 +37,7 @@ get_routes = function(od, plans, purpose = "work", folder = ".", batch = TRUE) {
         ungroup()
       message("Saving ", savename_f)
       saveRDS(routes_filtered, savename_f)
-    # }
+    }
     route_list[[paste(plan)]] = routes_filtered
   }
   route_list
