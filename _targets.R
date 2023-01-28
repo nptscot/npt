@@ -29,11 +29,16 @@ options(clustermq.scheduler = "multicore")
 tar_source()
 # source("other_functions.R") # Source other scripts as needed. # nolint
 
-
 # Build parameters --------------------------------------------------------
 
 plans = c("fastest", "balanced")
 min_flow = 1 # Set to 1 for full build, set to high value (e.g. 400) for tests
+
+# Computation done outside of the pipeline --------------------------------
+
+tar_load(od_commute_subset)
+r_commute = get_routes(od_commute_subset, plans = plans, purpose = "commute",
+                           folder = "outputdata", batch = FALSE)
 
 # Targets -----------------------------------------------------------------
 
