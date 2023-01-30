@@ -36,9 +36,10 @@ min_flow = 1 # Set to 1 for full build, set to high value (e.g. 400) for tests
 
 # Computation done outside of the pipeline --------------------------------
 
-tar_load(od_commute_subset)
-r_commute = get_routes(od_commute_subset, plans = plans, purpose = "commute",
-                           folder = "outputdata", batch = FALSE)
+# tar_load(od_commute_subset)
+# fs::file_size("outputdata/routes_max_dist_commute_fastest.Rds")
+# r_commute = get_routes(od_commute_subset, plans = plans, purpose = "commute",
+#                            folder = "outputdata", batch = FALSE)
 
 # Targets -----------------------------------------------------------------
 
@@ -114,8 +115,8 @@ list(
     # For testing:
     # route(l = od_commute_jittered, route_fun = cyclestreets::journey, plan = "balanced")
     message("Calculating ", nrow(od_commute_subset), " routes")
-    get_routes(od_commute_subset, plans = plans, purpose = "commute",
-               folder = "outputdata", batch = FALSE)
+    batch_routes(od_commute_subset, plans = plans, purpose = "commute",
+               folder = "outputdata", batch = FALSE, nrow_batch = 100)
   
   }),
   tar_target(uptake_commute, {

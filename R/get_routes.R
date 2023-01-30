@@ -1,4 +1,4 @@
-get_routes = function(od, plans, purpose = "work", folder = ".", batch = TRUE) {
+get_routes = function(od, plans, purpose = "work", folder = ".", batch = TRUE, id = "001") {
   no_batch = nrow(od) < 250 || nrow(od) > 14000
   if (no_batch) {
     batch = FALSE
@@ -6,7 +6,7 @@ get_routes = function(od, plans, purpose = "work", folder = ".", batch = TRUE) {
   route_list = sapply(plans, function(x) NULL)
   for(plan in plans) {
     message("Getting the ", plan, " routes for ", purpose, " journeys")
-    file_name = paste0("routes_max_dist_", purpose, "_", plan, ".Rds") 
+    file_name = paste0("routes_max_dist_", purpose, "_", plan, "_id", id, ".Rds") 
     savename_f = file.path(folder, file_name)
     message("Getting the ", plan, " routes")
     if(file.exists(savename_f)) {
@@ -41,4 +41,10 @@ get_routes = function(od, plans, purpose = "work", folder = ".", batch = TRUE) {
     route_list[[paste(plan)]] = routes_filtered
   }
   route_list
+}
+
+batch_routes = function(od, plans, purpose = "work", folder = ".", batch = TRUE, nrow_batch = 100) {
+  browser()
+  n_groups = nrow(od) / nrow_batch
+  groups = rep(seq(n_groups))
 }
