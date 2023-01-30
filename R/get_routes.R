@@ -24,7 +24,8 @@ get_routes = function(od, plans, purpose = "work", folder = ".", batch = TRUE, i
         routes_raw = stplanr::route(
           l = od,
           route_fun = cyclestreets::journey,
-          plan = plan
+          plan = plan,
+          warnNA = FALSE
           # comment-out this line to use default instance:
           # base_url = "http://5b44de2e26338760-api.cyclestreets.net",
           # pat = Sys.getenv("CYCLESTREETS_BATCH")
@@ -43,8 +44,24 @@ get_routes = function(od, plans, purpose = "work", folder = ".", batch = TRUE, i
   route_list
 }
 
-batch_routes = function(od, plans, purpose = "work", folder = ".", batch = TRUE, nrow_batch = 100) {
-  browser()
-  n_groups = nrow(od) / nrow_batch
-  groups = rep(seq(n_groups))
+batch_routes = function(od, plans, purpose = "work", folder = ".", batch = TRUE, nrow_batch = 1000) {
+  
+  #Split up into list
+  od$splittingID <- ceiling(seq_len(nrow(od))/nrow_batch)
+  od <- dplyr::group_by(od, splittingID)
+  od <- dplyr::group_split(od)
+  
+  max_pad <- nchar(as.character(length(od)))
+  
+  results <- list()
+  for(i in seq_len(length(od))){
+    message(Sys.time()," doing batch ",i," of ",length(od))
+    results[[i]] <- get_routes(od = od[[i]], 
+               plans = plans, 
+               purpose = purpose, 
+               folder = folder, 
+               batch = batch,
+               id = stringr::str_pad(i, max_pad, pad = "0"))
+  }
+  return(results)
 }

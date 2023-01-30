@@ -31,7 +31,7 @@ tar_source()
 
 # Build parameters --------------------------------------------------------
 
-plans = c("fastest", "balanced")
+plans = c("fastest", "balanced","quietest","ebike")
 min_flow = 1 # Set to 1 for full build, set to high value (e.g. 400) for tests
 
 # Computation done outside of the pipeline --------------------------------
@@ -41,6 +41,12 @@ min_flow = 1 # Set to 1 for full build, set to high value (e.g. 400) for tests
 # r_commute = get_routes(od_commute_subset, plans = plans, purpose = "commute",
 #                            folder = "outputdata", batch = FALSE)
 
+r_commute = batch_routes(od_commute_subset, 
+                         plans = plans, 
+                         purpose = "commute",
+                         folder = "outputdata", 
+                         batch = FALSE,
+                         nrow_batch = 1000)
 # Targets -----------------------------------------------------------------
 
 # Replace the target list below with your own:
