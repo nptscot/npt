@@ -31,7 +31,7 @@ tar_source()
 
 # Build parameters --------------------------------------------------------
 
-plans = c("fastest", "balanced","quietest","ebike")
+plans = c("fastest", "balanced", "quietest", "ebike")
 min_flow = 1 # Set to 1 for full build, set to high value (e.g. 400) for tests
 
 # Computation done outside of the pipeline --------------------------------
