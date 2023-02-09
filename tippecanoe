@@ -54,3 +54,23 @@ tippecanoe -o zones.mbtiles \
   --force  zones.geojson
 
 mb-util zones.mbtiles --image_format=pbf zones
+
+
+# Data Zones
+
+tippecanoe -o data_zones.mbtiles \
+  --name=data_zones \
+  --layer=data_zones \
+  --attribution=UniverstyofLeeds \
+  -zg \
+  --minimum-zoom=6 \
+  --coalesce-smallest-as-needed \
+  --detect-shared-borders \
+  --extend-zooms-if-still-dropping \
+  --maximum-tile-bytes=5000000 \
+  --simplification=10 \
+  --buffer=5 \
+  --force  data_zones.geojson
+
+mb-util data_zones.mbtiles --image_format=pbf data_zones
+
