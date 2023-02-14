@@ -19,7 +19,6 @@ tar_option_set(
 )
 # # Remove previous targets objects:
 # tar_destroy()
-tar_visnetwork()
 
 # tar_make_clustermq() configuration (okay to leave alone):
 options(clustermq.scheduler = "multicore")
@@ -57,11 +56,12 @@ list(
       warning("No .Renviron file, routing may not work")
     }
     list(
-      plans = c("fastest", "balanced", "quietest", "ebike"),
+      plans = c("fastest", "balanced", "quietest"),
+      # plans = c("fastest", "balanced", "quietest", "ebike"),
       # plans = c("fastest"),
       min_flow = 100, # Set to 1 for full build, set to high value (e.g. 400) for tests
-      # max_to_route = 200, # Set to 10e6 or similar large number for all routes
-      max_to_route = 10e6,
+      max_to_route = 300, # Set to 10e6 or similar large number for all routes
+      # max_to_route = 10e6,
       date_routing = "2023-02-14"
       )
   }),
@@ -130,40 +130,36 @@ list(
   tar_target(od_commute_subset, {
     odcs = od_commute_jittered %>%
       filter(dist_euclidean < 20000) %>% 
-      filter(dist_euclidean > 1000)
+      filter(dist_euclidean > 1000) %>% 
+      top_n(n = parameters$max_to_route, wt = bicycle)
     odcs
   }),
   tar_target(r_commute, {
     
-    # message("Calculating ", nrow(od_to_route), " routes")
+    message("Calculating ", nrow(od_commute_subset), " routes")
     # Test routing:
     # stplanr::route(l = od_to_route, route_fun = cyclestreets::journey, plan = "balanced")
     # For all plans:
-    get_routes(od_commute_subset %>% 
-                 top_n(n = parameters$max_to_route, wt = bicycle),
+    routes = get_routes(od_commute_subset,
                plans = parameters$plans, purpose = "commute",
                folder = "outputdata", batch = FALSE, nrow_batch = 100)
-  }),
-  tar_target(uptake_commute, {
-    tar_load(r_commute)
-    # r_commute %>% 
-    #   length()
-    class_routes = class(r_commute)
-    if(any("sf" %in% class_routes)) {
-      r_commute = list(fastest = r_commute)
+    class_routes = class(routes)
+    if(any("sf" %in% class(routes))) {
+      routes = list(fastest = routes)
     }
     plans = parameters$plans
     uptake_list = sapply(plans, function(x) NULL)
-    for(p in plans) {
-      uptake_list[[p]] = get_scenario_go_dutch(r_commute[[p]])
+    for(p in parameters$plans) {
+      uptake_list[[p]] = get_scenario_go_dutch(routes[[p]])
     }
     uptake_list
   }),
   tar_target(rnet_commute, {
     rnet_commute_list = sapply(parameters$plans, function(x) NULL)
     for(p in parameters$plans) {
+      message("Building ", p, " network")
       rnet_raw = stplanr::overline(
-        uptake_commute[[p]],
+        r_commute[[p]],
         attrib = c("bicycle", "bicycle_go_dutch", "quietness", "gradient_smooth"), # todo: add other modes
         fun = list(sum = sum, mean = mean)
       )
@@ -188,7 +184,7 @@ list(
   tar_target(save_outputs, {
     saveRDS(rnet_commute, "outputdata/rnet_commute.Rds")
     f = paste0("outputdata/routes_commute_", nrow(od_commute_subset), "_rows.Rds")
-    saveRDS(uptake_commute, f)
+    saveRDS(r_commute, f)
   }),
   tar_target(plot_zones, {
     # tm_shape(zones) +
