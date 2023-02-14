@@ -54,7 +54,7 @@ list(
       warning("No .Renviron file, routing may not work")
     }
     list(
-      plans = c("fastest", "balanced", "quietest", "ebike"),
+      # plans = c("fastest", "balanced", "quietest", "ebike"),
       plans = c("fastest"),
       min_flow = 200, # Set to 1 for full build, set to high value (e.g. 400) for tests
       max_to_route = 9, # Set to 10e6 or similar large number for all routes
@@ -136,11 +136,11 @@ list(
     # Test routing:
     # stplanr::route(l = od_to_route, route_fun = cyclestreets::journey, plan = "balanced")
     # For all plans:
-    get_routes(od_commute_subset, plans = parameters$plans, purpose = "commute",
+    get_routes(od_to_route, plans = parameters$plans, purpose = "commute",
                folder = "outputdata", batch = FALSE, nrow_batch = 100)
   }),
   tar_target(uptake_commute, {
-    # tar_load(r_commute)
+    tar_load(r_commute)
     # r_commute %>% 
     #   length()
     class_routes = class(r_commute)
@@ -155,8 +155,8 @@ list(
     uptake_list
   }),
   tar_target(rnet_commute, {
-    rnet_commute_list = sapply(plans, function(x) NULL)
-    for(p in plans) {
+    rnet_commute_list = sapply(parameters$plans, function(x) NULL)
+    for(p in parameters$plans) {
       rnet_raw = stplanr::overline(
         uptake_commute[[p]],
         attrib = c("bicycle", "bicycle_go_dutch", "quietness", "gradient_smooth"), # todo: add other modes

@@ -33,16 +33,17 @@ get_routes = function(od, plans, purpose = "work", folder = ".", batch = TRUE, b
             # base_url = "http://5b44de2e26338760-api.cyclestreets.net",
             # pat = Sys.getenv("CYCLESTREETS_BATCH")
           )
+        } else {
+          routes_raw = stplanr::route(
+            l = od,
+            route_fun = cyclestreets::journey,
+            plan = plan,
+            warnNA = FALSE
+            # comment-out this line to use default instance:
+            # base_url = "http://5b44de2e26338760-api.cyclestreets.net",
+            # pat = Sys.getenv("CYCLESTREETS_BATCH")
+          )  
         }
-        routes_raw = stplanr::route(
-          l = od,
-          route_fun = cyclestreets::journey,
-          plan = plan,
-          warnNA = FALSE
-          # comment-out this line to use default instance:
-          # base_url = "http://5b44de2e26338760-api.cyclestreets.net",
-          # pat = Sys.getenv("CYCLESTREETS_BATCH")
-        ) 
       }
       routes_filtered = routes_raw %>% 
         rename(length_route = length) %>% 
