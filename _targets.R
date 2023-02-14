@@ -56,12 +56,13 @@ list(
       warning("No .Renviron file, routing may not work")
     }
     list(
-      plans = c("fastest", "balanced", "quietest"),
+      plans = c("balanced"),
       # plans = c("fastest", "balanced", "quietest", "ebike"),
       # plans = c("fastest"),
-      min_flow = 100, # Set to 1 for full build, set to high value (e.g. 400) for tests
-      max_to_route = 300, # Set to 10e6 or similar large number for all routes
-      # max_to_route = 10e6,
+      # min_flow = 100, # Set to 1 for full build, set to high value (e.g. 400) for tests
+      min_flow = 1,
+      # max_to_route = 300, # Set to 10e6 or similar large number for all routes
+      max_to_route = 10e6,
       date_routing = "2023-02-14"
       )
   }),
