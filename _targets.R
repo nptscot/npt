@@ -57,7 +57,7 @@ list(
       # plans = c("fastest", "balanced", "quietest", "ebike"),
       plans = c("fastest"),
       min_flow = 200, # Set to 1 for full build, set to high value (e.g. 400) for tests
-      max_to_route = 9, # Set to 10e6 or similar large number for all routes
+      max_to_route = 15, # Set to 10e6 or similar large number for all routes
       date_routing = "2023-02-14"
       )
   }),
@@ -204,6 +204,7 @@ list(
   tarchetypes::tar_render(report, path = "README.Rmd", params = list(zones, rnet)),
   tar_target(upload_data, {
     length(visualise_rnet)
+    length(r_commute)
     commit = gert::git_log(max = 1)
     v = paste0("v", Sys.time(), "_commit_", commit$commit)
     v = gsub(pattern = " |:", replacement = "-", x = v)
@@ -218,8 +219,10 @@ list(
     for(i in f) {
       gh_release_upload(file = i, tag = v)
       # Move into a new directory
-      file.rename(v, file.path(v, i))
+      file.copy(from = v, to = file.path(v, i))
     }
+    message("Files stored in output folder: ", v)
+    message("Which contains: ", paste0(list.files(v), collapse = ", "))
     # For rds based version:
     # For specific version:
     # system("gh release create v0.0.1 --generate-notes")
