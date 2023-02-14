@@ -53,10 +53,13 @@ list(
     if(!renviron_exists) {
       warning("No .Renviron file, routing may not work")
     }
-    list(plans = c("fastest", "balanced", "quietest", "ebike"),
-         plans = c("fastest"),
-         min_flow = 430, # Set to 1 for full build, set to high value (e.g. 400) for tests
-         date_routing = "2023-02-14")
+    list(
+      plans = c("fastest", "balanced", "quietest", "ebike"),
+      plans = c("fastest"),
+      min_flow = 200, # Set to 1 for full build, set to high value (e.g. 400) for tests
+      max_to_route = 9, # Set to 10e6 or similar large number for all routes
+      date_routing = "2023-02-14"
+      )
   }),
   
   tar_target(dl_data, {
@@ -126,19 +129,28 @@ list(
       filter(dist_euclidean > 1000)
     odcs
   }),
-  tar_target(routes_commute, {
-    # For testing:
-    message("Calculating ", nrow(od_commute_subset), " routes")
-    r = route(l = od_commute_subset, route_fun = cyclestreets::journey, plan = "balanced")
-    # batch_routes(od_commute_subset, plans = plans, purpose = "commute",
-    #            folder = "outputdata", batch = FALSE, nrow_batch = 100)
-  
+  tar_target(r_commute, {
+    od_to_route = od_commute_subset %>% 
+      top_n(n = parameters$max_to_route, wt = bicycle)
+    message("Calculating ", nrow(od_to_route), " routes")
+    # Test routing:
+    # stplanr::route(l = od_to_route, route_fun = cyclestreets::journey, plan = "balanced")
+    # For all plans:
+    get_routes(od_commute_subset, plans = parameters$plans, purpose = "commute",
+               folder = "outputdata", batch = FALSE, nrow_batch = 100)
   }),
   tar_target(uptake_commute, {
-    class_routes = class(routes_commute)
+    # tar_load(r_commute)
+    # r_commute %>% 
+    #   length()
+    class_routes = class(r_commute)
+    if(any("sf" %in% class_routes)) {
+      r_commute = list(fastest = r_commute)
+    }
+    plans = parameters$plans
     uptake_list = sapply(plans, function(x) NULL)
     for(p in plans) {
-      uptake_list[[p]] = get_scenario_go_dutch(routes_commute[[p]])
+      uptake_list[[p]] = get_scenario_go_dutch(r_commute[[p]])
     }
     uptake_list
   }),
@@ -187,7 +199,7 @@ list(
   
   tar_target(calculate_benefits, {
     benefits = function(x) x
-    benefits(routes_commute)
+    benefits(r_commute)
   }),
   tarchetypes::tar_render(report, path = "README.Rmd", params = list(zones, rnet)),
   tar_target(upload_data, {

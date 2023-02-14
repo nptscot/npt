@@ -1,16 +1,15 @@
-get_routes = function(od, plans, purpose = "work", folder = ".", batch = TRUE, id = "001") {
-  no_batch = nrow(od) < 250 
-  if (no_batch) {
+get_routes = function(od, plans, purpose = "work", folder = ".", batch = TRUE, batch_save = TRUE, nrow_batch = 100) {
+  if (nrow(od) < 250) {
     batch = FALSE
   }
   route_list = sapply(plans, function(x) NULL)
   for(plan in plans) {
     message("Getting the ", plan, " routes for ", purpose, " journeys")
-    file_name = paste0("routes_max_dist_", purpose, "_", plan, "_id", id, ".Rds") 
+    file_name = paste0("routes_max_dist_", purpose, "_", plan, ".Rds") 
     savename_f = file.path(folder, file_name)
     message("Getting the ", plan, " routes")
     if(file.exists(savename_f)) {
-      message("Routes already exist: reading from file")
+      message("Routes already exist: reading from file: ", savename_f)
       routes_filtered = readRDS(savename_f)
     } else {
       if(batch) {
@@ -21,6 +20,20 @@ get_routes = function(od, plans, purpose = "work", folder = ".", batch = TRUE, i
           strategies = plan
         )
       } else {
+        if(batch_save) {
+          routes_raw = batch_routes(
+            od,
+            fun = stplanr::route,
+            route_fun = cyclestreets::journey,
+            purpose = purpose,
+            plan = plan,
+            warnNA = FALSE, 
+            nrow_batch = nrow_batch
+            # comment-out this line to use default instance:
+            # base_url = "http://5b44de2e26338760-api.cyclestreets.net",
+            # pat = Sys.getenv("CYCLESTREETS_BATCH")
+          )
+        }
         routes_raw = stplanr::route(
           l = od,
           route_fun = cyclestreets::journey,
@@ -44,10 +57,22 @@ get_routes = function(od, plans, purpose = "work", folder = ".", batch = TRUE, i
   route_list
 }
 
-batch_routes = function(od, plans, purpose = "work", folder = ".", batch = TRUE, nrow_batch = 1000) {
-  
+#' Save routes in batches before returning the result
+#' 
+#' An alternative to routing functions
+#' 
+#' @examples 
+# tar_load(od_commute_subset)
+# od = od_commute_subset
+# fun = stplanr::route
+# nrow_batch = 10
+# plan = "fastest"
+# purpose = "work"
+batch_routes = function(od, fun, nrow_batch = 100, plan = "fastest", purpose, ..., temp_folder = tempdir()) {
+
+  nrow_od = nrow(od)  
   #Split up into list
-  od$splittingID <- ceiling(seq_len(nrow(od))/nrow_batch)
+  od$splittingID <- ceiling(seq_len(nrow(od)) / nrow_batch)
   od <- dplyr::group_by(od, splittingID)
   od <- dplyr::group_split(od)
   
@@ -55,13 +80,30 @@ batch_routes = function(od, plans, purpose = "work", folder = ".", batch = TRUE,
   
   results <- list()
   for(i in seq_len(length(od))){
-    message(Sys.time()," doing batch ",i ," of ", length(od))
-    results[[i]] <- get_routes(od = od[[i]], 
-               plans = plans, 
-               purpose = purpose, 
-               folder = folder, 
-               batch = batch,
-               id = stringr::str_pad(i, max_pad, pad = "0"))
+    od_to_route = od[[i]]
+    id = stringr::str_pad(i, max_pad, pad = "0")
+    f = paste0("batch_", plan, "_", purpose, "_", id, "_with_", nrow(od_to_route), "_routes_of_", nrow_od, "_rows.Rds")
+    f = file.path(temp_folder, f)
+    message(Sys.time()," doing batch ", id, " of ", length(od))
+    message("Number of rows in batch: ", nrow(od_to_route))
+    
+    # results[[i]] <- fun(od_to_route, ...)
+    if(file.exists(f)) {
+      results[[i]] = readRDS(f)
+    } else {
+      results[[i]] <- fun(
+        l = od_to_route,
+        route_fun = cyclestreets::journey,
+        plan = plan,
+        warnNA = FALSE
+        # comment-out this line to use default instance:
+        # base_url = "http://5b44de2e26338760-api.cyclestreets.net",
+        # pat = Sys.getenv("CYCLESTREETS_BATCH")
+      )
+      message("Saving ", f, " to ", temp_folder)
+    }
   }
-  return(results)
+  message("Combining results")
+  result = do.call(rbind, results)
+  return(result)
 }
