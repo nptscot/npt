@@ -1,5 +1,5 @@
 get_routes = function(od, plans, purpose = "work", folder = ".", batch = TRUE, id = "001") {
-  no_batch = nrow(od) < 250 || nrow(od) > 14000
+  no_batch = nrow(od) < 250 
   if (no_batch) {
     batch = FALSE
   }
@@ -55,7 +55,7 @@ batch_routes = function(od, plans, purpose = "work", folder = ".", batch = TRUE,
   
   results <- list()
   for(i in seq_len(length(od))){
-    message(Sys.time()," doing batch ",i," of ",length(od))
+    message(Sys.time()," doing batch ",i ," of ", length(od))
     results[[i]] <- get_routes(od = od[[i]], 
                plans = plans, 
                purpose = purpose, 

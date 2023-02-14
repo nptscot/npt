@@ -11,7 +11,6 @@ library(tmap)
 library(stplanr)
 library(sf)
 remotes::install_dev("cyclestreets")
-date_routing = "2023-01-18"
 # Set target options:
 tar_option_set(
   packages = c("tibble"), # packages that your targets need to run
@@ -31,8 +30,10 @@ tar_source()
 
 # Build parameters --------------------------------------------------------
 
-plans = c("fastest", "balanced", "quietest", "ebike")
-min_flow = 1 # Set to 1 for full build, set to high value (e.g. 400) for tests
+# plans = c("fastest", "balanced", "quietest", "ebike")
+plans = c("fastest")
+min_flow = 430 # Set to 1 for full build, set to high value (e.g. 400) for tests
+date_routing = "2023-02-14"
 
 # Computation done outside of the pipeline --------------------------------
 
@@ -41,12 +42,13 @@ min_flow = 1 # Set to 1 for full build, set to high value (e.g. 400) for tests
 # r_commute = get_routes(od_commute_subset, plans = plans, purpose = "commute",
 #                            folder = "outputdata", batch = FALSE)
 
-r_commute = batch_routes(od_commute_subset, 
-                         plans = plans, 
-                         purpose = "commute",
-                         folder = "outputdata", 
-                         batch = FALSE,
-                         nrow_batch = 1000)
+# r_commute = batch_routes(od_commute_subset, 
+#                          plans = plans, 
+#                          purpose = "commute",
+#                          folder = "outputdata", 
+#                          batch = FALSE,
+#                          nrow_batch = 1000)
+
 # Targets -----------------------------------------------------------------
 
 # Replace the target list below with your own:
@@ -73,6 +75,7 @@ list(
   #   # read_csv("data-raw/od_subset.csv")
   # }),
   tar_target(od_data, {
+    min_flow = 430 # Set to 1 for full build, set to high value (e.g. 400) for tests
     desire_lines_raw = readRDS("inputdata/desire_lines_scotland.Rds")
     od_raw = as_tibble(sf::st_drop_geometry(desire_lines_raw))
     od_subset = od_raw %>%
@@ -119,13 +122,14 @@ list(
   }),
   tar_target(routes_commute, {
     # For testing:
-    # route(l = od_commute_jittered, route_fun = cyclestreets::journey, plan = "balanced")
     message("Calculating ", nrow(od_commute_subset), " routes")
-    batch_routes(od_commute_subset, plans = plans, purpose = "commute",
-               folder = "outputdata", batch = FALSE, nrow_batch = 100)
+    r = route(l = od_commute_jittered, route_fun = cyclestreets::journey, plan = "balanced")
+    # batch_routes(od_commute_subset, plans = plans, purpose = "commute",
+    #            folder = "outputdata", batch = FALSE, nrow_batch = 100)
   
   }),
   tar_target(uptake_commute, {
+    
     uptake_list = sapply(plans, function(x) NULL)
     for(p in plans) {
       uptake_list[[p]] = get_scenario_go_dutch(routes_commute[[p]])

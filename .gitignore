@@ -17,3 +17,4 @@ outputs/rnet/metadata.json
 outputs/routes/metadata.json
 outputdata/
 outputs/zones/metadata.json
+.R*
