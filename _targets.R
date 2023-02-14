@@ -17,6 +17,9 @@ tar_option_set(
   format = "rds" # default storage format
   # Set other options as needed.
 )
+# # Remove previous targets objects:
+# tar_destroy()
+tar_visnetwork()
 
 # tar_make_clustermq() configuration (okay to leave alone):
 options(clustermq.scheduler = "multicore")
