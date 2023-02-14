@@ -54,10 +54,10 @@ list(
       warning("No .Renviron file, routing may not work")
     }
     list(
-      # plans = c("fastest", "balanced", "quietest", "ebike"),
-      plans = c("fastest"),
+      plans = c("fastest", "balanced", "quietest", "ebike"),
+      # plans = c("fastest"),
       min_flow = 200, # Set to 1 for full build, set to high value (e.g. 400) for tests
-      max_to_route = 15, # Set to 10e6 or similar large number for all routes
+      max_to_route = 200, # Set to 10e6 or similar large number for all routes
       date_routing = "2023-02-14"
       )
   }),
@@ -226,6 +226,7 @@ list(
     # For rds based version:
     # For specific version:
     # system("gh release create v0.0.1 --generate-notes")
+    file.remove(f)
     setwd("..")
   })
   # tar_source(files = "data-raw/test-tiles.R") # how to source script as target?
