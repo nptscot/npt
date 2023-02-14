@@ -30,11 +30,6 @@ tar_source()
 
 # Build parameters --------------------------------------------------------
 
-# plans = c("fastest", "balanced", "quietest", "ebike")
-plans = c("fastest")
-min_flow = 430 # Set to 1 for full build, set to high value (e.g. 400) for tests
-date_routing = "2023-02-14"
-
 # Computation done outside of the pipeline --------------------------------
 
 # tar_load(od_commute_subset)
@@ -53,6 +48,17 @@ date_routing = "2023-02-14"
 
 # Replace the target list below with your own:
 list(
+  tar_target(parameters, {
+    renviron_exists = file.exists(".Renviron")
+    if(!renviron_exists) {
+      warning("No .Renviron file, routing may not work")
+    }
+    list(plans = c("fastest", "balanced", "quietest", "ebike"),
+         plans = c("fastest"),
+         min_flow = 430, # Set to 1 for full build, set to high value (e.g. 400) for tests
+         date_routing = "2023-02-14")
+  }),
+  
   tar_target(dl_data, {
     setwd("inputdata")
     gh_release_downlad(tag = "v1")
@@ -75,7 +81,7 @@ list(
   #   # read_csv("data-raw/od_subset.csv")
   # }),
   tar_target(od_data, {
-    min_flow = 430 # Set to 1 for full build, set to high value (e.g. 400) for tests
+    min_flow = paramaters$min_flow # Set to 1 for full build, set to high value (e.g. 400) for tests
     desire_lines_raw = readRDS("inputdata/desire_lines_scotland.Rds")
     od_raw = as_tibble(sf::st_drop_geometry(desire_lines_raw))
     od_subset = od_raw %>%
@@ -83,7 +89,7 @@ list(
       filter(geo_code2 %in% zones$InterZone) %>%
       filter(dist_euclidean < 20000) %>% 
       filter(dist_euclidean > 1000) %>% 
-      filter(all >= 1)
+      filter(all >= min_flow)
     # write_csv(od_subset, "data-raw/od_subset.csv")
   }),
   tar_target(subpoints_origins, {
@@ -129,7 +135,7 @@ list(
   
   }),
   tar_target(uptake_commute, {
-    
+    class_routes = class(routes_commute)
     uptake_list = sapply(plans, function(x) NULL)
     for(p in plans) {
       uptake_list[[p]] = get_scenario_go_dutch(routes_commute[[p]])
