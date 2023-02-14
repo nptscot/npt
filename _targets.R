@@ -81,7 +81,7 @@ list(
   #   # read_csv("data-raw/od_subset.csv")
   # }),
   tar_target(od_data, {
-    min_flow = paramaters$min_flow # Set to 1 for full build, set to high value (e.g. 400) for tests
+    min_flow = parameters$min_flow # Set to 1 for full build, set to high value (e.g. 400) for tests
     desire_lines_raw = readRDS("inputdata/desire_lines_scotland.Rds")
     od_raw = as_tibble(sf::st_drop_geometry(desire_lines_raw))
     od_subset = od_raw %>%
@@ -129,7 +129,7 @@ list(
   tar_target(routes_commute, {
     # For testing:
     message("Calculating ", nrow(od_commute_subset), " routes")
-    r = route(l = od_commute_jittered, route_fun = cyclestreets::journey, plan = "balanced")
+    r = route(l = od_commute_subset, route_fun = cyclestreets::journey, plan = "balanced")
     # batch_routes(od_commute_subset, plans = plans, purpose = "commute",
     #            folder = "outputdata", batch = FALSE, nrow_batch = 100)
   
