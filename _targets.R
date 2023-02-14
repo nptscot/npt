@@ -56,8 +56,9 @@ list(
     list(
       plans = c("fastest", "balanced", "quietest", "ebike"),
       # plans = c("fastest"),
-      min_flow = 200, # Set to 1 for full build, set to high value (e.g. 400) for tests
-      max_to_route = 200, # Set to 10e6 or similar large number for all routes
+      min_flow = 100, # Set to 1 for full build, set to high value (e.g. 400) for tests
+      # max_to_route = 200, # Set to 10e6 or similar large number for all routes
+      max_to_route = 10e6,
       date_routing = "2023-02-14"
       )
   }),
@@ -130,13 +131,14 @@ list(
     odcs
   }),
   tar_target(r_commute, {
-    od_to_route = od_commute_subset %>% 
-      top_n(n = parameters$max_to_route, wt = bicycle)
-    message("Calculating ", nrow(od_to_route), " routes")
+    
+    # message("Calculating ", nrow(od_to_route), " routes")
     # Test routing:
     # stplanr::route(l = od_to_route, route_fun = cyclestreets::journey, plan = "balanced")
     # For all plans:
-    get_routes(od_to_route, plans = parameters$plans, purpose = "commute",
+    get_routes(od_commute_subset %>% 
+                 top_n(n = parameters$max_to_route, wt = bicycle),
+               plans = parameters$plans, purpose = "commute",
                folder = "outputdata", batch = FALSE, nrow_batch = 100)
   }),
   tar_target(uptake_commute, {
