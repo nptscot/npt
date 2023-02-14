@@ -13,7 +13,7 @@ od_test_100 = od_commute_subset[1:100, ]
 od_test_100$id = seq(nrow(od_test_100))
 sf::write_sf(od_test_100, "od_test_100.geojson", delete_dsn = TRUE)
 
-Sys.time({
+system.time({
 batch_test_100 = cyclestreets::batch(
   desire_lines = od_test_100,
   serverId = "27",
@@ -83,7 +83,7 @@ od_test_10000 = od_commute_subset[1:10000, ]
 
 system.time({
   batch_test_all <- cyclestreets::batch(
-    desire_lines = od_commute_subset,
+    desire_lines = od_commute_subset[1:10000, ],
     serverId = "27",
     strategies = "balanced",
     username = "robinlovelace",

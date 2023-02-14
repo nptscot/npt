@@ -53,10 +53,13 @@ list(
     if(!renviron_exists) {
       warning("No .Renviron file, routing may not work")
     }
-    list(plans = c("fastest", "balanced", "quietest", "ebike"),
-         plans = c("fastest"),
-         min_flow = 430, # Set to 1 for full build, set to high value (e.g. 400) for tests
-         date_routing = "2023-02-14")
+    list(
+      plans = c("fastest", "balanced", "quietest", "ebike"),
+      # plans = c("fastest"),
+      min_flow = 200, # Set to 1 for full build, set to high value (e.g. 400) for tests
+      max_to_route = 200, # Set to 10e6 or similar large number for all routes
+      date_routing = "2023-02-14"
+      )
   }),
   
   tar_target(dl_data, {
@@ -126,25 +129,34 @@ list(
       filter(dist_euclidean > 1000)
     odcs
   }),
-  tar_target(routes_commute, {
-    # For testing:
-    message("Calculating ", nrow(od_commute_subset), " routes")
-    r = route(l = od_commute_subset, route_fun = cyclestreets::journey, plan = "balanced")
-    # batch_routes(od_commute_subset, plans = plans, purpose = "commute",
-    #            folder = "outputdata", batch = FALSE, nrow_batch = 100)
-  
+  tar_target(r_commute, {
+    od_to_route = od_commute_subset %>% 
+      top_n(n = parameters$max_to_route, wt = bicycle)
+    message("Calculating ", nrow(od_to_route), " routes")
+    # Test routing:
+    # stplanr::route(l = od_to_route, route_fun = cyclestreets::journey, plan = "balanced")
+    # For all plans:
+    get_routes(od_to_route, plans = parameters$plans, purpose = "commute",
+               folder = "outputdata", batch = FALSE, nrow_batch = 100)
   }),
   tar_target(uptake_commute, {
-    class_routes = class(routes_commute)
+    tar_load(r_commute)
+    # r_commute %>% 
+    #   length()
+    class_routes = class(r_commute)
+    if(any("sf" %in% class_routes)) {
+      r_commute = list(fastest = r_commute)
+    }
+    plans = parameters$plans
     uptake_list = sapply(plans, function(x) NULL)
     for(p in plans) {
-      uptake_list[[p]] = get_scenario_go_dutch(routes_commute[[p]])
+      uptake_list[[p]] = get_scenario_go_dutch(r_commute[[p]])
     }
     uptake_list
   }),
   tar_target(rnet_commute, {
-    rnet_commute_list = sapply(plans, function(x) NULL)
-    for(p in plans) {
+    rnet_commute_list = sapply(parameters$plans, function(x) NULL)
+    for(p in parameters$plans) {
       rnet_raw = stplanr::overline(
         uptake_commute[[p]],
         attrib = c("bicycle", "bicycle_go_dutch", "quietness", "gradient_smooth"), # todo: add other modes
@@ -187,11 +199,12 @@ list(
   
   tar_target(calculate_benefits, {
     benefits = function(x) x
-    benefits(routes_commute)
+    benefits(r_commute)
   }),
   tarchetypes::tar_render(report, path = "README.Rmd", params = list(zones, rnet)),
   tar_target(upload_data, {
     length(visualise_rnet)
+    length(r_commute)
     commit = gert::git_log(max = 1)
     v = paste0("v", Sys.time(), "_commit_", commit$commit)
     v = gsub(pattern = " |:", replacement = "-", x = v)
@@ -206,11 +219,14 @@ list(
     for(i in f) {
       gh_release_upload(file = i, tag = v)
       # Move into a new directory
-      file.rename(v, file.path(v, i))
+      file.copy(from = v, to = file.path(v, i))
     }
+    message("Files stored in output folder: ", v)
+    message("Which contains: ", paste0(list.files(v), collapse = ", "))
     # For rds based version:
     # For specific version:
     # system("gh release create v0.0.1 --generate-notes")
+    file.remove(f)
     setwd("..")
   })
   # tar_source(files = "data-raw/test-tiles.R") # how to source script as target?
