@@ -105,6 +105,7 @@ batch_routes = function(od, fun, nrow_batch = 100, plan = "fastest", purpose, ..
     }
   }
   message("Combining results")
-  result = do.call(rbind, results)
+  result = sf::st_as_sf(data.table::rbindlist(results))
+  bbox = sfheaders::sf_bbox()
   return(result)
 }
