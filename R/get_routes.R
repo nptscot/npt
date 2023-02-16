@@ -7,7 +7,6 @@ get_routes = function(od, plans, purpose = "work", folder = ".", batch = TRUE, b
     message("Getting the ", plan, " routes for ", purpose, " journeys")
     file_name = paste0("routes_max_dist_", purpose, "_", plan, ".Rds") 
     savename_f = file.path(folder, file_name)
-    message("Getting the ", plan, " routes")
     if(file.exists(savename_f)) {
       message("Routes already exist: reading from file: ", savename_f)
       routes_filtered = readRDS(savename_f)
