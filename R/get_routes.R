@@ -127,7 +127,6 @@ batch_routes = function(od, fun, nrow_batch = 100, plan = "fastest", purpose, ..
   }
   message("Combining results")
   saveRDS(results, file.path(temp_folder, "results_list.Rds"))
-  result = sf::st_as_sf(data.table::rbindlist(results))
-  bbox = sfheaders::sf_bbox()
+  result = bind_sf(results)
   return(result)
 }

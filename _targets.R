@@ -197,15 +197,15 @@ list(
   #   # tar_source("code/vis_network.R")
   #   # tarchetypes::tar_
   # }),
-  tarchetypes::tar_render(visualise_rnet, path = "code/vis_network.Rmd", params = list(rnet_commute)),
+  # tarchetypes::tar_render(visualise_rnet, path = "code/vis_network.Rmd", params = list(rnet_commute)),
   
   tar_target(calculate_benefits, {
     benefits = function(x) x
     benefits(r_commute)
   }),
-  tarchetypes::tar_render(report, path = "README.Rmd", params = list(zones, rnet)),
+  # tarchetypes::tar_render(report, path = "README.Rmd", params = list(zones, rnet)),
   tar_target(upload_data, {
-    length(visualise_rnet)
+    length(rnet)
     length(r_commute)
     commit = gert::git_log(max = 1)
     v = paste0("v", Sys.time(), "_commit_", commit$commit)
