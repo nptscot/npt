@@ -57,12 +57,12 @@ list(
     }
     list(
       plans = c("balanced"),
-      # plans = c("fastest", "balanced", "quietest", "ebike"),
+      plans = c("fastest", "balanced", "quietest", "ebike"),
       # plans = c("fastest"),
       # min_flow = 100, # Set to 1 for full build, set to high value (e.g. 400) for tests
-      min_flow = 1,
-      # max_to_route = 300, # Set to 10e6 or similar large number for all routes
-      max_to_route = 10e6,
+      min_flow = 100,
+      max_to_route = 300, # Set to 10e6 or similar large number for all routes
+      # max_to_route = 10e6,
       date_routing = "2023-02-14"
       )
   }),
@@ -184,7 +184,9 @@ list(
   }),
   tar_target(save_outputs, {
     saveRDS(rnet_commute, "outputdata/rnet_commute.Rds")
-    f = paste0("outputdata/routes_commute_", nrow(od_commute_subset), "_rows.Rds")
+    saveRDS(od_commute_subset, "outputdata/od_commute_subset.Rds")
+    # Saved by get_routes()
+    # f = paste0("outputdata/routes_commute_", nrow(od_commute_subset), "_rows.Rds")
     saveRDS(r_commute, f)
   }),
   tar_target(plot_zones, {
