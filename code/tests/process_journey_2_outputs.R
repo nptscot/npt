@@ -9,6 +9,7 @@ setwd("..")
 remotes::install_github("nptscot/cyclestreets-r")
 library(cyclestreets)
 
+
 targets::tar_load(od_commute_subset)
 od = od_commute_subset
 od = od[!duplicated(od$geometry),] #TODO; Fix bug with jittering?
@@ -59,3 +60,22 @@ sf::write_sf(r_1, "../cyclestreets-r/data-raw/r_2.geojson")
 sf::write_sf(od, "../cyclestreets-r/data-raw/od-test.geojson")
 
 # [17] "gradient_segment"        "elevation_change"        "gradient_smooth"  
+
+
+# Benchmark ---------------------------------------------------------------
+
+library(cyclestreets)
+library(stplanr)
+targets::tar_load(od_commute_subset)
+
+od = od_commute_subset[1:33, ] 
+duplicated_geometries = duplicated(od$geometry)
+summary(duplicated_geometries)
+od = od[!duplicated_geometries, ]
+fromPlace = sf::st_as_sf(lwgeom::st_startpoint(od))
+toPlace = sf::st_as_sf(lwgeom::st_endpoint(od))
+library(sf)
+bench::mark(check = FALSE, max_iterations = 1,
+            journey = (r1 <<- route(l = od, route_fun = journey, plan = "quietest")),
+            journey2 = (r2 <<- journey2(fromPlace, toPlace, id = od$route_id, plan = "quietest", segments = TRUE))
+            )
