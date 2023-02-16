@@ -59,10 +59,10 @@ list(
       plans = c("fastest", "balanced", "quietest", "ebike"),
       # plans = c("fastest"),
       # min_flow = 100, # Set to 1 for full build, set to high value (e.g. 400) for tests
-      min_flow = 100,
-      max_to_route = 30, # Set to 10e6 or similar large number for all routes
-      # max_to_route = 10e6,
-      date_routing = "2023-02-14"
+      min_flow = 1,
+      # max_to_route = 10, # Set to 10e6 or similar large number for all routes
+      max_to_route = 10e6,
+      date_routing = "2023-02-16"
       )
   }),
   
@@ -130,7 +130,7 @@ list(
   tar_target(od_commute_subset, {
     odcs = od_commute_jittered %>%
       filter(dist_euclidean < 20000) %>% 
-      filter(dist_euclidean > 1000) %>% 
+      filter(dist_euclidean > 500) %>% 
       top_n(n = parameters$max_to_route, wt = bicycle)
     odcs
   }),
@@ -142,7 +142,7 @@ list(
     # For all plans:
     routes = get_routes(od_commute_subset,
                plans = parameters$plans, purpose = "commute",
-               folder = "outputdata", batch = FALSE, nrow_batch = 100)
+               folder = "outputdata", batch = TRUE, nrow_batch = 10000)
     class_routes = class(routes)
     if(any("sf" %in% class(routes))) {
       routes = list(fastest = routes)

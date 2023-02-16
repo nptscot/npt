@@ -14,7 +14,7 @@ get_routes = function(od, plans, purpose = "work", folder = ".", batch = TRUE, b
       if(batch) {
         routes_raw = cyclestreets::batch(
           desire_lines = od,
-          maxDistance = max_length_euclidean_km * 1000,
+          maxDistance = 30000,
           username = "robinlovelace",
           strategies = plan
         )
@@ -47,7 +47,7 @@ get_routes = function(od, plans, purpose = "work", folder = ".", batch = TRUE, b
       }
       routes_filtered = routes_raw %>% 
         rename(length_route = length) %>% 
-        group_by(route_number) %>% 
+        group_by(route_id) %>% 
         mutate(route_hilliness = mean(gradient_smooth)) %>% 
         ungroup()
       message("Saving ", savename_f)
@@ -102,16 +102,23 @@ batch_routes = function(od, fun, nrow_batch = 100, plan = "fastest", purpose, ..
         message("Starting routing")
         results[[i]] <- try(
           
-          # if(runif(1) > 0.1) stop() else 5 
-          fun(
-          l = od_to_route,
-          route_fun = cyclestreets::journey,
-          plan = plan,
-          warnNA = FALSE
-          # comment-out this line to use default instance:
-          # base_url = "http://5b44de2e26338760-api.cyclestreets.net",
-          # pat = Sys.getenv("CYCLESTREETS_BATCH")
-        )
+          # standard routing:
+          # fun(
+          #   l = od_to_route,
+          #   route_fun = cyclestreets::journey,
+          #   plan = plan,
+          #   warnNA = FALSE
+          #   # comment-out this line to use default instance:
+          #   # base_url = "http://5b44de2e26338760-api.cyclestreets.net",
+          #   # pat = Sys.getenv("CYCLESTREETS_BATCH")
+          # )
+          # batch routing:
+          cyclestreets::batch(
+            desire_lines = od_to_route,
+            maxDistance = 30000,
+            username = "robinlovelace",
+            strategies = plan
+          )
         
         )
         if(!is(results[[i]], 'try-error')) break
