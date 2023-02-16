@@ -98,21 +98,24 @@ batch_routes = function(od, fun, nrow_batch = 100, plan = "fastest", purpose, ..
       message("File does not exist")
       # Retry failing batches
       # Source: https://stackoverflow.com/questions/31999808/retry-for-loop-r-loop-if-error
+      # results = as.list(1:100) # for testing
       while(TRUE){
         message("Starting routing")
-        testres <-try(stop("Test fail")) ; Sys.sleep(time = 1)
-        testres <-try(1) ; Sys.sleep(time = 1)
-        if(!is(testres, 'try-error')) break
-        # results[[i]] <- try(fun(
-        #   l = od_to_route,
-        #   route_fun = cyclestreets::journey,
-        #   plan = plan,
-        #   warnNA = FALSE
-        #   # comment-out this line to use default instance:
-        #   # base_url = "http://5b44de2e26338760-api.cyclestreets.net",
-        #   # pat = Sys.getenv("CYCLESTREETS_BATCH")
-        # ))
-        # if(!is(results[[i]], 'try-error')) break
+        results[[i]] <- try(
+          
+          # if(runif(1) > 0.1) stop() else 5 
+          fun(
+          l = od_to_route,
+          route_fun = cyclestreets::journey,
+          plan = plan,
+          warnNA = FALSE
+          # comment-out this line to use default instance:
+          # base_url = "http://5b44de2e26338760-api.cyclestreets.net",
+          # pat = Sys.getenv("CYCLESTREETS_BATCH")
+        )
+        
+        )
+        if(!is(results[[i]], 'try-error')) break
       }
       message("Saving ", f, " to ", temp_folder)
       saveRDS(results[[i]], f)
