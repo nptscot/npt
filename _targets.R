@@ -142,7 +142,7 @@ list(
     # For all plans:
     routes = get_routes(od_commute_subset,
                plans = parameters$plans, purpose = "commute",
-               folder = "outputdata", batch = TRUE, nrow_batch = 10000)
+               folder = "outputdata", batch = FALSE, nrow_batch = 10000)
     class_routes = class(routes)
     if(any("sf" %in% class(routes))) {
       routes = list(fastest = routes)

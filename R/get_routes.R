@@ -70,7 +70,7 @@ get_routes = function(od, plans, purpose = "work", folder = ".", batch = TRUE, b
 # plan = "fastest"
 # purpose = "work"
 batch_routes = function(od, fun, nrow_batch = 100, plan = "fastest", purpose, ..., temp_folder = tempdir()) {
-
+  
   nrow_od = nrow(od)  
   #Split up into list
   od$splittingID <- ceiling(seq_len(nrow(od)) / nrow_batch)
