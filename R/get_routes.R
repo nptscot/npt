@@ -28,7 +28,8 @@ get_routes = function(od, plans, purpose = "work", folder = ".", batch = TRUE, b
             purpose = purpose,
             plan = plan,
             warnNA = FALSE, 
-            nrow_batch = nrow_batch
+            nrow_batch = nrow_batch,
+            temp_folder = "tmp"
             # comment-out this line to use default instance:
             # base_url = "http://5b44de2e26338760-api.cyclestreets.net",
             # pat = Sys.getenv("CYCLESTREETS_BATCH")
@@ -87,24 +88,42 @@ batch_routes = function(od, fun, nrow_batch = 100, plan = "fastest", purpose, ..
     f = file.path(temp_folder, f)
     message(Sys.time()," doing batch ", id, " of ", length(od))
     message("Number of rows in batch: ", nrow(od_to_route))
+    message("Looking in the file: ", f)
     
     # results[[i]] <- fun(od_to_route, ...)
     if(file.exists(f)) {
+      message("File exists")
       results[[i]] = readRDS(f)
     } else {
-      results[[i]] <- fun(
-        l = od_to_route,
-        route_fun = cyclestreets::journey,
-        plan = plan,
-        warnNA = FALSE
-        # comment-out this line to use default instance:
-        # base_url = "http://5b44de2e26338760-api.cyclestreets.net",
-        # pat = Sys.getenv("CYCLESTREETS_BATCH")
-      )
+      message("File does not exist")
+      # Retry failing batches
+      # Source: https://stackoverflow.com/questions/31999808/retry-for-loop-r-loop-if-error
+      while(TRUE){
+        message("Starting routing")
+        testres <-try(stop("Test fail")) ; Sys.sleep(time = 1)
+        testres <-try(1) ; Sys.sleep(time = 1)
+        if(!is(testres, 'try-error')) break
+        # results[[i]] <- try(fun(
+        #   l = od_to_route,
+        #   route_fun = cyclestreets::journey,
+        #   plan = plan,
+        #   warnNA = FALSE
+        #   # comment-out this line to use default instance:
+        #   # base_url = "http://5b44de2e26338760-api.cyclestreets.net",
+        #   # pat = Sys.getenv("CYCLESTREETS_BATCH")
+        # ))
+        # if(!is(results[[i]], 'try-error')) break
+      }
       message("Saving ", f, " to ", temp_folder)
+      saveRDS(results[[i]], f)
+      f = paste0("od", "_", purpose, "_", id, "_with_", nrow(od_to_route), "_of_", nrow_od, "_rows.Rds")
+      f = file.path(temp_folder, f)
+      message("Saving ", f, " to ", temp_folder)
+      saveRDS(od_to_route, f)
     }
   }
   message("Combining results")
+  saveRDS(results, file.path(temp_folder, "results_list.Rds"))
   result = sf::st_as_sf(data.table::rbindlist(results))
   bbox = sfheaders::sf_bbox()
   return(result)
