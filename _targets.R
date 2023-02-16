@@ -10,7 +10,7 @@ library(tidyverse)
 library(tmap)
 library(stplanr)
 library(sf)
-remotes::install_dev("cyclestreets")
+remotes::install_github("nptscot/cyclestreets-r")
 # Set target options:
 tar_option_set(
   packages = c("tibble"), # packages that your targets need to run
