@@ -56,7 +56,7 @@ list(
       # plans = c("fastest"),
       min_flow = 100, # Set to 1 for full build, set to high value (e.g. 400) for tests
       # min_flow = 1,
-      max_to_route = 1000, # Set to 10e6 or similar large number for all routes
+      max_to_route = 100, # Set to 10e6 or similar large number for all routes
       # max_to_route = 10e6,
       date_routing = "2023-02-16"
       )
@@ -135,11 +135,12 @@ list(
     message("Calculating ", nrow(od_commute_subset), " routes")
     # Test routing:
     # stplanr::route(l = od_to_route, route_fun = cyclestreets::journey, plan = "balanced")
+    
     # For all plans:
-    routes = readRDS("outputdata/routes_commute.Rds")
-    # routes = get_routes(od_commute_subset,
-    #            plans = parameters$plans, purpose = "commute",
-    #            folder = "outputdata", batch = FALSE, nrow_batch = 10000)
+    # routes = readRDS("outputdata/routes_commute.Rds")
+    routes = get_routes(od_commute_subset,
+               plans = parameters$plans, purpose = "commute",
+               folder = "outputdata", batch = FALSE, nrow_batch = 10000)
     class_routes = class(routes)
     if(any("sf" %in% class(routes))) {
       routes = list(fastest = routes)
@@ -152,7 +153,7 @@ list(
     }
     uptake_list
   }),
-  tar_target(rnet_commute, {
+  tar_target(rnet_commute_list, {
     rnet_commute_list = sapply(parameters$plans, function(x) NULL)
     for(p in parameters$plans) {
       message("Building ", p, " network")
@@ -177,7 +178,7 @@ list(
     rnet_commute_list
   }),
   tar_target(rnet, {
-    rnet_commute[[1]]
+    rnet_commute_list[[1]]
   }),
   tar_target(save_outputs, {
     saveRDS(rnet_commute_list, "outputdata/rnet_commute_list.Rds")
@@ -196,7 +197,7 @@ list(
   #   # tar_source("code/vis_network.R")
   #   # tarchetypes::tar_
   # }),
-  # tarchetypes::tar_render(visualise_rnet, path = "code/vis_network.Rmd", params = list(rnet_commute)),
+  # tarchetypes::tar_render(visualise_rnet, path = "code/vis_network.Rmd", params = list(rnet_commute_list)),
   
   tar_target(calculate_benefits, {
     benefits = function(x) x
