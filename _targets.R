@@ -39,7 +39,7 @@ plans = plans[3:4]
 tar_load(od_commute_subset)
 routes_commute = get_routes(od_commute_subset,
                     plans = plans, purpose = "commute",
-                    folder = "outputdata", batch = FALSE, nrow_batch = 10000)
+                    folder = "outputdata", batch = FALSE, nrow_batch = 12500)
 saveRDS(routes_commute, "outputdata/routes_commute.Rds")
 
 # Targets -----------------------------------------------------------------
