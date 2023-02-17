@@ -7,7 +7,7 @@
 library(targets)
 # library(tarchetypes) # Load other packages as needed. # nolint
 library(tidyverse)
-library(tmap)
+# library(tmap)
 library(stplanr)
 library(sf)
 remotes::install_github("cyclestreets/cyclestreets-r")
@@ -242,12 +242,12 @@ list(
     Sys.time()
   }),
   
-  tar_target(plot_zones, {
-    # tm_shape(zones) +
-    m = tm_shape(zones) +
-      tm_fill(col = "TotPop2011", palette = "viridis")
-    tmap_save(m, "figures/test-plot.png")
-  }),
+  # tar_target(plot_zones, {
+  #   # tm_shape(zones) +
+  #   m = tm_shape(zones) +
+  #     tm_fill(col = "TotPop2011", palette = "viridis")
+  #   tmap_save(m, "figures/test-plot.png")
+  # }),
   
   # tar_target(visualise_rnet, {
   #   # tar_source("code/vis_network.R")
