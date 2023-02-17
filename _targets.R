@@ -140,7 +140,7 @@ list(
     # routes = readRDS("outputdata/routes_commute.Rds")
     routes = get_routes(od_commute_subset,
                plans = parameters$plans, purpose = "commute",
-               folder = "outputdata", batch = FALSE, nrow_batch = 10000)
+               folder = "outputdata", batch = FALSE, nrow_batch = 12500)
     class_routes = class(routes)
     if(any("sf" %in% class(routes))) {
       routes = list(fastest = routes)
