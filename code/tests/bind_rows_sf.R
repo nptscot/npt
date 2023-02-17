@@ -11,36 +11,17 @@ nc_list_10 <- nc %>%
   split(.$sample_id)
 
 bench::mark(max_iterations = 2, check = FALSE,
-  rbind = do.call(what = rbind, args = nc_list_10),
-  bind_rows = do.call(what = bind_rows, args = nc_list_10),
-  rbindlist = sf::st_as_sf(data.table::rbindlist(nc_list_10)) # incorrect bb
+  rbind = (res_rbind <<- do.call(what = rbind, args = nc_list_10)),
+  bind_rows = (res_bind_rows <<- do.call(what = bind_rows, args = nc_list_10)),
+  rbindlist = (res_rbindlist <<- sf::st_as_sf(data.table::rbindlist(nc_list_10))), # incorrect bb
+  res_unlist2d = (res_unlist2d <<- st_as_sf(collapse::unlist2d(nc_list_10, idcols = FALSE, recursive = FALSE)))
+  # ,
+  # unlist = {res_unlist2d <<- lapply(1:n, function(x) nc_list_10)
+  # list2DF(lapply(setNames(seq_along(.[[1]]), names(.[[1]])), \(i)
+  #                unlist(lapply(., `[[`, i), FALSE, FALSE)))}
 )
 
-waldo::compare(sf::st_as_sf(data.table::rbindlist(nc_list_10)), do.call(what = rbind, args = nc_list_10))
-
-microbenchmark(
-  mapedit:::combine_list_of_sf(nc_list_1k),
-  do.call(what = sf:::rbind.sf,
-          args = nc_list_1k),
-  purrr::reduce(.x = nc_list_1k,
-                .f = sf:::rbind.sf),
-  sf::st_as_sf(data.table::rbindlist(nc_list_1k)),
-  times = 25L
-)
-mapedit:::combine_list_of_sf(nc_list_1k)
-do.call(what = sf:::rbind.sf, args = nc_list_1k)
-purrr::reduce(.x = nc_list_1k, .f = sf:::rbind.sf)
-sf::st_as_sf(data.table::rbindlist(nc_list_1k))
-
-set.seed(1234)
-nc_list_10k <- nc %>%
-  dplyr::sample_n(size = 10000, replace = TRUE) %>%
-  mutate(sample_id = paste0("sample_", row_number())) %>%
-  split(.$sample_id)
-microbenchmark(
-  mapedit:::combine_list_of_sf(nc_list_10k),
-  do.call(what = sf:::rbind.sf,
-          args = nc_list_10k),
-  sf::st_as_sf(data.table::rbindlist(nc_list_10k)),
-  times = 25L
-)
+waldo::compare(res_rbind, res_bind_rows)
+waldo::compare(res_rbind, res_rbindlist) # bbox is wrong
+waldo::compare(res_rbind, res_unlist2d) # bbox is wrong
+waldo::compare(res_rbindlist, res_unlist2d) # bbox is wrong

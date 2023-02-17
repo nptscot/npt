@@ -180,7 +180,7 @@ list(
     rnet_commute[[1]]
   }),
   tar_target(save_outputs, {
-    saveRDS(rnet_commute, "outputdata/rnet_commute.Rds")
+    saveRDS(rnet_commute_list, "outputdata/rnet_commute_list.Rds")
     saveRDS(od_commute_subset, "outputdata/od_commute_subset.Rds")
     # Saved by get_routes()
     # f = paste0("outputdata/routes_commute_", nrow(od_commute_subset), "_rows.Rds")
