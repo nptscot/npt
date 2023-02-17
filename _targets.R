@@ -32,15 +32,15 @@ tar_source()
 
 # Build parameters --------------------------------------------------------
 
-# Computation done outside of the pipeline --------------------------------
-
-plans = c("fastest", "balanced", "quietest", "ebike")
-plans = plans[3:4]
-tar_load(od_commute_subset)
-routes_commute = get_routes(od_commute_subset,
-                    plans = plans, purpose = "commute",
-                    folder = "outputdata", batch = FALSE, nrow_batch = 12500)
-saveRDS(routes_commute, "outputdata/routes_commute.Rds")
+# # Computation done outside of the pipeline --------------------------------
+# 
+# plans = c("fastest", "balanced", "quietest", "ebike")
+# plans = plans[3:4]
+# tar_load(od_commute_subset)
+# routes_commute = get_routes(od_commute_subset,
+#                     plans = plans, purpose = "commute",
+#                     folder = "outputdata", batch = FALSE, nrow_batch = 12500)
+# saveRDS(routes_commute, "outputdata/routes_commute.Rds")
 
 # Targets -----------------------------------------------------------------
 
@@ -54,10 +54,10 @@ list(
     list(
       plans = c("fastest", "balanced", "quietest", "ebike"),
       # plans = c("fastest"),
-      # min_flow = 100, # Set to 1 for full build, set to high value (e.g. 400) for tests
-      min_flow = 1,
-      # max_to_route = 10, # Set to 10e6 or similar large number for all routes
-      max_to_route = 10e6,
+      min_flow = 100, # Set to 1 for full build, set to high value (e.g. 400) for tests
+      # min_flow = 1,
+      max_to_route = 1000, # Set to 10e6 or similar large number for all routes
+      # max_to_route = 10e6,
       date_routing = "2023-02-16"
       )
   }),

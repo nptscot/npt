@@ -92,3 +92,11 @@ system.time({
     silent = FALSE
   )
 })
+
+# Test reading pre-saved csv 
+r = cyclestreets:::batch_read("tmp/test-data.csv.gz")
+saveRDS(r, "tmp/batch_quietest_commute_09_with_12500_routes_of_117029_rows.Rds")
+
+names(r)
+
+names(readRDS("tmp/batch_quietest_commute_01_with_12500_routes_of_117029_rows.Rds"))
