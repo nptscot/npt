@@ -221,6 +221,17 @@ list(
       select(-total_cyclists)
 
   }),
+  
+  tar_target(calculate_benefits, {
+    benefits = function(x) x
+    benefits(r_commute)
+  }),
+  
+  tar_target(zone_stats, {
+    r_commute
+    zones
+  }),
+  
   tar_target(save_outputs, {
     saveRDS(rnet_commute_list, "outputdata/rnet_commute_list.Rds")
     saveRDS(od_commute_subset, "outputdata/od_commute_subset.Rds")
@@ -228,29 +239,28 @@ list(
     # Saved by get_routes()
     # f = paste0("outputdata/routes_commute_", nrow(od_commute_subset), "_rows.Rds")
     # saveRDS(r_commute, f)
+    Sys.time()
   }),
+  
   tar_target(plot_zones, {
     # tm_shape(zones) +
     m = tm_shape(zones) +
       tm_fill(col = "TotPop2011", palette = "viridis")
     tmap_save(m, "figures/test-plot.png")
   }),
+  
   # tar_target(visualise_rnet, {
   #   # tar_source("code/vis_network.R")
   #   # tarchetypes::tar_
   # }),
   # tarchetypes::tar_render(visualise_rnet, path = "code/vis_network.Rmd", params = list(rnet_commute_list)),
-
-  tar_target(calculate_benefits, {
-    benefits = function(x) x
-    benefits(r_commute)
-  }),
+  
   # tarchetypes::tar_render(report, path = "README.Rmd", params = list(zones, rnet)),
   tar_target(upload_data, {
-    length(rnet)
+    length(combined_network)
     length(r_commute)
     commit = gert::git_log(max = 1)
-    v = paste0("v", Sys.time(), "_commit_", commit$commit)
+    v = paste0("v", save_outputs, "_commit_", commit$commit)
     v = gsub(pattern = " |:", replacement = "-", x = v)
     setwd("outputdata")
     f = list.files(path = ".", pattern = "Rds")
