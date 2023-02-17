@@ -33,7 +33,7 @@ tar_source()
 # Build parameters --------------------------------------------------------
 
 # # Computation done outside of the pipeline --------------------------------
-# 
+#
 # plans = c("fastest", "balanced", "quietest", "ebike")
 # plans = plans[3:4]
 # tar_load(od_commute_subset)
@@ -61,7 +61,7 @@ list(
       date_routing = "2023-02-16"
       )
   }),
-  
+
   tar_target(dl_data, {
     setwd("inputdata")
     gh_release_downlad(tag = "v1")
@@ -69,7 +69,7 @@ list(
   }),
   tar_target(zones,
     command = {
-      
+
       # For Edinburgh data (test):
       # sf::read_sf("data-raw/zones_edinburgh.geojson")
       # For national data:
@@ -90,8 +90,8 @@ list(
     od_subset = od_raw %>%
       filter(geo_code1 %in% zones$InterZone) %>%
       filter(geo_code2 %in% zones$InterZone) %>%
-      filter(dist_euclidean < 20000) %>% 
-      filter(dist_euclidean > 1000) %>% 
+      filter(dist_euclidean < 20000) %>%
+      filter(dist_euclidean > 1000) %>%
       filter(all >= min_flow)
     # write_csv(od_subset, "data-raw/od_subset.csv")
   }),
@@ -117,7 +117,7 @@ list(
       disaggregation_threshold = 40
       )
     odj$dist_euclidean_jittered = as.numeric(sf::st_length(odj))
-    odj = odj %>% 
+    odj = odj %>%
       mutate(route_id = paste0(geo_code1, "_", geo_code2, "_", seq(nrow(odj))))
     # saveRDS(odj, "inputdata/od_commute_jittered.Rds")
     # Read in test OD dataset for package development:
@@ -125,17 +125,17 @@ list(
   }),
   tar_target(od_commute_subset, {
     odcs = od_commute_jittered %>%
-      filter(dist_euclidean < 20000) %>% 
-      filter(dist_euclidean > 500) %>% 
+      filter(dist_euclidean < 20000) %>%
+      filter(dist_euclidean > 500) %>%
       top_n(n = parameters$max_to_route, wt = bicycle)
     odcs
   }),
   tar_target(r_commute, {
-    
+
     message("Calculating ", nrow(od_commute_subset), " routes")
     # Test routing:
     # stplanr::route(l = od_to_route, route_fun = cyclestreets::journey, plan = "balanced")
-    
+
     # For all plans:
     # routes = readRDS("outputdata/routes_commute.Rds")
     routes = get_routes(od_commute_subset,
@@ -171,18 +171,60 @@ list(
           Gradient = round(gradient_smooth_mean * 100),
           Quietness = round(quietness_mean)
           # col = cut(Quietness, quietness_breaks, labels = pal_quietness, right = FALSE)
-        ) %>% 
+        ) %>%
         dplyr::arrange(bicycle)
       rnet_commute_list[[p]] = rnet
     }
     rnet_commute_list
   }),
-  tar_target(rnet, {
-    rnet_commute_list[[1]]
+  tar_target(combined_network, {
+    rcl = rnet_commute_list
+
+    names(rcl$fastest)[1:4] = paste0("fastest_", names(rcl$fastest)[1:4])
+    names(rcl$balanced)[1:4] = paste0("balanced_", names(rcl$balanced)[1:4])
+    names(rcl$quietest)[1:4] = paste0("quietest_", names(rcl$quietest)[1:4])
+    names(rcl$ebike)[1:4] = paste0("ebike_", names(rcl$ebike)[1:4])
+    
+    names_combined = lapply(rcl, names) %>% unlist(use.names = FALSE)
+    names_combined = names_combined[names_combined != "geometry"]
+    
+    # Saved lots of lines of code and faster:
+    rnet_long = data.table::rbindlist(rcl, fill = TRUE)
+    # names(rnet_long)
+    rnet_long$geometry = sf::st_sfc(rnet_long$geometry, recompute_bbox = TRUE)
+    rnet_long = sf::st_as_sf(rnet_long)
+    rnet_long = rnet_long %>% 
+      mutate(across(fastest_bicycle:ebike_Quietness, function(x) tidyr::replace_na(x, 0)))
+    # summary(rnet_long)
+    rnet_combined = overline(rnet_long, attrib = names_combined)
+    rnet_combined = rnet_combined %>% 
+      rowwise() %>% 
+      mutate(Gradient = max(fastest_Gradient, balanced_Gradient, quietest_Gradient, ebike_Gradient)) %>% 
+      mutate(Quietness = max(fastest_Quietness, balanced_Quietness, quietest_Quietness, ebike_Quietness)) 
+    # summary(rnet_combined$Gradient)
+    # summary(rnet_combined$fastest_Gradient)
+
+    rnet = rnet_combined %>% 
+      select(-matches("_Q|_Gr")) %>% 
+      mutate(across(matches("bicycle", round))) %>% 
+      mutate(Gradient = round(Gradient, digits = 1))
+    # table(rnet_combined$quietest_bicycle_go_dutch)
+    # # TODO: check gradients
+    # table(rnet_combined$Gradient)
+
+    rnet = rnet %>% 
+      rowwise() %>% 
+      mutate(total_cyclists = sum(fastest_bicycle:ebike_bicycle_go_dutch))
+    summary(rnet$total_cyclists)
+    rnet = rnet %>% 
+      filter(total_cyclists > 0) %>% 
+      select(-total_cyclists)
+
   }),
   tar_target(save_outputs, {
     saveRDS(rnet_commute_list, "outputdata/rnet_commute_list.Rds")
     saveRDS(od_commute_subset, "outputdata/od_commute_subset.Rds")
+    saveRDS(combined_network, "outputdata/tar_combine_network.Rds")
     # Saved by get_routes()
     # f = paste0("outputdata/routes_commute_", nrow(od_commute_subset), "_rows.Rds")
     # saveRDS(r_commute, f)
@@ -198,7 +240,7 @@ list(
   #   # tarchetypes::tar_
   # }),
   # tarchetypes::tar_render(visualise_rnet, path = "code/vis_network.Rmd", params = list(rnet_commute_list)),
-  
+
   tar_target(calculate_benefits, {
     benefits = function(x) x
     benefits(r_commute)
@@ -213,7 +255,7 @@ list(
     setwd("outputdata")
     f = list.files(path = ".", pattern = "Rds")
     # Piggyback fails with error message so commented and using cust
-    # piggyback::pb_upload(f) 
+    # piggyback::pb_upload(f)
     msg = glue::glue("gh release create {v} --generate-notes")
     message("Creating new release and folder to save the files: ", v)
     dir.create(v)
@@ -236,12 +278,12 @@ list(
 # Explore results for Edinburgh
 # tar_load(rnet)
 # ed = sf::read_sf("data-raw/zones_edinburgh.geojson")
-# rnet_ed = rnet[ed, ] 
+# rnet_ed = rnet[ed, ]
 # tmap_mode("view")
 # tar_load(zones)
 # tar_load(subpoints_origins)
 # tar_load(subpoints_destinations)
-# 
+#
 # tm_shape(rnet_ed) +
 #   tm_lines(lwd = "bicycle_go_dutch", scale = 19) +
 #   tm_shape(ed) +
@@ -250,4 +292,3 @@ list(
 #   tm_dots(col = "green") +
 #   tm_shape(subpoints_destinations) +
 #   tm_dots(col = "blue")
-  
