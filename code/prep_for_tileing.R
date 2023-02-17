@@ -1,14 +1,61 @@
 library(sf)
 library(dplyr)
 
-rnet <- readRDS("outputs/rnet_commute.Rds")
+rnet <- readRDS("../inputdata/rnet_commute.Rds")
 routes <- readRDS("outputs/uptake_commute.Rds")
 zones <- readRDS("../inputdata/iz_scotlands_uk.Rds")
 
 # Clean RNET
-rnet$bicycle <- round(rnet$bicycle)
-rnet$bicycle_go_dutch <- round(rnet$bicycle_go_dutch)
-rnet <- rnet[rnet$bicycle_go_dutch > 0,]
+if(class(rnet) == "list"){
+  # Merge rnet
+  #rnet_fast <- rnet$fastest
+  rnet_fast <- readRDS("outputdata/rnet_commute_fastest.Rds")
+  rnet_bal <- rnet$balanced
+  names(rnet_fast)[1:4] <- paste0("fast_",names(rnet_fast)[1:4])
+  names(rnet_bal)[1:4] <- paste0("balance_",names(rnet_bal)[1:4])
+  
+  rnet_fast$balance_bicycle <- 0
+  rnet_fast$balance_bicycle_go_dutch <- 0
+  rnet_fast$balance_Gradient <- 0
+  rnet_fast$balance_Quietness <- 0
+  
+  rnet_bal$fast_bicycle <- 0
+  rnet_bal$fast_bicycle_go_dutch <- 0
+  rnet_bal$fast_Gradient <- 0
+  rnet_bal$fast_Quietness <- 0
+  
+  rnet_bal <- rnet_bal[,names(rnet_fast)]
+  rnet <- rbind(rnet_fast, rnet_bal)
+  rnet <- stplanr::overline2(rnet, attrib = c("balance_bicycle","balance_bicycle_go_dutch","balance_Gradient","balance_Quietness",
+                                              "fast_bicycle","fast_bicycle_go_dutch","fast_Gradient","fast_Quietness"))
+  
+  rnet$Gradient <- ifelse(rnet$balance_Gradient > rnet$balance_Gradient, rnet$balance_Gradient, rnet$fast_Gradient)
+  rnet$Quietness <- ifelse(rnet$balance_Quietness > rnet$balance_Quietness, rnet$balance_Quietness, rnet$fast_Quietness)
+  
+  rnet <- rnet[,c("balance_bicycle","balance_bicycle_go_dutch",
+                  "fast_bicycle","fast_bicycle_go_dutch",
+                  "Gradient","Quietness",
+                  "geometry")]
+  
+  rnet$balance_bicycle <- round(rnet$balance_bicycle)
+  rnet$balance_bicycle_go_dutch <- round(rnet$balance_bicycle_go_dutch)
+  rnet$fast_bicycle <- round(rnet$fast_bicycle)
+  rnet$fast_bicycle_go_dutch <- round(rnet$fast_bicycle_go_dutch)
+  
+  rnet$tot <- rowSums(sf::st_drop_geometry(rnet[,c("balance_bicycle","balance_bicycle_go_dutch",
+                                                   "fast_bicycle","fast_bicycle_go_dutch")]))
+  rnet <- rnet[rnet$tot > 0,]
+  rnet$tot <- NULL
+  
+} else {
+  rnet$bicycle <- round(rnet$bicycle)
+  rnet$bicycle_go_dutch <- round(rnet$bicycle_go_dutch)
+  rnet <- rnet[rnet$bicycle_go_dutch > 0,]
+}
+
+
+
+
 
 # Clean Routes
 routes <- routes[,c("geo_code1","geo_code2",
