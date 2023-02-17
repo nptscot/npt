@@ -34,13 +34,12 @@ tar_source()
 
 # # Computation done outside of the pipeline --------------------------------
 #
-# plans = c("fastest", "balanced", "quietest", "ebike")
-# plans = plans[3:4]
-# tar_load(od_commute_subset)
-# routes_commute = get_routes(od_commute_subset,
-#                     plans = plans, purpose = "commute",
-#                     folder = "outputdata", batch = FALSE, nrow_batch = 12500)
-# saveRDS(routes_commute, "outputdata/routes_commute.Rds")
+plans = c("fastest", "balanced", "quietest", "ebike")
+tar_load(od_commute_subset)
+routes_commute = get_routes(od_commute_subset,
+                    plans = plans, purpose = "commute",
+                    folder = "outputdata", batch = FALSE, nrow_batch = 12500)
+saveRDS(routes_commute, "outputdata/routes_commute.Rds")
 
 # Targets -----------------------------------------------------------------
 
@@ -137,10 +136,10 @@ list(
     # stplanr::route(l = od_to_route, route_fun = cyclestreets::journey, plan = "balanced")
 
     # For all plans:
-    # routes = readRDS("outputdata/routes_commute.Rds")
-    routes = get_routes(od_commute_subset,
-               plans = parameters$plans, purpose = "commute",
-               folder = "outputdata", batch = FALSE, nrow_batch = 12500)
+    routes = readRDS("outputdata/routes_commute.Rds")
+    # routes = get_routes(od_commute_subset,
+    #            plans = parameters$plans, purpose = "commute",
+    #            folder = "outputdata", batch = FALSE, nrow_batch = 12500)
     class_routes = class(routes)
     if(any("sf" %in% class(routes))) {
       routes = list(fastest = routes)
