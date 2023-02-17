@@ -19,3 +19,10 @@ outputdata/
 outputs/zones/metadata.json
 .R*
 tmp/
+Renviron
+outputs/data_zones/metadata.json
+outputs/holyrood/metadata.json
+outputs/wards/metadata.json
+outputs/la/metadata.json
+outputs/westminster/metadata.json
+outputs/zones/metadata.json

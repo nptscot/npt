@@ -74,3 +74,79 @@ tippecanoe -o data_zones.mbtiles \
 
 mb-util data_zones.mbtiles --image_format=pbf data_zones
 
+# LA Bounds
+
+tippecanoe -o la.mbtiles \
+  --name=la \
+  --layer=la \
+  --attribution=UniverstyofLeeds \
+  -zg \
+  --minimum-zoom=6 \
+  --coalesce-smallest-as-needed \
+  --detect-shared-borders \
+  --extend-zooms-if-still-dropping \
+  --maximum-tile-bytes=5000000 \
+  --simplification=10 \
+  --buffer=5 \
+  --force  la.geojson
+
+mb-util la.mbtiles --image_format=pbf la
+
+# Westminster
+
+tippecanoe -o westminster.mbtiles \
+  --name=westminster \
+  --layer=westminster \
+  --attribution=UniverstyofLeeds \
+  -zg \
+  --minimum-zoom=6 \
+  --coalesce-smallest-as-needed \
+  --detect-shared-borders \
+  --extend-zooms-if-still-dropping \
+  --maximum-tile-bytes=5000000 \
+  --simplification=10 \
+  --buffer=5 \
+  --force  westminster.geojson
+
+mb-util westminster.mbtiles --image_format=pbf westminster
+
+
+# holyrood
+
+tippecanoe -o holyrood.mbtiles \
+  --name=holyrood \
+  --layer=holyrood \
+  --attribution=UniverstyofLeeds \
+  -zg \
+  --minimum-zoom=6 \
+  --coalesce-smallest-as-needed \
+  --detect-shared-borders \
+  --extend-zooms-if-still-dropping \
+  --maximum-tile-bytes=5000000 \
+  --simplification=10 \
+  --buffer=5 \
+  --force  holyrood.geojson
+
+mb-util holyrood.mbtiles --image_format=pbf holyrood
+
+# wards
+
+tippecanoe -o wards.mbtiles \
+  --name=wards \
+  --layer=wards \
+  --attribution=UniverstyofLeeds \
+  -zg \
+  --minimum-zoom=6 \
+  --coalesce-smallest-as-needed \
+  --detect-shared-borders \
+  --extend-zooms-if-still-dropping \
+  --maximum-tile-bytes=5000000 \
+  --simplification=10 \
+  --buffer=5 \
+  --force  wards.geojson
+
+mb-util wards.mbtiles --image_format=pbf wards
+
+
+
+
