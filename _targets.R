@@ -10,7 +10,7 @@ library(tidyverse)
 library(tmap)
 library(stplanr)
 library(sf)
-remotes::install_github("nptscot/cyclestreets-r")
+remotes::install_github("cyclestreets/cyclestreets-r")
 # Set target options:
 tar_option_set(
   packages = c("tibble"), # packages that your targets need to run
@@ -34,17 +34,13 @@ tar_source()
 
 # Computation done outside of the pipeline --------------------------------
 
-# tar_load(od_commute_subset)
-# fs::file_size("outputdata/routes_max_dist_commute_fastest.Rds")
-# r_commute = get_routes(od_commute_subset, plans = plans, purpose = "commute",
-#                            folder = "outputdata", batch = FALSE)
-
-# r_commute = batch_routes(od_commute_subset, 
-#                          plans = plans, 
-#                          purpose = "commute",
-#                          folder = "outputdata", 
-#                          batch = FALSE,
-#                          nrow_batch = 1000)
+plans = c("fastest", "balanced", "quietest", "ebike")
+plans = plans[3:4]
+tar_load(od_commute_subset)
+routes_commute = get_routes(od_commute_subset,
+                    plans = plans, purpose = "commute",
+                    folder = "outputdata", batch = FALSE, nrow_batch = 10000)
+saveRDS(routes_commute, "outputdata/routes_commute.Rds")
 
 # Targets -----------------------------------------------------------------
 
@@ -140,9 +136,10 @@ list(
     # Test routing:
     # stplanr::route(l = od_to_route, route_fun = cyclestreets::journey, plan = "balanced")
     # For all plans:
-    routes = get_routes(od_commute_subset,
-               plans = parameters$plans, purpose = "commute",
-               folder = "outputdata", batch = FALSE, nrow_batch = 10000)
+    routes = readRDS("outputdata/routes_commute.Rds")
+    # routes = get_routes(od_commute_subset,
+    #            plans = parameters$plans, purpose = "commute",
+    #            folder = "outputdata", batch = FALSE, nrow_batch = 10000)
     class_routes = class(routes)
     if(any("sf" %in% class(routes))) {
       routes = list(fastest = routes)
