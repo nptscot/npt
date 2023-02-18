@@ -14,6 +14,7 @@ get_routes = function(od, plans, purpose = "work", folder = ".", batch = TRUE, b
       if(batch) {
         routes_raw = cyclestreets::batch(
           desire_lines = od,
+          wait = TRUE,
           maxDistance = 30000,
           username = "robinlovelace",
           strategies = plan
@@ -100,6 +101,17 @@ batch_routes = function(od, fun, nrow_batch = 100, plan = "fastest", purpose, ..
       # results = as.list(1:100) # for testing
       while(TRUE){
         message("Starting routing")
+        
+        id_batch = NULL
+        
+        # Recover routes:
+        # if(plan == "balanced") {
+        #   id_batch = as.numeric(id) + 3809 - 10
+        #   message("id ", id_batch, " for ", id)
+        # } else {
+        #   id_batch = NULL
+        # }
+        
         results[[i]] <- try(
           
           # standard routing:
@@ -113,11 +125,14 @@ batch_routes = function(od, fun, nrow_batch = 100, plan = "fastest", purpose, ..
           #   # pat = Sys.getenv("CYCLESTREETS_BATCH")
           # )
           # batch routing:
+
           cyclestreets::batch(
             desire_lines = od_to_route,
+            id = id_batch,
             maxDistance = 30000,
             username = "robinlovelace",
-            strategies = plan
+            strategies = plan,
+            wait = TRUE
           )
         
         )

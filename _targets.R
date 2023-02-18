@@ -32,14 +32,18 @@ tar_source()
 
 # Build parameters --------------------------------------------------------
 
-# # Computation done outside of the pipeline --------------------------------
-#
-plans = c("fastest", "balanced", "quietest", "ebike")
-tar_load(od_commute_subset)
-routes_commute = get_routes(od_commute_subset,
-                    plans = plans, purpose = "commute",
-                    folder = "outputdata", batch = FALSE, nrow_batch = 12500)
-saveRDS(routes_commute, "outputdata/routes_commute.Rds")
+# # # Computation done outside of the pipeline --------------------------------
+# #
+# plans = c("fastest", "balanced", "quietest", "ebike")
+# tar_load(od_commute_subset)
+# i = plans[1]
+# # for(i in plans) {
+# #   cyclestreets::batch(desire_lines = od_commute_subset, username = "robinlovelace", strategies = i)
+# # }
+# routes_commute = get_routes(od_commute_subset,
+#                     plans = plans, purpose = "commute",
+#                     folder = "outputdata", batch = FALSE, nrow_batch = 12500)
+# saveRDS(routes_commute, "outputdata/routes_commute.Rds")
 
 # Targets -----------------------------------------------------------------
 
