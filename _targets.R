@@ -10,6 +10,7 @@ library(tidyverse)
 # library(tmap)
 library(stplanr)
 library(sf)
+library(dtplyr)
 remotes::install_github("cyclestreets/cyclestreets-r")
 # Set target options:
 tar_option_set(
@@ -34,7 +35,15 @@ tar_source()
 
 # # # Computation done outside of the pipeline --------------------------------
 # #
-# plans = c("fastest", "balanced", "quietest", "ebike")
+parameters =     list(
+  plans = c("fastest", "balanced", "quietest", "ebike"),
+  # plans = c("fastest"),
+  # min_flow = 300, # Set to 1 for full build, set to high value (e.g. 400) for tests
+  min_flow = 1,
+  # max_to_route = 29, # Set to 10e6 or similar large number for all routes
+  max_to_route = 10e6,
+  date_routing = "2023-02-16"
+)
 # tar_load(od_commute_subset)
 # i = plans[1]
 # # for(i in plans) {
@@ -43,7 +52,8 @@ tar_source()
 # routes_commute = get_routes(od_commute_subset,
 #                     plans = plans, purpose = "commute",
 #                     folder = "outputdata", batch = FALSE, nrow_batch = 12500)
-# saveRDS(routes_commute, "outputdata/routes_commute.Rds")
+# Don't save as single object: too big
+# # saveRDS(routes_commute, "outputdata/routes_commute.Rds")
 
 # Targets -----------------------------------------------------------------
 
@@ -139,29 +149,33 @@ list(
     # Test routing:
     # stplanr::route(l = od_to_route, route_fun = cyclestreets::journey, plan = "balanced")
 
-    # For all plans:
-    routes = readRDS("outputdata/routes_commute.Rds")
-    # routes = get_routes(od_commute_subset,
-    #            plans = parameters$plans, purpose = "commute",
-    #            folder = "outputdata", batch = FALSE, nrow_batch = 12500)
-    class_routes = class(routes)
-    if(any("sf" %in% class(routes))) {
-      routes = list(fastest = routes)
-    }
-    plans = parameters$plans
-    message("Getting these plans: ", paste0(plans, collapse = ", "))
-    uptake_list = sapply(plans, function(x) NULL)
-    for(p in parameters$plans) {
-      uptake_list[[p]] = get_scenario_go_dutch(routes[[p]])
-    }
+    uptake_list = sapply(parameters$plans, function(x) NULL)
+    p = "fastest"
+    # for(p in parameters$plans) {
+    #   f = paste0("outputdata/routes_max_dist_commute_", p, ".Rds")
+    #   routes = readRDS(f)
+    #   message("Uptake for ", p)
+    #   # system.time({
+    #     routes = routes %>% 
+    #       lazy_dt() %>% 
+    #       get_scenario_go_dutch() %>% 
+    #       as_tibble()
+    #     routes[["geometry"]] = st_sfc(routes[["geometry"]], recompute_bbox = TRUE)
+    #     routes = st_as_sf(routes)
+    #     # })
+    #   f = paste0("outputdata/routes_commute_", p, ".Rds")
+    #   saveRDS(uptake, f)
+    #   }
     uptake_list
   }),
   tar_target(rnet_commute_list, {
+    length(r_commute)
     rnet_commute_list = sapply(parameters$plans, function(x) NULL)
     for(p in parameters$plans) {
       message("Building ", p, " network")
+      f = paste0("outputdata/routes_max_dist_commute_", p, ".Rds")
       rnet_raw = stplanr::overline(
-        r_commute[[p]],
+        readRDS(f),
         attrib = c("bicycle", "bicycle_go_dutch", "quietness", "gradient_smooth"), # todo: add other modes
         fun = list(sum = sum, mean = mean)
       )
