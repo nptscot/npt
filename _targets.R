@@ -171,11 +171,15 @@ list(
   tar_target(rnet_commute_list, {
     length(r_commute)
     rnet_commute_list = sapply(parameters$plans, function(x) NULL)
+    p = "fastest"
     for(p in parameters$plans) {
       message("Building ", p, " network")
       f = paste0("outputdata/routes_max_dist_commute_", p, ".Rds")
+      routes = readRDS(f)
+      # routes = routes[1:10000, ]
+      class(routes)
       rnet_raw = stplanr::overline(
-        readRDS(f),
+        routes,
         attrib = c("bicycle", "bicycle_go_dutch", "quietness", "gradient_smooth"), # todo: add other modes
         fun = list(sum = sum, mean = mean)
       )
@@ -190,8 +194,11 @@ list(
           # col = cut(Quietness, quietness_breaks, labels = pal_quietness, right = FALSE)
         ) %>%
         dplyr::arrange(bicycle)
+      f = paste0("outputdata/rnet_commute_", p, ".Rds")
+      saveRDS(rnet, f)
       rnet_commute_list[[p]] = rnet
     }
+    saveRDS(rnet_commute_list, "outputdata/rnet_commute_list.Rds")
     rnet_commute_list
   }),
   tar_target(combined_network, {
@@ -207,11 +214,15 @@ list(
     
     # Saved lots of lines of code and faster:
     rnet_long = data.table::rbindlist(rcl, fill = TRUE)
+    rnet_long = rnet_long %>% 
+      mutate(across(fastest_bicycle:ebike_Quietness, function(x) tidyr::replace_na(x, 0))) %>% 
+      as_tibble()
+    
     # names(rnet_long)
     rnet_long$geometry = sf::st_sfc(rnet_long$geometry, recompute_bbox = TRUE)
     rnet_long = sf::st_as_sf(rnet_long)
-    rnet_long = rnet_long %>% 
-      mutate(across(fastest_bicycle:ebike_Quietness, function(x) tidyr::replace_na(x, 0)))
+    sf::st_geometry(rnet_long)
+    
     # summary(rnet_long)
     rnet_combined = overline(rnet_long, attrib = names_combined)
     rnet_combined = rnet_combined %>% 
@@ -256,7 +267,6 @@ list(
     # Saved by get_routes()
     # f = paste0("outputdata/routes_commute_", nrow(od_commute_subset), "_rows.Rds")
     # saveRDS(r_commute, f)
-    Sys.time()
   }),
   
   # tar_target(plot_zones, {
