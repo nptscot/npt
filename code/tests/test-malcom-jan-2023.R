@@ -1,0 +1,6 @@
+library(targets)
+tar_glimpse()
+tar_load(od_jittered)
+plot(od_jittered)
+file.edit("_targets.R")
+tar_make()
