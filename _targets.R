@@ -202,7 +202,9 @@ list(
     rnet_commute_list
   }),
   tar_target(combined_network, {
-    rcl = rnet_commute_list
+    rcl = readRDS("outputdata/rnet_commute_list.Rds")
+    # rcl = rnet_commute_list
+    head(rcl[[1]])
 
     names(rcl$fastest)[1:4] = paste0("fastest_", names(rcl$fastest)[1:4])
     names(rcl$balanced)[1:4] = paste0("balanced_", names(rcl$balanced)[1:4])
@@ -225,6 +227,7 @@ list(
     
     # summary(rnet_long)
     rnet_combined = overline(rnet_long, attrib = names_combined)
+    saveRDS(rnet_combined, "outputdata/rnet_combined_after_overline.Rds")
     rnet_combined = rnet_combined %>% 
       rowwise() %>% 
       mutate(Gradient = max(fastest_Gradient, balanced_Gradient, quietest_Gradient, ebike_Gradient)) %>% 
@@ -247,6 +250,7 @@ list(
     rnet = rnet %>% 
       filter(total_cyclists > 0) %>% 
       select(-total_cyclists)
+    saveRDS(rnet, "outputdata/combined_network.Rds")
 
   }),
   
@@ -263,10 +267,12 @@ list(
   tar_target(save_outputs, {
     saveRDS(rnet_commute_list, "outputdata/rnet_commute_list.Rds")
     saveRDS(od_commute_subset, "outputdata/od_commute_subset.Rds")
-    saveRDS(combined_network, "outputdata/tar_combine_network.Rds")
+    saveRDS(combined_network, "outputdata/combined_network.Rds")
     # Saved by get_routes()
     # f = paste0("outputdata/routes_commute_", nrow(od_commute_subset), "_rows.Rds")
     # saveRDS(r_commute, f)
+    save_outputs = Sys.time()
+    save_outputs
   }),
   
   # tar_target(plot_zones, {
@@ -284,6 +290,7 @@ list(
   
   # tarchetypes::tar_render(report, path = "README.Rmd", params = list(zones, rnet)),
   tar_target(upload_data, {
+  
     length(combined_network)
     length(r_commute)
     commit = gert::git_log(max = 1)
@@ -296,6 +303,8 @@ list(
     msg = glue::glue("gh release create {v} --generate-notes")
     message("Creating new release and folder to save the files: ", v)
     dir.create(v)
+    message("Going to try to upload the following files: ", paste0(f, collapse = ", "))
+    message("With sizes: ", paste0(fs::file_size(f), collapse = ", "))
     system(msg)
     for(i in f) {
       gh_release_upload(file = i, tag = v)
