@@ -21,6 +21,7 @@ get_routes = function(od, plans, purpose = "work", folder = ".", batch = TRUE, b
         )
       } else {
         if(batch_save) {
+          if(!dir.exists("tmp")){dir.create("tmp")}
           routes_raw = batch_routes(
             od,
             fun = stplanr::route,
