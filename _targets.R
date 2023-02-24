@@ -154,37 +154,49 @@ list(
     # Test routing:
     # stplanr::route(l = od_to_route, route_fun = cyclestreets::journey, plan = "balanced")
 
+    routes_commute = get_routes(od_commute_subset,
+                        plans = parameters$plans, purpose = "commute",
+                        folder = "outputdata", batch = FALSE, nrow_batch = 12500)
     uptake_list = sapply(parameters$plans, function(x) NULL)
     p = "fastest"
-    # for(p in parameters$plans) {
-    #   f = paste0("outputdata/routes_max_dist_commute_", p, ".Rds")
-    #   routes = readRDS(f)
-    #   message("Uptake for ", p)
-    #   # system.time({
-    #     routes = routes %>% 
-    #       lazy_dt() %>% 
-    #       get_scenario_go_dutch() %>% 
-    #       as_tibble()
-    #     routes[["geometry"]] = st_sfc(routes[["geometry"]], recompute_bbox = TRUE)
-    #     routes = st_as_sf(routes)
-    #     # })
-    #   f = paste0("outputdata/routes_commute_", p, ".Rds")
-    #   saveRDS(uptake, f)
-    #   }
+    for(p in parameters$plans) {
+      
+      # # For local routes:
+      # f = paste0("outputdata/routes_max_dist_commute_", p, ".Rds")
+      # routes = readRDS(f)
+      
+      # # For routes from targets
+      routes = routes_commute[["p"]]
+      message("Uptake for ", p)
+      # system.time({
+        routes = routes %>%
+          lazy_dt() %>%
+          get_scenario_go_dutch() %>%
+          as_tibble()
+        routes[["geometry"]] = st_sfc(routes[["geometry"]], recompute_bbox = TRUE)
+        routes = st_as_sf(routes)
+        # })
+      f = paste0("outputdata/routes_commute_", p, ".Rds")
+      saveRDS(uptake, f)
+      }
     uptake_list
   }),
   tar_target(rnet_commute_list, {
     length(r_commute)
     rnet_commute_list = sapply(parameters$plans, function(x) NULL)
     p = "fastest"
+    routes_list = r_commute
     for(p in parameters$plans) {
       message("Building ", p, " network")
-      f = paste0("outputdata/routes_max_dist_commute_", p, ".Rds")
-      routes = readRDS(f)
+      # Without targets routing:
+      # f = paste0("outputdata/routes_max_dist_commute_", p, ".Rds")
+      # routes = readRDS(f)
+      
+      # With routes from targets:
       # routes = routes[1:10000, ]
-      class(routes)
+      # class(routes)
       rnet_raw = stplanr::overline(
-        routes,
+        routes_list[[p]],
         attrib = c("bicycle", "bicycle_go_dutch", "quietness", "gradient_smooth"), # todo: add other modes
         fun = list(sum = sum, mean = mean)
       )
@@ -203,12 +215,15 @@ list(
       saveRDS(rnet, f)
       rnet_commute_list[[p]] = rnet
     }
-    saveRDS(rnet_commute_list, "outputdata/rnet_commute_list.Rds")
+    # saveRDS(rnet_commute_list, "outputdata/rnet_commute_list.Rds")
     rnet_commute_list
   }),
   tar_target(combined_network, {
-    rcl = readRDS("outputdata/rnet_commute_list.Rds")
-    # rcl = rnet_commute_list
+    
+    # # If stored locally:
+    # rcl = readRDS("outputdata/rnet_commute_list.Rds")
+    # # rcl = rnet_commute_list
+    rcl = rnet_commute_list
     head(rcl[[1]])
 
     names(rcl$fastest)[1:4] = paste0("fastest_", names(rcl$fastest)[1:4])
