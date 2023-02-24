@@ -71,15 +71,9 @@ list(
       min_flow = 1,
       # max_to_route = 29, # Set to 10e6 or similar large number for all routes
       max_to_route = Inf,
-      date_routing = "2023-02-16"
+      date_routing = "2023-02-25"
       )
   }),
-  tar_target(check_data, {
-    folder_exists = dir.exists("inputdata")
-    
-
-  }),
-
   # tar_target(dl_data, {
   #   setwd("inputdata")
   #   gh_release_downlad(tag = "v1")
@@ -132,7 +126,7 @@ list(
       zones = zones,
       subpoints_origins = subpoints_origins,
       subpoints_destinations = subpoints_destinations,
-      disaggregation_threshold = 40
+      disaggregation_threshold = 30
       )
     odj$dist_euclidean_jittered = as.numeric(sf::st_length(odj))
     odj = odj %>%
@@ -156,7 +150,7 @@ list(
 
     routes_commute = get_routes(od_commute_subset,
                         plans = parameters$plans, purpose = "commute",
-                        folder = "outputdata", batch = FALSE, nrow_batch = 12500)
+                        folder = "outputdata", batch = FALSE, nrow_batch = 20000)
     routes_commute
   }),
   tar_target(uptake_list, {
