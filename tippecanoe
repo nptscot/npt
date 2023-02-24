@@ -5,12 +5,27 @@ cd /mnt/d/GitHub/atumscot/atumscot/outputs
 
 # Route network
 
-tippecanoe -o rnet.mbtiles \
+tippecanoe -o rnet.pmtiles \
+  --name=rnet \
+  --layer=rnet \
+  --attribution=UniverstyofLeeds \
+  --minimum-zoom=6 \
+  --maximum-zoom=13 \
+  --drop-smallest-as-needed \
+  --maximum-tile-bytes=5000000 \
+  --simplification=10 \
+  --buffer=5 \
+  --force  rnet.geojson
+
+## Old
+
+tippecanoe -o rnet.pmtiles \
   --name=rnet \
   --layer=rnet \
   --attribution=UniverstyofLeeds \
   -zg \
   --minimum-zoom=6 \
+  --maximum-zoom=12 \
   --drop-smallest-as-needed \
   --extend-zooms-if-still-dropping \
   --maximum-tile-bytes=5000000 \
@@ -18,7 +33,6 @@ tippecanoe -o rnet.mbtiles \
   --buffer=5 \
   --force  rnet.geojson
 
-mb-util rnet.mbtiles --image_format=pbf rnet
 
 # Routes
 
