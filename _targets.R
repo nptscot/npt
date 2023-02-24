@@ -10,7 +10,7 @@ library(tidyverse)
 # library(tmap)
 library(stplanr)
 library(sf)
-library(dtplyr)
+# library(dtplyr)
 remotes::install_github("cyclestreets/cyclestreets-r")
 # Set target options:
 tar_option_set(
@@ -157,7 +157,9 @@ list(
     routes_commute = get_routes(od_commute_subset,
                         plans = parameters$plans, purpose = "commute",
                         folder = "outputdata", batch = FALSE, nrow_batch = 12500)
-    uptake_list = sapply(parameters$plans, function(x) NULL)
+    routes_commute
+  }),
+  tar_target(uptake_list, {
     p = "fastest"
     for(p in parameters$plans) {
       
@@ -166,26 +168,29 @@ list(
       # routes = readRDS(f)
       
       # # For routes from targets
-      routes = routes_commute[["p"]]
+      routes = r_commute[[p]]
       message("Uptake for ", p)
       # system.time({
         routes = routes %>%
-          lazy_dt() %>%
+          # lazy_dt() %>%
           get_scenario_go_dutch() %>%
           as_tibble()
         routes[["geometry"]] = st_sfc(routes[["geometry"]], recompute_bbox = TRUE)
         routes = st_as_sf(routes)
         # })
       f = paste0("outputdata/routes_commute_", p, ".Rds")
-      saveRDS(uptake, f)
+      saveRDS(routes, f)
       }
+    uptake_list = lapply(parameters$plan, function(x) {
+      f = paste0("outputdata/routes_commute_", p, ".Rds")
+      readRDS(f)
+    })
+    names(uptake_list) = parameters$plans
     uptake_list
   }),
   tar_target(rnet_commute_list, {
-    length(r_commute)
     rnet_commute_list = sapply(parameters$plans, function(x) NULL)
     p = "fastest"
-    routes_list = r_commute
     for(p in parameters$plans) {
       message("Building ", p, " network")
       # Without targets routing:
@@ -196,7 +201,7 @@ list(
       # routes = routes[1:10000, ]
       # class(routes)
       rnet_raw = stplanr::overline(
-        routes_list[[p]],
+        uptake_list[[p]],
         attrib = c("bicycle", "bicycle_go_dutch", "quietness", "gradient_smooth"), # todo: add other modes
         fun = list(sum = sum, mean = mean)
       )
