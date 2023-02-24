@@ -10,7 +10,7 @@ library(tidyverse)
 # library(tmap)
 library(stplanr)
 library(sf)
-# library(dtplyr)
+library(dtplyr)
 remotes::install_github("cyclestreets/cyclestreets-r")
 # Set target options:
 tar_option_set(
@@ -68,9 +68,9 @@ list(
       plans = c("fastest", "balanced", "quietest", "ebike"),
       # plans = c("fastest"),
       # min_flow = 300, # Set to 1 for full build, set to high value (e.g. 400) for tests
-      min_flow = 200,
+      min_flow = 1,
       # max_to_route = 29, # Set to 10e6 or similar large number for all routes
-      max_to_route = 100,
+      max_to_route = Inf,
       date_routing = "2023-02-16"
       )
   }),
@@ -172,7 +172,7 @@ list(
       message("Uptake for ", p)
       # system.time({
         routes = routes %>%
-          # lazy_dt() %>%
+          lazy_dt() %>%
           get_scenario_go_dutch() %>%
           as_tibble()
         routes[["geometry"]] = st_sfc(routes[["geometry"]], recompute_bbox = TRUE)
