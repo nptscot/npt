@@ -150,7 +150,7 @@ list(
 
     routes_commute = get_routes(od_commute_subset,
                         plans = parameters$plans, purpose = "commute",
-                        folder = "outputdata", batch = FALSE, nrow_batch = 15000)
+                        folder = "outputdata", batch = FALSE, nrow_batch = 14000)
     routes_commute
   }),
   tar_target(uptake_list, {
