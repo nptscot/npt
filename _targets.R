@@ -137,8 +137,8 @@ list(
   }),
   tar_target(od_commute_subset, {
     odcs = od_commute_jittered %>%
-      filter(dist_euclidean < 20000) %>%
-      filter(dist_euclidean > 500) %>%
+      filter(dist_euclidean_jittered < 20000) %>%
+      filter(dist_euclidean_jittered > 500) %>%
       top_n(n = parameters$max_to_route, wt = bicycle)
     odcs
   }),
