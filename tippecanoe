@@ -3,6 +3,7 @@
 cd /mnt/d/GitHub/nptscot/npt/outputs
 cd /mnt/d/GitHub/atumscot/atumscot/outputs
 
+
 # Route network
 
 tippecanoe -o rnet.pmtiles \
@@ -163,4 +164,161 @@ mb-util wards.mbtiles --image_format=pbf wards
 
 
 
+# dasymetric Basemap
 
+
+### OS Zoomstack
+
+cd /mnt/c/tiles/oszoom/low
+
+tippecanoe -o oszoom_dasymetric_low.pmtiles \
+  --name=oszoom \
+  --attribution=OS \
+  --minimum-zoom=6 \
+  --maximum-zoom=8 \
+  --drop-smallest-as-needed \
+  --maximum-tile-bytes=5000000 \
+  --simplification=10 \
+  --buffer=5 \
+  --force  boundaries.geojson foreshore.geojson greenspace.geojson sea.geojson national_parks.geojson roads.geojson surfacewater.geojson woodland.geojson
+
+cd /mnt/c/tiles/oszoom/med
+
+tippecanoe -o oszoom_dasymetric_med.pmtiles \
+  --name=oszoom \
+  --attribution=OS \
+  --minimum-zoom=9 \
+  --maximum-zoom=11 \
+  --drop-smallest-as-needed \
+  --maximum-tile-bytes=5000000 \
+  --simplification=10 \
+  --buffer=5 \
+  --force boundaries.geojson foreshore.geojson greenspace.geojson sea.geojson national_parks.geojson roads.geojson surfacewater.geojson woodland.geojson
+
+cd /mnt/c/tiles/oszoom/high
+
+tippecanoe -o oszoom_dasymetric_high.pmtiles \
+  --name=oszoom \
+  --attribution=OS \
+  --minimum-zoom=12 \
+  --extend-zooms-if-still-dropping \
+  --drop-smallest-as-needed \
+  --maximum-tile-bytes=5000000 \
+  --simplification=10 \
+  --buffer=5 \
+  --force boundaries.geojson foreshore.geojson greenspace.geojson sea.geojson rail.geojson railway_stations.geojson roads.geojson surfacewater.geojson woodland.geojson
+
+cd ..
+tile-join -o oszoom_dasymetric.pmtiles --force low/oszoom_dasymetric_low.pmtiles med/oszoom_dasymetric_med.pmtiles high/oszoom_dasymetric_high.pmtiles
+
+## Place names
+
+cd /mnt/c/tiles/oszoom/low
+
+tippecanoe -o oszoom_names_low.pmtiles \
+  --name=oszoom_names \
+  --attribution=OS \
+  --minimum-zoom=6 \
+  --maximum-zoom=8 \
+  --drop-densest-as-needed \
+  --buffer=5 \
+  --force  names.geojson
+
+cd /mnt/c/tiles/oszoom/med
+
+tippecanoe -o oszoom_names_med.pmtiles \
+  --name=oszoom_names \
+  --attribution=OS \
+  --minimum-zoom=9 \
+  --maximum-zoom=11 \
+  --drop-densest-as-needed \
+  --buffer=5 \
+  --force names.geojson
+
+cd /mnt/c/tiles/oszoom/high
+
+tippecanoe -o oszoom_names_high.pmtiles \
+  --name=oszoom_names \
+  --attribution=OS \
+  --minimum-zoom=12 \
+  --extend-zooms-if-still-dropping \
+  --drop-densest-as-needed \
+  --buffer=5 \
+  --force names.geojson
+
+cd ..
+tile-join -o oszoom_names.pmtiles --force low/oszoom_names_low.pmtiles med/oszoom_names_med.pmtiles high/oszoom_names_high.pmtiles
+
+### Daysymetric buildings
+
+cd /mnt/d/GitHub/atumscot/atumscot/outputs
+
+tippecanoe -o dasymetric_verylow.pmtiles \
+  --name=dasymetric \
+  --layer=dasymetric \
+  --attribution=OS \
+  --minimum-zoom=4 \
+  --maximum-zoom=6 \
+  --coalesce-smallest-as-needed \
+  --detect-shared-borders \
+  --maximum-tile-bytes=5000000 \
+  --simplification=1 \
+  --buffer=5 \
+  --force dasymetric_verylow.geojson
+
+tippecanoe -o dasymetric_low.pmtiles \
+  --name=dasymetric \
+  --layer=dasymetric \
+  --attribution=OS \
+  --minimum-zoom=7 \
+  --maximum-zoom=9 \
+  --coalesce-smallest-as-needed \
+  --detect-shared-borders \
+  --maximum-tile-bytes=5000000 \
+  --simplification=1 \
+  --buffer=5 \
+  --force dasymetric_low.geojson
+  
+tippecanoe -o dasymetric_med.pmtiles \
+  --name=dasymetric \
+  --layer=dasymetric \
+  --attribution=OS \
+  --minimum-zoom=10 \
+  --maximum-zoom=14 \
+  --coalesce-smallest-as-needed \
+  --detect-shared-borders \
+  --maximum-tile-bytes=5000000 \
+  --simplification=2 \
+  --buffer=5 \
+  --force dasymetric_med.geojson
+  
+tippecanoe -o dasymetric_high.pmtiles \
+  --name=dasymetric \
+  --layer=dasymetric \
+  --attribution=OS \
+  -zg \
+  --minimum-zoom=15 \
+  --extend-zooms-if-still-dropping \
+  --coalesce-smallest-as-needed \
+  --detect-shared-borders \
+  --maximum-tile-bytes=5000000 \
+  --simplification=5 \
+  --buffer=5 \
+  --force dasymetric_high.geojson
+
+tile-join -o dasymetric.pmtiles -pk --force dasymetric_verylow.pmtiles dasymetric_low.pmtiles dasymetric_med.pmtiles dasymetric_high.pmtiles
+
+
+tippecanoe -o data_zones.pmtiles \
+  --name=data_zones \
+  --layer=data_zones \
+  --attribution=OS \
+  -zg \
+  --minimum-zoom=4 \
+  --extend-zooms-if-still-dropping \
+  --coalesce-smallest-as-needed \
+  --detect-shared-borders \
+  --maximum-tile-bytes=5000000 \
+  --simplification=10 \
+  --buffer=5 \
+  --force data_zones.geojson
