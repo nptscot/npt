@@ -51,7 +51,7 @@ tar_source()
 # # }
 # routes_commute = get_routes(od_commute_subset,
 #                     plans = plans, purpose = "commute",
-#                     folder = "outputdata", batch = FALSE, nrow_batch = 12500)
+#                     folder = "outputdata", batch = FALSE, nrow_batch = 50000)
 # Don't save as single object: too big
 # # saveRDS(routes_commute, "outputdata/routes_commute.Rds")
 
@@ -150,7 +150,7 @@ list(
 
     routes_commute = get_routes(od_commute_subset,
                         plans = parameters$plans, purpose = "commute",
-                        folder = "outputdata", batch = FALSE, nrow_batch = 14000)
+                        folder = "outputdata", batch = FALSE, nrow_batch = 50000)
     routes_commute
   }),
   tar_target(uptake_list, {
