@@ -57,7 +57,7 @@ mb-util zones.mbtiles --image_format=pbf zones
 
 # Data Zones
 
-tippecanoe -o data_zones.mbtiles \
+tippecanoe -o data_zones.pmtiles \
   --name=data_zones \
   --layer=data_zones \
   --attribution=UniverstyofLeeds \
@@ -71,7 +71,7 @@ tippecanoe -o data_zones.mbtiles \
   --buffer=5 \
   --force  data_zones.geojson
 
-mb-util data_zones.mbtiles --image_format=pbf data_zones
+
 
 # LA Bounds
 

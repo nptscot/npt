@@ -3,6 +3,11 @@ library(dplyr)
 
 
 zones_map = geojsonsf::geojson_sf("outputs/data_zones.geojson")
+zones_map$area = as.numeric(st_area(zones_map)) / 10000
+zones_map$population_density = round(zones_map$Total_population / zones_map$area)
+zones_map$area = NULL
+st_write(zones_map, "outputs/data_zones.geojson", delete_dsn = TRUE)
+
 
 b_high = st_read("C:/tiles/daysmetric_test/high.geojson")
 b_med = st_read("C:/tiles/daysmetric_test/med.geojson")
@@ -37,8 +42,8 @@ st_precision(b_med) <- 10000000
 st_precision(b_low) <- 10000000
 st_precision(b_verylow) <- 10000000
 
-st_write(b_high, "outputs/dasymetric_high.geojson")
-st_write(b_med, "outputs/dasymetric_med.geojson")
-st_write(b_low, "outputs/dasymetric_low.geojson")
-st_write(b_verylow, "outputs/dasymetric_verylow.geojson")
+st_write(b_high, "outputs/dasymetric_high.geojson", delete_dsn = TRUE)
+st_write(b_med, "outputs/dasymetric_med.geojson", delete_dsn = TRUE)
+st_write(b_low, "outputs/dasymetric_low.geojson", delete_dsn = TRUE)
+st_write(b_verylow, "outputs/dasymetric_verylow.geojson", delete_dsn = TRUE)
 
