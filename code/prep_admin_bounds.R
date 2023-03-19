@@ -51,4 +51,10 @@ wards <- st_transform(wards, 4326)
 st_write(wards,"../atumscot/outputs/wards.geojson")
 unlink(file.path(tempdir(),"zones"), recursive = TRUE)
 
-
+# Regional
+path_regional = "D:/OneDrive - University of Leeds/Data/OS/Boundary Line/bdline_gpkg_gb/Data/bdline_gb.gpkg"
+regions <- read_sf(path_regional, "scotland_and_wales_region")
+regions <- regions[regions$Area_Description == "Scottish Parliament Electoral Region",]
+regions <- regions[,c("Census_Code")]
+regions <- st_transform(regions, 4326)
+st_write(regions,"../atumscot/outputs/scot_regions.geojson")

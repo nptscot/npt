@@ -18,22 +18,6 @@ tippecanoe -o rnet.pmtiles \
   --buffer=5 \
   --force  rnet.geojson
 
-## Old
-
-tippecanoe -o rnet.pmtiles \
-  --name=rnet \
-  --layer=rnet \
-  --attribution=UniverstyofLeeds \
-  -zg \
-  --minimum-zoom=6 \
-  --maximum-zoom=12 \
-  --drop-smallest-as-needed \
-  --extend-zooms-if-still-dropping \
-  --maximum-tile-bytes=5000000 \
-  --simplification=10 \
-  --buffer=5 \
-  --force  rnet.geojson
-
 
 # Routes
 
@@ -91,7 +75,7 @@ mb-util data_zones.mbtiles --image_format=pbf data_zones
 
 # LA Bounds
 
-tippecanoe -o la.mbtiles \
+tippecanoe -o la.pmtiles \
   --name=la \
   --layer=la \
   --attribution=UniverstyofLeeds \
@@ -105,11 +89,9 @@ tippecanoe -o la.mbtiles \
   --buffer=5 \
   --force  la.geojson
 
-mb-util la.mbtiles --image_format=pbf la
-
 # Westminster
 
-tippecanoe -o westminster.mbtiles \
+tippecanoe -o westminster.pmtiles \
   --name=westminster \
   --layer=westminster \
   --attribution=UniverstyofLeeds \
@@ -123,12 +105,10 @@ tippecanoe -o westminster.mbtiles \
   --buffer=5 \
   --force  westminster.geojson
 
-mb-util westminster.mbtiles --image_format=pbf westminster
-
 
 # holyrood
 
-tippecanoe -o holyrood.mbtiles \
+tippecanoe -o holyrood.pmtiles \
   --name=holyrood \
   --layer=holyrood \
   --attribution=UniverstyofLeeds \
@@ -142,11 +122,9 @@ tippecanoe -o holyrood.mbtiles \
   --buffer=5 \
   --force  holyrood.geojson
 
-mb-util holyrood.mbtiles --image_format=pbf holyrood
-
 # wards
 
-tippecanoe -o wards.mbtiles \
+tippecanoe -o wards.pmtiles \
   --name=wards \
   --layer=wards \
   --attribution=UniverstyofLeeds \
@@ -160,7 +138,21 @@ tippecanoe -o wards.mbtiles \
   --buffer=5 \
   --force  wards.geojson
 
-mb-util wards.mbtiles --image_format=pbf wards
+# Scottish Regions
+
+tippecanoe -o scot_regions.pmtiles \
+  --name=scot_regions \
+  --layer=scot_regions \
+  --attribution=UniverstyofLeeds \
+  -zg \
+  --minimum-zoom=6 \
+  --coalesce-smallest-as-needed \
+  --detect-shared-borders \
+  --extend-zooms-if-still-dropping \
+  --maximum-tile-bytes=5000000 \
+  --simplification=10 \
+  --buffer=5 \
+  --force  scot_regions.geojson
 
 
 

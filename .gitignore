@@ -13,6 +13,7 @@ overline.*
 *.pbf
 *.geojson
 *.mbtiles
+*.pmtiles
 outputs/rnet/metadata.json
 outputs/routes/metadata.json
 outputdata/
@@ -26,4 +27,3 @@ outputs/wards/metadata.json
 outputs/la/metadata.json
 outputs/westminster/metadata.json
 outputs/zones/metadata.json
-outputs/rnet.pmtiles
