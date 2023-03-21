@@ -33,8 +33,8 @@ tar_source()
 
 # Build parameters --------------------------------------------------------
 
-# # # Computation done outside of the pipeline --------------------------------
-# #
+# # # # Computation done outside of the pipeline --------------------------------
+# # #
 # parameters =     list(
 #   plans = c("fastest", "balanced", "quietest", "ebike"),
 #   # plans = c("fastest"),
@@ -42,17 +42,17 @@ tar_source()
 #   min_flow = 1,
 #   # max_to_route = 29, # Set to 10e6 or similar large number for all routes
 #   max_to_route = 100,
-#   date_routing = "2023-02-16"
+#   date_routing = "2023-03-18"
 # )
 # tar_load(od_commute_subset)
-# i = plans[1]
+# i = parameters$plans[1]
 # # for(i in plans) {
 # #   cyclestreets::batch(desire_lines = od_commute_subset, username = "robinlovelace", strategies = i)
 # # }
 # routes_commute = get_routes(od_commute_subset,
-#                     plans = plans, purpose = "commute",
-#                     folder = "outputdata", batch = FALSE, nrow_batch = 50000)
-# Don't save as single object: too big
+#                     plans = parameters$plans, purpose = "commute",
+#                     folder = "outputdata", batch = FALSE, nrow_batch = 12000)
+# # Don't save as single object: too big
 # # saveRDS(routes_commute, "outputdata/routes_commute.Rds")
 
 # Targets -----------------------------------------------------------------
@@ -144,13 +144,14 @@ list(
   }),
   tar_target(r_commute, {
 
+    message(parameters$date_routing)
     message("Calculating ", nrow(od_commute_subset), " routes")
     # Test routing:
     # stplanr::route(l = od_to_route, route_fun = cyclestreets::journey, plan = "balanced")
 
     routes_commute = get_routes(od_commute_subset,
                         plans = parameters$plans, purpose = "commute",
-                        folder = "outputdata", batch = FALSE, nrow_batch = 50000)
+                        folder = "outputdata", batch = FALSE, nrow_batch = 12000)
     routes_commute
   }),
   tar_target(uptake_list, {
