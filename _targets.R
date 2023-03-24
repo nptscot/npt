@@ -10,7 +10,6 @@ library(tidyverse)
 # library(tmap)
 library(stplanr)
 library(sf)
-library(dtplyr)
 remotes::install_github("cyclestreets/cyclestreets-r")
 # Set target options:
 tar_option_set(
@@ -167,7 +166,6 @@ list(
       message("Uptake for ", p)
       # system.time({
         routes = routes %>%
-          lazy_dt() %>%
           get_scenario_go_dutch() %>%
           as_tibble()
         routes[["geometry"]] = st_sfc(routes[["geometry"]], recompute_bbox = TRUE)
