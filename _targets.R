@@ -5,7 +5,6 @@
 
 # Load packages required to define the pipeline:
 library(targets)
-# library(tarchetypes) # Load other packages as needed. # nolint
 library(tidyverse)
 # library(tmap)
 library(stplanr)
@@ -30,18 +29,17 @@ options(clustermq.scheduler = "multicore")
 tar_source()
 # source("other_functions.R") # Source other scripts as needed. # nolint
 
-# Build parameters --------------------------------------------------------
 
 # # # # Computation done outside of the pipeline --------------------------------
 # # #
-# parameters =     list(
+# parameters = list(
 #   plans = c("fastest", "balanced", "quietest", "ebike"),
 #   # plans = c("fastest"),
 #   # min_flow = 300, # Set to 1 for full build, set to high value (e.g. 400) for tests
 #   min_flow = 1,
 #   # max_to_route = 29, # Set to 10e6 or similar large number for all routes
-#   max_to_route = 100,
-#   date_routing = "2023-03-18"
+#   max_to_route = Inf,
+#   date_routing = "2023-03-24"
 # )
 # tar_load(od_commute_subset)
 # i = parameters$plans[1]
@@ -49,14 +47,15 @@ tar_source()
 # #   cyclestreets::batch(desire_lines = od_commute_subset, username = "robinlovelace", strategies = i)
 # # }
 # routes_commute = get_routes(od_commute_subset,
-#                     plans = parameters$plans, purpose = "commute",
-#                     folder = "outputdata", batch = FALSE, nrow_batch = 12000)
+#                             plans = parameters$plans, purpose = "commute",
+#                             folder = "outputdata", batch = FALSE, nrow_batch = 20000)
 # # Don't save as single object: too big
 # # saveRDS(routes_commute, "outputdata/routes_commute.Rds")
 
 # Targets -----------------------------------------------------------------
 
 # Replace the target list below with your own:
+# Build parameters --------------------------------------------------------
 list(
   tar_target(parameters, {
     renviron_exists = file.exists(".Renviron")
@@ -67,10 +66,10 @@ list(
       plans = c("fastest", "balanced", "quietest", "ebike"),
       # plans = c("fastest"),
       # min_flow = 300, # Set to 1 for full build, set to high value (e.g. 400) for tests
-      min_flow = 200,
+      min_flow = 1,
       # max_to_route = 29, # Set to 10e6 or similar large number for all routes
       max_to_route = Inf,
-      date_routing = "2023-03-18"
+      date_routing = "2023-03-24"
       )
   }),
   # tar_target(dl_data, {
@@ -91,7 +90,6 @@ list(
     readRDS("inputdata/od_izo.Rds")
   }),
   # tar_target(od_schools_raw, {
-  #   # read_csv("data-raw/od_subset.csv")
   #   # read_csv("data-raw/od_subset.csv")
   # }),
   tar_target(od_data, {
@@ -147,10 +145,9 @@ list(
     message("Calculating ", nrow(od_commute_subset), " routes")
     # Test routing:
     # stplanr::route(l = od_to_route, route_fun = cyclestreets::journey, plan = "balanced")
-
     routes_commute = get_routes(od_commute_subset,
                         plans = parameters$plans, purpose = "commute",
-                        folder = "outputdata", batch = FALSE, nrow_batch = 12000)
+                        folder = "outputdata", batch = FALSE, nrow_batch = 20000)
     routes_commute
   }),
   tar_target(uptake_list, {
@@ -186,13 +183,6 @@ list(
     p = "fastest"
     for(p in parameters$plans) {
       message("Building ", p, " network")
-      # Without targets routing:
-      # f = paste0("outputdata/routes_max_dist_commute_", p, ".Rds")
-      # routes = readRDS(f)
-      
-      # With routes from targets:
-      # routes = routes[1:10000, ]
-      # class(routes)
       rnet_raw = stplanr::overline(
         uptake_list[[p]],
         attrib = c("bicycle", "bicycle_go_dutch", "quietness", "gradient_smooth"), # todo: add other modes
@@ -220,7 +210,6 @@ list(
     
     # # If stored locally:
     # rcl = readRDS("outputdata/rnet_commute_list.Rds")
-    # # rcl = rnet_commute_list
     rcl = rnet_commute_list
     head(rcl[[1]])
 
@@ -238,26 +227,21 @@ list(
       mutate(across(fastest_bicycle:ebike_Quietness, function(x) tidyr::replace_na(x, 0))) %>% 
       as_tibble()
     
-    # names(rnet_long)
     rnet_long$geometry = sf::st_sfc(rnet_long$geometry, recompute_bbox = TRUE)
     rnet_long = sf::st_as_sf(rnet_long)
     sf::st_geometry(rnet_long)
     
-    # summary(rnet_long)
     rnet_combined = overline(rnet_long, attrib = names_combined)
     saveRDS(rnet_combined, "outputdata/rnet_combined_after_overline.Rds")
     rnet_combined = rnet_combined %>% 
       rowwise() %>% 
       mutate(Gradient = max(fastest_Gradient, balanced_Gradient, quietest_Gradient, ebike_Gradient)) %>% 
       mutate(Quietness = max(fastest_Quietness, balanced_Quietness, quietest_Quietness, ebike_Quietness)) 
-    # summary(rnet_combined$Gradient)
-    # summary(rnet_combined$fastest_Gradient)
 
     rnet = rnet_combined %>% 
       select(-matches("_Q|_Gr")) %>% 
       mutate(across(matches("bicycle", round))) %>% 
       mutate(Gradient = round(Gradient, digits = 1))
-    # table(rnet_combined$quietest_bicycle_go_dutch)
     # # TODO: check gradients
     # table(rnet_combined$Gradient)
 
@@ -334,7 +318,6 @@ list(
       }
       message("Files stored in output folder: ", v)
       message("Which contains: ", paste0(list.files(v), collapse = ", "))
-      # For rds based version:
       # For specific version:
       # system("gh release create v0.0.1 --generate-notes")
       file.remove(f)
@@ -346,20 +329,3 @@ list(
   })
   # tar_source(files = "data-raw/test-tiles.R") # how to source script as target?
 )
-# Explore results for Edinburgh
-# tar_load(rnet)
-# ed = sf::read_sf("data-raw/zones_edinburgh.geojson")
-# rnet_ed = rnet[ed, ]
-# tmap_mode("view")
-# tar_load(zones)
-# tar_load(subpoints_origins)
-# tar_load(subpoints_destinations)
-#
-# tm_shape(rnet_ed) +
-#   tm_lines(lwd = "bicycle_go_dutch", scale = 19) +
-#   tm_shape(ed) +
-#   tm_borders(col = "red") +
-#   tm_shape(subpoints_origins) +
-#   tm_dots(col = "green") +
-#   tm_shape(subpoints_destinations) +
-#   tm_dots(col = "blue")
