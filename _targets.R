@@ -6,6 +6,7 @@
 # Load packages required to define the pipeline:
 library(targets)
 # library(tarchetypes) # Load other packages as needed. # nolint
+# install.packages("purrr")
 library(tidyverse)
 # library(tmap)
 library(stplanr)
