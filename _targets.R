@@ -39,7 +39,7 @@ tar_source()
 #   min_flow = 1,
 #   # max_to_route = 29, # Set to 10e6 or similar large number for all routes
 #   max_to_route = Inf,
-#   date_routing = "2023-03-24"
+#   date_routing = "2023-03-31"
 # )
 # tar_load(od_commute_subset)
 # i = parameters$plans[1]
@@ -51,6 +51,10 @@ tar_source()
 #                             folder = "outputdata", batch = FALSE, nrow_batch = 20000)
 # # Don't save as single object: too big
 # # saveRDS(routes_commute, "outputdata/routes_commute.Rds")
+
+# # Download a snapshot of the data:
+# setwd("outputdata")
+# system("gh release download v2023-03-24-22-28-51_commit_e2a60d0f06e6ddbf768382b19dc524cb3824c0c4 ")
 
 # Targets -----------------------------------------------------------------
 
@@ -65,11 +69,11 @@ list(
     list(
       plans = c("fastest", "balanced", "quietest", "ebike"),
       # plans = c("fastest"),
-      # min_flow = 300, # Set to 1 for full build, set to high value (e.g. 400) for tests
-      min_flow = 1,
-      # max_to_route = 29, # Set to 10e6 or similar large number for all routes
-      max_to_route = Inf,
-      date_routing = "2023-03-24"
+      min_flow = 300, # Set to 1 for full build, set to high value (e.g. 400) for tests
+      # min_flow = 1,
+      max_to_route = 29, # Set to 10e6 or similar large number for all routes
+      # max_to_route = Inf,
+      date_routing = "2023-03-31"
       )
   }),
   # tar_target(dl_data, {
@@ -208,8 +212,10 @@ list(
   }),
   tar_target(combined_network, {
     
+    # Purpose: commute --------------------------------------------------------
     # # If stored locally:
     # rcl = readRDS("outputdata/rnet_commute_list.Rds")
+    # TODO: name columns depending on purpose
     rcl = rnet_commute_list
     head(rcl[[1]])
 
@@ -233,6 +239,8 @@ list(
     
     rnet_combined = overline(rnet_long, attrib = names_combined)
     saveRDS(rnet_combined, "outputdata/rnet_combined_after_overline.Rds")
+    # # Testing outputs
+    # rnet_combined = readRDS("outputdata/rnet_combined_after_overline.Rds")
     rnet_combined = rnet_combined %>% 
       rowwise() %>% 
       mutate(Gradient = max(fastest_Gradient, balanced_Gradient, quietest_Gradient, ebike_Gradient)) %>% 
@@ -245,15 +253,18 @@ list(
     # # TODO: check gradients
     # table(rnet_combined$Gradient)
 
-    rnet = rnet %>% 
-      rowwise() %>% 
+    rnet = rnet %>%
+      rowwise() %>%
       mutate(total_cyclists = sum(fastest_bicycle:ebike_bicycle_go_dutch))
     summary(rnet$total_cyclists)
+    names(rnet)[1:8] = paste0("commute_", names(rnet))[1:8]
     rnet = rnet %>% 
       filter(total_cyclists > 0) %>% 
-      select(-total_cyclists)
+      select(-total_cyclists) %>% 
+      as.data.frame() %>% 
+      sf::st_as_sf()
     saveRDS(rnet, "outputdata/combined_network.Rds")
-
+    
   }),
   
   tar_target(calculate_benefits, {
@@ -273,16 +284,22 @@ list(
     # Saved by get_routes()
     # f = paste0("outputdata/routes_commute_", nrow(od_commute_subset), "_rows.Rds")
     # saveRDS(r_commute, f)
-    save_outputs = Sys.time()
+    # save_outputs = Sys.time()
     save_outputs
   }),
   
-  # tar_target(plot_zones, {
-  #   # tm_shape(zones) +
-  #   m = tm_shape(zones) +
-  #     tm_fill(col = "TotPop2011", palette = "viridis")
-  #   tmap_save(m, "figures/test-plot.png")
-  # }),
+  tar_target(geojsons, {
+    # See code in R/make_geojson.R
+    combined_network = readRDS("outputdata/combined_network.Rds")
+    make_geojson_zones(combined_network, "outputdata/combined_network.geojson")
+    zip(zipfile = "outputdata/combined_network.zip", "outputdata/combined_network.geojson")
+    file.rename("outputdata/combined_network.geojson", "rnet.geojson")
+  }),
+  
+  tar_target(tile, {
+    # See code/tiling
+    system("bash code/tile.sh")
+  }),
   
   # tar_target(visualise_rnet, {
   #   # tar_source("code/vis_network.R")
@@ -302,7 +319,7 @@ list(
       v = paste0("v", save_outputs, "_commit_", commit$commit)
       v = gsub(pattern = " |:", replacement = "-", x = v)
       setwd("outputdata")
-      f = list.files(path = ".", pattern = "Rds")
+      f = list.files(path = ".", pattern = "Rds|zip|pmtiles")
       # Piggyback fails with error message so commented and using cust
       # piggyback::pb_upload(f)
       msg = glue::glue("gh release create {v} --generate-notes")
@@ -314,7 +331,7 @@ list(
       for(i in f) {
         gh_release_upload(file = i, tag = v)
         # Move into a new directory
-        file.copy(from = v, to = file.path(v, i))
+        file.copy(from = i, to = file.path(v, i))
       }
       message("Files stored in output folder: ", v)
       message("Which contains: ", paste0(list.files(v), collapse = ", "))
