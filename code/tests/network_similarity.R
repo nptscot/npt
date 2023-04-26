@@ -33,3 +33,10 @@ tar_load(uptake_list)
 plot(uptake_list$fastest)
 plot(uptake_list$quietest)
 # That's the faulty target: two previous plots are the same
+
+uptake_list = lapply(parameters$plan, function(x) {
+  f = paste0("outputdata/v2023-04-26-17-23-59.402831_commit_4910f4ce46ecb02fdaef9a445d4f3534987efe19/routes_max_dist_commute_", p, ".Rds")
+  readRDS(f)
+})
+plot(uptake_list[[1]])
+plot(uptake_list[[3]])
