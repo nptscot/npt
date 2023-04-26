@@ -43,7 +43,7 @@ file.rename("outputdata/combined_network.geojson", "rnet.geojson")
 system("bash code/tile.sh")
 
 setwd("outputdata")
-f = list.files(path = ".", pattern = "pmtiles")
+f = list.files(path = ".", pattern = "pmtiles|zip")
 # Piggyback fails with error message so commented and using cust
 # piggyback::pb_upload(f)
 msg = glue::glue("gh release create {v} --generate-notes")
