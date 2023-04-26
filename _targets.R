@@ -277,16 +277,16 @@ list(
     zones
   }),
   
-  tar_target(save_outputs, {
-    saveRDS(rnet_commute_list, "outputdata/rnet_commute_list.Rds")
-    saveRDS(od_commute_subset, "outputdata/od_commute_subset.Rds")
-    saveRDS(combined_network, "outputdata/combined_network.Rds")
-    # Saved by get_routes()
-    # f = paste0("outputdata/routes_commute_", nrow(od_commute_subset), "_rows.Rds")
-    # saveRDS(r_commute, f)
-    save_outputs = Sys.time()
-    save_outputs
-  }),
+  # tar_target(save_outputs, {
+  #   saveRDS(rnet_commute_list, "outputdata/rnet_commute_list.Rds")
+  #   saveRDS(od_commute_subset, "outputdata/od_commute_subset.Rds")
+  #   saveRDS(combined_network, "outputdata/combined_network.Rds")
+  #   # Saved by get_routes()
+  #   # f = paste0("outputdata/routes_commute_", nrow(od_commute_subset), "_rows.Rds")
+  #   # saveRDS(r_commute, f)
+  #   save_outputs = Sys.time()
+  #   save_outputs
+  # }),
   
   tar_target(geojsons, {
     # See code in R/make_geojson.R
