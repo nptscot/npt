@@ -284,7 +284,7 @@ list(
     # Saved by get_routes()
     # f = paste0("outputdata/routes_commute_", nrow(od_commute_subset), "_rows.Rds")
     # saveRDS(r_commute, f)
-    # save_outputs = Sys.time()
+    save_outputs = Sys.time()
     save_outputs
   }),
   
