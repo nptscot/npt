@@ -264,7 +264,7 @@ list(
       as.data.frame() %>% 
       sf::st_as_sf()
     saveRDS(rnet, "outputdata/combined_network.Rds")
-    
+    rnet
   }),
   
   tar_target(calculate_benefits, {
