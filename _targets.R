@@ -69,10 +69,10 @@ list(
     list(
       plans = c("fastest", "balanced", "quietest", "ebike"),
       # plans = c("fastest"),
-      min_flow = 300, # Set to 1 for full build, set to high value (e.g. 400) for tests
-      # min_flow = 1,
-      max_to_route = 29, # Set to 10e6 or similar large number for all routes
-      # max_to_route = Inf,
+      # min_flow = 300, # Set to 1 for full build, set to high value (e.g. 400) for tests
+      min_flow = 1,
+      # max_to_route = 29, # Set to 10e6 or similar large number for all routes
+      max_to_route = Inf,
       date_routing = "2023-03-31"
       )
   }),
@@ -175,7 +175,7 @@ list(
       f = paste0("outputdata/routes_commute_", p, ".Rds")
       saveRDS(routes, f)
       }
-    uptake_list = lapply(parameters$plan, function(x) {
+    uptake_list = lapply(parameters$plan, function(p) {
       f = paste0("outputdata/routes_commute_", p, ".Rds")
       readRDS(f)
     })
@@ -264,7 +264,7 @@ list(
       as.data.frame() %>% 
       sf::st_as_sf()
     saveRDS(rnet, "outputdata/combined_network.Rds")
-    
+    rnet
   }),
   
   tar_target(calculate_benefits, {
