@@ -175,7 +175,7 @@ list(
       f = paste0("outputdata/routes_commute_", p, ".Rds")
       saveRDS(routes, f)
       }
-    uptake_list = lapply(parameters$plan, function(x) {
+    uptake_list = lapply(parameters$plan, function(p) {
       f = paste0("outputdata/routes_commute_", p, ".Rds")
       readRDS(f)
     })
