@@ -70,9 +70,9 @@ list(
       plans = c("fastest", "balanced", "quietest", "ebike"),
       # plans = c("fastest"),
       # min_flow = 300, # Set to 1 for full build, set to high value (e.g. 400) for tests
-      min_flow = 1,
-      # max_to_route = 29, # Set to 10e6 or similar large number for all routes
-      max_to_route = Inf,
+      min_flow = 30,
+      max_to_route = 1000, # Set to 10e6 or similar large number for all routes
+      # max_to_route = Inf,
       date_routing = "2023-03-31"
       )
   }),
@@ -294,6 +294,7 @@ list(
     make_geojson_zones(combined_network, "outputdata/combined_network.geojson")
     zip(zipfile = "outputdata/combined_network.zip", "outputdata/combined_network.geojson")
     file.rename("outputdata/combined_network.geojson", "rnet.geojson")
+    # zip(zipfile = "outputdata/combined_network.zip", "rnet.geojson")
   }),
   
   tar_target(tile, {
@@ -308,41 +309,41 @@ list(
   # tarchetypes::tar_render(visualise_rnet, path = "code/vis_network.Rmd", params = list(rnet_commute_list)),
   
   # tarchetypes::tar_render(report, path = "README.Rmd", params = list(zones, rnet)),
-  tar_target(upload_data, {
-
-    length(combined_network)
-    length(r_commute)
-    commit = gert::git_log(max = 1)
-    message("Commit: ", commit)
-    
-    if(Sys.info()[['sysname']] == "Linux") {
-      v = paste0("v", save_outputs, "_commit_", commit$commit)
-      v = gsub(pattern = " |:", replacement = "-", x = v)
-      setwd("outputdata")
-      f = list.files(path = ".", pattern = "Rds|zip|pmtiles")
-      # Piggyback fails with error message so commented and using cust
-      # piggyback::pb_upload(f)
-      msg = glue::glue("gh release create {v} --generate-notes")
-      message("Creating new release and folder to save the files: ", v)
-      dir.create(v)
-      message("Going to try to upload the following files: ", paste0(f, collapse = ", "))
-      message("With sizes: ", paste0(fs::file_size(f), collapse = ", "))
-      system(msg)
-      for(i in f) {
-        gh_release_upload(file = i, tag = v)
-        # Move into a new directory
-        file.copy(from = i, to = file.path(v, i))
-      }
-      message("Files stored in output folder: ", v)
-      message("Which contains: ", paste0(list.files(v), collapse = ", "))
-      # For specific version:
-      # system("gh release create v0.0.1 --generate-notes")
-      file.remove(f)
-      setwd("..")
-    }  else {
-      message("gh command line tool not available")
-      message("Now create a release with this version number and upload the files")
-    }
-  })
+  # tar_target(upload_data, {
+  # 
+  #   length(combined_network)
+  #   length(r_commute)
+  #   commit = gert::git_log(max = 1)
+  #   message("Commit: ", commit)
+  #   
+  #   if(Sys.info()[['sysname']] == "Linux") {
+  #     v = paste0("v", save_outputs, "_commit_", commit$commit)
+  #     v = gsub(pattern = " |:", replacement = "-", x = v)
+  #     setwd("outputdata")
+  #     f = list.files(path = ".", pattern = "Rds|zip|pmtiles")
+  #     # Piggyback fails with error message so commented and using cust
+  #     # piggyback::pb_upload(f)
+  #     msg = glue::glue("gh release create {v} --generate-notes")
+  #     message("Creating new release and folder to save the files: ", v)
+  #     dir.create(v)
+  #     message("Going to try to upload the following files: ", paste0(f, collapse = ", "))
+  #     message("With sizes: ", paste0(fs::file_size(f), collapse = ", "))
+  #     system(msg)
+  #     for(i in f) {
+  #       gh_release_upload(file = i, tag = v)
+  #       # Move into a new directory
+  #       file.copy(from = i, to = file.path(v, i))
+  #     }
+  #     message("Files stored in output folder: ", v)
+  #     message("Which contains: ", paste0(list.files(v), collapse = ", "))
+  #     # For specific version:
+  #     # system("gh release create v0.0.1 --generate-notes")
+  #     file.remove(f)
+  #     setwd("..")
+  #   }  else {
+  #     message("gh command line tool not available")
+  #     message("Now create a release with this version number and upload the files")
+  #   }
+  # })
   # tar_source(files = "data-raw/test-tiles.R") # how to source script as target?
 )
