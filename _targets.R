@@ -300,7 +300,8 @@ list(
   tar_target(tile, {
     # See code/tiling
     system("bash code/tile.sh")
-  }),
+  })
+  # ,
   
   # tar_target(visualise_rnet, {
   #   # tar_source("code/vis_network.R")
