@@ -154,6 +154,10 @@ list(
                         folder = "outputdata", batch = FALSE, nrow_batch = 20000)
     routes_commute
   }),
+  
+  # tar_target(r_school, {
+  #   TBC
+  # }),
   tar_target(uptake_list, {
     p = "fastest"
     for(p in parameters$plans) {
@@ -300,8 +304,7 @@ list(
   tar_target(tile, {
     # See code/tiling
     system("bash code/tile.sh")
-  })
-  # ,
+  }),
   
   # tar_target(visualise_rnet, {
   #   # tar_source("code/vis_network.R")
@@ -310,41 +313,40 @@ list(
   # tarchetypes::tar_render(visualise_rnet, path = "code/vis_network.Rmd", params = list(rnet_commute_list)),
   
   # tarchetypes::tar_render(report, path = "README.Rmd", params = list(zones, rnet)),
-  # tar_target(upload_data, {
-  # 
-  #   length(combined_network)
-  #   length(r_commute)
-  #   commit = gert::git_log(max = 1)
-  #   message("Commit: ", commit)
-  #   
-  #   if(Sys.info()[['sysname']] == "Linux") {
-  #     v = paste0("v", save_outputs, "_commit_", commit$commit)
-  #     v = gsub(pattern = " |:", replacement = "-", x = v)
-  #     setwd("outputdata")
-  #     f = list.files(path = ".", pattern = "Rds|zip|pmtiles")
-  #     # Piggyback fails with error message so commented and using cust
-  #     # piggyback::pb_upload(f)
-  #     msg = glue::glue("gh release create {v} --generate-notes")
-  #     message("Creating new release and folder to save the files: ", v)
-  #     dir.create(v)
-  #     message("Going to try to upload the following files: ", paste0(f, collapse = ", "))
-  #     message("With sizes: ", paste0(fs::file_size(f), collapse = ", "))
-  #     system(msg)
-  #     for(i in f) {
-  #       gh_release_upload(file = i, tag = v)
-  #       # Move into a new directory
-  #       file.copy(from = i, to = file.path(v, i))
-  #     }
-  #     message("Files stored in output folder: ", v)
-  #     message("Which contains: ", paste0(list.files(v), collapse = ", "))
-  #     # For specific version:
-  #     # system("gh release create v0.0.1 --generate-notes")
-  #     file.remove(f)
-  #     setwd("..")
-  #   }  else {
-  #     message("gh command line tool not available")
-  #     message("Now create a release with this version number and upload the files")
-  #   }
-  # })
-  # tar_source(files = "data-raw/test-tiles.R") # how to source script as target?
+  tar_target(upload_data, {
+
+    length(combined_network)
+    length(r_commute)
+    commit = gert::git_log(max = 1)
+    message("Commit: ", commit)
+
+    if(Sys.info()[['sysname']] == "Linux") {
+      v = paste0("v", save_outputs, "_commit_", commit$commit)
+      v = gsub(pattern = " |:", replacement = "-", x = v)
+      setwd("outputdata")
+      f = list.files(path = ".", pattern = "Rds|zip|pmtiles")
+      # Piggyback fails with error message so commented and using cust
+      # piggyback::pb_upload(f)
+      msg = glue::glue("gh release create {v} --generate-notes")
+      message("Creating new release and folder to save the files: ", v)
+      dir.create(v)
+      message("Going to try to upload the following files: ", paste0(f, collapse = ", "))
+      message("With sizes: ", paste0(fs::file_size(f), collapse = ", "))
+      system(msg)
+      for(i in f) {
+        gh_release_upload(file = i, tag = v)
+        # Move into a new directory
+        file.copy(from = i, to = file.path(v, i))
+      }
+      message("Files stored in output folder: ", v)
+      message("Which contains: ", paste0(list.files(v), collapse = ", "))
+      # For specific version:
+      # system("gh release create v0.0.1 --generate-notes")
+      file.remove(f)
+      setwd("..")
+    }  else {
+      message("gh command line tool not available")
+      message("Now create a release with this version number and upload the files")
+    }
+  })
 )
