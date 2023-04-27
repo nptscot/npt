@@ -4,8 +4,8 @@
 # git clone https://github.com/felt/tippecanoe.git
 # cd tippecanoe
 # make -j
-# make install
-tippecanoe --version
+# sudo make install
+# tippecanoe --version
 
 # Route network
 tippecanoe -o outputdata/rnet.pmtiles \

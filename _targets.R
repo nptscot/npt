@@ -70,9 +70,9 @@ list(
       plans = c("fastest", "balanced", "quietest", "ebike"),
       # plans = c("fastest"),
       # min_flow = 300, # Set to 1 for full build, set to high value (e.g. 400) for tests
-      min_flow = 1,
-      # max_to_route = 29, # Set to 10e6 or similar large number for all routes
-      max_to_route = Inf,
+      min_flow = 30,
+      max_to_route = 1000, # Set to 10e6 or similar large number for all routes
+      # max_to_route = Inf,
       date_routing = "2023-03-31"
       )
   }),
@@ -154,6 +154,10 @@ list(
                         folder = "outputdata", batch = FALSE, nrow_batch = 20000)
     routes_commute
   }),
+  
+  # tar_target(r_school, {
+  #   TBC
+  # }),
   tar_target(uptake_list, {
     p = "fastest"
     for(p in parameters$plans) {
@@ -294,6 +298,7 @@ list(
     make_geojson_zones(combined_network, "outputdata/combined_network.geojson")
     zip(zipfile = "outputdata/combined_network.zip", "outputdata/combined_network.geojson")
     file.rename("outputdata/combined_network.geojson", "rnet.geojson")
+    # zip(zipfile = "outputdata/combined_network.zip", "rnet.geojson")
   }),
   
   tar_target(tile, {
@@ -314,7 +319,7 @@ list(
     length(r_commute)
     commit = gert::git_log(max = 1)
     message("Commit: ", commit)
-    
+
     if(Sys.info()[['sysname']] == "Linux") {
       v = paste0("v", save_outputs, "_commit_", commit$commit)
       v = gsub(pattern = " |:", replacement = "-", x = v)
@@ -344,5 +349,4 @@ list(
       message("Now create a release with this version number and upload the files")
     }
   })
-  # tar_source(files = "data-raw/test-tiles.R") # how to source script as target?
 )
