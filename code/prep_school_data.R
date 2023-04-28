@@ -24,13 +24,23 @@ if(!file.exists("D:/GitHub/atumscot/inputdata/Schools/school_locations.geojson")
 
 # Prep School Flows
 flow = readxl::read_excel("D:/OneDrive - University of Leeds/Documents/NPT Scot/Secure Data/A2200 pupils by school and data zone.xlsx")
-
-datazone = st_read("outputs/data_zones.geojson")
-datazone_cent = st_transform(datazone, 27700)
-datazone_cent = st_centroid(datazone_cent)
-datazone_cent = st_transform(datazone_cent, 4326)
-datazone_cent = datazone_cent[,"DataZone"]
 names(flow)[5] = "DataZone"
+
+if(!file.exists("D:/GitHub/atumscot/inputdata/data_zone_centroids.geojson")){
+  dir.create("temp")
+  unzip("D:/OneDrive - University of Leeds/Data/OA Bounadries/SG_DataZoneCent_2011.zip", exdir = "temp")
+  datazone_cent = read_sf("temp/SG_DataZone_Cent_2011.shp")
+  unlink("temp", recursive = TRUE)
+  #qtm(locs)
+  datazone_cent = datazone_cent[,c("DataZone")]
+  datazone_cent = st_transform(datazone_cent, 4326)
+  
+  st_precision(datazone_cent) <- 100000
+  st_write(datazone_cent, "D:/GitHub/atumscot/inputdata/data_zone_centroids.geojson")
+} else {
+  datazone_cent <- st_read("D:/GitHub/atumscot/inputdata/data_zone_centroids.geojson")
+}
+
 
 summary(flow$SeedCode %in% locs$SeedCode)
 foo = flow[!flow$SeedCode %in% locs$SeedCode,] # 7 missing schools
@@ -46,6 +56,8 @@ flow_sf = od2line(flow,
 flow_sf$length_km <- round(as.numeric(st_length(flow_sf)) / 1000,1)
 summary(flow_sf$length_km)
 flow_sf <- flow_sf[flow_sf$length_km < 30,]
+saveRDS(flow_sf, "D:/University of Leeds/TEAM - Network Planning Tool - General/secure_data/schools/school_dl_sub30km.Rds")
+
 flow_sf <- flow_sf[,c("DataZone","SeedCode","count")]
 flow_sf$route_id <- 1:nrow(flow_sf)
 
