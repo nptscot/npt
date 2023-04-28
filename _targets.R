@@ -164,7 +164,7 @@ list(
     if(file.exists(file.path(path_teams,"secure_data/schools/school_dl_sub30km.Rds"))){
       schools_dl = readRDS(file.path(path_teams,"secure_data/schools/school_dl_sub30km.Rds"))
     } else {
-      
+      stop("Can't find ",file.path(path_teams,"secure_data/schools/school_dl_sub30km.Rds"))
     }
     
   }),
