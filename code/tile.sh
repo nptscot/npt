@@ -8,7 +8,7 @@
 # tippecanoe --version
 
 # Route network
-tippecanoe -o outputdata/rnet.pmtiles \
+tippecanoe -o outputdata/rnet_2023-04-27.pmtiles \
   --name=rnet \
   --layer=rnet \
   --attribution=UniverstyofLeeds \
