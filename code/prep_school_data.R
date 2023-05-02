@@ -6,7 +6,6 @@ library(dplyr)
 tmap_mode("view")
 remotes::install_dev("cyclestreets")
 
-
 if(!file.exists("D:/GitHub/atumscot/inputdata/Schools/school_locations.geojson")){
   dir.create("temp")
   unzip("D:/GitHub/atumscot/inputdata/Schools/SG_SchoolRoll_2022.zip", exdir = "temp")
