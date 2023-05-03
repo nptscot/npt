@@ -4,7 +4,7 @@ library(tmap)
 library(stplanr)
 library(dplyr)
 tmap_mode("view")
-remotes::install_dev("cyclestreets")
+remotes::install_github("nptscot/cyclestreets-r")
 
 if(!file.exists("D:/GitHub/atumscot/inputdata/Schools/school_locations.geojson")){
   dir.create("temp")

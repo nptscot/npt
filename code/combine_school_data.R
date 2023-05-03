@@ -45,7 +45,8 @@ make_rnets = function(r, type){
   r = r[r$bicycle_go_dutch > 0 | r$bicycle > 0,]
   rnet = stplanr::overline2(r, 
                             attrib = c("bicycle","bicycle_go_dutch","gradient","quietness"), 
-                            fun = list(sum = sum, mean = mean))
+                            fun = list(sum = sum, mean = mean),
+                            ncores = 20, regionalise = 1e3)
   rnet = rnet[,c("bicycle_sum","bicycle_go_dutch_sum","gradient_mean","quietness_mean")]
   rnet = rnet[rnet$bicycle_go_dutch > 0 , ]
   names(rnet) = c(paste0(type,"_bicycle"),paste0(type,"_bicycle_go_dutch"),"gradient","quietness","geometry")
@@ -56,6 +57,11 @@ rnet_fast = make_rnets(flow_fast, "school_fastest")
 rnet_quiet = make_rnets(flow_quiet, "school_quietest")
 rnet_balanced = make_rnets(flow_balanced, "school_balanced")
 rnet_ebike = make_rnets(flow_ebike, "school_ebike")
+
+saveRDS(rnet_fast, "D:/University of Leeds/TEAM - Network Planning Tool - General/secure_data/schools/school_rnet_fast.Rds")
+saveRDS(rnet_quiet, "D:/University of Leeds/TEAM - Network Planning Tool - General/secure_data/schools/school_rnet_quiet.Rds")
+saveRDS(rnet_balanced, "D:/University of Leeds/TEAM - Network Planning Tool - General/secure_data/schools/school_rnet_balanced.Rds")
+saveRDS(rnet_ebike, "D:/University of Leeds/TEAM - Network Planning Tool - General/secure_data/schools/school_rnet_ebike.Rds")
 
 # Combine rnets
 rnet_long = list(rnet_fast, rnet_quiet, rnet_balanced, rnet_ebike)
