@@ -31,8 +31,7 @@ rnet_combined = overline(rnet_long,
 
 rnet_combined = rnet_combined[,c("school_fastest_bicycle_sum","school_fastest_bicycle_go_dutch_sum","school_quietest_bicycle_sum",
                                  "school_quietest_bicycle_go_dutch_sum","school_balanced_bicycle_sum","school_balanced_bicycle_go_dutch_sum",
-                                 "school_ebike_bicycle_sum","school_ebike_bicycle_go_dutch_sum","Gradient_sum",
-                                 "Quietness_sum","commute_fastest_bicycle_sum","commute_fastest_bicycle_go_dutch_sum",
+                                 "school_ebike_bicycle_sum","school_ebike_bicycle_go_dutch_sum","commute_fastest_bicycle_sum","commute_fastest_bicycle_go_dutch_sum",
                                  "commute_balanced_bicycle_sum","commute_balanced_bicycle_go_dutch_sum","commute_quietest_bicycle_sum",
                                  "commute_quietest_bicycle_go_dutch_sum","commute_ebike_bicycle_sum","commute_ebike_bicycle_go_dutch_sum",
                                "Gradient_max","Quietness_max","geometry")]
@@ -52,7 +51,7 @@ rnet_combined$all_ebike_bicycle_go_dutch  = rnet_combined$school_ebike_bicycle_g
 
 saveRDS(rnet_combined, "D:/University of Leeds/TEAM - Network Planning Tool - General/secure_data/schools/school_commute_rnet.Rds")
 
-st_precision(rnet_combined) <- 1000000
-write_sf(rnet_combined, "outputs/rnet_school_commute2.geojson", delete_dsn = TRUE)
+st_precision(rnet_combined) <- 10000000
+write_sf(rnet_combined, "outputs/rnet_school_commute.geojson", delete_dsn = TRUE)
 
 

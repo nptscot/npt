@@ -6,7 +6,7 @@ cd /mnt/d/GitHub/atumscot/atumscot/outputs
 
 # Route network
 
-tippecanoe -o rnet.pmtiles \
+tippecanoe -o rnet-dev.pmtiles \
   --name=rnet \
   --layer=rnet \
   --attribution=UniverstyofLeeds \
@@ -16,7 +16,7 @@ tippecanoe -o rnet.pmtiles \
   --maximum-tile-bytes=5000000 \
   --simplification=10 \
   --buffer=5 \
-  --force  rnet.geojson
+  --force  rnet_school_commute.geojson
 
 
 # Routes
@@ -71,7 +71,19 @@ tippecanoe -o data_zones.pmtiles \
   --buffer=5 \
   --force  data_zones.geojson
 
+# Schools
 
+tippecanoe -o schools.pmtiles \
+  --name=schools \
+  --layer=schools \
+  --attribution=UniverstyofLeeds \
+  --minimum-zoom=6 \
+  --maximum-zoom=13 \
+  --maximum-tile-bytes=5000000 \
+  --simplification=10 \
+  --buffer=5 \
+  -rg4 \
+  --force  school_locations.geojson
 
 # LA Bounds
 

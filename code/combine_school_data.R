@@ -94,7 +94,7 @@ names(rnet_combined) = gsub("_max","",names(rnet_combined))
 
 saveRDS(rnet_combined, "D:/University of Leeds/TEAM - Network Planning Tool - General/secure_data/schools/school_rnet_sub30km.Rds")
 
-qtm(rnet_combined[1:100000,], lines.lwd = 3, lines.col = "school_fastest_bicycle_go_dutch")
+#qtm(rnet_combined[1:100000,], lines.lwd = 3, lines.col = "school_fastest_bicycle_go_dutch")
 
 #flow_fast$count_go_dutch = round(pct::uptake_pct_godutch_2020(flow_fast$length_route,  flow_fast$route_hilliness) * flow_fast$count)
 
