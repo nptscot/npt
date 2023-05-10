@@ -66,14 +66,17 @@ list(
     if(!renviron_exists) {
       warning("No .Renviron file, routing may not work")
     }
+    date_routing = "2023-04-27"
+    folder_name = paste0("outputdata/", date_routing)
+    if(!dir.exists(folder_name)){dir.create(file.path(folder_name))}
     list(
       plans = c("fastest", "balanced", "quietest", "ebike"),
       # plans = c("fastest"),
       # min_flow = 300, # Set to 1 for full build, set to high value (e.g. 400) for tests
-      min_flow = 30,
-      max_to_route = 1000, # Set to 10e6 or similar large number for all routes
-      # max_to_route = Inf,
-      date_routing = "2023-03-31"
+      min_flow = 1,
+      # max_to_route = 1000, # Set to 10e6 or similar large number for all routes
+      max_to_route = Inf,
+      date_routing = date_routing
       )
   }),
   # tar_target(dl_data, {
@@ -149,25 +152,26 @@ list(
     message("Calculating ", nrow(od_commute_subset), " routes")
     # Test routing:
     # stplanr::route(l = od_to_route, route_fun = cyclestreets::journey, plan = "balanced")
+    folder_name = paste0("outputdata/", parameters$date_routing)
     routes_commute = get_routes(od_commute_subset,
                         plans = parameters$plans, purpose = "commute",
-                        folder = "outputdata", batch = FALSE, nrow_batch = 20000)
+                        folder = folder_name, batch = FALSE, nrow_batch = 20000)
     routes_commute
   }),
   
-  tar_target(r_school, {
-    # Get School OD
-    path_teams = Sys.getenv("NPT_TEAMS_PATH")
-    if(nchar(path_teams) == 0){
-      stop("Can't find Teams folder of secure data. Use usethis::edit_r_environ() to define NPT_TEAMS_PATH ")
-    }
-    if(file.exists(file.path(path_teams,"secure_data/schools/school_dl_sub30km.Rds"))){
-      schools_dl = readRDS(file.path(path_teams,"secure_data/schools/school_dl_sub30km.Rds"))
-    } else {
-      stop("Can't find ",file.path(path_teams,"secure_data/schools/school_dl_sub30km.Rds"))
-    }
-    
-  }),
+  # tar_target(r_school, {
+  #   # Get School OD
+  #   path_teams = Sys.getenv("NPT_TEAMS_PATH")
+  #   if(nchar(path_teams) == 0){
+  #     stop("Can't find Teams folder of secure data. Use usethis::edit_r_environ() to define NPT_TEAMS_PATH ")
+  #   }
+  #   if(file.exists(file.path(path_teams,"secure_data/schools/school_dl_sub30km.Rds"))){
+  #     schools_dl = readRDS(file.path(path_teams,"secure_data/schools/school_dl_sub30km.Rds"))
+  #   } else {
+  #     stop("Can't find ",file.path(path_teams,"secure_data/schools/school_dl_sub30km.Rds"))
+  #   }
+  #   
+  # }),
   tar_target(uptake_list, {
     p = "fastest"
     for(p in parameters$plans) {
