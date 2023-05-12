@@ -66,14 +66,17 @@ list(
     if(!renviron_exists) {
       warning("No .Renviron file, routing may not work")
     }
-    date_routing = "2023-04-27"
+    date_routing = "2023-05-12"
     folder_name = paste0("outputdata/", date_routing)
-    if(!dir.exists(folder_name)){dir.create(file.path(folder_name))}
+    if(!dir.exists(folder_name)){
+      dir.create(file.path(folder_name))
+      # tar_invalidate(r_commute)
+      }
     list(
       plans = c("fastest", "balanced", "quietest", "ebike"),
       # plans = c("fastest"),
-      # min_flow = 300, # Set to 1 for full build, set to high value (e.g. 400) for tests
-      min_flow = 1,
+      min_flow = 221, # Set to 1 for full build, set to high value (e.g. 400) for tests
+      # min_flow = 1,
       # max_to_route = 1000, # Set to 10e6 or similar large number for all routes
       max_to_route = Inf,
       date_routing = date_routing
@@ -92,10 +95,12 @@ list(
       # For national data:
       readRDS("inputdata/zones_national_simple.Rds") # 1230 zones
     }),
-  tar_target(od_commute_raw, {
-    # read_csv("data-raw/od_subset.csv")
-    readRDS("inputdata/od_izo.Rds")
-  }),
+  # To get the raw data:
+  # tar_target(od_commute_raw, {
+  #   # read_csv("data-raw/od_subset.csv")
+  #   # See data-raw-get_wpz.R
+  #   readRDS("inputdata/od_izo.Rds")
+  # }),
   # tar_target(od_schools_raw, {
   #   # read_csv("data-raw/od_subset.csv")
   # }),
@@ -303,21 +308,14 @@ list(
     # f = paste0("outputdata/routes_commute_", nrow(od_commute_subset), "_rows.Rds")
     # saveRDS(r_commute, f)
     save_outputs = Sys.time()
-    save_outputs
-  }),
-  
-  tar_target(geojsons, {
     # See code in R/make_geojson.R
-    combined_network = readRDS("outputdata/combined_network.Rds")
     make_geojson_zones(combined_network, "outputdata/combined_network.geojson")
     zip(zipfile = "outputdata/combined_network.zip", "outputdata/combined_network.geojson")
     file.rename("outputdata/combined_network.geojson", "rnet.geojson")
     # zip(zipfile = "outputdata/combined_network.zip", "rnet.geojson")
-  }),
-  
-  tar_target(tile, {
-    # See code/tiling
+    # Tile the data:
     system("bash code/tile.sh")
+    save_outputs
   }),
   
   # tar_target(visualise_rnet, {
@@ -329,7 +327,7 @@ list(
   # tarchetypes::tar_render(report, path = "README.Rmd", params = list(zones, rnet)),
   tar_target(upload_data, {
 
-    length(combined_network)
+    # Ensure the target runs after
     length(r_commute)
     commit = gert::git_log(max = 1)
     message("Commit: ", commit)
@@ -362,5 +360,30 @@ list(
       message("gh command line tool not available")
       message("Now create a release with this version number and upload the files")
     }
+    Sys.Date()
+  }),
+  
+  tar_target(metadata, {
+    upload_data
+    metadata_all = tar_meta()
+    metadata_targets = metadata_all %>% 
+      filter(type == "stem")
+    readr::write_csv(metadata_targets, "outputs/metadata_targets.csv")
+    # Todo: add more columns
+    build_summary = tibble::tibble(
+      n_segment_cells = nrow(combined_network) * ncol(combined_network),
+      min_flow = parameters$min_flow,
+      max_to_route = parameters$max_to_route,
+      time_total = sum(metadata_targets$seconds) / 60,
+      time_r_commute = metadata_targets %>% filter(name == "r_commute") %>% pull(seconds) / 60
+    )
+    if (file.exists("outputs/build_summary.csv")) {
+      build_summary_previous = read_csv("outputs/build_summary.csv")
+    } else {
+      build_summary_previous = NULL
+    }
+    # Combine previous and current build datasets
+    build_summary = data.table::rbindlist(list(build_summary, build_summary_previous), fill = TRUE)
+    write_csv(build_summary, "outputs/build_summary.csv")
   })
 )
