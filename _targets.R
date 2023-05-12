@@ -303,21 +303,14 @@ list(
     # f = paste0("outputdata/routes_commute_", nrow(od_commute_subset), "_rows.Rds")
     # saveRDS(r_commute, f)
     save_outputs = Sys.time()
-    save_outputs
-  }),
-  
-  tar_target(geojsons, {
     # See code in R/make_geojson.R
-    combined_network = readRDS("outputdata/combined_network.Rds")
     make_geojson_zones(combined_network, "outputdata/combined_network.geojson")
     zip(zipfile = "outputdata/combined_network.zip", "outputdata/combined_network.geojson")
     file.rename("outputdata/combined_network.geojson", "rnet.geojson")
     # zip(zipfile = "outputdata/combined_network.zip", "rnet.geojson")
-  }),
-  
-  tar_target(tile, {
-    # See code/tiling
+    # Tile the data:
     system("bash code/tile.sh")
+    save_outputs
   }),
   
   # tar_target(visualise_rnet, {
@@ -329,7 +322,7 @@ list(
   # tarchetypes::tar_render(report, path = "README.Rmd", params = list(zones, rnet)),
   tar_target(upload_data, {
 
-    length(combined_network)
+    # Ensure the target runs after
     length(r_commute)
     commit = gert::git_log(max = 1)
     message("Commit: ", commit)
@@ -362,5 +355,10 @@ list(
       message("gh command line tool not available")
       message("Now create a release with this version number and upload the files")
     }
+    
+  }),
+  
+  tar_target(metadata, {
+    
   })
 )
