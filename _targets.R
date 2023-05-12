@@ -66,7 +66,7 @@ list(
     if(!renviron_exists) {
       warning("No .Renviron file, routing may not work")
     }
-    date_routing = "2023-04-27"
+    date_routing = "2023-05-12"
     folder_name = paste0("outputdata/", date_routing)
     if(!dir.exists(folder_name)){dir.create(file.path(folder_name))}
     list(
