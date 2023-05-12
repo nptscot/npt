@@ -92,10 +92,12 @@ list(
       # For national data:
       readRDS("inputdata/zones_national_simple.Rds") # 1230 zones
     }),
-  tar_target(od_commute_raw, {
-    # read_csv("data-raw/od_subset.csv")
-    readRDS("inputdata/od_izo.Rds")
-  }),
+  # To get the raw data:
+  # tar_target(od_commute_raw, {
+  #   # read_csv("data-raw/od_subset.csv")
+  #   # See data-raw-get_wpz.R
+  #   readRDS("inputdata/od_izo.Rds")
+  # }),
   # tar_target(od_schools_raw, {
   #   # read_csv("data-raw/od_subset.csv")
   # }),
