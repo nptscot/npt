@@ -22,3 +22,9 @@ targets::tar_make()
 # 
 # # # cron_add(command = cmd, frequency = 'minutely', id = 'test1', description = 'My process 1', tags = c('lab', 'xyz'))
 # cron_add(command = cmd, frequency = 'daily', at='1AM', id = 'rebuild_atum')
+## cronR job
+## id:   rebuild_atum
+## tags: 
+## desc: 
+# Try to run daily?
+# 26 15 * * * /usr/lib/R/bin/Rscript '/home/atumscott/nptscot/npt/run.R'  >> '/home/atumscott/nptscot/npt/run.log' 2>&1
