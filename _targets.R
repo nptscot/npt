@@ -68,7 +68,10 @@ list(
     }
     date_routing = "2023-04-27"
     folder_name = paste0("outputdata/", date_routing)
-    if(!dir.exists(folder_name)){dir.create(file.path(folder_name))}
+    if(!dir.exists(folder_name)){
+      dir.create(file.path(folder_name))
+      tar_invalidate(r_commute)
+      }
     list(
       plans = c("fastest", "balanced", "quietest", "ebike"),
       # plans = c("fastest"),
