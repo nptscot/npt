@@ -66,7 +66,7 @@ list(
     if(!renviron_exists) {
       warning("No .Renviron file, routing may not work")
     }
-    date_routing = "2023-05-12"
+    date_routing = "2023-05-13"
     folder_name = paste0("outputdata/", date_routing)
     if(!dir.exists(folder_name)){
       dir.create(file.path(folder_name))
@@ -75,8 +75,8 @@ list(
     list(
       plans = c("fastest", "balanced", "quietest", "ebike"),
       # plans = c("fastest"),
-      min_flow = 221, # Set to 1 for full build, set to high value (e.g. 400) for tests
-      # min_flow = 1,
+      # min_flow = 221, # Set to 1 for full build, set to high value (e.g. 400) for tests
+      min_flow = 1,
       # max_to_route = 1000, # Set to 10e6 or similar large number for all routes
       max_to_route = Inf,
       date_routing = date_routing
