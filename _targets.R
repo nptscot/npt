@@ -72,8 +72,8 @@ list(
     list(
       plans = c("fastest", "balanced", "quietest", "ebike"),
       # plans = c("fastest"),
-      # min_flow = 300, # Set to 1 for full build, set to high value (e.g. 400) for tests
-      min_flow = 1,
+      min_flow = 221, # Set to 1 for full build, set to high value (e.g. 400) for tests
+      # min_flow = 1,
       # max_to_route = 1000, # Set to 10e6 or similar large number for all routes
       max_to_route = Inf,
       date_routing = date_routing
@@ -357,10 +357,30 @@ list(
       message("gh command line tool not available")
       message("Now create a release with this version number and upload the files")
     }
-    
+    Sys.Date()
   }),
   
   tar_target(metadata, {
-    
+    upload_data
+    metadata_all = tar_meta()
+    metadata_targets = metadata_all %>% 
+      filter(type == "stem")
+    readr::write_csv(metadata_targets, "outputs/metadata_targets.csv")
+    # Todo: add more columns
+    build_summary = tibble::tibble(
+      n_segment_cells = nrow(combined_network) * ncol(combined_network),
+      min_flow = parameters$min_flow,
+      max_to_route = parameters$max_to_route,
+      time_total = sum(metadata_targets$seconds) / 60,
+      time_r_commute = metadata_targets %>% filter(name == "r_commute") %>% pull(seconds) / 60
+    )
+    if (file.exists("outputs/build_summary.csv")) {
+      build_summary_previous = read_csv("outputs/build_summary.csv")
+    } else {
+      build_summary_previous = NULL
+    }
+    # Combine previous and current build datasets
+    build_summary = data.table::rbindlist(list(build_summary, build_summary_previous), fill = TRUE)
+    write_csv(build_summary, "outputs/build_summary.csv")
   })
 )
