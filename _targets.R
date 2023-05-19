@@ -275,28 +275,20 @@ list(
       mutate(Gradient = round(Gradient, digits = 1))
     # # TODO: check gradients
     # table(rnet_combined$Gradient)
-
+    
+    # see code/tests/test-quietness-network.R
     rnet_bicycle = rnet %>% 
       select(matches("bicycle")) %>% 
       sf::st_drop_geometry()
-    head(rnet_bicycle)
     rnet$total_cyclists_segment = rowSums(rnet_bicycle)
-    summary(rnet$total_cyclists_segment)
     
-    # Values on Mercury Way still correct:
-    mapview::mapview(rnet, zcol = "quietest_bicycle_go_dutch")
-    
-    summary(rnet$total_cyclists)
-    
-    # Issue with total_cyclists
-    mapview::mapview(rnet, zcol = "total_cyclists")
-    
-    names(rnet)[1:4] = paste0("commute_", names(rnet))[1:4]
+    names(rnet)[1:8] = paste0("commute_", names(rnet))[1:8]
     rnet = rnet %>% 
       filter(total_cyclists_segment > 0) %>% 
       select(-total_cyclists_segment) %>% 
       as.data.frame() %>% 
       sf::st_as_sf()
+    
     saveRDS(rnet, "outputdata/combined_network.Rds")
     rnet
   }),

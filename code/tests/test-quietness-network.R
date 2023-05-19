@@ -80,6 +80,8 @@ rnet = rnet %>%
   rowwise() %>%
   mutate(total_cyclists = sum(fastest_bicycle:quietest_bicycle_go_dutch))
 
+mapview::mapview(rnet, zcol = "total_cyclists")
+
 # Base R implementation
 rnet_bicycle = rnet %>% 
   select(matches("bicycle")) %>% 
@@ -105,3 +107,7 @@ rnet = rnet %>%
 
 # Values on Mercury Way still correct:
 mapview::mapview(rnet, zcol = "commute_quietest_bicycle_go_dutch")
+
+tar_load(combined_network)
+combined_network_dundee = combined_network[dundee_buffer_3km, ]
+mapview::mapview(combined_network_dundee, zcol = "commute_quietest_bicycle_go_dutch")
