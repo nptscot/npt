@@ -110,4 +110,6 @@ mapview::mapview(rnet, zcol = "commute_quietest_bicycle_go_dutch")
 
 tar_load(combined_network)
 combined_network_dundee = combined_network[dundee_buffer_3km, ]
+combined_network_dundee = rnet[dundee_buffer_3km, ]
 mapview::mapview(combined_network_dundee, zcol = "commute_quietest_bicycle_go_dutch")
+
