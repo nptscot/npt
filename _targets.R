@@ -275,17 +275,20 @@ list(
       mutate(Gradient = round(Gradient, digits = 1))
     # # TODO: check gradients
     # table(rnet_combined$Gradient)
-
-    rnet = rnet %>%
-      rowwise() %>%
-      mutate(total_cyclists = sum(fastest_bicycle:ebike_bicycle_go_dutch))
-    summary(rnet$total_cyclists)
+    
+    # see code/tests/test-quietness-network.R
+    rnet_bicycle = rnet %>% 
+      select(matches("bicycle")) %>% 
+      sf::st_drop_geometry()
+    rnet$total_cyclists_segment = rowSums(rnet_bicycle)
+    
     names(rnet)[1:8] = paste0("commute_", names(rnet))[1:8]
     rnet = rnet %>% 
-      filter(total_cyclists > 0) %>% 
-      select(-total_cyclists) %>% 
+      filter(total_cyclists_segment > 0) %>% 
+      select(-total_cyclists_segment) %>% 
       as.data.frame() %>% 
       sf::st_as_sf()
+    
     saveRDS(rnet, "outputdata/combined_network.Rds")
     rnet
   }),
