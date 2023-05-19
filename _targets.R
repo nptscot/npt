@@ -276,14 +276,25 @@ list(
     # # TODO: check gradients
     # table(rnet_combined$Gradient)
 
-    rnet = rnet %>%
-      rowwise() %>%
-      mutate(total_cyclists = sum(fastest_bicycle:ebike_bicycle_go_dutch))
+    rnet_bicycle = rnet %>% 
+      select(matches("bicycle")) %>% 
+      sf::st_drop_geometry()
+    head(rnet_bicycle)
+    rnet$total_cyclists_segment = rowSums(rnet_bicycle)
+    summary(rnet$total_cyclists_segment)
+    
+    # Values on Mercury Way still correct:
+    mapview::mapview(rnet, zcol = "quietest_bicycle_go_dutch")
+    
     summary(rnet$total_cyclists)
-    names(rnet)[1:8] = paste0("commute_", names(rnet))[1:8]
+    
+    # Issue with total_cyclists
+    mapview::mapview(rnet, zcol = "total_cyclists")
+    
+    names(rnet)[1:4] = paste0("commute_", names(rnet))[1:4]
     rnet = rnet %>% 
-      filter(total_cyclists > 0) %>% 
-      select(-total_cyclists) %>% 
+      filter(total_cyclists_segment > 0) %>% 
+      select(-total_cyclists_segment) %>% 
       as.data.frame() %>% 
       sf::st_as_sf()
     saveRDS(rnet, "outputdata/combined_network.Rds")
