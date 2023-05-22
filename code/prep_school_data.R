@@ -5,8 +5,9 @@ library(stplanr)
 library(dplyr)
 tmap_mode("view")
 remotes::install_github("nptscot/cyclestreets-r")
+secure_path = Sys.getenv("NPT_TEAMS_PATH")
 
-if(!file.exists("D:/GitHub/atumscot/inputdata/Schools/school_locations.geojson")){
+if(!file.exists("../inputdata/Schools/school_locations.geojson")){
   dir.create("temp")
   unzip("D:/GitHub/atumscot/inputdata/Schools/SG_SchoolRoll_2022.zip", exdir = "temp")
   locs = read_sf("temp/SG_SchoolRoll_2022/SG_SchoolRoll_2022.shp")
@@ -16,16 +17,16 @@ if(!file.exists("D:/GitHub/atumscot/inputdata/Schools/school_locations.geojson")
   locs = st_transform(locs, 4326)
   
   st_precision(locs) <- 1000000
-  st_write(locs, "D:/GitHub/atumscot/inputdata/Schools/school_locations.geojson")
+  st_write(locs, "../inputdata/Schools/school_locations.geojson")
 } else {
-  locs <- st_read("D:/GitHub/atumscot/inputdata/Schools/school_locations.geojson")
+  locs <- st_read("../inputdata/Schools/school_locations.geojson")
 }
 
 # Prep School Flows
-flow = readxl::read_excel("D:/OneDrive - University of Leeds/Documents/NPT Scot/Secure Data/A2200 pupils by school and data zone.xlsx")
+flow = readxl::read_excel(file.path(secure_path,"secure_data/schools/raw_data/A2200 pupils by school and data zone.xlsx"))
 names(flow)[5] = "DataZone"
 
-if(!file.exists("D:/GitHub/atumscot/inputdata/data_zone_centroids.geojson")){
+if(!file.exists("../inputdata/data_zone_centroids.geojson")){
   dir.create("temp")
   unzip("D:/OneDrive - University of Leeds/Data/OA Bounadries/SG_DataZoneCent_2011.zip", exdir = "temp")
   datazone_cent = read_sf("temp/SG_DataZone_Cent_2011.shp")
@@ -35,9 +36,9 @@ if(!file.exists("D:/GitHub/atumscot/inputdata/data_zone_centroids.geojson")){
   datazone_cent = st_transform(datazone_cent, 4326)
   
   st_precision(datazone_cent) <- 100000
-  st_write(datazone_cent, "D:/GitHub/atumscot/inputdata/data_zone_centroids.geojson")
+  st_write(datazone_cent, "../inputdata/data_zone_centroids.geojson")
 } else {
-  datazone_cent <- st_read("D:/GitHub/atumscot/inputdata/data_zone_centroids.geojson")
+  datazone_cent <- st_read("../inputdata/data_zone_centroids.geojson")
 }
 
 
