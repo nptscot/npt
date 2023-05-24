@@ -75,7 +75,7 @@ list(
     list(
       plans = c("fastest", "balanced", "quietest", "ebike"),
       # plans = c("fastest"),
-      min_flow = 221, # Set to 1 for full build, set to high value (e.g. 400) for tests
+      min_flow = 1, # Set to 1 for full build, set to high value (e.g. 400) for tests
       # min_flow = 1,
       # max_to_route = 1000, # Set to 10e6 or similar large number for all routes
       max_to_route = Inf,
