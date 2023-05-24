@@ -171,7 +171,7 @@ list(
     # )  
     # routing_edition = route_for_date$edition[1]
     # routing_integer = stringr::str_sub(routing_edition, start = -6)
-    # routing_date = lubridate::dmy(routing_integer)
+    # routing_date = lubridate::ymd(routing_integer)
     
     routes_commute = get_routes(od_commute_subset,
                         plans = parameters$plans, purpose = "commute",
