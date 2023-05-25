@@ -81,6 +81,10 @@ source("R/get_routes.R")
 school_path = file.path(secure_path, "secure_data/schools/school_dl_sub30km.Rds")
 flow_sf = readRDS(school_path)
 
+# Smaller sample
+flow_sample = sample_frac(flow_sf, size = 0.01)
+flow_sf = flow_sample
+
 
 fromPlace = st_sf(lwgeom::st_startpoint(flow_sf))
 toPlace = st_sf(lwgeom::st_endpoint(flow_sf))
