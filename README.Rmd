@@ -117,7 +117,7 @@ Visualise the project as follows:
 
 The zones in the case study region are as follows:
 
-```{r zones, echo=FALSE}
+```{r zones, echo=FALSE, eval=FALSE}
 # targets::tar_load(zones)
 # knitr::include_graphics("figures/test-plot.png")
 tmap_mode("plot")
@@ -127,7 +127,7 @@ tm_shape(zones) +
 
 Baseline cycling levels are shown below:
 
-```{r overline}
+```{r overline, eval=FALSE}
 tm_shape(rnet) +
   tm_lines(lwd = "bicycle", scale = 9)
 ```
