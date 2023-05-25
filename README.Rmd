@@ -10,8 +10,6 @@ knitr::opts_chunk$set(
   collapse = TRUE,
   comment = "#>"
 )
-library(tmap)
-library(tidyverse)
 ```
 
 # Network Planning Tool for Scotland
@@ -21,27 +19,72 @@ library(tidyverse)
 
 The aim of this project is to generate evidence to support strategic cycle network planning in Scotland.
 
-<!-- # Reproducibility -->
+# Reproducibility: basic
 
-<!-- To reproduced code in this repository first clone it, for example by installing the GitHub CLI tools and running: -->
+To reproduce the basic results in this repository, hosted on GitHub at nptscot/npt, first download and unzip or clone it and then open the 'npt' folder in your favourite integrated development environment (IDE) for R, such as RStudio.
 
-<!-- ```bash -->
-<!-- gh repo clone nptscot/npt -->
-<!-- ``` -->
+- You can download the repository as a zip file from the GitHub website by clicking on the green 'Code' button and selecting 'Download ZIP', hosted at this URL: https://www.github.com/nptscot/npt/archive/refs/heads/main.zip
+- You can clone the repo with Git as follows:
+  
+  ```bash
+  git clone https://www.github.com/nptscot/npt.git
+  ```
+- Or (recommended for future-proof workflows) you can install the GitHub CLI tool and clone the repo as follows:
+  
+  ```bash
+  gh repo clone nptscot/npt
+  ```
 
-<!-- Then run the following command (requires dependencies and data to be present): -->
+Install the GitHub CLI tools by following instructions here: https://cli.github.com/manual/installation
+
+Note: you can check to see if you have the GitHub CLI tools installed by running the following command from the R console:
+
+```{r}
+gh_version = try({
+  system("gh --version", intern = TRUE)
+})
+gh_version
+if(is(gh_version, "try-error")) {
+  message("You don't have the GitHub CLI tools installed. Please install them by following instructions here: https://cli.github.com/manual/installation")
+}
+```
+
+## Set-up
+
+We will use the following packages:
+
+```{r, message=FALSE, warning=FALSE}
+library(tidyverse)
+library(tmap)
+library(sf)
+```
+## Reading in input datasets
+
+Read-in the input datasets as follows:
+
+```{r}
+list.files("data-raw")
+od_data = read_csv("data-raw/od_subset.csv")
+
+```
+
+# Reproducibility: advanced
+
+Note: to reproduce the full build process currently depends on data sources and dependencies that are not publicly available. This is a work in progress.
+
+Then run the following command (requires dependencies and data to be present):
 
 ```{r, eval=FALSE, echo=FALSE}
 targets::tar_make()
 ```
 
-<!-- Note: you need to have a CYCLESTREETS API key for this, see here for details: https://rpackage.cyclestreets.net/reference/journey.html#details-1 -->
+Note: you need to have a CYCLESTREETS API key for this, see here for details: https://rpackage.cyclestreets.net/reference/journey.html#details-1
 
-<!-- This project uses `targets` for data processing pipeline management, with outputs like this: -->
+This project uses `targets` for data processing pipeline management, with outputs like this:
 
-<!-- ![](https://user-images.githubusercontent.com/1825120/205490893-b1627e3a-5102-4dbe-bc70-97e358e75506.png) -->
+![](https://user-images.githubusercontent.com/1825120/205490893-b1627e3a-5102-4dbe-bc70-97e358e75506.png)
 
-<!-- Visualise the project as follows: -->
+Visualise the project as follows:
 
 ```{r visnet}
 # targets::tar_visnetwork(targets_only = TRUE)
