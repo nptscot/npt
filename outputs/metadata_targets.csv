@@ -1,20 +1,17 @@
 name,type,data,command,depend,seed,path,time,size,bytes,format,repository,iteration,parent,children,seconds,warnings,error
-geojsons,stem,69731d6c72699be6,a35cbd3611a5e7d3,65ecf6d6993868c5,388913887,,2023-04-01T14:26:10Z,ac45463db19e2cbe,48,rds,local,vector,NA,,6.426,NA,NA
-od_commute_raw,stem,02e8fb06b5595485,24ee2857ca82f91c,316d915afebd2eb3,-306658284,,2023-03-26T07:00:03Z,10ab8f08b9bb31bd,1035036,rds,local,vector,NA,,0.073,NA,NA
-r_school,stem,NA,ec8ccfa2b0c4beec,fa1c418aaeb9cbb9,-989549808,,2023-05-01T15:28:05Z,NA,0,rds,local,vector,NA,,0.001,NA,unknown input format
-subpoints_destinations,stem,f635f4276c5b5bb2,8ec9bb96cebe6c9d,316d915afebd2eb3,-1697010667,,2023-03-26T07:00:03Z,2fbdde33a96884c6,102630,rds,local,vector,NA,,0.005,NA,NA
-subpoints_origins,stem,3b4dcd069f774193,4f6c193fa8e04c95,316d915afebd2eb3,450966405,,2023-03-26T07:00:03Z,81d819b58ebfaa6d,898656,rds,local,vector,NA,,0.039,NA,NA
-tile,stem,3576bf4c7c4f3f90,29ee67e989530aba,c31d9850c3ea2345,1337127750,,2023-04-01T14:26:18Z,44989414465ff33d,49,rds,local,vector,NA,,7.975,NA,NA
-zones,stem,bf5d22cdd698ceff,49e562b9d725ed48,316d915afebd2eb3,-1975358009,,2023-03-26T07:00:03Z,5efc1f03e8849747,1524606,rds,local,vector,NA,,0.012,NA,NA
-od_commute_jittered,stem,f0c79930cd991894,855477a591596f7a,24f0c4ae8ba7f08a,674506102,,2023-05-12T11:06:28Z,539503830afd6f6c,181235,rds,local,vector,NA,,1.144,NA,NA
-parameters,stem,1227f85054983793,7af1e5fe3eaea349,1ece2a9e314af4cf,780725592,,2023-05-12T11:07:10Z,53c93953a72b96c1,178,rds,local,vector,NA,,0,NA,NA
-od_data,stem,79bae0549730bb4c,23058a7b8fc5997f,7675796f03233dfa,-1950608183,,2023-05-12T11:07:10Z,d6bc6404b1ea3f63,11987,rds,local,vector,NA,,0.516,NA,NA
-od_commute_subset,stem,a4bab9f46413b669,6438aa6892a1e38e,a930e31316cde9b5,-1812505247,,2023-05-12T11:07:11Z,655a08f48a2602f0,176056,rds,local,vector,NA,,0.009,NA,NA
-r_commute,stem,5750a6efc16bd765,b5b2daf78756362b,b78ab8ace7626011,-1169720700,,2023-05-12T11:31:15Z,2e0c488acba557fa,22236309,rds,local,vector,NA,,1441.232,NA,NA
-uptake_list,stem,114b666ff4704920,fcea9596174ddaf1,c72ec161ce4cfcd4,955218489,,2023-05-12T11:31:28Z,91ed4c083870f202,24951731,rds,local,vector,NA,,10.036,NA,NA
-calculate_benefits,stem,5750a6efc16bd765,387252c9786e687f,b436f215918a1cf1,-1625165940,,2023-05-12T11:31:32Z,2e0c488acba557fa,22236309,rds,local,vector,NA,,0,NA,NA
-zone_stats,stem,ac0dde66a7465002,1e9648b83edb22a4,2cb3a9d3a208d915,-1203691813,,2023-05-12T11:31:32Z,3dd47fbe9d8a7555,1524605,rds,local,vector,NA,,0,NA,NA
-rnet_commute_list,stem,ee56ec04d0c0626d,9c43dc78ebcd3446,50b60c34cf46d7a2,-1500100641,,2023-05-12T11:32:48Z,5491bde7d8b7fb5f,9234445,rds,local,vector,NA,,75.854,NA,NA
-combined_network,stem,8dfc943a6858f547,bddd430167d035fb,6a34fcd5631c7c5c,1815710017,,2023-05-12T12:02:55Z,f07cc0ec5a47a7c6,2558944,rds,local,vector,NA,,35.122,NA,NA
-save_outputs,stem,340ac013e97bea62,d05d0d37715664f3,3516147187503050,1635958269,,2023-05-12T12:02:59Z,9903306e1685fb67,94,rds,local,vector,NA,,3.929,NA,NA
-upload_data,stem,2f9a6a062248df63,9462545664fad748,41a103e42353d6f1,412588227,,2023-05-12T12:03:30Z,8619def19bb20a44,79,rds,local,vector,NA,,29.167,NA,NA
+metadata,stem,164d25d4ad136ef1,3263c2620a80cc49,9b9d8565db3d1f55,2062409165,,2023-05-19T15:48:10Z,8afab4f7d534a20a,286,rds,local,vector,NA,,0.11,NA,NA
+subpoints_destinations,stem,b17d5ce27baf5641,8ec9bb96cebe6c9d,316d915afebd2eb3,-1697010667,,2023-05-19T15:19:00Z,2221fdddc211cc57,102630,rds,local,vector,NA,,0.01,NA,NA
+subpoints_origins,stem,79b95b0788d6487b,4f6c193fa8e04c95,316d915afebd2eb3,450966405,,2023-05-19T15:19:00Z,a0867b0fdea1ef70,898653,rds,local,vector,NA,,0.06,NA,NA
+zones,stem,9f9cf1fc679e971c,49e562b9d725ed48,316d915afebd2eb3,-1975358009,,2023-05-19T15:19:00Z,86131436e7769814,1524604,rds,local,vector,NA,,0.01,NA,NA
+parameters,stem,06f445cbe05644e9,93bedcd99c64f6bd,1ece2a9e314af4cf,780725592,,2023-05-19T16:08:42Z,3ffee416faaef59c,178,rds,local,vector,NA,,0,"No .Renviron file, routing may not work",NA
+od_data,stem,bb3163571a6d5837,23058a7b8fc5997f,5398e44d10170b21,-1950608183,,2023-05-19T16:08:44Z,4db2ab0427d665c2,1291067,rds,local,vector,NA,,1.32,NA,NA
+od_commute_jittered,stem,e1259b4a37639e90,855477a591596f7a,2202beed03dcde94,674506102,,2023-05-19T16:08:56Z,a0e5ee7cbf1b957d,5486727,rds,local,vector,NA,,11.5,NA,NA
+od_commute_subset,stem,a5d453418512b087,6438aa6892a1e38e,f9309d28cb5241fe,-1812505247,,2023-05-19T16:08:58Z,8149277a90f9e818,5380048,rds,local,vector,NA,,0.44,NA,NA
+r_commute,stem,e9c883cd274aed1d,b5b2daf78756362b,24777360a0888963,-1169720700,,2023-05-20T02:06:37Z,7a65f0e50b64c1e4,1254223914,rds,local,vector,NA,,35460.96,NA,NA
+uptake_list,stem,635a7ebaadfac147,fcea9596174ddaf1,b8eb183eb22872eb,955218489,,2023-05-20T02:18:15Z,99503fe4b451cce2,1304707440,rds,local,vector,NA,,503.5,NA,NA
+calculate_benefits,stem,e9c883cd274aed1d,387252c9786e687f,016d30ec7d63e58c,-1625165940,,2023-05-20T02:21:31Z,7a65f0e50b64c1e4,1254223914,rds,local,vector,NA,,0,NA,NA
+zone_stats,stem,9f9cf1fc679e971c,1e9648b83edb22a4,a6630f30af78e1b9,-1203691813,,2023-05-20T02:21:32Z,86131436e7769814,1524604,rds,local,vector,NA,,0,NA,NA
+rnet_commute_list,stem,ef2ac13e0c55d150,9c43dc78ebcd3446,6db10b93993215ce,-1500100641,,2023-05-20T03:03:19Z,0ee29f4a661b7a35,53208739,rds,local,vector,NA,,2503.09,NA,NA
+combined_network,stem,02fc1908b6c192b1,d3266818d29f4228,8c3739bb1e69d086,1815710017,,2023-05-20T03:15:09Z,84a6a1acc8fd0c3e,17755818,rds,local,vector,NA,,708.22,NA,NA
+save_outputs,stem,4a9ee98e53a3d24f,d05d0d37715664f3,9227f8e51aee0854,1635958269,,2023-05-20T03:15:31Z,b2129b1ae72103bd,97,rds,local,vector,NA,,21.16,zip not found. Exit code was 127,NA
+upload_data,stem,6164e1591aefd71c,9462545664fad748,dddd9e476090a541,412588227,,2023-05-20T03:15:32Z,369e3c9a0bfec73b,83,rds,local,vector,NA,,0.83,NA,NA
