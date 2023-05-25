@@ -65,9 +65,23 @@ Read-in the input datasets as follows:
 ```{r}
 list.files("data-raw")
 od_data = read_csv("data-raw/od_subset.csv")
-
+zones = read_sf("data-raw/zones_edinburgh.geojson")
+desire_lines = od::od_to_sf(od_data, zones)
+plot(desire_lines)
 ```
 
+Generating route networks:
+
+```{r}
+# Create a subset of the desire lines for speed of computation:
+desire_lines_subset = desire_lines |>
+  slice_max(n = 30, order_by = all)
+library(stplanr)
+routes_subset = desire_lines_subset |>
+  route(l = _, route_fun = route_osrm)
+
+
+```
 # Reproducibility: advanced
 
 Note: to reproduce the full build process currently depends on data sources and dependencies that are not publicly available. This is a work in progress.
