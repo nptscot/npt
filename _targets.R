@@ -158,6 +158,21 @@ list(
     # Test routing:
     # stplanr::route(l = od_to_route, route_fun = cyclestreets::journey, plan = "balanced")
     folder_name = paste0("outputdata/", parameters$date_routing)
+    
+    # date_route = od_commute_subset[1,]
+    # route_for_date = stplanr::route(
+    #   l = date_route,
+    #   route_fun = cyclestreets::journey,
+    #   plan = "fastest",
+    #   warnNA = FALSE
+    #   # comment-out this line to use default instance:
+    #   # base_url = "http://5b44de2e26338760-api.cyclestreets.net",
+    #   # pat = Sys.getenv("CYCLESTREETS_BATCH")
+    # )  
+    # routing_edition = route_for_date$edition[1]
+    # routing_integer = stringr::str_sub(routing_edition, start = -6)
+    # routing_date = lubridate::ymd(routing_integer)
+    
     routes_commute = get_routes(od_commute_subset,
                         plans = parameters$plans, purpose = "commute",
                         folder = folder_name, batch = FALSE, nrow_batch = 20000)
