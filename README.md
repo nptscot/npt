@@ -4,21 +4,141 @@
 # Network Planning Tool for Scotland
 
 <!-- badges: start -->
+
 <!-- badges: end -->
 
 The aim of this project is to generate evidence to support strategic
 cycle network planning in Scotland.
 
-<!-- # Reproducibility -->
-<!-- To reproduced code in this repository first clone it, for example by installing the GitHub CLI tools and running: -->
-<!-- ```bash -->
-<!-- gh repo clone nptscot/npt -->
-<!-- ``` -->
-<!-- Then run the following command (requires dependencies and data to be present): -->
-<!-- Note: you need to have a CYCLESTREETS API key for this, see here for details: https://rpackage.cyclestreets.net/reference/journey.html#details-1 -->
-<!-- This project uses `targets` for data processing pipeline management, with outputs like this: -->
-<!-- ![](https://user-images.githubusercontent.com/1825120/205490893-b1627e3a-5102-4dbe-bc70-97e358e75506.png) -->
-<!-- Visualise the project as follows: -->
+# Reproducibility: basic
+
+To reproduce the basic results in this repository, hosted on GitHub at
+nptscot/npt, first download and unzip or clone it and then open the
+‘npt’ folder in your favourite integrated development environment
+(IDE) for R, such as RStudio.
+
+  - You can download the repository as a zip file from the GitHub
+    website by clicking on the green ‘Code’ button and selecting
+    ‘Download ZIP’, hosted at this URL:
+    <https://www.github.com/nptscot/npt/archive/refs/heads/main.zip>
+
+  - You can clone the repo with Git as follows:
+    
+    ``` bash
+    git clone https://www.github.com/nptscot/npt.git
+    ```
+
+  - Or (recommended for future-proof workflows) you can install the
+    GitHub CLI tool and clone the repo as follows:
+    
+    ``` bash
+    gh repo clone nptscot/npt
+    ```
+
+Install the GitHub CLI tools by following instructions here:
+<https://cli.github.com/manual/installation>
+
+Note: you can check to see if you have the GitHub CLI tools installed by
+running the following command from the R console:
+
+``` r
+gh_version = try({
+  system("gh --version", intern = TRUE)
+})
+gh_version
+#> [1] "gh version 2.29.0 (2023-05-10)"                 
+#> [2] "https://github.com/cli/cli/releases/tag/v2.29.0"
+if(is(gh_version, "try-error")) {
+  message("You don't have the GitHub CLI tools installed. Please install them by following instructions here: https://cli.github.com/manual/installation")
+}
+```
+
+## Set-up
+
+We will use the following packages:
+
+``` r
+library(tidyverse)
+library(tmap)
+library(sf)
+```
+
+## Reading in input datasets
+
+Read-in the input datasets as follows:
+
+``` r
+list.files("data-raw")
+#> [1] "DATASET.R"                           "get_wpz.R"                          
+#> [3] "oas.geojson"                         "od_jittered_demo.R"                 
+#> [5] "od_subset.csv"                       "routes.geojson"                     
+#> [7] "test-tiles.R"                        "workplaces_simple_edinburgh.geojson"
+#> [9] "zones_edinburgh.geojson"
+od_data = read_csv("data-raw/od_subset.csv")
+zones = read_sf("data-raw/zones_edinburgh.geojson")
+desire_lines = od::od_to_sf(od_data, zones)
+plot(desire_lines)
+#> Warning: plotting the first 9 out of 13 attributes; use max.plot = 13 to plot
+#> all
+```
+
+![](README_files/figure-gfm/unnamed-chunk-4-1.png)<!-- -->
+
+Generating route networks:
+
+``` r
+# Create a subset of the desire lines for speed of computation:
+desire_lines_subset = desire_lines |>
+  slice_max(n = 30, order_by = all)
+library(stplanr)
+routes_subset = desire_lines_subset |>
+  route(l = _, route_fun = route_osrm)
+route_network = overline(routes_subset, attrib = "bicycle")
+plot(route_network)
+```
+
+![](README_files/figure-gfm/unnamed-chunk-5-1.png)<!-- -->
+
+## Exercises to test your knowledge of the NPT approach
+
+1.  Using interactive geographic data visualisation packages such as
+    `tmap` and `leaflet`, can you visualise the desire lines and route
+    network on a map? Which road links are most important for cycling
+    according to the network results?
+
+2.  Using the `pct::uptake_pct_godutch_2020()` function estimate the
+    potential uptake of cycling based on the subset of desire lines
+    created above. What is the total level of cycling resulting from
+    thhat uptake?
+
+3.  Using the `osmextract` or `osmdata` packages, or equivalent packages
+    written in another language, identify the OSM ways that lie
+    completely within a 500m buffer of the route network. How can you
+    ensure that the results are reproducible?
+
+4.  Bonus: think about ways to identify weak links or gaps in the cycle
+    network based on the small datasets analysed. How could you scale
+    this up to the whole of Scotland?
+
+# Reproducibility: advanced
+
+Note: to reproduce the full build process currently depends on data
+sources and dependencies that are not publicly available. This is a work
+in progress.
+
+Then run the following command (requires dependencies and data to be
+present):
+
+Note: you need to have a CYCLESTREETS API key for this, see here for
+details:
+<https://rpackage.cyclestreets.net/reference/journey.html#details-1>
+
+This project uses `targets` for data processing pipeline management,
+with outputs like this:
+
+![](https://user-images.githubusercontent.com/1825120/205490893-b1627e3a-5102-4dbe-bc70-97e358e75506.png)
+
+Visualise the project as follows:
 
 ``` r
 # targets::tar_visnetwork(targets_only = TRUE)
@@ -26,13 +146,9 @@ cycle network planning in Scotland.
 
 The zones in the case study region are as follows:
 
-![](README_files/figure-gfm/zones-1.png)<!-- -->
-
 Baseline cycling levels are shown below:
 
 ``` r
 tm_shape(rnet) +
   tm_lines(lwd = "bicycle", scale = 9)
 ```
-
-![](README_files/figure-gfm/overline-1.png)<!-- -->
