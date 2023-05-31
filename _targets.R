@@ -393,8 +393,11 @@ list(
       n_segment_cells = nrow(combined_network) * ncol(combined_network),
       min_flow = parameters$min_flow,
       max_to_route = parameters$max_to_route,
-      time_total = sum(metadata_targets$seconds) / 60,
-      time_r_commute = metadata_targets %>% filter(name == "r_commute") %>% pull(seconds) / 60
+      time_total_mins = round(sum(metadata_targets$seconds) / 60, digits = 2),
+      time_r_commute_mins = round(metadata_targets %>% 
+                                    filter(name == "r_commute") %>% 
+                                    pull(seconds) / 60, 
+                                  digits = 2)
     )
     if (file.exists("outputs/build_summary.csv")) {
       build_summary_previous = read_csv("outputs/build_summary.csv")
