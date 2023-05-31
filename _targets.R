@@ -66,7 +66,7 @@ list(
     if(!renviron_exists) {
       warning("No .Renviron file, routing may not work")
     }
-    date_routing = "2023-05-12"
+    date_routing = "2023-05-23"
     folder_name = paste0("outputdata/", date_routing)
     if(!dir.exists(folder_name)){
       dir.create(file.path(folder_name))
@@ -179,19 +179,20 @@ list(
     routes_commute
   }),
   
-  # tar_target(r_school, {
-  #   # Get School OD
-  #   path_teams = Sys.getenv("NPT_TEAMS_PATH")
-  #   if(nchar(path_teams) == 0){
-  #     stop("Can't find Teams folder of secure data. Use usethis::edit_r_environ() to define NPT_TEAMS_PATH ")
-  #   }
-  #   if(file.exists(file.path(path_teams,"secure_data/schools/school_dl_sub30km.Rds"))){
-  #     schools_dl = readRDS(file.path(path_teams,"secure_data/schools/school_dl_sub30km.Rds"))
-  #   } else {
-  #     stop("Can't find ",file.path(path_teams,"secure_data/schools/school_dl_sub30km.Rds"))
-  #   }
-  #   
-  # }),
+  tar_target(r_school, {
+    # Get School OD
+    path_teams = Sys.getenv("NPT_TEAMS_PATH")
+    if(nchar(path_teams) == 0){
+      stop("Can't find Teams folder of secure data. Use usethis::edit_r_environ() to define NPT_TEAMS_PATH ")
+    }
+    if(file.exists(file.path(path_teams,"secure_data/schools/school_dl_sub30km.Rds"))){
+      schools_dl = readRDS(file.path(path_teams,"secure_data/schools/school_dl_sub30km.Rds"))
+    } else {
+      # stop("Can't find ",file.path(path_teams,"secure_data/schools/school_dl_sub30km.Rds"))
+      schools_dl = NULL
+    }
+      schools_dl
+  }),
   tar_target(uptake_list, {
     p = "fastest"
     for(p in parameters$plans) {
