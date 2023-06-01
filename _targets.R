@@ -190,6 +190,7 @@ list(
         )
       routes_school
   }),
+  
   tar_target(uptake_list, {
     p = "fastest"
     for(p in parameters$plans) {
@@ -388,17 +389,7 @@ list(
     readr::write_csv(metadata_targets, "outputs/metadata_targets.csv")
     
     # Get routing date (not needed if doing full routing)
-    date_route = od_commute_subset[1,]
-    route_for_date = stplanr::route(
-      l = date_route,
-      route_fun = cyclestreets::journey,
-      plan = "fastest",
-      warnNA = FALSE
-      # comment-out this line to use default instance:
-      # base_url = "http://5b44de2e26338760-api.cyclestreets.net",
-      # pat = Sys.getenv("CYCLESTREETS_BATCH")
-    )
-    routing_edition = route_for_date$edition[1]
+    routing_edition = r_commute$fastest$edition[1]
     routing_integer = stringr::str_sub(routing_edition, start = -6)
     routing_date = lubridate::ymd(routing_integer)
     
@@ -414,6 +405,8 @@ list(
                                   digits = 2),
       routing_date = routing_date
     )
+    # # To overwrite previous build summary:
+    # write_csv(build_summary, "outputs/build_summary.csv")
     if (file.exists("outputs/build_summary.csv")) {
       build_summary_previous = read_csv("outputs/build_summary.csv")
     } else {
