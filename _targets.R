@@ -151,6 +151,7 @@ list(
       top_n(n = parameters$max_to_route, wt = bicycle)
     odcs
   }),
+  
   tar_target(r_commute, {
 
     message(parameters$date_routing)
@@ -179,6 +180,7 @@ list(
     }
       schools_dl = schools_dl %>%
         top_n(n = parameters$max_to_route, wt = count)
+      folder_name = paste0("outputdata/", parameters$date_routing)
       routes_school = get_routes(
         od_commute_subset,
         plans = parameters$plans, purpose = "school",
@@ -216,6 +218,7 @@ list(
     names(uptake_list) = parameters$plans
     uptake_list
   }),
+  
   tar_target(rnet_commute_list, {
     rnet_commute_list = sapply(parameters$plans, function(x) NULL)
     p = "fastest"
