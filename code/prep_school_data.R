@@ -77,7 +77,13 @@ source("R/get_routes.R")
 # flow_dup$match_id <- flow_nodup$route_id[match(flow_dup$geometry, flow_nodup$geometry)]
 
 
+# Import school flows
+school_path = file.path(secure_path, "secure_data/schools/school_dl_sub30km.Rds")
+flow_sf = readRDS(school_path)
 
+# Smaller sample
+flow_sample = sample_frac(flow_sf, size = 0.01)
+flow_sf = flow_sample
 
 
 fromPlace = st_sf(lwgeom::st_startpoint(flow_sf))
