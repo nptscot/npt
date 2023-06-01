@@ -66,7 +66,7 @@ list(
     if(!renviron_exists) {
       warning("No .Renviron file, routing may not work")
     }
-    date_routing = "2023-05-23"
+    date_routing = "2023-06-01"
     folder_name = paste0("outputdata/", date_routing)
     if(!dir.exists(folder_name)){
       dir.create(file.path(folder_name))
@@ -75,10 +75,10 @@ list(
     list(
       plans = c("fastest", "balanced", "quietest", "ebike"),
       # plans = c("fastest"),
-      min_flow = 1, # Set to 1 for full build, set to high value (e.g. 400) for tests
-      # min_flow = 1,
-      # max_to_route = 1000, # Set to 10e6 or similar large number for all routes
-      max_to_route = Inf,
+      # min_flow = 1, # Set to 1 for full build, set to high value (e.g. 400) for tests
+      min_flow = 299,
+      max_to_route = 20, # Set to 10e6 or similar large number for all routes
+      # max_to_route = Inf,
       date_routing = date_routing
       )
   }),
@@ -151,6 +151,7 @@ list(
       top_n(n = parameters$max_to_route, wt = bicycle)
     odcs
   }),
+  
   tar_target(r_commute, {
 
     message(parameters$date_routing)
@@ -172,13 +173,24 @@ list(
       stop("Can't find Teams folder of secure data. Use usethis::edit_r_environ() to define NPT_TEAMS_PATH ")
     }
     if(file.exists(file.path(path_teams,"secure_data/schools/school_dl_sub30km.Rds"))){
-      schools_dl = readRDS(file.path(path_teams,"secure_data/schools/school_dl_sub30km.Rds"))
+      schools_dl = readRDS(file.path(path_teams, "secure_data/schools/school_dl_sub30km.Rds"))
     } else {
       # stop("Can't find ",file.path(path_teams,"secure_data/schools/school_dl_sub30km.Rds"))
       schools_dl = NULL
     }
-      schools_dl
+      schools_dl = schools_dl %>%
+        top_n(n = parameters$max_to_route, wt = count)
+      folder_name = paste0("outputdata/", parameters$date_routing)
+      routes_school = get_routes(
+        od_commute_subset,
+        plans = parameters$plans, purpose = "school",
+        folder = folder_name,
+        batch = FALSE,
+        nrow_batch = 20000
+        )
+      routes_school
   }),
+  
   tar_target(uptake_list, {
     p = "fastest"
     for(p in parameters$plans) {
@@ -207,6 +219,7 @@ list(
     names(uptake_list) = parameters$plans
     uptake_list
   }),
+  
   tar_target(rnet_commute_list, {
     rnet_commute_list = sapply(parameters$plans, function(x) NULL)
     p = "fastest"
@@ -376,17 +389,7 @@ list(
     readr::write_csv(metadata_targets, "outputs/metadata_targets.csv")
     
     # Get routing date (not needed if doing full routing)
-    date_route = od_commute_subset[1,]
-    route_for_date = stplanr::route(
-      l = date_route,
-      route_fun = cyclestreets::journey,
-      plan = "fastest",
-      warnNA = FALSE
-      # comment-out this line to use default instance:
-      # base_url = "http://5b44de2e26338760-api.cyclestreets.net",
-      # pat = Sys.getenv("CYCLESTREETS_BATCH")
-    )
-    routing_edition = route_for_date$edition[1]
+    routing_edition = r_commute$fastest$edition[1]
     routing_integer = stringr::str_sub(routing_edition, start = -6)
     routing_date = lubridate::ymd(routing_integer)
     
@@ -402,6 +405,8 @@ list(
                                   digits = 2),
       routing_date = routing_date
     )
+    # # To overwrite previous build summary:
+    # write_csv(build_summary, "outputs/build_summary.csv")
     if (file.exists("outputs/build_summary.csv")) {
       build_summary_previous = read_csv("outputs/build_summary.csv")
     } else {
