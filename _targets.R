@@ -166,7 +166,7 @@ list(
     
     routes_commute = get_routes(od_commute_subset,
                         plans = parameters$plans, purpose = "commute",
-                        folder = folder_name, batch = FALSE, nrow_batch = 20000)
+                        folder = folder_name, batch = FALSE, nrow_batch = 50000)
     routes_commute
   }),
   
