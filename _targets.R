@@ -159,20 +159,6 @@ list(
     # stplanr::route(l = od_to_route, route_fun = cyclestreets::journey, plan = "balanced")
     folder_name = paste0("outputdata/", parameters$date_routing)
     
-    # date_route = od_commute_subset[1,]
-    # route_for_date = stplanr::route(
-    #   l = date_route,
-    #   route_fun = cyclestreets::journey,
-    #   plan = "fastest",
-    #   warnNA = FALSE
-    #   # comment-out this line to use default instance:
-    #   # base_url = "http://5b44de2e26338760-api.cyclestreets.net",
-    #   # pat = Sys.getenv("CYCLESTREETS_BATCH")
-    # )  
-    # routing_edition = route_for_date$edition[1]
-    # routing_integer = stringr::str_sub(routing_edition, start = -6)
-    # routing_date = lubridate::ymd(routing_integer)
-    
     routes_commute = get_routes(od_commute_subset,
                         plans = parameters$plans, purpose = "commute",
                         folder = folder_name, batch = FALSE, nrow_batch = 20000)
@@ -388,13 +374,33 @@ list(
     metadata_targets = metadata_all %>% 
       filter(type == "stem")
     readr::write_csv(metadata_targets, "outputs/metadata_targets.csv")
+    
+    # Get routing date (not needed if doing full routing)
+    date_route = od_commute_subset[1,]
+    route_for_date = stplanr::route(
+      l = date_route,
+      route_fun = cyclestreets::journey,
+      plan = "fastest",
+      warnNA = FALSE
+      # comment-out this line to use default instance:
+      # base_url = "http://5b44de2e26338760-api.cyclestreets.net",
+      # pat = Sys.getenv("CYCLESTREETS_BATCH")
+    )
+    routing_edition = route_for_date$edition[1]
+    routing_integer = stringr::str_sub(routing_edition, start = -6)
+    routing_date = lubridate::ymd(routing_integer)
+    
     # Todo: add more columns
     build_summary = tibble::tibble(
       n_segment_cells = nrow(combined_network) * ncol(combined_network),
       min_flow = parameters$min_flow,
       max_to_route = parameters$max_to_route,
-      time_total = sum(metadata_targets$seconds) / 60,
-      time_r_commute = metadata_targets %>% filter(name == "r_commute") %>% pull(seconds) / 60
+      time_total_mins = round(sum(metadata_targets$seconds) / 60, digits = 2),
+      time_r_commute_mins = round(metadata_targets %>% 
+                                    filter(name == "r_commute") %>% 
+                                    pull(seconds) / 60, 
+                                  digits = 2),
+      routing_date = routing_date
     )
     if (file.exists("outputs/build_summary.csv")) {
       build_summary_previous = read_csv("outputs/build_summary.csv")
