@@ -66,7 +66,7 @@ list(
     if(!renviron_exists) {
       warning("No .Renviron file, routing may not work")
     }
-    date_routing = "2023-05-23"
+    date_routing = "2023-06-01"
     folder_name = paste0("outputdata/", date_routing)
     if(!dir.exists(folder_name)){
       dir.create(file.path(folder_name))
@@ -75,10 +75,10 @@ list(
     list(
       plans = c("fastest", "balanced", "quietest", "ebike"),
       # plans = c("fastest"),
-      min_flow = 1, # Set to 1 for full build, set to high value (e.g. 400) for tests
-      # min_flow = 1,
-      # max_to_route = 1000, # Set to 10e6 or similar large number for all routes
-      max_to_route = Inf,
+      # min_flow = 1, # Set to 1 for full build, set to high value (e.g. 400) for tests
+      min_flow = 299,
+      max_to_route = 20, # Set to 10e6 or similar large number for all routes
+      # max_to_route = Inf,
       date_routing = date_routing
       )
   }),
@@ -172,12 +172,21 @@ list(
       stop("Can't find Teams folder of secure data. Use usethis::edit_r_environ() to define NPT_TEAMS_PATH ")
     }
     if(file.exists(file.path(path_teams,"secure_data/schools/school_dl_sub30km.Rds"))){
-      schools_dl = readRDS(file.path(path_teams,"secure_data/schools/school_dl_sub30km.Rds"))
+      schools_dl = readRDS(file.path(path_teams, "secure_data/schools/school_dl_sub30km.Rds"))
     } else {
       # stop("Can't find ",file.path(path_teams,"secure_data/schools/school_dl_sub30km.Rds"))
       schools_dl = NULL
     }
-      schools_dl
+      schools_dl = schools_dl %>%
+        top_n(n = parameters$max_to_route, wt = count)
+      routes_school = get_routes(
+        od_commute_subset,
+        plans = parameters$plans, purpose = "school",
+        folder = folder_name,
+        batch = FALSE,
+        nrow_batch = 20000
+        )
+      routes_school
   }),
   tar_target(uptake_list, {
     p = "fastest"
