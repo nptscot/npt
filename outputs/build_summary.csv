@@ -1,3 +1,4 @@
-n_segment_cells,min_flow,max_to_route,time_total,time_r_commute
-3199746,1,Inf,660.5101666666667,596.932
-387046,221,Inf,26.859,24.020533333333333
+n_segment_cells,min_flow,max_to_route,time_total_mins,time_r_commute_mins,routing_date,time_total,time_r_commute
+3199746,1,Inf,656.24,593.54,2023-05-31,NA,NA
+3199746,1,Inf,NA,NA,NA,660.5101666666667,596.932
+387046,221,Inf,NA,NA,NA,26.859,24.020533333333333

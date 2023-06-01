@@ -66,7 +66,7 @@ list(
     if(!renviron_exists) {
       warning("No .Renviron file, routing may not work")
     }
-    date_routing = "2023-05-23"
+    date_routing = "2023-05-31"
     folder_name = paste0("outputdata/", date_routing)
     if(!dir.exists(folder_name)){
       dir.create(file.path(folder_name))
@@ -152,7 +152,7 @@ list(
     odcs
   }),
   tar_target(r_commute, {
-
+    
     message(parameters$date_routing)
     message("Calculating ", nrow(od_commute_subset), " routes")
     # Test routing:
@@ -375,7 +375,7 @@ list(
       filter(type == "stem")
     readr::write_csv(metadata_targets, "outputs/metadata_targets.csv")
     
-    # Get routing date (not needed if doing full routing)
+    # Get routing date (could get this from upload_data if doing full routing)
     date_route = od_commute_subset[1,]
     route_for_date = stplanr::route(
       l = date_route,
