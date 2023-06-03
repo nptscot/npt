@@ -77,12 +77,12 @@ list(
       # plans = c("fastest"),
       
       # Uncomment these lines for small build:
-      # min_flow = 299,
-      # max_to_route = 20, # Set to 10e6 or similar large number for all routes
+      min_flow = 199,
+      max_to_route = 2000, # Set to 10e6 or similar large number for all routes
       
-      # Uncomment these lines for full build:
-      min_flow = 1,
-      max_to_route = Inf,
+      # # Uncomment these lines for full build:
+      # min_flow = 1,
+      # max_to_route = Inf,
       date_routing = date_routing
       )
   }),
