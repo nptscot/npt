@@ -271,11 +271,13 @@ list(
     
     # Saved lots of lines of code and faster:
     rnet_long = data.table::rbindlist(rcl, fill = TRUE)
+    rnet_long_sfc = sf::st_sfc(rnet_long$geometry)
     rnet_long = rnet_long %>% 
+      select(-geometry) |>
       mutate(across(fastest_bicycle:ebike_Quietness, function(x) tidyr::replace_na(x, 0))) %>% 
       as_tibble()
-    
-    rnet_long$geometry = sf::st_sfc(rnet_long$geometry, recompute_bbox = TRUE)
+
+    rnet_long$geometry = sf::st_sfc(rnet_long_sfc, recompute_bbox = TRUE)
     rnet_long = sf::st_as_sf(rnet_long)
     sf::st_geometry(rnet_long)
     
