@@ -66,7 +66,7 @@ list(
     if(!renviron_exists) {
       warning("No .Renviron file, routing may not work")
     }
-    date_routing = "2023-06-01"
+    date_routing = "2023-06-02"
     folder_name = paste0("outputdata/", date_routing)
     if(!dir.exists(folder_name)){
       dir.create(file.path(folder_name))
@@ -75,9 +75,13 @@ list(
     list(
       plans = c("fastest", "balanced", "quietest", "ebike"),
       # plans = c("fastest"),
-      # min_flow = 1, # Set to 1 for full build, set to high value (e.g. 400) for tests
-      min_flow = 299,
-      max_to_route = 20, # Set to 10e6 or similar large number for all routes
+      
+      # Uncomment these lines for small build:
+      min_flow = 199,
+      max_to_route = 2000, # Set to 10e6 or similar large number for all routes
+      
+      # # Uncomment these lines for full build:
+      # min_flow = 1,
       # max_to_route = Inf,
       date_routing = date_routing
       )
@@ -162,7 +166,7 @@ list(
     
     routes_commute = get_routes(od_commute_subset,
                         plans = parameters$plans, purpose = "commute",
-                        folder = folder_name, batch = FALSE, nrow_batch = 20000)
+                        folder = folder_name, batch = FALSE, nrow_batch = 50000)
     routes_commute
   }),
   
@@ -267,11 +271,13 @@ list(
     
     # Saved lots of lines of code and faster:
     rnet_long = data.table::rbindlist(rcl, fill = TRUE)
+    rnet_long_sfc = sf::st_sfc(rnet_long$geometry)
     rnet_long = rnet_long %>% 
+      select(-geometry) |>
       mutate(across(fastest_bicycle:ebike_Quietness, function(x) tidyr::replace_na(x, 0))) %>% 
       as_tibble()
-    
-    rnet_long$geometry = sf::st_sfc(rnet_long$geometry, recompute_bbox = TRUE)
+
+    rnet_long$geometry = sf::st_sfc(rnet_long_sfc, recompute_bbox = TRUE)
     rnet_long = sf::st_as_sf(rnet_long)
     sf::st_geometry(rnet_long)
     

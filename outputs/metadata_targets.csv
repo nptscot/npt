@@ -1,21 +1,21 @@
 name,type,data,command,depend,seed,path,time,size,bytes,format,repository,iteration,parent,children,seconds,warnings,error
-calculate_benefits,stem,f539b0764205e4fe,387252c9786e687f,ee211d0daa03132d,-1625165940,,2023-06-01T11:43:09Z,66552d2cefd0b97b,112058,rds,local,vector,NA,,0,NA,NA
-combined_network,stem,c7959aad1bc8430e,d3266818d29f4228,be02e15290b16261,1815710017,,2023-06-01T11:43:10Z,86fafd161a87f0c8,20197,rds,local,vector,NA,,0.132,NA,NA
+calculate_benefits,stem,c67a5b1bb0b186fd,387252c9786e687f,e9f3ccbd98a2be16,-1625165940,,2023-06-03T21:06:14Z,8fd1e9b0b049962a,7820142,rds,local,vector,NA,,0,NA,NA
 geojsons,stem,69731d6c72699be6,a35cbd3611a5e7d3,65ecf6d6993868c5,388913887,,2023-04-01T14:26:10Z,ac45463db19e2cbe,48,rds,local,vector,NA,,6.426,NA,NA
 metadata,stem,8cf916d1c16ad9bb,79be8bc7d07c5eb2,fc00b23b21772114,2062409165,,2023-06-01T11:43:25Z,a28d2cbb8a8abbab,369,rds,local,vector,NA,,0.484,NA,NA
-od_commute_jittered,stem,2bd4152a2efed033,855477a591596f7a,77d85353f3eefa47,674506102,,2023-06-01T11:33:03Z,c350e66f65f8e38d,109590,rds,local,vector,NA,,0.98,NA,NA
+od_commute_jittered,stem,bd9e3a5778091bbe,855477a591596f7a,f70769caaeafb884,674506102,,2023-06-03T19:43:20Z,90844fbee336ed42,212843,rds,local,vector,NA,,2.009,NA,NA
 od_commute_raw,stem,02e8fb06b5595485,24ee2857ca82f91c,316d915afebd2eb3,-306658284,,2023-03-26T07:00:03Z,10ab8f08b9bb31bd,1035036,rds,local,vector,NA,,0.073,NA,NA
-od_commute_subset,stem,aa979121f889e04e,6438aa6892a1e38e,4c889b2bd2a446a2,-1812505247,,2023-06-01T11:33:03Z,2bb4374823c93d52,1720,rds,local,vector,NA,,0.007,NA,NA
-od_data,stem,27841529319c2610,23058a7b8fc5997f,604ccb1fe40fc002,-1950608183,,2023-06-01T11:33:02Z,6751f50e16117a8f,6217,rds,local,vector,NA,,0.519,NA,NA
-parameters,stem,ef1193347d907b49,b8fcc018e0c0deea,1ece2a9e314af4cf,780725592,,2023-06-01T11:33:02Z,37e90c3ecba3a0b1,177,rds,local,vector,NA,,0.001,"No .Renviron file, routing may not work",NA
-r_commute,stem,f539b0764205e4fe,b5b2daf78756362b,730569366283b957,-1169720700,,2023-06-01T11:37:06Z,66552d2cefd0b97b,112058,rds,local,vector,NA,,242.261,NA,NA
-r_school,stem,13ab20981cf9f121,8545064b2c31eca8,54dae494d9893329,-989549808,,2023-06-01T11:43:09Z,e2bd50d4ddef6efb,112053,rds,local,vector,NA,,190.902,NA,NA
-rnet_commute_list,stem,9c8d64dd9356d6ef,9c43dc78ebcd3446,c9709ef7c5283034,-1500100641,,2023-06-01T11:43:10Z,22648cfb14eb9f3f,43185,rds,local,vector,NA,,0.307,NA,NA
-save_outputs,stem,92b30f304e18ea14,d05d0d37715664f3,0583e0f38a081f87,1635958269,,2023-06-01T11:43:10Z,9903306e1685fb67,94,rds,local,vector,NA,,0.063,NA,NA
-subpoints_destinations,stem,f635f4276c5b5bb2,8ec9bb96cebe6c9d,316d915afebd2eb3,-1697010667,,2023-03-26T07:00:03Z,2fbdde33a96884c6,102630,rds,local,vector,NA,,0.005,NA,NA
-subpoints_origins,stem,3b4dcd069f774193,4f6c193fa8e04c95,316d915afebd2eb3,450966405,,2023-03-26T07:00:03Z,81d819b58ebfaa6d,898656,rds,local,vector,NA,,0.039,NA,NA
+od_commute_subset,stem,42fec7f03499c47d,6438aa6892a1e38e,f90e72fbf4b84b7b,-1812505247,,2023-06-03T19:43:20Z,23d3385804b4fa38,73627,rds,local,vector,NA,,0.014,NA,NA
+od_data,stem,286230016d808ac6,23058a7b8fc5997f,b6c127a48bd86166,-1950608183,,2023-06-03T19:43:18Z,7494604cdee30942,14686,rds,local,vector,NA,,1.116,NA,NA
+parameters,stem,4b14c01eb024b370,13efcb46d46e7d04,1ece2a9e314af4cf,780725592,,2023-06-03T19:43:16Z,53c93953a72b96c1,178,rds,local,vector,NA,,0.001,"No .Renviron file, routing may not work",NA
+r_commute,stem,c67a5b1bb0b186fd,1e252f18c583bb84,702a2e30186bec63,-1169720700,,2023-06-03T19:59:13Z,8fd1e9b0b049962a,7820142,rds,local,vector,NA,,950.781,NA,NA
+r_school,stem,0e937c4c027046d3,8545064b2c31eca8,b13c45690719d4c1,-989549808,,2023-06-03T21:06:01Z,3dab2ddb94744bbe,7820679,rds,local,vector,NA,,1473.707,NA,NA
+rnet_commute_list,stem,49501e7ddc32edd1,9c43dc78ebcd3446,7d8e139700ab1bb7,-1500100641,,2023-06-03T21:06:57Z,6bfc902192143654,3350164,rds,local,vector,NA,,42.173,NA,NA
+subpoints_destinations,stem,f635f4276c5b5bb2,8ec9bb96cebe6c9d,316d915afebd2eb3,-1697010667,,2023-06-03T11:48:36Z,2fbdde33a96884c6,102630,rds,local,vector,NA,,0.005,NA,NA
+subpoints_origins,stem,3b4dcd069f774193,4f6c193fa8e04c95,316d915afebd2eb3,450966405,,2023-06-03T11:48:36Z,81d819b58ebfaa6d,898656,rds,local,vector,NA,,0.039,NA,NA
 tile,stem,3576bf4c7c4f3f90,29ee67e989530aba,c31d9850c3ea2345,1337127750,,2023-04-01T14:26:18Z,44989414465ff33d,49,rds,local,vector,NA,,7.975,NA,NA
-upload_data,stem,4b3a4f0cba08c711,9462545664fad748,fbd6b2f6ae19247c,412588227,,2023-06-01T11:43:25Z,8619def19bb20a44,79,rds,local,vector,NA,,14.802,NA,NA
-uptake_list,stem,808463ff1d06a9c3,fcea9596174ddaf1,bc5c95b02a575c18,955218489,,2023-06-01T11:43:09Z,165a95c5d89c8582,125773,rds,local,vector,NA,,0.075,NA,NA
-zone_stats,stem,ac0dde66a7465002,1e9648b83edb22a4,d8aea701c4cb0bff,-1203691813,,2023-06-01T11:43:09Z,3dd47fbe9d8a7555,1524605,rds,local,vector,NA,,0,NA,NA
-zones,stem,bf5d22cdd698ceff,49e562b9d725ed48,316d915afebd2eb3,-1975358009,,2023-03-26T07:00:03Z,5efc1f03e8849747,1524606,rds,local,vector,NA,,0.012,NA,NA
+uptake_list,stem,a9b3fad29c10fd50,fcea9596174ddaf1,66f618594067554d,955218489,,2023-06-03T21:06:12Z,cfcee3f811300100,8886573,rds,local,vector,NA,,7.444,NA,NA
+zone_stats,stem,ac0dde66a7465002,1e9648b83edb22a4,3d7e761a17a4b2ea,-1203691813,,2023-06-03T21:06:14Z,3dd47fbe9d8a7555,1524605,rds,local,vector,NA,,0.001,NA,NA
+zones,stem,bf5d22cdd698ceff,49e562b9d725ed48,316d915afebd2eb3,-1975358009,,2023-06-03T11:48:36Z,5efc1f03e8849747,1524606,rds,local,vector,NA,,0.012,NA,NA
+combined_network,stem,bc61138205dad66d,e1ee435a35394ae6,1b85f678c66097f7,1815710017,,2023-06-04T10:59:21Z,180cfb2854811123,1281214,rds,local,vector,NA,,18.473,NA,NA
+save_outputs,stem,99ba8910185f82fd,d05d0d37715664f3,982e268c08da1fc1,1635958269,,2023-06-04T10:59:25Z,9903306e1685fb67,94,rds,local,vector,NA,,3.902,NA,NA
+upload_data,stem,4b2e9b46264ba3b7,9462545664fad748,4018f570fc25900b,412588227,,2023-06-04T10:59:49Z,c852eab37a726e04,78,rds,local,vector,NA,,22.302,NA,NA
