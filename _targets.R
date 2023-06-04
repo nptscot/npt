@@ -29,7 +29,6 @@ options(clustermq.scheduler = "multicore")
 tar_source()
 # source("other_functions.R") # Source other scripts as needed. # nolint
 
-
 # # # # Computation done outside of the pipeline --------------------------------
 # # #
 # parameters = list(
