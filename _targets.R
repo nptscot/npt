@@ -431,7 +431,7 @@ list(
                              ncores = 20)
     columns_to_keep_sum = grepl("commute*.+sum|school*.+sum", names(rnet_combined_overline))
     # names(rnet_combined_overline)[columns_to_keep_sum]
-    columns_to_keep_max = grepl("Grad|Quiet*max", names(rnet_combined_overline))
+    columns_to_keep_max = grepl("Grad*.+max|Quiet*.+max", names(rnet_combined_overline))
     # names(rnet_combined_overline)[columns_to_keep_max]
     
     rnet_combined = rnet_combined_overline[columns_to_keep_sum | columns_to_keep_max]
