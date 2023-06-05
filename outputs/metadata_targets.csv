@@ -1,7 +1,7 @@
 name,type,data,command,depend,seed,path,time,size,bytes,format,repository,iteration,parent,children,seconds,warnings,error
 calculate_benefits,stem,ad9763f758d25b5d,387252c9786e687f,0f4f391deb4e3ce8,-1625165940,,2023-06-04T13:13:13Z,6fb98098812cb0d6,26252131,rds,local,vector,NA,,0.001,NA,NA
 geojsons,stem,69731d6c72699be6,a35cbd3611a5e7d3,65ecf6d6993868c5,388913887,,2023-04-01T14:26:10Z,ac45463db19e2cbe,48,rds,local,vector,NA,,6.426,NA,NA
-metadata,stem,070cf89575706d07,dca8d37085375432,8d63e0f6a5326e58,2062409165,,2023-06-05T19:29:26Z,53ebb00e2399067e,355,rds,local,vector,NA,,0.217,NA,NA
+metadata,stem,54978f92233e46fe,dca8d37085375432,226105562928cc4e,2062409165,,2023-06-05T19:43:31Z,e334c4b74a456131,365,rds,local,vector,NA,,0.184,NA,NA
 od_commute_jittered,stem,bd9e3a5778091bbe,855477a591596f7a,f70769caaeafb884,674506102,,2023-06-03T19:43:20Z,90844fbee336ed42,212843,rds,local,vector,NA,,2.009,NA,NA
 od_commute_raw,stem,02e8fb06b5595485,24ee2857ca82f91c,316d915afebd2eb3,-306658284,,2023-03-26T07:00:03Z,10ab8f08b9bb31bd,1035036,rds,local,vector,NA,,0.073,NA,NA
 od_commute_subset,stem,94224db8feeb811b,6438aa6892a1e38e,cef31beddb28dc59,-1812505247,,2023-06-04T12:12:02Z,5dd310dde42c2ada,209171,rds,local,vector,NA,,0.015,NA,NA
@@ -19,6 +19,6 @@ uptake_list_commute,stem,0e9e00ea8bf2867f,cf5e30a0bb249b54,56cf1da837aa05a8,-141
 uptake_list_school,stem,053225e3b3a8ddc2,edf6cada7a826c4d,b99ccc5f9cd609c6,914090884,,2023-06-05T17:57:54Z,abaf42c87a6f46ef,29419324,rds,local,vector,NA,,12.884,NA,NA
 zone_stats,stem,ac0dde66a7465002,1e9648b83edb22a4,8f8c57deed98f8df,-1203691813,,2023-06-04T13:13:13Z,3dd47fbe9d8a7555,1524605,rds,local,vector,NA,,0,NA,NA
 zones,stem,bf5d22cdd698ceff,49e562b9d725ed48,316d915afebd2eb3,-1975358009,,2023-06-03T11:48:36Z,5efc1f03e8849747,1524606,rds,local,vector,NA,,0.012,NA,NA
-combined_network,stem,e55a6ac0ecb02032,d571bc706f6935e5,9bc7489e3d6c1f36,1815710017,,2023-06-05T19:43:05Z,208b01357d625e8a,3675153,rds,local,vector,NA,,240.75,NA,NA
-save_outputs,stem,0812a61bdb7f6d48,9da27fcc7564a024,7e57fd17aa7edd8a,1635958269,,2023-06-05T19:43:14Z,9903306e1685fb67,94,rds,local,vector,NA,,9.303,"Thats a lot of columns for the GeoJSON, are they all needed",NA
-upload_data,stem,bcea570b7eeabae5,9462545664fad748,ccde8e1c1871e452,412588227,,2023-06-05T19:43:30Z,8619def19bb20a44,79,rds,local,vector,NA,,13.339,NA,NA
+combined_network,stem,3f652adc17232fb8,ca964a18fc5acbbe,d3d126f92f1e77dc,1815710017,,2023-06-05T20:36:07Z,93bc81ac9b1b9ade,4481931,rds,local,vector,NA,,239.236,NA,NA
+save_outputs,stem,ef0e074cbf4f01c9,d66f78bd8f5576dd,bc4a3443cc3f7d79,1635958269,,2023-06-05T20:36:22Z,9903306e1685fb67,94,rds,local,vector,NA,,14.417,"Thats a lot of columns for the GeoJSON, are they all needed",NA
+upload_data,stem,bcea570b7eeabae5,9462545664fad748,1bceda295bfb7430,412588227,,2023-06-05T20:36:48Z,8619def19bb20a44,79,rds,local,vector,NA,,23.777,NA,NA

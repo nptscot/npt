@@ -324,9 +324,6 @@ list(
     sf::st_geometry(rnet_long)
     
     rnet_combined = overline(rnet_long, attrib = names_combined)
-    saveRDS(rnet_combined, "outputdata/rnet_combined_after_overline.Rds")
-    # # Testing outputs
-    # rnet_combined = readRDS("outputdata/rnet_combined_after_overline.Rds")
     rnet_combined = rnet_combined %>% 
       rowwise() %>% 
       mutate(Gradient = mean(fastest_Gradient, balanced_Gradient, quietest_Gradient, ebike_Gradient)) %>% 
@@ -394,8 +391,8 @@ list(
     
     rnet_long = list(rnet_commute, rnet_school)
     rnet_long = data.table::rbindlist(rnet_long, fill = TRUE)
-    names(rnet_long)
-    names(rnet_long)[c(1:8,10:19,9)]
+    # names(rnet_long)
+    # names(rnet_long)[c(1:8,10:19,9)]
     columns_to_keep = c(
       "commute_fastest_bicycle",
       "commute_fastest_bicycle_go_dutch",
@@ -418,7 +415,7 @@ list(
     )
     
     rnet_long_attributes = as_tibble(rnet_long)[columns_to_keep] %>% 
-      mutate(across(school_fastest_bicycle:commute_ebike_bicycle_go_dutch, function(x) tidyr::replace_na(x, 0))) %>% 
+      mutate_all(tidyr::replace_na, 0) %>% 
       as_tibble()
     
     rnet_long_attributes$geometry = sf::st_sfc(rnet_long$geometry, recompute_bbox = TRUE)
@@ -446,6 +443,7 @@ list(
     rnet_combined$all_balanced_bicycle_go_dutch = rnet_combined$school_balanced_bicycle_go_dutch + rnet_combined$commute_balanced_bicycle_go_dutch
     rnet_combined$all_ebike_bicycle = rnet_combined$school_ebike_bicycle + rnet_combined$school_ebike_bicycle
     rnet_combined$all_ebike_bicycle_go_dutch  = rnet_combined$school_ebike_bicycle_go_dutch + rnet_combined$commute_ebike_bicycle_go_dutch
+    # sapply(rnet_combined %>% sf::st_drop_geometry(), function(x) sum(is.na(x)))
     
     saveRDS(rnet_combined, "outputdata/combined_network.Rds")
     rnet_combined
