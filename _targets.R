@@ -223,6 +223,35 @@ list(
     uptake_list_commute
   }),
   
+  tar_target(uptake_list_school, {
+    p = "fastest"
+    for(p in parameters$plans) {
+      
+      # # For local routes:
+      # f = paste0("outputdata/routes_max_dist_commute_", p, ".Rds")
+      # routes = readRDS(f)
+      
+      # # For routes from targets
+      routes = r_commute[[p]]
+      message("Uptake for ", p)
+      # system.time({
+      routes = routes %>%
+        get_scenario_go_dutch() %>%
+        as_tibble()
+      routes[["geometry"]] = st_sfc(routes[["geometry"]], recompute_bbox = TRUE)
+      routes = st_as_sf(routes)
+      # })
+      f = paste0("outputdata/routes_commute_", p, ".Rds")
+      saveRDS(routes, f)
+    }
+    uptake_list_commute = lapply(parameters$plan, function(p) {
+      f = paste0("outputdata/routes_commute_", p, ".Rds")
+      readRDS(f)
+    })
+    names(uptake_list_commute) = parameters$plans
+    uptake_list_commute
+  }),
+  
   tar_target(rnet_commute_list, {
     rnet_commute_list = sapply(parameters$plans, function(x) NULL)
     p = "fastest"
