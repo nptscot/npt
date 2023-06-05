@@ -303,8 +303,6 @@ list(
     # # If stored locally:
     # rcl = readRDS("outputdata/rnet_commute_list.Rds")
     rcl = rnet_commute_list
-    head(rcl[[1]])
-
     names(rcl$fastest)[1:4] = paste0("fastest_", names(rcl$fastest)[1:4])
     names(rcl$balanced)[1:4] = paste0("balanced_", names(rcl$balanced)[1:4])
     names(rcl$quietest)[1:4] = paste0("quietest_", names(rcl$quietest)[1:4])
@@ -431,10 +429,10 @@ list(
                              fun = list(sum = sum, max = max),
                              regionalise = 1e3,
                              ncores = 20)
-    columns_to_keep_sum = grepl("commute*.+sum|school*.+sum", names(rnet_combined))
-    names(rnet_combined_overline)[columns_to_keep_sum]
-    columns_to_keep_max = grepl("Grad|Quiet*max", names(rnet_combined))
-    names(rnet_combined_overline)[columns_to_keep_max]
+    columns_to_keep_sum = grepl("commute*.+sum|school*.+sum", names(rnet_combined_overline))
+    # names(rnet_combined_overline)[columns_to_keep_sum]
+    columns_to_keep_max = grepl("Grad|Quiet*max", names(rnet_combined_overline))
+    # names(rnet_combined_overline)[columns_to_keep_max]
     
     rnet_combined = rnet_combined_overline[columns_to_keep_sum | columns_to_keep_max]
     names(rnet_combined) = gsub("_sum","",names(rnet_combined))
