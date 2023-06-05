@@ -235,10 +235,10 @@ list(
       )
       rnet = rnet_raw %>%
         transmute(
-          bicycle = round(bicycle_sum),
-          # `Bicycle (Near Market)` = round(cyclists_near_sum),
-          bicycle_go_dutch = round(bicycle_go_dutch_sum),
-          # `Bicycle (Ebike)` = round(cyclists_ebike_sum),
+          bicycle = round_sdc(bicycle_sum),
+          # `Bicycle (Near Market)` = round_sdc(cyclists_near_sum),
+          bicycle_go_dutch = round_sdc(bicycle_go_dutch_sum),
+          # `Bicycle (Ebike)` = round_sdc(cyclists_ebike_sum),
           Gradient = round(gradient_smooth_mean * 100),
           Quietness = round(quietness_mean)
           # col = cut(Quietness, quietness_breaks, labels = pal_quietness, right = FALSE)
@@ -252,9 +252,9 @@ list(
     rnet_commute_list
   }),
   
-  tar_target(rnet_school, {
+  tar_target(rnet_school_list, {
     
-    rnet_commute_list = sapply(parameters$plans, function(x) NULL)
+    rnet_school_list = sapply(parameters$plans, function(x) NULL)
     p = "fastest"
     for(p in parameters$plans) {
       message("Building ", p, " network")
@@ -265,23 +265,23 @@ list(
       )
       rnet = rnet_raw %>%
         transmute(
-          bicycle = round(bicycle_sum),
+          bicycle = round_sdc(bicycle_sum),
           # `Bicycle (Near Market)` = round(cyclists_near_sum),
-          bicycle_go_dutch = round(bicycle_go_dutch_sum),
-          # `Bicycle (Ebike)` = round(cyclists_ebike_sum),
-          Gradient = round(gradient_smooth_mean * 100),
+          bicycle_go_dutch = round_sdc(bicycle_go_dutch_sum),
+          # `Bicycle (Ebike)` = round_sdc(cyclists_ebike_sum),
+          Gradient = round_sdc(gradient_smooth_mean * 100),
           Quietness = round(quietness_mean)
           # col = cut(Quietness, quietness_breaks, labels = pal_quietness, right = FALSE)
         ) %>%
         dplyr::arrange(bicycle)
-      f = paste0("outputdata/rnet_commute_", p, ".Rds")
+      f = paste0("outputdata/rnet_school_", p, ".Rds")
       saveRDS(rnet, f)
-      rnet_commute_list[[p]] = rnet
+      rnet_school_list[[p]] = rnet
     }
-    # saveRDS(rnet_commute_list, "outputdata/rnet_commute_list.Rds")
-    rnet_commute_list
+    # saveRDS(rnet_school_list, "outputdata/rnet_school_list.Rds")
+    rnet_school_list
   
-  })
+  }),
   
   tar_target(combined_network, {
     
@@ -323,7 +323,7 @@ list(
 
     rnet = rnet_combined %>% 
       select(-matches("_Q|_Gr")) %>% 
-      mutate(across(matches("bicycle", round))) %>% 
+      mutate(across(matches("bicycle", round_sdc))) %>% 
       mutate(Gradient = round(Gradient, digits = 1))
     # # TODO: check gradients
     # table(rnet_combined$Gradient)
