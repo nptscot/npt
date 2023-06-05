@@ -194,7 +194,7 @@ list(
       routes_school
   }),
   
-  tar_target(uptake_list, {
+  tar_target(uptake_list_commute, {
     p = "fastest"
     for(p in parameters$plans) {
       
@@ -215,12 +215,12 @@ list(
       f = paste0("outputdata/routes_commute_", p, ".Rds")
       saveRDS(routes, f)
       }
-    uptake_list = lapply(parameters$plan, function(p) {
+    uptake_list_commute = lapply(parameters$plan, function(p) {
       f = paste0("outputdata/routes_commute_", p, ".Rds")
       readRDS(f)
     })
-    names(uptake_list) = parameters$plans
-    uptake_list
+    names(uptake_list_commute) = parameters$plans
+    uptake_list_commute
   }),
   
   tar_target(rnet_commute_list, {
@@ -229,7 +229,7 @@ list(
     for(p in parameters$plans) {
       message("Building ", p, " network")
       rnet_raw = stplanr::overline(
-        uptake_list[[p]],
+        uptake_list_commute[[p]],
         attrib = c("bicycle", "bicycle_go_dutch", "quietness", "gradient_smooth"), # todo: add other modes
         fun = list(sum = sum, mean = mean)
       )
@@ -259,7 +259,7 @@ list(
     for(p in parameters$plans) {
       message("Building ", p, " network")
       rnet_raw = stplanr::overline(
-        uptake_list[[p]],
+        uptake_list_commute[[p]],
         attrib = c("bicycle", "bicycle_go_dutch", "quietness", "gradient_smooth"), # todo: add other modes
         fun = list(sum = sum, mean = mean)
       )
