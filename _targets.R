@@ -74,13 +74,13 @@ list(
     list(
       plans = c("fastest", "balanced", "quietest", "ebike"),
       
-      # Uncomment these lines for small build:
-      min_flow = 199,
-      max_to_route = 9999, # Set to 10e6 or similar large number for all routes
+      # # Uncomment these lines for small build:
+      # min_flow = 199,
+      # max_to_route = 9999, # Set to 10e6 or similar large number for all routes
       
-      # # Uncomment these lines for full build:
-      # min_flow = 1,
-      # max_to_route = Inf,
+      # Uncomment these lines for full build:
+      min_flow = 1,
+      max_to_route = Inf,
       
       date_routing = date_routing
       )
