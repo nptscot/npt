@@ -66,7 +66,7 @@ list(
     if(!renviron_exists) {
       warning("No .Renviron file, routing may not work")
     }
-    date_routing = "2023-06-01"
+    date_routing = "2023-06-02"
     folder_name = paste0("outputdata/", date_routing)
     if(!dir.exists(folder_name)){
       dir.create(file.path(folder_name))
@@ -75,10 +75,10 @@ list(
     list(
       plans = c("fastest", "balanced", "quietest", "ebike"),
       # plans = c("fastest"),
-      # min_flow = 1, # Set to 1 for full build, set to high value (e.g. 400) for tests
-      min_flow = 299,
-      max_to_route = 20, # Set to 10e6 or similar large number for all routes
-      # max_to_route = Inf,
+      min_flow = 1, # Set to 1 for full build, set to high value (e.g. 400) for tests
+      # min_flow = 299,
+      # max_to_route = 20,
+      max_to_route = Inf, # Set to Inf for all routes, set to low value for testing
       date_routing = date_routing
       )
   }),
@@ -190,7 +190,12 @@ list(
         )
       routes_school
   }),
-  
+  ## Create combined network here??
+  # tar_target(combine, {
+  #   for(p in parameters$plans) {
+  #     routes = rbind(r_commute[[p]], r_school[[p]]
+  #   }
+  # })
   tar_target(uptake_list, {
     p = "fastest"
     for(p in parameters$plans) {

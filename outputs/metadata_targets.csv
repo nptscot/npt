@@ -1,21 +1,18 @@
 name,type,data,command,depend,seed,path,time,size,bytes,format,repository,iteration,parent,children,seconds,warnings,error
-calculate_benefits,stem,f539b0764205e4fe,387252c9786e687f,ee211d0daa03132d,-1625165940,,2023-06-01T11:43:09Z,66552d2cefd0b97b,112058,rds,local,vector,NA,,0,NA,NA
-combined_network,stem,c7959aad1bc8430e,d3266818d29f4228,be02e15290b16261,1815710017,,2023-06-01T11:43:10Z,86fafd161a87f0c8,20197,rds,local,vector,NA,,0.132,NA,NA
-geojsons,stem,69731d6c72699be6,a35cbd3611a5e7d3,65ecf6d6993868c5,388913887,,2023-04-01T14:26:10Z,ac45463db19e2cbe,48,rds,local,vector,NA,,6.426,NA,NA
-metadata,stem,8cf916d1c16ad9bb,79be8bc7d07c5eb2,fc00b23b21772114,2062409165,,2023-06-01T11:43:25Z,a28d2cbb8a8abbab,369,rds,local,vector,NA,,0.484,NA,NA
-od_commute_jittered,stem,2bd4152a2efed033,855477a591596f7a,77d85353f3eefa47,674506102,,2023-06-01T11:33:03Z,c350e66f65f8e38d,109590,rds,local,vector,NA,,0.98,NA,NA
-od_commute_raw,stem,02e8fb06b5595485,24ee2857ca82f91c,316d915afebd2eb3,-306658284,,2023-03-26T07:00:03Z,10ab8f08b9bb31bd,1035036,rds,local,vector,NA,,0.073,NA,NA
-od_commute_subset,stem,aa979121f889e04e,6438aa6892a1e38e,4c889b2bd2a446a2,-1812505247,,2023-06-01T11:33:03Z,2bb4374823c93d52,1720,rds,local,vector,NA,,0.007,NA,NA
-od_data,stem,27841529319c2610,23058a7b8fc5997f,604ccb1fe40fc002,-1950608183,,2023-06-01T11:33:02Z,6751f50e16117a8f,6217,rds,local,vector,NA,,0.519,NA,NA
-parameters,stem,ef1193347d907b49,b8fcc018e0c0deea,1ece2a9e314af4cf,780725592,,2023-06-01T11:33:02Z,37e90c3ecba3a0b1,177,rds,local,vector,NA,,0.001,"No .Renviron file, routing may not work",NA
-r_commute,stem,f539b0764205e4fe,b5b2daf78756362b,730569366283b957,-1169720700,,2023-06-01T11:37:06Z,66552d2cefd0b97b,112058,rds,local,vector,NA,,242.261,NA,NA
-r_school,stem,13ab20981cf9f121,8545064b2c31eca8,54dae494d9893329,-989549808,,2023-06-01T11:43:09Z,e2bd50d4ddef6efb,112053,rds,local,vector,NA,,190.902,NA,NA
-rnet_commute_list,stem,9c8d64dd9356d6ef,9c43dc78ebcd3446,c9709ef7c5283034,-1500100641,,2023-06-01T11:43:10Z,22648cfb14eb9f3f,43185,rds,local,vector,NA,,0.307,NA,NA
-save_outputs,stem,92b30f304e18ea14,d05d0d37715664f3,0583e0f38a081f87,1635958269,,2023-06-01T11:43:10Z,9903306e1685fb67,94,rds,local,vector,NA,,0.063,NA,NA
-subpoints_destinations,stem,f635f4276c5b5bb2,8ec9bb96cebe6c9d,316d915afebd2eb3,-1697010667,,2023-03-26T07:00:03Z,2fbdde33a96884c6,102630,rds,local,vector,NA,,0.005,NA,NA
-subpoints_origins,stem,3b4dcd069f774193,4f6c193fa8e04c95,316d915afebd2eb3,450966405,,2023-03-26T07:00:03Z,81d819b58ebfaa6d,898656,rds,local,vector,NA,,0.039,NA,NA
-tile,stem,3576bf4c7c4f3f90,29ee67e989530aba,c31d9850c3ea2345,1337127750,,2023-04-01T14:26:18Z,44989414465ff33d,49,rds,local,vector,NA,,7.975,NA,NA
-upload_data,stem,4b3a4f0cba08c711,9462545664fad748,fbd6b2f6ae19247c,412588227,,2023-06-01T11:43:25Z,8619def19bb20a44,79,rds,local,vector,NA,,14.802,NA,NA
-uptake_list,stem,808463ff1d06a9c3,fcea9596174ddaf1,bc5c95b02a575c18,955218489,,2023-06-01T11:43:09Z,165a95c5d89c8582,125773,rds,local,vector,NA,,0.075,NA,NA
-zone_stats,stem,ac0dde66a7465002,1e9648b83edb22a4,d8aea701c4cb0bff,-1203691813,,2023-06-01T11:43:09Z,3dd47fbe9d8a7555,1524605,rds,local,vector,NA,,0,NA,NA
-zones,stem,bf5d22cdd698ceff,49e562b9d725ed48,316d915afebd2eb3,-1975358009,,2023-03-26T07:00:03Z,5efc1f03e8849747,1524606,rds,local,vector,NA,,0.012,NA,NA
+metadata,stem,8bc9041f417e1994,dca8d37085375432,5b5cc839ffb2df29,2062409165,,2023-06-01T12:09:15Z,b3c2ea86c69d555f,310,rds,local,vector,NA,,0.09,NA,NA
+subpoints_destinations,stem,b17d5ce27baf5641,8ec9bb96cebe6c9d,316d915afebd2eb3,-1697010667,,2023-05-19T15:19:00Z,2221fdddc211cc57,102630,rds,local,vector,NA,,0.01,NA,NA
+subpoints_origins,stem,79b95b0788d6487b,4f6c193fa8e04c95,316d915afebd2eb3,450966405,,2023-05-19T15:19:00Z,a0867b0fdea1ef70,898653,rds,local,vector,NA,,0.06,NA,NA
+zones,stem,9f9cf1fc679e971c,49e562b9d725ed48,316d915afebd2eb3,-1975358009,,2023-05-19T15:19:00Z,86131436e7769814,1524604,rds,local,vector,NA,,0.01,NA,NA
+parameters,stem,6f2b6ead00583abe,aa9f122adafb665f,1ece2a9e314af4cf,780725592,,2023-06-02T11:06:59Z,3ffee416faaef59c,178,rds,local,vector,NA,,0.02,"No .Renviron file, routing may not work",NA
+od_data,stem,bb3163571a6d5837,23058a7b8fc5997f,08c616781894ffeb,-1950608183,,2023-06-02T11:07:00Z,4db2ab0427d665c2,1291067,rds,local,vector,NA,,0.67,NA,NA
+od_commute_jittered,stem,e1259b4a37639e90,855477a591596f7a,2202beed03dcde94,674506102,,2023-06-02T11:07:09Z,a0e5ee7cbf1b957d,5486727,rds,local,vector,NA,,8.83,NA,NA
+od_commute_subset,stem,a5d453418512b087,6438aa6892a1e38e,901f1043866f0da3,-1812505247,,2023-06-02T11:07:10Z,8149277a90f9e818,5380048,rds,local,vector,NA,,0.35,NA,NA
+r_commute,stem,0633a51a2c8e454c,b5b2daf78756362b,753db1cadd443462,-1169720700,,2023-06-02T21:11:46Z,4eca82bce56c6424,1258327426,rds,local,vector,NA,,35968.97,NA,NA
+r_school,stem,a23c06c3077442af,8545064b2c31eca8,e1a1ec355958594c,-989549808,,2023-06-03T07:06:39Z,646c1d71b47571e0,1258286055,rds,local,vector,NA,,35492,NA,NA
+uptake_list,stem,368e87d515a18f6e,fcea9596174ddaf1,d63d47c9cc5bae27,955218489,,2023-06-03T07:18:25Z,b8b968b15a5c6f33,1308829420,rds,local,vector,NA,,504.75,NA,NA
+calculate_benefits,stem,0633a51a2c8e454c,387252c9786e687f,1ea3d9f8a6a5b4c4,-1625165940,,2023-06-03T07:21:46Z,4eca82bce56c6424,1258327426,rds,local,vector,NA,,0,NA,NA
+zone_stats,stem,9f9cf1fc679e971c,1e9648b83edb22a4,2f2ff4d7d2f95a68,-1203691813,,2023-06-03T07:21:47Z,86131436e7769814,1524604,rds,local,vector,NA,,0,NA,NA
+rnet_commute_list,stem,d3317730de4aeacb,9c43dc78ebcd3446,d6a12d4e6e767e8e,-1500100641,,2023-06-03T08:06:34Z,9ef7cc93c0e38674,53339534,rds,local,vector,NA,,2682.53,NA,NA
+combined_network,stem,5507830d27f5e21d,d3266818d29f4228,1b28ec3c22c4b810,1815710017,,2023-06-03T08:18:19Z,4c45b7d9ebe1edde,17799411,rds,local,vector,NA,,703,NA,NA
+save_outputs,stem,359136a48a0d1f43,d05d0d37715664f3,51d9b35ad664e534,1635958269,,2023-06-03T08:18:40Z,f43a1dad04e131de,98,rds,local,vector,NA,,21.14,zip not found. Exit code was 127,NA
+upload_data,stem,747d3c71a05e9419,9462545664fad748,90a077d4d9059a4c,412588227,,2023-06-03T08:18:41Z,369e3c9a0bfec73b,83,rds,local,vector,NA,,0.65,NA,NA

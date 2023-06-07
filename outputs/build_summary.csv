@@ -1,2 +1,4 @@
 n_segment_cells,min_flow,max_to_route,time_total_mins,time_r_commute_mins,routing_date
+3206599,1,Inf,1256.38,599.48,2023-06-01
+2464,299,20,7.86,3.76,2023-06-01
 2464,299,20,7.75,4.04,2023-06-01
