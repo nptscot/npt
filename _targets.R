@@ -239,211 +239,54 @@ list(
   }),
   
   tar_target(rnet_commute_list, {
+    
     rnet_commute_list = sapply(parameters$plans, function(x) NULL)
-    p = "fastest"
+    #p = "fastest"
     for(p in parameters$plans) {
       message("Building ", p, " network")
-      rnet_raw = stplanr::overline(
-        uptake_list_commute[[p]],
-        attrib = c("bicycle", "bicycle_go_dutch", "quietness", "gradient_smooth"), # todo: add other modes
-        fun = list(sum = sum, mean = mean)
-      )
-      rnet = rnet_raw %>%
-        transmute(
-          bicycle = round_sdc(bicycle_sum),
-          # `Bicycle (Near Market)` = round_sdc(cyclists_near_sum),
-          bicycle_go_dutch = round_sdc(bicycle_go_dutch_sum),
-          # `Bicycle (Ebike)` = round_sdc(cyclists_ebike_sum),
-          Gradient = round(gradient_smooth_mean * 100),
-          Quietness = round(quietness_mean)
-          # col = cut(Quietness, quietness_breaks, labels = pal_quietness, right = FALSE)
-        ) %>%
-        dplyr::arrange(bicycle)
+      rnet = make_rnets(uptake_list_commute[[p]], ncores = 20)
+      
       f = paste0("outputdata/rnet_commute_", p, ".Rds")
       saveRDS(rnet, f)
       rnet_commute_list[[p]] = rnet
     }
+    
     # saveRDS(rnet_commute_list, "outputdata/rnet_commute_list.Rds")
     rnet_commute_list
+    
   }),
   
   tar_target(rnet_school_list, {
     
     rnet_school_list = sapply(parameters$plans, function(x) NULL)
-    p = "fastest"
+    #p = "fastest"
     for(p in parameters$plans) {
       message("Building ", p, " network")
-      rnet_raw = stplanr::overline(
-        uptake_list_school[[p]],
-        attrib = c("bicycle", "bicycle_go_dutch", "quietness", "gradient_smooth"), # todo: add other modes
-        fun = list(sum = sum, mean = mean)
-      )
-      rnet = rnet_raw %>%
-        transmute(
-          bicycle = round_sdc(bicycle_sum),
-          # `Bicycle (Near Market)` = round(cyclists_near_sum),
-          bicycle_go_dutch = round_sdc(bicycle_go_dutch_sum),
-          # `Bicycle (Ebike)` = round_sdc(cyclists_ebike_sum),
-          Gradient = round_sdc(gradient_smooth_mean * 100),
-          Quietness = round(quietness_mean)
-          # col = cut(Quietness, quietness_breaks, labels = pal_quietness, right = FALSE)
-        ) %>%
-        dplyr::arrange(bicycle)
+      rnet = make_rnets(uptake_list_school[[p]], ncores = 20)
+      
       f = paste0("outputdata/rnet_school_", p, ".Rds")
       saveRDS(rnet, f)
       rnet_school_list[[p]] = rnet
     }
+    
     # saveRDS(rnet_school_list, "outputdata/rnet_school_list.Rds")
     rnet_school_list
   }),
   
   tar_target(combined_network, {
     
-    # Purpose: commute --------------------------------------------------------
-    # # If stored locally:
-    # rcl = readRDS("outputdata/rnet_commute_list.Rds")
-    rcl = rnet_commute_list
-    names(rcl$fastest)[1:4] = paste0("fastest_", names(rcl$fastest)[1:4])
-    names(rcl$balanced)[1:4] = paste0("balanced_", names(rcl$balanced)[1:4])
-    names(rcl$quietest)[1:4] = paste0("quietest_", names(rcl$quietest)[1:4])
-    names(rcl$ebike)[1:4] = paste0("ebike_", names(rcl$ebike)[1:4])
+    # Purpose: Combine indervidual rnets into single rnet -----------------------
+    # If stored locally:
+    # rnet_commute_list = readRDS("outputdata/rnet_commute_list.Rds")
+    # rnet_school_list = readRDS("outputdata/rnet_school_list.Rds")
     
-    names_combined = lapply(rcl, names) %>% unlist(use.names = FALSE)
-    names_combined = names_combined[names_combined != "geometry"]
+    names(rnet_commute_list) = paste0("commute_", names(rnet_commute_list))
+    names(rnet_school_list) = paste0("school_", names(rnet_school_list))
     
-    # Saved lots of lines of code and faster:
-    rnet_long = data.table::rbindlist(rcl, fill = TRUE)
-    rnet_long_sfc = sf::st_sfc(rnet_long$geometry)
-    rnet_long = rnet_long %>% 
-      select(-geometry) |>
-      mutate(across(fastest_bicycle:ebike_Quietness, function(x) tidyr::replace_na(x, 0))) %>% 
-      as_tibble()
-
-    rnet_long$geometry = sf::st_sfc(rnet_long_sfc, recompute_bbox = TRUE)
-    rnet_long = sf::st_as_sf(rnet_long)
-    sf::st_geometry(rnet_long)
-    
-    rnet_combined = overline(rnet_long, attrib = names_combined)
-    rnet_combined = rnet_combined %>% 
-      rowwise() %>% 
-      mutate(Gradient = mean(fastest_Gradient, balanced_Gradient, quietest_Gradient, ebike_Gradient)) %>% 
-      mutate(Quietness = mean(fastest_Quietness, balanced_Quietness, quietest_Quietness, ebike_Quietness)) %>% 
-      select(-matches("_Q|_Gr")) %>% 
-      mutate(across(matches("bicycle", round_sdc))) %>% 
-      mutate(Gradient = round(Gradient, digits = 1))
-    
-    # see code/tests/test-quietness-network.R
-    rnet_bicycle = rnet_combined %>% 
-      select(matches("bicycle")) %>% 
-      sf::st_drop_geometry()
-    rnet_combined$total_cyclists_segment = rowSums(rnet_bicycle)
-    
-    names(rnet_combined)[1:8] = paste0("commute_", names(rnet_combined))[1:8]
-    rnet_commute = rnet_combined %>% 
-      filter(total_cyclists_segment > 0) %>% 
-      select(-total_cyclists_segment) %>% 
-      as.data.frame() %>% 
-      sf::st_as_sf()
-    
-    # Create rnet_school
-    rcl = rnet_school_list
-    
-    names(rcl$fastest)[1:4] = paste0("fastest_", names(rcl$fastest)[1:4])
-    names(rcl$balanced)[1:4] = paste0("balanced_", names(rcl$balanced)[1:4])
-    names(rcl$quietest)[1:4] = paste0("quietest_", names(rcl$quietest)[1:4])
-    names(rcl$ebike)[1:4] = paste0("ebike_", names(rcl$ebike)[1:4])
-
-    names_combined = lapply(rcl, names) %>% unlist(use.names = FALSE)
-    names_combined = names_combined[names_combined != "geometry"]
-    
-    # Saved lots of lines of code and faster:
-    rnet_long = data.table::rbindlist(rcl, fill = TRUE)
-    rnet_long_sfc = sf::st_sfc(rnet_long$geometry)
-    rnet_long = rnet_long %>% 
-      select(-geometry) |>
-      mutate(across(fastest_bicycle:ebike_Quietness, function(x) tidyr::replace_na(x, 0))) %>% 
-      as_tibble()
-    
-    rnet_long$geometry = sf::st_sfc(rnet_long_sfc, recompute_bbox = TRUE)
-    rnet_long = sf::st_as_sf(rnet_long)
-    rnet_combined = overline(rnet_long, attrib = names_combined)
-    
-    rnet_combined = rnet_combined %>% 
-      rowwise() %>% 
-      mutate(Gradient = mean(fastest_Gradient, balanced_Gradient, quietest_Gradient, ebike_Gradient)) %>% 
-      mutate(Quietness = mean(fastest_Quietness, balanced_Quietness, quietest_Quietness, ebike_Quietness)) %>% 
-      select(-matches("_Q|_Gr")) %>% 
-      mutate(across(matches("bicycle", round_sdc))) %>% 
-      mutate(Gradient = round(Gradient, digits = 1))
-    
-    # see code/tests/test-quietness-network.R
-    rnet_bicycle = rnet_combined %>% 
-      select(matches("bicycle")) %>% 
-      sf::st_drop_geometry()
-    rnet_combined$total_cyclists_segment = rowSums(rnet_bicycle)
-    
-    names(rnet_combined)[1:8] = paste0("school_", names(rnet_combined))[1:8]
-    rnet_school = rnet_combined %>% 
-      filter(total_cyclists_segment > 0) %>% 
-      select(-total_cyclists_segment) %>% 
-      as.data.frame() %>% 
-      sf::st_as_sf()
-    
-    rnet_long = list(rnet_commute, rnet_school)
-    rnet_long = data.table::rbindlist(rnet_long, fill = TRUE)
-    # names(rnet_long)
-    # names(rnet_long)[c(1:8,10:19,9)]
-    columns_to_keep = c(
-      "commute_fastest_bicycle",
-      "commute_fastest_bicycle_go_dutch",
-      "commute_balanced_bicycle",
-      "commute_balanced_bicycle_go_dutch",
-      "commute_quietest_bicycle",
-      "commute_quietest_bicycle_go_dutch",
-      "commute_ebike_bicycle",
-      "commute_ebike_bicycle_go_dutch",
-      "school_fastest_bicycle",
-      "school_fastest_bicycle_go_dutch",
-      "school_balanced_bicycle",
-      "school_balanced_bicycle_go_dutch",
-      "school_quietest_bicycle",
-      "school_quietest_bicycle_go_dutch",
-      "school_ebike_bicycle",
-      "school_ebike_bicycle_go_dutch",
-      "Quietness",
-      "Gradient"
-    )
-    
-    rnet_long_attributes = as_tibble(rnet_long)[columns_to_keep] %>% 
-      mutate_all(tidyr::replace_na, 0) %>% 
-      as_tibble()
-    
-    rnet_long_attributes$geometry = sf::st_sfc(rnet_long$geometry, recompute_bbox = TRUE)
-    rnet_long = sf::st_as_sf(rnet_long_attributes)
-    
-    rnet_combined_overline = overline(rnet_long, 
-                             attrib = columns_to_keep, 
-                             fun = list(sum = sum, max = max),
-                             regionalise = 1e3,
-                             ncores = 20)
-    columns_to_keep_sum = grepl("commute*.+sum|school*.+sum", names(rnet_combined_overline))
-    # names(rnet_combined_overline)[columns_to_keep_sum]
-    columns_to_keep_max = grepl("Grad*.+max|Quiet*.+max", names(rnet_combined_overline))
-    # names(rnet_combined_overline)[columns_to_keep_max]
-    
-    rnet_combined = rnet_combined_overline[columns_to_keep_sum | columns_to_keep_max]
-    names(rnet_combined) = gsub("_sum","",names(rnet_combined))
-    names(rnet_combined) = gsub("_max","",names(rnet_combined))
-    
-    rnet_combined$all_fastest_bicycle = rnet_combined$school_fastest_bicycle + rnet_combined$commute_fastest_bicycle
-    rnet_combined$all_fastest_bicycle_go_dutch = rnet_combined$school_fastest_bicycle_go_dutch + rnet_combined$commute_fastest_bicycle_go_dutch
-    rnet_combined$all_quietest_bicycle = rnet_combined$school_quietest_bicycle + rnet_combined$commute_quietest_bicycle
-    rnet_combined$all_quietest_bicycle_go_dutch = rnet_combined$school_quietest_bicycle_go_dutch + rnet_combined$commute_quietest_bicycle_go_dutch
-    rnet_combined$all_balanced_bicycle = rnet_combined$school_balanced_bicycle + rnet_combined$commute_balanced_bicycle
-    rnet_combined$all_balanced_bicycle_go_dutch = rnet_combined$school_balanced_bicycle_go_dutch + rnet_combined$commute_balanced_bicycle_go_dutch
-    rnet_combined$all_ebike_bicycle = rnet_combined$school_ebike_bicycle + rnet_combined$school_ebike_bicycle
-    rnet_combined$all_ebike_bicycle_go_dutch  = rnet_combined$school_ebike_bicycle_go_dutch + rnet_combined$commute_ebike_bicycle_go_dutch
-    # sapply(rnet_combined %>% sf::st_drop_geometry(), function(x) sum(is.na(x)))
+    rnet_combined = combine_rnets(c(rnet_commute_list,rnet_school_list),
+                                  ncores = 20, 
+                                  regionalise = 1e5,
+                                  add_all = TRUE)
     
     saveRDS(rnet_combined, "outputdata/combined_network.Rds")
     rnet_combined

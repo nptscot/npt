@@ -4,17 +4,26 @@
 # ncores passed to overline
 # regionalise passed to overline
 
-#TODO: inconsident captialisation Quietness vs quietness
+#TODO: inconsistent capitalisation Quietness vs quietness
 
-make_rnets = function(r, type, ncores = 20, regionalise = 1e5){
+make_rnets = function(r, ncores = 20, regionalise = 1e5){
   r = r[r$bicycle_go_dutch > 0 | r$bicycle > 0,]
+  r$Gradient = round(r$gradient_smooth * 100)
+  r$Quietness = round(r$quietness)
+  
   rnet = stplanr::overline2(r, 
-                            attrib = c("bicycle","bicycle_go_dutch","gradient","quietness"), 
-                            fun = list(sum = sum, mean = mean),
+                            attrib = c("bicycle","bicycle_go_dutch","Quietness","Gradient"), 
+                            fun = list(sum = sum, max = max),
                             ncores = ncores, regionalise = regionalise)
-  rnet = rnet[,c("bicycle_sum","bicycle_go_dutch_sum","gradient_mean","quietness_mean")]
-  rnet = rnet[rnet$bicycle_go_dutch > 0 , ]
-  names(rnet) = c(paste0(type,"_bicycle"),paste0(type,"_bicycle_go_dutch"),"gradient","quietness","geometry")
+  
+  rnet = rnet[,c("bicycle_sum","bicycle_go_dutch_sum","Gradient_max","Quietness_max")]
+  names(rnet) = gsub("_sum$","",names(rnet))
+  names(rnet) = gsub("_max$","",names(rnet))
+  
+  # Suppress low values, replace with 3
+  rnet$bicycle <- round_sdc(rnet$bicycle)
+  rnet$bicycle_go_dutch <- round_sdc(rnet$bicycle_go_dutch)
+  
   rnet
 }
 
@@ -30,7 +39,7 @@ names(rnl) = paste0("commute_", names(rnl))
 # e.g. "commute_fastest_" is addeded to "bicycle_go_dutch"
 # Gradient & Quietness are not renamed
 
-combine_rnets = function(rnl, ncores = 20, regionalise = 1e5){
+combine_rnets = function(rnl, ncores = 20, regionalise = 1e5, add_all = TRUE){
   
   # Check list has names
   if(is.null(names(rnl))){
@@ -74,35 +83,44 @@ combine_rnets = function(rnl, ncores = 20, regionalise = 1e5){
   
   # Drop unneeded columns
   rnet_combined = rnet_combined[,!names(rnet_combined) %in% c("Gradient_sum","Quietness_sum")]
+  rnet_combined = rnet_combined[,!grepl("_max$",names(rnet_combined)) | 
+                                  names(rnet_combined) %in% c("Gradient_max","Quietness_max"),]
+  # Rename columns
+  names(rnet_combined) = gsub("_sum$","",names(rnet_combined))
+  names(rnet_combined) = gsub("_max$","",names(rnet_combined))
   
-  # #saveRDS(rnet_combined, "outputdata/rnet_combined_after_overline.Rds")
-  # # # Testing outputs
-  # # rnet_combined = readRDS("outputdata/rnet_combined_after_overline.Rds")
-  # rnet_combined = rnet_combined %>% 
-  #   rowwise() %>% 
-  #   mutate(Gradient = max(fastest_Gradient, balanced_Gradient, quietest_Gradient, ebike_Gradient)) %>% 
-  #   mutate(Quietness = max(fastest_Quietness, balanced_Quietness, quietest_Quietness, ebike_Quietness)) 
-  # 
-  # rnet = rnet_combined %>% 
-  #   select(-matches("_Q|_Gr")) %>% 
-  #   mutate(across(matches("bicycle", round))) %>% 
-  #   mutate(Gradient = round(Gradient, digits = 1))
-  # # # TODO: check gradients
-  # # table(rnet_combined$Gradient)
-  # 
-  # # see code/tests/test-quietness-network.R
-  # rnet_bicycle = rnet %>% 
-  #   select(matches("bicycle")) %>% 
-  #   sf::st_drop_geometry()
-  # rnet$total_cyclists_segment = rowSums(rnet_bicycle)
-  # 
-  # names(rnet)[1:8] = paste0("commute_", names(rnet))[1:8]
-  # rnet = rnet %>% 
-  #   filter(total_cyclists_segment > 0) %>% 
-  #   select(-total_cyclists_segment) %>% 
-  #   as.data.frame() %>% 
-  #   sf::st_as_sf()
-  # 
+  # Drop any roads with no cycling
+  rnet_total = rnet_combined %>% 
+      select(matches("bicycle")) %>%
+      sf::st_drop_geometry()
+  rnet_combined$total_cyclists_segment = rowSums(rnet_total)
   
+  rnet_combined = rnet_combined[rnet_combined$total_cyclists_segment > 0,]
+  rnet_combined$total_cyclists_segment = NULL
+  
+  # Calculate 'all' columns
+  if(add_all){
+    # TODO: Generalise this process for more trip purposes
+    rnet_combined$all_fastest_bicycle = rnet_combined$school_fastest_bicycle + rnet_combined$commute_fastest_bicycle
+    rnet_combined$all_fastest_bicycle_go_dutch = rnet_combined$school_fastest_bicycle_go_dutch + rnet_combined$commute_fastest_bicycle_go_dutch
+    rnet_combined$all_quietest_bicycle = rnet_combined$school_quietest_bicycle + rnet_combined$commute_quietest_bicycle
+    rnet_combined$all_quietest_bicycle_go_dutch = rnet_combined$school_quietest_bicycle_go_dutch + rnet_combined$commute_quietest_bicycle_go_dutch
+    rnet_combined$all_balanced_bicycle = rnet_combined$school_balanced_bicycle + rnet_combined$commute_balanced_bicycle
+    rnet_combined$all_balanced_bicycle_go_dutch = rnet_combined$school_balanced_bicycle_go_dutch + rnet_combined$commute_balanced_bicycle_go_dutch
+    rnet_combined$all_ebike_bicycle = rnet_combined$school_ebike_bicycle + rnet_combined$school_ebike_bicycle
+    rnet_combined$all_ebike_bicycle_go_dutch  = rnet_combined$school_ebike_bicycle_go_dutch + rnet_combined$commute_ebike_bicycle_go_dutch
+  }
+
+  return(rnet_combined)
 }
 
+#' Round and suppress low values
+
+#' @examples
+#' x = c(0, 1, 2.3, 9.9, 10, 10.1, 10.9, 20)
+#' round_sdc(x)
+round_sdc = function(x, threshold = 10, digits = 0, replacement = 3) {
+  sel_sdc = x < threshold & x > 0
+  x[sel_sdc] = replacement
+  round(x, digits = digits)
+}
