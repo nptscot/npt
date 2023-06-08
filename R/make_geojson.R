@@ -42,6 +42,6 @@ round_sdc = function(x, threshold = 10, digits = 0) {
   sel_sdc = x < threshold & x > 0
   mean_sdc = mean(x[sel_sdc])
   x[sel_sdc] = mean_sdc
-  round(x, digits = digits)
+  max(round(x, digits = digits), 1)
 }
 
