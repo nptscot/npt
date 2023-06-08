@@ -21,17 +21,14 @@ make_rnets = function(r, ncores = 20, regionalise = 1e5){
   names(rnet) = gsub("_max$","",names(rnet))
   
   # Suppress low values, replace with 3
-  rnet$bicycle <- round_sdc(rnet$bicycle)
-  rnet$bicycle_go_dutch <- round_sdc(rnet$bicycle_go_dutch)
+  rnet$bicycle = round_sdc(rnet$bicycle)
+  rnet$bicycle_go_dutch = round_sdc(rnet$bicycle_go_dutch)
   
   rnet
 }
 
 # Function to merge list of rnets into a single rnet
 # rnl list of rnets
-
-rnl = rnet_commute_list
-names(rnl) = paste0("commute_", names(rnl))
 
 
 # Takes a list of rnets and combines into a single rnet
@@ -48,7 +45,7 @@ combine_rnets = function(rnl, ncores = 20, regionalise = 1e5, add_all = TRUE){
   
   # Append rnet type to column names
   for(i in seq_along(rnl)){
-    names(rnl[[i]]) <- ifelse(names(rnl[[i]]) %in% c("Gradient","Quietness","geometry"),
+    names(rnl[[i]]) = ifelse(names(rnl[[i]]) %in% c("Gradient","Quietness","geometry"),
                               names(rnl[[i]]),
                               paste0(names(rnl)[i],"_",names(rnl[[i]]))
                               )
