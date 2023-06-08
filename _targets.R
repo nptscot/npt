@@ -287,6 +287,9 @@ list(
                                   ncores = 20, 
                                   regionalise = 1e5,
                                   add_all = TRUE)
+    # Sort rnet for tileing, low values drawn first
+    rnet_combined = rnet_combined[order(rnet_combined$all_fastest_bicycle_go_dutch, 
+                                        rnet_combined$all_quietest_bicycle_go_dutch),]
     
     saveRDS(rnet_combined, "outputdata/combined_network.Rds")
     rnet_combined
