@@ -13,7 +13,7 @@ make_rnets = function(r, ncores = 20, regionalise = 1e5){
   
   rnet = stplanr::overline2(r, 
                             attrib = c("bicycle","bicycle_go_dutch","Quietness","Gradient"), 
-                            fun = list(sum = sum, max = max),
+                            fun = list(sum = sum, max = first),
                             ncores = ncores, regionalise = regionalise)
   
   rnet = rnet[,c("bicycle_sum","bicycle_go_dutch_sum","Gradient_max","Quietness_max")]
@@ -77,7 +77,7 @@ combine_rnets = function(rnl, ncores = 20, regionalise = 1e5, add_all = TRUE){
   names_overline = names(rnet_long)[names(rnet_long) != "geometry"]
   rnet_combined = stplanr::overline(rnet_long, 
                            attrib = names_overline,
-                           fun = list(sum = sum, max = max),
+                           fun = list(sum = sum, max = first),
                            regionalise = regionalise,
                            ncores = ncores)
   
@@ -123,4 +123,9 @@ round_sdc = function(x, threshold = 10, digits = 0, replacement = 3) {
   sel_sdc = x < threshold & x > 0
   x[sel_sdc] = replacement
   round(x, digits = digits)
+}
+
+# Return the first of a vector
+first = function(x){
+  x[1]
 }
