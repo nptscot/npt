@@ -1,12 +1,22 @@
 get_scenario_go_dutch = function(routes, purpose = "work") {
   routes = routes %>% dplyr::group_by(route_id)
-  routes = routes %>%
-    mutate(pcycle_go_dutch = pct::uptake_pct_godutch_2020(
-      # Prevent incorrect uptake values #491
-      case_when(length_route > 30000 ~ 30000, TRUE ~ length_route),
-      route_hilliness
-    ))
-  
+  if(purpose == "work") {
+    routes = routes %>%
+      mutate(pcycle_go_dutch = pct::uptake_pct_godutch_2020(
+        # Prevent incorrect uptake values #491
+        case_when(length_route > 30000 ~ 30000, TRUE ~ length_route),
+        route_hilliness
+      ))
+  } else if(purpose == "school") {
+    routes = routes %>%
+      mutate(pcycle_go_dutch = pct::uptake_pct_godutch_school2(
+        # Prevent incorrect uptake values #491
+        case_when(length_route > 30000 ~ 30000, TRUE ~ length_route),
+        route_hilliness
+      ))
+  } else {
+    stop("Purpose ", purpose, " not yet supported")
+  }
   routes = routes %>%
     mutate(
       pcycle_go_dutch = pcycle_go_dutch + (bicycle / all),

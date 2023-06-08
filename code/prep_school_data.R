@@ -4,7 +4,7 @@ library(tmap)
 library(stplanr)
 library(dplyr)
 tmap_mode("view")
-remotes::install_github("nptscot/cyclestreets-r")
+# remotes::install_github("nptscot/cyclestreets-r")
 secure_path = Sys.getenv("NPT_TEAMS_PATH")
 
 if(!file.exists("../inputdata/Schools/school_locations.geojson")){
@@ -22,7 +22,7 @@ if(!file.exists("../inputdata/Schools/school_locations.geojson")){
   locs <- st_read("../inputdata/Schools/school_locations.geojson")
 }
 
-# Prep School Flows
+# Prep School Flows if file not already present
 flow = readxl::read_excel(file.path(secure_path,"secure_data/schools/raw_data/A2200 pupils by school and data zone.xlsx"))
 names(flow)[5] = "DataZone"
 
@@ -77,7 +77,13 @@ source("R/get_routes.R")
 # flow_dup$match_id <- flow_nodup$route_id[match(flow_dup$geometry, flow_nodup$geometry)]
 
 
+# Import school flows
+school_path = file.path(secure_path, "secure_data/schools/school_dl_sub30km.Rds")
+flow_sf = readRDS(school_path)
 
+# Smaller sample
+flow_sample = sample_frac(flow_sf, size = 0.01)
+flow_sf = flow_sample
 
 
 fromPlace = st_sf(lwgeom::st_startpoint(flow_sf))
