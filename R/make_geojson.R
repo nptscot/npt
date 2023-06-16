@@ -38,6 +38,8 @@ make_geojson_zones <- function(z, path = "outputs/zones.geojson"){
 #' @examples
 #' x = c(0, 1, 2.3, 9.9, 10, 10.1, 10.9, 20)
 #' round_sdc(x)
+#' x = c(0, 0.1, 0.11, 2, 0.1, 0.1, 0.1, 0.001)
+#' round_sdc(x)
 round_sdc = function(x, threshold = 10, digits = 0) {
   sel_sdc = x < threshold & x > 0
   mean_sdc = mean(x[sel_sdc])
