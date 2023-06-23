@@ -238,9 +238,9 @@ list(
     uptake_list_school
   }),
   
-  tar_target(rnet_commute_list, {
+  tar_target(rnet_commute_l, {
     
-    rnet_commute_list = sapply(parameters$plans, function(x) NULL)
+    rnet_cl = sapply(parameters$plans, function(x) NULL)
     #p = "fastest"
     for(p in parameters$plans) {
       message("Building ", p, " network")
@@ -248,12 +248,11 @@ list(
       
       f = paste0("outputdata/rnet_commute_", p, ".Rds")
       saveRDS(rnet, f)
-      rnet_commute_list[[p]] = rnet
+      rnet_cl[[p]] = rnet
     }
     
-    # saveRDS(rnet_commute_list, "outputdata/rnet_commute_list.Rds")
-    rnet_commute_list
-    
+    # saveRDS(rnet_cl, "outputdata/rnet_commute_l.Rds")
+    rnet_cl
   }),
   
   tar_target(rnet_school_list, {
@@ -274,24 +273,15 @@ list(
   }),
   
   tar_target(combined_network, {
-    
-    # Purpose: Combine indervidual rnets into single rnet -----------------------
-    # If stored locally:
-    rnet_commute_list = readRDS("outputdata/rnet_commute_list.Rds")
-    rnet_school_list = readRDS("outputdata/rnet_school_list.Rds")
-    rnet_commute_list
-    rnet_school_list
-    names(rnet_commute_list) = paste0("commute_", names(rnet_commute_list))
+    length(rnet_commute_l)
+    # names(rnet_commute_l) = paste0("commute_", names(rnet_commute_l))
     names(rnet_school_list) = paste0("school_", names(rnet_school_list))
-    
-    rnet_combined = combine_rnets(c(rnet_commute_list,rnet_school_list),
+    rnet_combined = combine_rnets(c(rnet_commute_l,rnet_school_list),
                                   ncores = 20, 
                                   regionalise = 1e5,
                                   add_all = TRUE)
-    # Sort rnet for tileing, low values drawn first
     rnet_combined = rnet_combined[order(rnet_combined$all_fastest_bicycle_go_dutch, 
                                         rnet_combined$all_quietest_bicycle_go_dutch),]
-    
     saveRDS(rnet_combined, "outputdata/combined_network.Rds")
     rnet_combined
   }),
@@ -307,7 +297,7 @@ list(
   }),
   
   tar_target(save_outputs, {
-    saveRDS(rnet_commute_list, "outputdata/rnet_commute_list.Rds")
+    saveRDS(rnet_commute_l, "outputdata/rnet_commute_l.Rds")
     saveRDS(od_commute_subset, "outputdata/od_commute_subset.Rds")
     saveRDS(combined_network, "outputdata/combined_network.Rds")
     # Saved by get_routes()
@@ -336,7 +326,7 @@ list(
   #   # tar_source("code/vis_network.R")
   #   # tarchetypes::tar_
   # }),
-  # tarchetypes::tar_render(visualise_rnet, path = "code/vis_network.Rmd", params = list(rnet_commute_list)),
+  # tarchetypes::tar_render(visualise_rnet, path = "code/vis_network.Rmd", params = list(rnet_commute_l)),
   
   # tarchetypes::tar_render(report, path = "README.Rmd", params = list(zones, rnet)),
   tar_target(upload_data, {
