@@ -75,12 +75,12 @@ list(
       plans = c("fastest", "balanced", "quietest", "ebike"),
       
       # # Uncomment these lines for small build:
-      # min_flow = 199,
-      # max_to_route = 9999, # Set to 10e6 or similar large number for all routes
+      min_flow = 199,
+      max_to_route = 20, # Set to 10e6 or similar large number for all routes
       
       # Uncomment these lines for full build:
-      min_flow = 1,
-      max_to_route = Inf,
+      # min_flow = 1,
+      # max_to_route = Inf,
       
       date_routing = date_routing
       )
@@ -269,7 +269,7 @@ list(
       rnet_school_list[[p]] = rnet
     }
     
-    # saveRDS(rnet_school_list, "outputdata/rnet_school_list.Rds")
+    saveRDS(rnet_school_list, "outputdata/rnet_school_list.Rds")
     rnet_school_list
   }),
   
@@ -277,9 +277,10 @@ list(
     
     # Purpose: Combine indervidual rnets into single rnet -----------------------
     # If stored locally:
-    # rnet_commute_list = readRDS("outputdata/rnet_commute_list.Rds")
-    # rnet_school_list = readRDS("outputdata/rnet_school_list.Rds")
-    
+    rnet_commute_list = readRDS("outputdata/rnet_commute_list.Rds")
+    rnet_school_list = readRDS("outputdata/rnet_school_list.Rds")
+    rnet_commute_list
+    rnet_school_list
     names(rnet_commute_list) = paste0("commute_", names(rnet_commute_list))
     names(rnet_school_list) = paste0("school_", names(rnet_school_list))
     
