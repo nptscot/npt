@@ -277,14 +277,14 @@ list(
     
     # Purpose: Combine indervidual rnets into single rnet -----------------------
     # If stored locally:
-    rnet_commute_list = readRDS("outputdata/rnet_commute_list.Rds")
-    rnet_school_list = readRDS("outputdata/rnet_school_list.Rds")
-    rnet_commute_list
-    rnet_school_list
-    names(rnet_commute_list) = paste0("commute_", names(rnet_commute_list))
-    names(rnet_school_list) = paste0("school_", names(rnet_school_list))
+    # rnet_commute_list = readRDS("outputdata/rnet_commute_list.Rds")
+    # rnet_school_list = readRDS("outputdata/rnet_school_list.Rds")
+    rnet_cl = rnet_commute_list
+    rnet_sl = rnet_school_list
+    names(rnet_cl) = paste0("commute_", names(rnet_cl))
+    names(rnet_sl) = paste0("school_", names(rnet_sl))
     
-    rnet_combined = combine_rnets(c(rnet_commute_list,rnet_school_list),
+    rnet_combined = combine_rnets(c(rnet_cl, rnet_sl),
                                   ncores = 20, 
                                   regionalise = 1e5,
                                   add_all = TRUE)
