@@ -27,38 +27,9 @@ options(clustermq.scheduler = "multicore")
 
 # Run the R scripts in the R/ folder with your custom functions:
 tar_source()
-# source("other_functions.R") # Source other scripts as needed. # nolint
-
-# # # # Computation done outside of the pipeline --------------------------------
-# # #
-# parameters = list(
-#   plans = c("fastest", "balanced", "quietest", "ebike"),
-#   # plans = c("fastest"),
-#   # min_flow = 300, # Set to 1 for full build, set to high value (e.g. 400) for tests
-#   min_flow = 1,
-#   # max_to_route = 29, # Set to 10e6 or similar large number for all routes
-#   max_to_route = Inf,
-#   date_routing = "2023-03-31"
-# )
-# tar_load(od_commute_subset)
-# i = parameters$plans[1]
-# # for(i in plans) {
-# #   cyclestreets::batch(desire_lines = od_commute_subset, username = "robinlovelace", strategies = i)
-# # }
-# routes_commute = get_routes(od_commute_subset,
-#                             plans = parameters$plans, purpose = "commute",
-#                             folder = "outputdata", batch = FALSE, nrow_batch = 20000)
-# # Don't save as single object: too big
-# # saveRDS(routes_commute, "outputdata/routes_commute.Rds")
-
-# # Download a snapshot of the data:
-# setwd("outputdata")
-# system("gh release download v2023-03-24-22-28-51_commit_e2a60d0f06e6ddbf768382b19dc524cb3824c0c4 ")
 
 # Targets -----------------------------------------------------------------
 
-# Replace the target list below with your own:
-# Build parameters --------------------------------------------------------
 list(
   # Detect when parameter file has changed:
   tar_target(name = param_file, command = "parameters.json", format = "file"),
@@ -92,9 +63,6 @@ list(
   #   # read_csv("data-raw/od_subset.csv")
   #   # See data-raw-get_wpz.R
   #   readRDS("inputdata/od_izo.Rds")
-  # }),
-  # tar_target(od_schools_raw, {
-  #   # read_csv("data-raw/od_subset.csv")
   # }),
   tar_target(od_data, {
     min_flow = parameters$min_flow # Set to 1 for full build, set to high value (e.g. 400) for tests
@@ -404,3 +372,7 @@ list(
     write_csv(build_summary, "outputs/build_summary.csv")
   })
 )
+
+# # Download a snapshot of the data:
+# setwd("outputdata")
+# system("gh release download v2023-03-24-22-28-51_commit_e2a60d0f06e6ddbf768382b19dc524cb3824c0c4 ")
