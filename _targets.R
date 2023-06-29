@@ -60,46 +60,33 @@ tar_source()
 # Replace the target list below with your own:
 # Build parameters --------------------------------------------------------
 list(
+  # Detect when parameter file has changed:
+  tar_target(name = param_file, command = "parameters.json", format = "file"),
+  # Check Renviron exists, create output directory, load params:
   tar_target(parameters, {
     renviron_exists = file.exists(".Renviron")
     if(!renviron_exists) {
       warning("No .Renviron file, routing may not work")
     }
-    date_routing = "2023-06-07"
-    folder_name = paste0("outputdata/", date_routing)
+    p = jsonlite::read_json(param_file, simplifyVector = T)
+    folder_name = paste0("outputdata/", p$date_routing)
     if(!dir.exists(folder_name)){
       dir.create(file.path(folder_name))
-      # tar_invalidate(r_commute)
-      }
-    parameters = list(
-      plans = c("fastest", "balanced", "quietest", "ebike"),
-      
-      # # Uncomment these lines for small build:
-      min_flow = 199,
-      max_to_route = 20, # Set to 10e6 or similar large number for all routes
-      
-      # Uncomment these lines for full build:
-      # min_flow = 1,
-      # max_to_route = Inf,      
-      date_routing = date_routing
-      )
-    jsonlite::write_json(parameters, "parameters.json", pretty = TRUE)
-    p2 = jsonlite::read_json("parameters.json", simplifyVector = T)
-    
+    }
+    p
   }),
   # tar_target(dl_data, {
   #   setwd("inputdata")
   #   gh_release_downlad(tag = "v1")
   #   setwd("..")
   # }),
-  tar_target(zones,
-    command = {
-
-      # For Edinburgh data (test):
-      # sf::read_sf("data-raw/zones_edinburgh.geojson")
-      # For national data:
-      readRDS("inputdata/zones_national_simple.Rds") # 1230 zones
-    }),
+  tar_target(zones, {
+    z = readRDS("inputdata/zones_national_simple.Rds") # 1230 zones
+    if(parameters$geo_subset) {
+      z = z[get_area("Forth Bridge", d = 20), op = sf::st_within]
+    }
+    z
+  }),
   # To get the raw data:
   # tar_target(od_commute_raw, {
   #   # read_csv("data-raw/od_subset.csv")
@@ -119,10 +106,6 @@ list(
       filter(dist_euclidean < 20000) %>%
       filter(dist_euclidean > 1000) %>%
       filter(all >= min_flow)
-    if(parameters$geo_subset) {
-      geographic_subset = sf::st_read("geographic_subset.geojson")
-      od_subset = od_subset[geographic_subset, ]
-    }
     od_subset
   }),
   tar_target(subpoints_origins, {
@@ -136,7 +119,9 @@ list(
     readRDS("inputdata/workplaces_simple.Rds")
   }),
   tar_target(od_commute_jittered, {
-    # od_jittered = od_data # for no jittering:
+    # od_jittered = od_data # for no jittering
+    # Install the Rust crate and the associated R package:
+    # system("cargo install --git https://github.com/dabreegster/odjitter")
     remotes::install_github("dabreegster/odjitter", subdir = "r")
     set.seed(2023)
     odj = odjitter::jitter(
