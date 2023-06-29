@@ -27,84 +27,42 @@ options(clustermq.scheduler = "multicore")
 
 # Run the R scripts in the R/ folder with your custom functions:
 tar_source()
-# source("other_functions.R") # Source other scripts as needed. # nolint
-
-# # # # Computation done outside of the pipeline --------------------------------
-# # #
-# parameters = list(
-#   plans = c("fastest", "balanced", "quietest", "ebike"),
-#   # plans = c("fastest"),
-#   # min_flow = 300, # Set to 1 for full build, set to high value (e.g. 400) for tests
-#   min_flow = 1,
-#   # max_to_route = 29, # Set to 10e6 or similar large number for all routes
-#   max_to_route = Inf,
-#   date_routing = "2023-03-31"
-# )
-# tar_load(od_commute_subset)
-# i = parameters$plans[1]
-# # for(i in plans) {
-# #   cyclestreets::batch(desire_lines = od_commute_subset, username = "robinlovelace", strategies = i)
-# # }
-# routes_commute = get_routes(od_commute_subset,
-#                             plans = parameters$plans, purpose = "commute",
-#                             folder = "outputdata", batch = FALSE, nrow_batch = 20000)
-# # Don't save as single object: too big
-# # saveRDS(routes_commute, "outputdata/routes_commute.Rds")
-
-# # Download a snapshot of the data:
-# setwd("outputdata")
-# system("gh release download v2023-03-24-22-28-51_commit_e2a60d0f06e6ddbf768382b19dc524cb3824c0c4 ")
 
 # Targets -----------------------------------------------------------------
 
-# Replace the target list below with your own:
-# Build parameters --------------------------------------------------------
 list(
+  # Detect when parameter file has changed:
+  tar_target(name = param_file, command = "parameters.json", format = "file"),
+  # Check Renviron exists, create output directory, load params:
   tar_target(parameters, {
     renviron_exists = file.exists(".Renviron")
     if(!renviron_exists) {
       warning("No .Renviron file, routing may not work")
     }
-    date_routing = "2023-06-07"
-    folder_name = paste0("outputdata/", date_routing)
+    p = jsonlite::read_json(param_file, simplifyVector = T)
+    folder_name = paste0("outputdata/", p$date_routing)
     if(!dir.exists(folder_name)){
       dir.create(file.path(folder_name))
-      # tar_invalidate(r_commute)
-      }
-    list(
-      plans = c("fastest", "balanced", "quietest", "ebike"),
-      
-      # # Uncomment these lines for small build:
-      min_flow = 199,
-      max_to_route = 20, # Set to 10e6 or similar large number for all routes
-      
-      # Uncomment these lines for full build:
-      # min_flow = 1,
-      # max_to_route = Inf,      
-      date_routing = date_routing
-      )
+    }
+    p
   }),
   # tar_target(dl_data, {
   #   setwd("inputdata")
   #   gh_release_downlad(tag = "v1")
   #   setwd("..")
   # }),
-  tar_target(zones,
-    command = {
-
-      # For Edinburgh data (test):
-      # sf::read_sf("data-raw/zones_edinburgh.geojson")
-      # For national data:
-      readRDS("inputdata/zones_national_simple.Rds") # 1230 zones
-    }),
+  tar_target(zones, {
+    z = readRDS("inputdata/zones_national_simple.Rds") # 1230 zones
+    if(parameters$geo_subset) {
+      z = z[get_area("Forth Bridge", d = 20), op = sf::st_within]
+    }
+    z
+  }),
   # To get the raw data:
   # tar_target(od_commute_raw, {
   #   # read_csv("data-raw/od_subset.csv")
   #   # See data-raw-get_wpz.R
   #   readRDS("inputdata/od_izo.Rds")
-  # }),
-  # tar_target(od_schools_raw, {
-  #   # read_csv("data-raw/od_subset.csv")
   # }),
   tar_target(od_data, {
     min_flow = parameters$min_flow # Set to 1 for full build, set to high value (e.g. 400) for tests
@@ -116,7 +74,7 @@ list(
       filter(dist_euclidean < 20000) %>%
       filter(dist_euclidean > 1000) %>%
       filter(all >= min_flow)
-    # write_csv(od_subset, "data-raw/od_subset.csv")
+    od_subset
   }),
   tar_target(subpoints_origins, {
     # source("data-raw/get_wpz.R")
@@ -129,7 +87,9 @@ list(
     readRDS("inputdata/workplaces_simple.Rds")
   }),
   tar_target(od_commute_jittered, {
-    # od_jittered = od_data # for no jittering:
+    # od_jittered = od_data # for no jittering
+    # Install the Rust crate and the associated R package:
+    # system("cargo install --git https://github.com/dabreegster/odjitter")
     remotes::install_github("dabreegster/odjitter", subdir = "r")
     set.seed(2023)
     odj = odjitter::jitter(
@@ -184,7 +144,7 @@ list(
         top_n(n = parameters$max_to_route, wt = count)
       folder_name = paste0("outputdata/", parameters$date_routing)
       routes_school = get_routes(
-        od_commute_subset,
+        schools_dl,
         plans = parameters$plans, purpose = "school",
         folder = folder_name,
         batch = FALSE,
@@ -349,7 +309,7 @@ list(
       v = paste0("v", save_outputs, "_commit_", commit$commit)
       v = gsub(pattern = " |:", replacement = "-", x = v)
       setwd("outputdata")
-      f = list.files(path = ".", pattern = "Rds|zip|pmtiles")
+      f = list.files(path = ".", pattern = "Rds|zip|pmtiles|.json")
       # Piggyback fails with error message so commented and using cust
       # piggyback::pb_upload(f)
       msg = glue::glue("gh release create {v} --generate-notes")
@@ -412,3 +372,7 @@ list(
     write_csv(build_summary, "outputs/build_summary.csv")
   })
 )
+
+# # Download a snapshot of the data:
+# setwd("outputdata")
+# system("gh release download v2023-03-24-22-28-51_commit_e2a60d0f06e6ddbf768382b19dc524cb3824c0c4 ")
