@@ -144,7 +144,7 @@ list(
         top_n(n = parameters$max_to_route, wt = count)
       folder_name = paste0("outputdata/", parameters$date_routing)
       routes_school = get_routes(
-        od_commute_subset,
+        schools_dl,
         plans = parameters$plans, purpose = "school",
         folder = folder_name,
         batch = FALSE,
