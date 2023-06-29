@@ -4,7 +4,6 @@
 # Network Planning Tool for Scotland
 
 <!-- badges: start -->
-
 <!-- badges: end -->
 
 The aim of this project is to generate evidence to support strategic
@@ -14,26 +13,26 @@ cycle network planning in Scotland.
 
 To reproduce the basic results in this repository, hosted on GitHub at
 nptscot/npt, first download and unzip or clone it and then open the
-‘npt’ folder in your favourite integrated development environment
-(IDE) for R, such as RStudio.
+‘npt’ folder in your favourite integrated development environment (IDE)
+for R, such as RStudio.
 
-  - You can download the repository as a zip file from the GitHub
-    website by clicking on the green ‘Code’ button and selecting
-    ‘Download ZIP’, hosted at this URL:
-    <https://www.github.com/nptscot/npt/archive/refs/heads/main.zip>
+- You can download the repository as a zip file from the GitHub website
+  by clicking on the green ‘Code’ button and selecting ‘Download ZIP’,
+  hosted at this URL:
+  <https://www.github.com/nptscot/npt/archive/refs/heads/main.zip>
 
-  - You can clone the repo with Git as follows:
-    
-    ``` bash
-    git clone https://www.github.com/nptscot/npt.git
-    ```
+- You can clone the repo with Git as follows:
 
-  - Or (recommended for future-proof workflows) you can install the
-    GitHub CLI tool and clone the repo as follows:
-    
-    ``` bash
-    gh repo clone nptscot/npt
-    ```
+  ``` bash
+  git clone https://www.github.com/nptscot/npt.git
+  ```
+
+- Or (recommended for future-proof workflows) you can install the GitHub
+  CLI tool and clone the repo as follows:
+
+  ``` bash
+  gh repo clone nptscot/npt
+  ```
 
 Install the GitHub CLI tools by following instructions here:
 <https://cli.github.com/manual/installation>
@@ -46,8 +45,8 @@ gh_version = try({
   system("gh --version", intern = TRUE)
 })
 gh_version
-#> [1] "gh version 2.29.0 (2023-05-10)"                 
-#> [2] "https://github.com/cli/cli/releases/tag/v2.29.0"
+#> [1] "gh version 2.30.0 (2023-05-30)"                 
+#> [2] "https://github.com/cli/cli/releases/tag/v2.30.0"
 if(is(gh_version, "try-error")) {
   message("You don't have the GitHub CLI tools installed. Please install them by following instructions here: https://cli.github.com/manual/installation")
 }
@@ -101,10 +100,40 @@ plot(route_network)
 
 ## Exercises to test your knowledge of the NPT approach
 
+1.  Read-in the
+    [`od_subset.csv`](https://github.com/nptscot/npt/blob/main/data-raw/od_subset.csv)
+    file containing origin-destination data in the
+    [`data-raw`](https://github.com/nptscot/npt/blob/main/data-raw/)
+    folder in this repo with the following command:
+
+``` r
+od_data = read.csv("https://github.com/nptscot/npt/raw/main/data-raw/od_subset.csv")
+```
+
+2.  What’s the average distance of trips according to the
+    `dist_euclidean` column in that dataset?
+
+3.  The values in the `dist_euclidean` column represent straight line
+    distance between zone centroids. In what way could the values be
+    over or under-estimates of the distances of trips taken between the
+    OD pairs?
+
+4.  Use the function `od_to_sf()` to convert the OD data into desire
+    lines. Hint: a starting point could be:
+
+``` r
+zones = sf::read_sf("https://github.com/nptscot/npt/raw/main/data-raw/zones_edinburgh.geojson")
+plot(zones$geometry)
+```
+
+![](README_files/figure-gfm/unnamed-chunk-7-1.png)<!-- -->
+
+**Bonus exercises**
+
 1.  Using interactive geographic data visualisation packages such as
-    `tmap` and `leaflet`, can you visualise the desire lines and route
-    network on a map? Which road links are most important for cycling
-    according to the network results?
+    `tmap` and `leaflet`, visualise the desire lines and route network
+    on a map? Which road links are most important for cycling according
+    to the network results?
 
 2.  Using the `pct::uptake_pct_godutch_2020()` function estimate the
     potential uptake of cycling based on the subset of desire lines
@@ -120,7 +149,7 @@ plot(route_network)
     network based on the small datasets analysed. How could you scale
     this up to the whole of Scotland?
 
-# Reproducibility: advanced
+# Reproducibility
 
 Note: to reproduce the full build process currently depends on data
 sources and dependencies that are not publicly available. This is a work
