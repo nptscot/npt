@@ -71,7 +71,7 @@ list(
       dir.create(file.path(folder_name))
       # tar_invalidate(r_commute)
       }
-    list(
+    parameters = list(
       plans = c("fastest", "balanced", "quietest", "ebike"),
       
       # # Uncomment these lines for small build:
@@ -83,6 +83,9 @@ list(
       # max_to_route = Inf,      
       date_routing = date_routing
       )
+    jsonlite::write_json(parameters, "parameters.json", pretty = TRUE)
+    p2 = jsonlite::read_json("parameters.json", simplifyVector = T)
+    
   }),
   # tar_target(dl_data, {
   #   setwd("inputdata")
@@ -116,7 +119,11 @@ list(
       filter(dist_euclidean < 20000) %>%
       filter(dist_euclidean > 1000) %>%
       filter(all >= min_flow)
-    # write_csv(od_subset, "data-raw/od_subset.csv")
+    if(parameters$geo_subset) {
+      geographic_subset = sf::st_read("geographic_subset.geojson")
+      od_subset = od_subset[geographic_subset, ]
+    }
+    od_subset
   }),
   tar_target(subpoints_origins, {
     # source("data-raw/get_wpz.R")
@@ -349,7 +356,7 @@ list(
       v = paste0("v", save_outputs, "_commit_", commit$commit)
       v = gsub(pattern = " |:", replacement = "-", x = v)
       setwd("outputdata")
-      f = list.files(path = ".", pattern = "Rds|zip|pmtiles")
+      f = list.files(path = ".", pattern = "Rds|zip|pmtiles|.json")
       # Piggyback fails with error message so commented and using cust
       # piggyback::pb_upload(f)
       msg = glue::glue("gh release create {v} --generate-notes")
