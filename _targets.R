@@ -65,7 +65,7 @@ list(
     if(!renviron_exists) {
       warning("No .Renviron file, routing may not work")
     }
-    date_routing = "2023-06-06"
+    date_routing = "2023-06-07"
     folder_name = paste0("outputdata/", date_routing)
     if(!dir.exists(folder_name)){
       dir.create(file.path(folder_name))
@@ -75,13 +75,12 @@ list(
       plans = c("fastest", "balanced", "quietest", "ebike"),
       
       # # Uncomment these lines for small build:
-      # min_flow = 199,
-      # max_to_route = 9999, # Set to 10e6 or similar large number for all routes
+      min_flow = 199,
+      max_to_route = 20, # Set to 10e6 or similar large number for all routes
       
       # Uncomment these lines for full build:
-      min_flow = 1,
-      max_to_route = Inf,
-      
+      # min_flow = 1,
+      # max_to_route = Inf,      
       date_routing = date_routing
       )
   }),
@@ -269,7 +268,7 @@ list(
       rnet_school_list[[p]] = rnet
     }
     
-    # saveRDS(rnet_school_list, "outputdata/rnet_school_list.Rds")
+    saveRDS(rnet_school_list, "outputdata/rnet_school_list.Rds")
     rnet_school_list
   }),
   
@@ -279,11 +278,12 @@ list(
     # If stored locally:
     # rnet_commute_list = readRDS("outputdata/rnet_commute_list.Rds")
     # rnet_school_list = readRDS("outputdata/rnet_school_list.Rds")
+    rnet_cl = rnet_commute_list
+    rnet_sl = rnet_school_list
+    names(rnet_cl) = paste0("commute_", names(rnet_cl))
+    names(rnet_sl) = paste0("school_", names(rnet_sl))
     
-    names(rnet_commute_list) = paste0("commute_", names(rnet_commute_list))
-    names(rnet_school_list) = paste0("school_", names(rnet_school_list))
-    
-    rnet_combined = combine_rnets(c(rnet_commute_list,rnet_school_list),
+    rnet_combined = combine_rnets(c(rnet_cl, rnet_sl),
                                   ncores = 20, 
                                   regionalise = 1e5,
                                   add_all = TRUE)
