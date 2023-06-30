@@ -209,7 +209,10 @@ list(
     p = "balanced"
     uptake_list_school = lapply(parameters$plan, function(p) {
       message("Uptake for ", p, " school routes")
+      names(r_school[[1]])
       routes = r_school[[p]] %>%
+        mutate(all = count, car_driver = car, car_passenger = car_driver / 4) %>% 
+        mutate(train = 1, bus = 1, foot = 1, other = 0) %>% 
         get_scenario_go_dutch(purpose = "school") %>%
         as_tibble()
       routes[["geometry"]] = st_sfc(routes[["geometry"]], recompute_bbox = TRUE)
