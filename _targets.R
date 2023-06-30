@@ -46,6 +46,15 @@ list(
     }
     p
   }),
+  # Case study area:
+  tar_target(study_area, {
+    if(parameters$geo_subset) {
+      s_area = get_area("Forth Bridge", d = 20)
+    } else {
+      s_area = NULL
+    }
+    s_area
+  }),
   # tar_target(dl_data, {
   #   setwd("inputdata")
   #   gh_release_downlad(tag = "v1")
@@ -54,7 +63,7 @@ list(
   tar_target(zones, {
     z = readRDS("inputdata/zones_national_simple.Rds") # 1230 zones
     if(parameters$geo_subset) {
-      z = z[get_area("Forth Bridge", d = 20), op = sf::st_within]
+      z = z[s_area, op = sf::st_within]
     }
     z
   }),
@@ -140,9 +149,23 @@ list(
       # stop("Can't find ",file.path(path_teams,"secure_data/schools/school_dl_sub30km.Rds"))
       schools_dl = NULL
     }
+    # -----------------------------------------------------------
+    # Temporary work around
+    # TODO @mem48: replace with solution using more accurate baseline
+    total_trips_to_school = sum(schools_dl$count)
+    total_trips_to_school / nrow(schools_dl) # average = 10%
+    # Geographic subset
+    if(parameters$geo_subset) {
+      schools_dl = schools_dl[s_area, op = sf::st_within]
+    }
+    schools_dl = schools_dl %>% 
+      mutate(bicycle = 1, car = round(count / 2))
+    # -----------------------------------------------------------
+    
       schools_dl = schools_dl %>%
         top_n(n = parameters$max_to_route, wt = count)
       folder_name = paste0("outputdata/", parameters$date_routing)
+
       routes_school = get_routes(
         schools_dl,
         plans = parameters$plans, purpose = "school",
@@ -183,11 +206,13 @@ list(
   }),
   
   tar_target(uptake_list_school, {
-    p = "fastest"
+    p = "balanced"
     uptake_list_school = lapply(parameters$plan, function(p) {
-      routes = r_school[[p]]
       message("Uptake for ", p, " school routes")
-      routes = routes %>%
+      total_n_cycling = sum(d)
+      routes = r_school[[p]] %>%
+        # TODO: add bicycle
+        mutate(bicycle = )
         get_scenario_go_dutch(purpose = "school") %>%
         as_tibble()
       routes[["geometry"]] = st_sfc(routes[["geometry"]], recompute_bbox = TRUE)
