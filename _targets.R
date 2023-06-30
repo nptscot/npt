@@ -209,14 +209,12 @@ list(
     p = "balanced"
     uptake_list_school = lapply(parameters$plan, function(p) {
       message("Uptake for ", p, " school routes")
-      total_n_cycling = sum(d)
       routes = r_school[[p]] %>%
-        # TODO: add bicycle
-        mutate(bicycle = )
         get_scenario_go_dutch(purpose = "school") %>%
         as_tibble()
       routes[["geometry"]] = st_sfc(routes[["geometry"]], recompute_bbox = TRUE)
       routes = st_as_sf(routes)
+      routes
     })
     names(uptake_list_school) = parameters$plans
     uptake_list_school
