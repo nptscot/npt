@@ -57,7 +57,7 @@ list(
   }),
   # tar_target(dl_data, {
   #   setwd("inputdata")
-  #   gh_release_downlad(tag = "v1")
+  #   system("gh release download v1")
   #   setwd("..")
   # }),
   tar_target(zones, {
