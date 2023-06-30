@@ -63,7 +63,7 @@ list(
   tar_target(zones, {
     z = readRDS("inputdata/zones_national_simple.Rds") # 1230 zones
     if(parameters$geo_subset) {
-      z = z[s_area, op = sf::st_within]
+      z = z[study_area, op = sf::st_within]
     }
     z
   }),
@@ -156,7 +156,7 @@ list(
     total_trips_to_school / nrow(schools_dl) # average = 10%
     # Geographic subset
     if(parameters$geo_subset) {
-      schools_dl = schools_dl[s_area, op = sf::st_within]
+      schools_dl = schools_dl[study_area, op = sf::st_within]
     }
     schools_dl = schools_dl %>% 
       mutate(bicycle = 1, car = round(count / 2))
