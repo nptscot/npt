@@ -5,8 +5,42 @@ library(tidyverse)
 library(stplanr)
 
 rnet_head = slice_max(rnet_commute_fastest, order_by = bicycle, n = 20)
-mapview(rnet_head)
+m = mapview(rnet_head)
+m
 # Shows Main Street to Dalmeny is highest, not plausible...
+# main_street_transect = mapedit::editMap(m)
+
+# Create point on main street
+points_from_rnet_head = sf::st_cast(rnet_head, to = "POINT")
+nrow(points_from_rnet_head) # 141
+points_from_rnet_head = points_from_rnet_head %>% 
+  mutate(id = seq(n()))
+mapview(points_from_rnet_head)
+point_mid_main_street = points_from_rnet_head %>% 
+  filter(id == 88)
+route_segments_on_main_street = r_commute$fastest[point_mid_main_street, ]
+nrow(route_segments_on_main_street) # 2046
+
+route_segments_on_main_street %>% 
+  pull(bicycle) %>% 
+  sum() # 946
+
+length(unique(route_segments_on_main_street$geometry))
+route_segments_by_geometry_type = route_segments_on_main_street %>% 
+  group_by(geometry) %>% 
+  summarise(n = n(), bicycle = sum(bicycle))
+
+route_segments_by_geometry_type
+route_segments_by_geometry_type %>% 
+  select(bicycle) %>% 
+  mapview() # they all overlap
+
+route_segments_by_geometry_type %>% 
+  select(bicycle) %>% 
+  slice_max(bicycle) %>% 
+  mapview() # they all overlap
+
+# Find OD pair contributing to most cycling, cross check in desire lines:
 
 
 rnet_head1 = slice_max(rnet_head, order_by = bicycle, n = 1)
