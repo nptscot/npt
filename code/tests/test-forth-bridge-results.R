@@ -41,6 +41,20 @@ route_segments_by_geometry_type %>%
   mapview() # they all overlap
 
 # Find OD pair contributing to most cycling, cross check in desire lines:
+tar_load(od_commute_subset)
+od_max = od_commute_subset %>% 
+  slice_max(bicycle, n = 100)
+mapview(od_max) # These are all in central Edinburgh
+
+tar_load(zones) # the zones are centred on the forth bridge
+# zones in fife only (plus 4 zones around Bo'ness)
+fife = zones %>% 
+  filter(str_detect(zones$InterZone, pattern = "S020017"))
+# od pairs with at least one end north of the forth bridge (plus a few to Bo'ness)
+od_fife = od_commute_subset %>% 
+  filter(geo_code1 %in% fife$InterZone | geo_code2 %in% fife$InterZone)
+
+
 
 
 rnet_head1 = slice_max(rnet_head, order_by = bicycle, n = 1)
