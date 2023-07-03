@@ -41,7 +41,44 @@ route_segments_by_geometry_type %>%
   mapview() # they all overlap
 
 # Find OD pair contributing to most cycling, cross check in desire lines:
+od_pairs_main_street = route_segments_on_main_street %>% 
+  group_by(geo_code1, geo_code2) %>% 
+  sf::st_drop_geometry() %>% 
+  summarise(n = n())
+nrow(od_pairs_main_street) # 1776
+
 tar_load(od_commute_subset)
+
+nrow(od_commute_subset)
+# od_commute_main_street = left_join(od_pairs_main_street, od_commute_subset)
+nrow(od_commute_main_street)
+
+route_segments_on_main_street = route_segments_on_main_street %>% 
+  mutate(od_id = paste(geo_code1, geo_code2))
+
+od_commute_subset = od_commute_subset %>% 
+  mutate(od_id = paste(geo_code1, geo_code2))
+
+od_commute_main_street = od_commute_subset %>% 
+  filter(od_id %in% unique(route_segments_on_main_street$od_id))
+
+sum(od_commute_main_street$bicycle) # 1399.867
+
+class(od_commute_main_street)
+od_commute_main_street_sf = sf::st_as_sf(od_commute_main_street)
+mapview(od_commute_main_street_sf)
+summary(od_commute_main_street_sf$bicycle)
+
+
+# Highest level of flow:
+od_test_highest = od_commute_main_street_sf %>% 
+  ungroup() %>% 
+  slice_max(order_by = bicycle, n = 200)
+nrow(od_test_highest)
+
+summary(od_test_highest$geo_code1 == od_test_highest$geo_code2)
+mapview(od_test_highest) # None of these should use Main Street...
+
 od_max = od_commute_subset %>% 
   slice_max(bicycle, n = 100)
 mapview(od_max) # These are all in central Edinburgh
