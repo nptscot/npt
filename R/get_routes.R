@@ -32,8 +32,12 @@ get_routes = function(od, plans, purpose = "work", folder = ".", batch = TRUE, b
             nrow_batch = nrow_batch,
             temp_folder = "tmp"
             # comment-out this line to use default instance:
-            # base_url = "http://5b44de2e26338760-api.cyclestreets.net",
-            # pat = Sys.getenv("CYCLESTREETS_BATCH")
+            base_url = paste0(
+              "http://",
+              Sys.getenv("CYCLESTREETS_BATCH"),
+              "-api.cyclestreets.net"
+            ),
+            pat = Sys.getenv("CYCLESTREETS_BATCH")
           )
         } else {
           routes_raw = stplanr::route(
@@ -42,7 +46,11 @@ get_routes = function(od, plans, purpose = "work", folder = ".", batch = TRUE, b
             plan = plan,
             warnNA = FALSE,
             # comment-out this line to use default instance:
-            base_url = "http://5b44de2e26338760-api.cyclestreets.net",
+            base_url = paste0(
+              "http://",
+              Sys.getenv("CYCLESTREETS_BATCH"),
+              "-api.cyclestreets.net"
+            ),
             pat = Sys.getenv("CYCLESTREETS_BATCH")
           )  
         }
