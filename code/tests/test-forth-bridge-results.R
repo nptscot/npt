@@ -65,19 +65,33 @@ od_commute_main_street = od_commute_subset %>%
 sum(od_commute_main_street$bicycle) # 1399.867
 
 class(od_commute_main_street)
-od_commute_main_street_sf = sf::st_as_sf(od_commute_main_street)
-mapview(od_commute_main_street_sf)
-summary(od_commute_main_street_sf$bicycle)
+od_commute_main_street = sf::st_as_sf(od_commute_main_street)
+mapview(od_commute_main_street)
+summary(od_commute_main_street$bicycle)
 
 
 # Highest level of flow:
-od_test_highest = od_commute_main_street_sf %>% 
+od_test_highest = od_commute_main_street %>% 
   ungroup() %>% 
   slice_max(order_by = bicycle, n = 200)
 nrow(od_test_highest)
 
 summary(od_test_highest$geo_code1 == od_test_highest$geo_code2)
 mapview(od_test_highest) # None of these should use Main Street...
+
+# Pull out associates routes
+routes_test_highest = route_segments_on_main_street %>% 
+  filter(od_id %in% od_test_highest$od_id)
+nrow(routes_test_highest)
+mapview(routes_test_highest)
+
+routes_test = route(l = od_test_highest, route_fun = cyclestreets::journey, plan = "fastest")
+mapview(routes_test %>% sample_n(1000))
+plot(routes_test$geometry)
+
+routes_batch = get_routes(od = od_test_highest, plans = "fastest", purpose = "commute", nrow_batch = 1000)
+
+plot(routes_batch$fastest$geometry)
 
 od_max = od_commute_subset %>% 
   slice_max(bicycle, n = 100)
