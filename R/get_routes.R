@@ -40,10 +40,10 @@ get_routes = function(od, plans, purpose = "work", folder = ".", batch = TRUE, b
             l = od,
             route_fun = cyclestreets::journey,
             plan = plan,
-            warnNA = FALSE
+            warnNA = FALSE,
             # comment-out this line to use default instance:
-            # base_url = "http://5b44de2e26338760-api.cyclestreets.net",
-            # pat = Sys.getenv("CYCLESTREETS_BATCH")
+            base_url = "http://5b44de2e26338760-api.cyclestreets.net",
+            pat = Sys.getenv("CYCLESTREETS_BATCH")
           )  
         }
       }
