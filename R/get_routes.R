@@ -30,7 +30,7 @@ get_routes = function(od, plans, purpose = "work", folder = ".", batch = TRUE, b
             plan = plan,
             warnNA = FALSE, 
             nrow_batch = nrow_batch,
-            temp_folder = "tmp"
+            temp_folder = "tmp",
             # comment-out this line to use default instance:
             base_url = paste0(
               "http://",
