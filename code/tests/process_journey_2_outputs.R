@@ -27,7 +27,12 @@ system.time({
                       id = od$route_id,
                       plan = "quietest", 
                       host_con = 10,
-                      base_url = "http://1309a51d768b8d51-api.cyclestreets.net",
+                      # comment-out this line to use default instance:
+                      base_url = paste0(
+                        "http://",
+                        Sys.getenv("CYCLESTREETS_BATCH"),
+                        "-api.cyclestreets.net"
+                      ),
                       pat = Sys.getenv("CYCLESTREETS_BATCH"),
                       segments = TRUE)
   

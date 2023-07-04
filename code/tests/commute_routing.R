@@ -17,8 +17,13 @@ r_quiet <- journey2(fromPlace,
               id = od$route_id,
               plan = "quietest", 
               host_con = 10,
-              base_url = "http://1309a51d768b8d51-api.cyclestreets.net",
-              pat = Sys.getenv("CYCLESTREETS_NPT"),
+              # comment-out this line to use default instance:
+            base_url = paste0(
+              "http://",
+              Sys.getenv("CYCLESTREETS_BATCH"),
+              "-api.cyclestreets.net"
+            ),
+            pat = Sys.getenv("CYCLESTREETS_BATCH"),
               segments = TRUE)
 
 saveRDS(r_quiet,"../atumscot/outputdata/routes_commute_subset_quiet.Rds")
@@ -28,8 +33,13 @@ r_balance <- journey2(fromPlace,
                     id = od$route_id,
                     plan = "balanced", 
                     host_con = 10,
-                    base_url = "http://1309a51d768b8d51-api.cyclestreets.net",
-                    pat = Sys.getenv("CYCLESTREETS_NPT"),
+            # comment-out this line to use default instance:
+            base_url = paste0(
+              "http://",
+              Sys.getenv("CYCLESTREETS_BATCH"),
+              "-api.cyclestreets.net"
+            ),
+            pat = Sys.getenv("CYCLESTREETS_BATCH")
                     segments = TRUE)
 
 saveRDS(r_balance,"../atumscot/outputdata/routes_commute_subset_balance.Rds")
@@ -38,9 +48,14 @@ r_ebike <- journey2(fromPlace,
                       toPlace,
                       id = od$route_id,
                       plan = "ebike", 
-                      host_con = 10,
-                      base_url = "http://1309a51d768b8d51-api.cyclestreets.net",
-                      pat = Sys.getenv("CYCLESTREETS_NPT"),
+                      host_con = 10,       
+                           # comment-out this line to use default instance:
+            base_url = paste0(
+              "http://",
+              Sys.getenv("CYCLESTREETS_BATCH"),
+              "-api.cyclestreets.net"
+            ),
+            pat = Sys.getenv("CYCLESTREETS_BATCH")
                       segments = TRUE)
 
 saveRDS(r_ebike,"../atumscot/outputdata/routes_commute_subset_ebike.Rds")
