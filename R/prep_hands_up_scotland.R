@@ -41,12 +41,57 @@ for(i in 1:length(fls)){
 
 res_all = bind_rows(res)
 
+saveRDS(res_all,file.path(secure_path,"secure_data/schools/hands_up_scotland.Rds"))
+
 # West Lothian current missing and may need special treatment
 
 # Clean
 res_all[4:13] <- lapply(res_all[4:13], function(x){round(as.numeric(x),2)})
 
-saveRDS(res_all,file.path(secure_path,"secure_data/schools/hands_up_scotland.Rds"))
+# Fill in missing data
+ res_summary <- res_all %>%
+   group_by(`Local Authority`, `type`) %>%
+   summarise(walk = median(Walk, na.rm = TRUE),
+             bicycle = median(Cycle, na.rm = TRUE),
+             scooter = median(`Scooter / Skate`, na.rm = TRUE),
+             park_stride = median(`Park & Stride`, na.rm = TRUE),
+             car = median(Driven, na.rm = TRUE),
+             bus = median(Bus, na.rm = TRUE),
+             taxi = median(Taxi, na.rm = TRUE),
+             other = median(Other, na.rm = TRUE))
 
+res_summary$total_p <- rowSums(res_summary[3:10])
+summary(res_summary$total_p)
 
+names(res_all) = c("la","SEED","school_name","year","walk","bicycle","Scooter / Skate",
+                   "Park & Stride","Driven","Bus","Taxi","Other","total_pupils","type"  )
+
+res_all$other <- rowSums(res_all[,c("Scooter / Skate","Park & Stride","Driven","Bus","Taxi","Other")], na.rm = TRUE)
+res_all = res_all[,c("la","SEED","school_name","walk","bicycle","other","total_pupils","type")]
+
+res_all$other <- ifelse(is.na(res_all$total_pupils),NA,res_all$other)
+
+res_summary = res_summary[,c("Local Authority","type","walk","bicycle")]
+names(res_summary) = c("la","type","walk_ave","bicycle_ave")
+
+res_join = left_join(res_all, res_summary, by = c("la","type"))
+
+res_join$walk = ifelse(is.na(res_join$walk),res_join$walk_ave,res_join$walk)
+res_join$bicycle = ifelse(is.na(res_join$bicycle),res_join$bicycle_ave,res_join$bicycle)
+res_join$other = ifelse(is.na(res_join$other),1 - res_join$bicycle - res_join$walk,res_join$other)
+res_join$data = ifelse(is.na(res_join$total_pupils),"modeled","observed")
+
+#TODO: Better method of filling in gaps
+res_join$bicycle = ifelse(is.na(res_join$bicycle),median(res_join$bicycle, na.rm = TRUE),res_join$bicycle)
+res_join$walk = ifelse(is.na(res_join$walk),median(res_join$walk, na.rm = TRUE),res_join$walk)
+
+# Check other matches 
+#res_join$foo = res_join$other -  (1 - res_join$bicycle - res_join$walk)
+res_join$other = 1 - res_join$bicycle - res_join$walk
+
+# Some SEED codes duplicated when two schools on the same site. Sort to favor real data
+res_join <- res_join[order(res_join$data, decreasing = TRUE),]
+res_join <- res_join[!duplicated(res_join$SEED),]
+
+saveRDS(res_join,file.path(secure_path,"secure_data/schools/school_mode_split.Rds"))
 
