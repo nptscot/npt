@@ -172,7 +172,7 @@ list(
         plans = parameters$plans, purpose = "school",
         folder = folder_name,
         batch = FALSE,
-        nrow_batch = 20000
+        nrow_batch = 100000
         )
       routes_school
   }),
