@@ -325,7 +325,7 @@ list(
     commit = gert::git_log(max = 1)
     message("Commit: ", commit)
     
-    # if(Sys.info()[['sysname']] == "Linux") {
+      if(Sys.info()[['sysname']] == "Linux" | TRUE ) {
     v = paste0("v", save_outputs, "_commit_", commit$commit)
     v = gsub(pattern = " |:", replacement = "-", x = v)
     setwd("outputdata")
