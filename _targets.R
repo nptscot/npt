@@ -5,6 +5,7 @@
 
 # Load packages required to define the pipeline:
 remotes::install_github("cyclestreets/cyclestreets-r")
+remotes::install_github("dabreegster/odjitter", subdir = "r")
 library(targets)
 library(tidyverse)
 # library(tmap)
@@ -100,7 +101,7 @@ list(
     # od_jittered = od_data # for no jittering
     # Install the Rust crate and the associated R package:
     # system("cargo install --git https://github.com/dabreegster/odjitter")
-    remotes::install_github("dabreegster/odjitter", subdir = "r")
+    
     set.seed(2023)
     odj = odjitter::jitter(
       od = od_data,
