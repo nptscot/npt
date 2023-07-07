@@ -59,7 +59,7 @@ list(
   }),
   # tar_target(dl_data, {
   #   setwd("inputdata")
-  #   gh_release_downlad(tag = "v1")
+  #   system("gh release download v1")
   #   setwd("..")
   # }),
   tar_target(zones, {
@@ -109,7 +109,7 @@ list(
       subpoints_origins = subpoints_origins,
       subpoints_destinations = subpoints_destinations,
       disaggregation_threshold = 30
-      )
+    )
     odj$dist_euclidean_jittered = as.numeric(sf::st_length(odj))
     odj = odj %>%
       mutate(route_id = paste0(geo_code1, "_", geo_code2, "_", seq(nrow(odj))))
@@ -126,7 +126,7 @@ list(
   }),
   
   tar_target(r_commute, {
-
+    
     message(parameters$date_routing)
     message("Calculating ", nrow(od_commute_subset), " routes")
     # Test routing:
@@ -134,9 +134,9 @@ list(
     folder_name = paste0("outputdata/", parameters$date_routing)
     
     routes_commute = get_routes(od_commute_subset,
-                        plans = parameters$plans, purpose = "commute",
-                        folder = folder_name, batch = TRUE, nrow_batch = 1000000,
-                        batch_save = TRUE)
+                                plans = parameters$plans, purpose = "commute",
+                                folder = folder_name, batch = TRUE, nrow_batch = 1000000,
+                                batch_save = TRUE)
     routes_commute
   }),
   
@@ -157,18 +157,18 @@ list(
       schools_dl = schools_dl[study_area, op = sf::st_within]
     }
     
-      schools_dl = schools_dl %>%
-        top_n(n = parameters$max_to_route, wt = count)
-      folder_name = paste0("outputdata/", parameters$date_routing)
-
-      routes_school = get_routes(
-        schools_dl,
-        plans = parameters$plans, purpose = "school",
-        folder = folder_name,
-        batch = FALSE,
-        nrow_batch = 20000
-        )
-      routes_school
+    schools_dl = schools_dl %>%
+      top_n(n = parameters$max_to_route, wt = count)
+    folder_name = paste0("outputdata/", parameters$date_routing)
+    
+    routes_school = get_routes(
+      schools_dl,
+      plans = parameters$plans, purpose = "school",
+      folder = folder_name,
+      batch = FALSE,
+      nrow_batch = 20000
+    )
+    routes_school
   }),
   
   tar_target(uptake_list_commute, {
@@ -183,15 +183,15 @@ list(
       routes = r_commute[[p]]
       message("Uptake for ", p)
       # system.time({
-        routes = routes %>%
-          get_scenario_go_dutch() %>%
-          as_tibble()
-        routes[["geometry"]] = st_sfc(routes[["geometry"]], recompute_bbox = TRUE)
-        routes = st_as_sf(routes)
-        # })
+      routes = routes %>%
+        get_scenario_go_dutch() %>%
+        as_tibble()
+      routes[["geometry"]] = st_sfc(routes[["geometry"]], recompute_bbox = TRUE)
+      routes = st_as_sf(routes)
+      # })
       f = paste0("outputdata/routes_commute_", p, ".Rds")
       saveRDS(routes, f)
-      }
+    }
     uptake_list_commute = lapply(parameters$plan, function(p) {
       f = paste0("outputdata/routes_commute_", p, ".Rds")
       readRDS(f)
@@ -319,41 +319,41 @@ list(
   
   # tarchetypes::tar_render(report, path = "README.Rmd", params = list(zones, rnet)),
   tar_target(upload_data, {
-
+    
     # Ensure the target runs after
     length(r_commute)
     commit = gert::git_log(max = 1)
     message("Commit: ", commit)
-
-    if(Sys.info()[['sysname']] == "Linux") {
-      v = paste0("v", save_outputs, "_commit_", commit$commit)
-      v = gsub(pattern = " |:", replacement = "-", x = v)
-      setwd("outputdata")
-      f = list.files(path = ".", pattern = "Rds|zip|pmtiles|.json")
-      # Piggyback fails with error message so commented and using cust
-      # piggyback::pb_upload(f)
-      msg = glue::glue("gh release create {v} --generate-notes")
-      message("Creating new release and folder to save the files: ", v)
-      dir.create(v)
-      message("Going to try to upload the following files: ", paste0(f, collapse = ", "))
-      message("With sizes: ", paste0(fs::file_size(f), collapse = ", "))
-      system(msg)
-      for(i in f) {
-        gh_release_upload(file = i, tag = v)
-        # Move into a new directory
-        file.copy(from = i, to = file.path(v, i))
-      }
-      message("Files stored in output folder: ", v)
-      message("Which contains: ", paste0(list.files(v), collapse = ", "))
-      # For specific version:
-      # system("gh release create v0.0.1 --generate-notes")
-      file.remove(f)
-      setwd("..")
-    }  else {
-      message("gh command line tool not available")
-      message("Now create a release with this version number and upload the files")
+    
+    # if(Sys.info()[['sysname']] == "Linux") {
+    v = paste0("v", save_outputs, "_commit_", commit$commit)
+    v = gsub(pattern = " |:", replacement = "-", x = v)
+    setwd("outputdata")
+    f = list.files(path = ".", pattern = "Rds|zip|pmtiles|.json")
+    # Piggyback fails with error message so commented and using cust
+    # piggyback::pb_upload(f)
+    msg = glue::glue("gh release create {v} --generate-notes")
+    message("Creating new release and folder to save the files: ", v)
+    dir.create(v)
+    message("Going to try to upload the following files: ", paste0(f, collapse = ", "))
+    message("With sizes: ", paste0(fs::file_size(f), collapse = ", "))
+    system(msg)
+    for(i in f) {
+      gh_release_upload(file = i, tag = v)
+      # Move into a new directory
+      file.copy(from = i, to = file.path(v, i))
     }
-    Sys.Date()
+    message("Files stored in output folder: ", v)
+    message("Which contains: ", paste0(list.files(v), collapse = ", "))
+    # For specific version:
+    # system("gh release create v0.0.1 --generate-notes")
+    file.remove(f)
+    setwd("..")
+  }  else {
+    message("gh command line tool not available")
+    message("Now create a release with this version number and upload the files")
+  }
+  Sys.Date()
   }),
   
   tar_target(metadata, {
