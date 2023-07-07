@@ -4,12 +4,14 @@
 #   https://books.ropensci.org/targets/walkthrough.html#inspect-the-pipeline # nolint
 
 # Load packages required to define the pipeline:
+remotes::install_github("cyclestreets/cyclestreets-r")
+remotes::install_github("dabreegster/odjitter", subdir = "r")
 library(targets)
 library(tidyverse)
 # library(tmap)
 library(stplanr)
 library(sf)
-remotes::install_github("cyclestreets/cyclestreets-r")
+
 # Set target options:
 tar_option_set(
   packages = c("tibble"), # packages that your targets need to run
@@ -99,7 +101,7 @@ list(
     # od_jittered = od_data # for no jittering
     # Install the Rust crate and the associated R package:
     # system("cargo install --git https://github.com/dabreegster/odjitter")
-    remotes::install_github("dabreegster/odjitter", subdir = "r")
+    
     set.seed(2023)
     odj = odjitter::jitter(
       od = od_data,
@@ -150,18 +152,10 @@ list(
       # stop("Can't find ",file.path(path_teams,"secure_data/schools/school_dl_sub30km.Rds"))
       schools_dl = NULL
     }
-    # -----------------------------------------------------------
-    # Temporary work around
-    # TODO @mem48: replace with solution using more accurate baseline
-    total_trips_to_school = sum(schools_dl$count)
-    total_trips_to_school / nrow(schools_dl) # average = 10%
-    # Geographic subset
+    
     if(parameters$geo_subset) {
       schools_dl = schools_dl[study_area, op = sf::st_within]
     }
-    schools_dl = schools_dl %>% 
-      mutate(bicycle = 1, car = round(count / 2))
-    # -----------------------------------------------------------
     
       schools_dl = schools_dl %>%
         top_n(n = parameters$max_to_route, wt = count)
@@ -212,8 +206,7 @@ list(
       message("Uptake for ", p, " school routes")
       names(r_school[[1]])
       routes = r_school[[p]] %>%
-        mutate(all = count, car_driver = car, car_passenger = car_driver / 4) %>% 
-        mutate(train = 1, bus = 1, foot = 1, other = 0) %>% 
+        mutate(all = count) %>% 
         get_scenario_go_dutch(purpose = "school") %>%
         as_tibble()
       routes[["geometry"]] = st_sfc(routes[["geometry"]], recompute_bbox = TRUE)
