@@ -271,7 +271,6 @@ list(
     rnet_combined = rnet_combined[order(rnet_combined$all_fastest_bicycle_go_dutch, 
                                         rnet_combined$all_quietest_bicycle_go_dutch),]
     
-    saveRDS(rnet_combined, "outputdata/combined_network.Rds")
     rnet_combined
   }),
   
@@ -286,13 +285,14 @@ list(
   }),
   
   tar_target(save_outputs, {
+    message("Saving outputs for ", parameters$date_routing)
     saveRDS(rnet_commute_list, "outputdata/rnet_commute_list.Rds")
     saveRDS(od_commute_subset, "outputdata/od_commute_subset.Rds")
     saveRDS(combined_network, "outputdata/combined_network.Rds")
     # Saved by get_routes()
     # f = paste0("outputdata/routes_commute_", nrow(od_commute_subset), "_rows.Rds")
     # saveRDS(r_commute, f)
-    save_outputs = Sys.time()
+    sys_time = Sys.time()
     # See code in R/make_geojson.R
     make_geojson_zones(combined_network, "outputdata/combined_network.geojson")
     zip(zipfile = "outputdata/combined_network.zip", "outputdata/combined_network.geojson")
@@ -308,7 +308,7 @@ list(
     date_routing = parameters$date_routing
     msg = glue::glue("tippecanoe -o outputdata/rnet_{date_routing}.pmtiles")
     system(paste(msg, msg_verbose))
-    save_outputs
+    sys_time
   }),
   
   # tar_target(visualise_rnet, {
@@ -325,7 +325,7 @@ list(
     commit = gert::git_log(max = 1)
     message("Commit: ", commit)
     
-      if(Sys.info()[['sysname']] == "Linux" | TRUE ) {
+    if(Sys.info()[['sysname']] == "Linux" | TRUE ) {
     v = paste0("v", save_outputs, "_commit_", commit$commit)
     v = gsub(pattern = " |:", replacement = "-", x = v)
     setwd("outputdata")
@@ -366,7 +366,7 @@ list(
     # Get routing date (not needed if doing full routing)
     routing_edition = r_commute$fastest$edition[1]
     routing_integer = stringr::str_sub(routing_edition, start = -6)
-    routing_date = lubridate::ymd(routing_integer)
+    routing_edition_date = lubridate::ymd(routing_integer)
     
     # Todo: add more columns
     build_summary = tibble::tibble(
@@ -378,7 +378,7 @@ list(
                                     filter(name == "r_commute") %>% 
                                     pull(seconds) / 60, 
                                   digits = 2),
-      routing_date = routing_date
+      routing_date = routing_edition_date
     )
     # # To overwrite previous build summary:
     # write_csv(build_summary, "outputs/build_summary.csv")
