@@ -121,7 +121,7 @@ list(
     odcs = od_commute_jittered %>%
       filter(dist_euclidean_jittered < 20000) %>%
       filter(dist_euclidean_jittered > 500) %>%
-      top_n(n = parameters$max_to_route, wt = bicycle)
+      slice_max(n = parameters$max_to_route, order_by = bicycle)
     odcs
   }),
   
