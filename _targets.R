@@ -156,19 +156,17 @@ list(
     if(parameters$geo_subset) {
       schools_dl = schools_dl[study_area, op = sf::st_within]
     }
-    
     schools_dl = schools_dl %>%
       top_n(n = parameters$max_to_route, wt = count)
     folder_name = paste0("outputdata/", parameters$date_routing)
-    
-    routes_school = get_routes(
-      schools_dl,
-      plans = parameters$plans, purpose = "school",
-      folder = folder_name,
-      batch = FALSE,
-      nrow_batch = 20000
-    )
-    routes_school
+      routes_school = get_routes(
+        schools_dl,
+        plans = parameters$plans, purpose = "school",
+        folder = folder_name,
+        batch = FALSE,
+        nrow_batch = 100000
+        )
+      routes_school
   }),
   
   tar_target(uptake_list_commute, {
