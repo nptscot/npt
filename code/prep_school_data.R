@@ -55,7 +55,6 @@ flow = flow[flow$SeedCode %in% locs$SeedCode,]
 summary(flow$DataZone %in% datazone_cent$DataZone)
 
 # Jitter OD
-
 flow = flow[,c("DataZone","SeedCode","count","LaCode","schooltype","SchlName")]
 
 # Data Zones
@@ -104,6 +103,126 @@ flow_jitter <- flow_jitter[,c("DataZone","SeedCode","count")]
 flow_jitter$route_id <- 1:nrow(flow_jitter)
 flow_jitter$count <- round(flow_jitter$count)
 
-saveRDS(flow_jitter, "D:/University of Leeds/TEAM - Network Planning Tool - General/secure_data/schools/school_dl_sub30km.Rds")
+# Add on mode shares
+flow_jitter$lenght_km_str <- as.numeric(st_length(flow_jitter)) / 1000
+
+flow_mode <- readRDS(file.path(secure_path,"secure_data/schools/school_mode_split.Rds"))
+flow_mode <- flow_mode[,c("SEED","walk","bicycle","other")]
+flow_jitter = left_join(flow_jitter, flow_mode, by = c("SeedCode" = "SEED"))
+
+# Fill in data for missing schools
+flow_jitter$walk <- ifelse(is.na(flow_jitter$walk),0.44, flow_jitter$walk)
+flow_jitter$bicycle <- ifelse(is.na(flow_jitter$bicycle),0.03, flow_jitter$bicycle)
+flow_jitter$other <- ifelse(is.na(flow_jitter$other),1 - flow_jitter$walk - flow_jitter$bicycle, flow_jitter$other)
+
+#flow_split = group_by(flow_jitter, SeedCode)
+#flow_split = group_split(flow_split)
+flow_split = split(flow_jitter, flow_jitter$SeedCode)
+
+x = flow_split[[(1:length(flow_split))[names(flow_split) == "5553024"]]]
+
+random_integers <- function(total_value, num_elements, max_value, seed) {
+  #message(total_value, num_elements)
+  partition <- sample(0:(total_value - 1), num_elements - 1, replace = TRUE)
+  partition <- sort(partition)
+  partition <- c(partition, total_value) - c(0, partition)
+  if(any(partition > max_value)){
+    partition <- partition[order(partition, decreasing = TRUE)]
+  }
+  if(any(partition > max_value)){
+    diff <- partition - max_value
+    change_down <- ifelse(diff > 0,diff,0)
+    change_down_total = sum(change_down)
+    change_up <- ifelse(diff < 0,-diff,0)
+    partition = partition - change_down
+    
+    for(i in seq_along(partition)){
+      if(change_up[i] > 0){
+        if(change_up[i] >= change_down_total){
+          partition[i] = partition[i] + change_down_total
+          break
+        } else {
+          partition[i] = partition[i] + change_up[i]
+          change_down_total = change_down_total - change_up[i]
+        }
+      }
+    }
+    if(any(partition > max_value)){
+      stop(seed)
+      #message("Try again t=",total_value," n=",num_elements," max=",paste(max_value,collapse = ","))
+      #partition <- random_integers(total_value, num_elements, max_value)
+    }
+    
+  }
+  return(partition)
+}
+
+
+
+distribute_cycling <- function(x){
+  mode_walk = x$walk[1]
+  mode_bicycle = x$bicycle[1]
+  mode_other = x$other[1]
+  
+  n_bicycle = round(mode_bicycle * sum(x$count))
+  n_walk = round(mode_walk * sum(x$count))
+  
+  if(n_bicycle == 0){
+    x$walk = NULL
+    x$other = NULL
+    return(x)
+  }
+  
+  # Only allocated to less than 4km, unless need more routes to meet demand
+  x = x[order(x$lenght_km_str),]
+  x$count_cumsum <- cumsum(x$count)
+  if(nrow(x) == 1){
+    x$bicycle_alocated <- TRUE
+  } else {
+    x$bicycle_alocated <- ifelse(x$lenght_km_str < 3 | c(0,x$count_cumsum[seq(1, nrow(x) - 1)]) <  n_bicycle, TRUE, FALSE)
+  }
+ 
+  # Check if no route allocated
+  if(sum(x$bicycle_alocated) == 0){
+    x$bicycle_alocated[1] = TRUE
+  }
+  
+  x_bike = x[x$bicycle_alocated,]
+  x = x[!x$bicycle_alocated,]
+  
+  #Pick a random number around average cyclists per route
+  x_bike$n_bicycle = random_integers(total_value = n_bicycle, 
+                                     num_elements = nrow(x_bike), 
+                                     max_value = x_bike$count, 
+                                     seed = x$SeedCode[1])
+  
+  if(sum(x_bike$n_bicycle) != n_bicycle){
+    stop("3 Wrong number of bikes, SEED = ",x$SeedCode[1]," ",sum(x_bike$n_bicycle)," ",n_bicycle)
+  }
+  
+  x_bike$bicycle = x_bike$n_bicycle
+  x$bicycle = 0
+  
+  x_bike = x_bike[names(x)]
+  x = rbind(x,x_bike)
+  
+  # TODO: Add support of other modes
+  x$walk = NULL
+  x$other = NULL
+  x$bicycle_alocated = NULL
+  x$count_cumsum = NULL
+  
+  return(x)
+  
+}
+
+
+flow_bicycle = pbapply::pblapply(flow_split, distribute_cycling)
+flow_bicycle = bind_rows(flow_bicycle)
+
+flow_bicycle$lenght_km_str = NULL
+
+
+saveRDS(flow_bicycle, file.path(secure_path,"secure_data/schools/school_dl_sub30km.Rds"))
 
 
