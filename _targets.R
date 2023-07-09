@@ -4,7 +4,7 @@
 #   https://books.ropensci.org/targets/walkthrough.html#inspect-the-pipeline # nolint
 
 # Load packages required to define the pipeline:
-remotes::install_github("cyclestreets/cyclestreets-r")
+remotes::install_github("cyclestreets/cyclestreets-r", ref = "69-speed-up-json2sf_cs")
 remotes::install_github("dabreegster/odjitter", subdir = "r")
 library(targets)
 library(tidyverse)
@@ -133,9 +133,9 @@ list(
     # stplanr::route(l = od_to_route, route_fun = cyclestreets::journey, plan = "balanced")
     folder_name = paste0("outputdata/", parameters$date_routing)
     
-    routes_commute = get_routes(od_commute_subset,
+    routes_commute = get_routes(od = od_commute_subset,
                                 plans = parameters$plans, purpose = "commute",
-                                folder = folder_name, batch = TRUE, nrow_batch = 1000000,
+                                folder = folder_name, batch = TRUE, nrow_batch = 99999,
                                 batch_save = TRUE)
     routes_commute
   }),

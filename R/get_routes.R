@@ -11,7 +11,7 @@ get_routes = function(od, plans, purpose = "work", folder = ".", batch = TRUE, b
       message("Routes already exist: reading from file: ", savename_f)
       routes_filtered = readRDS(savename_f)
     } else {
-      if(batch) {
+      if(batch && !batch_save) {
         routes_raw = cyclestreets::batch(
           desire_lines = od,
           wait = TRUE,
