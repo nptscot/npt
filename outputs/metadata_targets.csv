@@ -1,26 +1,26 @@
 name,type,data,command,depend,seed,path,time,size,bytes,format,repository,iteration,parent,children,seconds,warnings,error
 geojsons,stem,69731d6c72699be6,a35cbd3611a5e7d3,65ecf6d6993868c5,388913887,,2023-04-01T14:26:10Z,ac45463db19e2cbe,48,rds,local,vector,NA,,6.426,NA,NA
-metadata,stem,bfc8f13f65269bc4,16f14ef3f4eb47e3,b4d97b0c478ca424,2062409165,,2023-07-08T04:08:57Z,85d1e02283cfd189,523,rds,local,vector,NA,,0.68,NA,NA
+metadata,stem,c76db04228bd12e5,16f14ef3f4eb47e3,cb5edc521cd6a6bc,2062409165,,2023-07-08T13:43:04Z,9264840afbbafcaf,542,rds,local,vector,NA,,0.11,NA,NA
+od_commute_jittered,stem,60b1c6cd2ecd30ad,9ceda8777295dfd4,f0bc8a7efc66aee5,674506102,,2023-07-08T12:06:49Z,6ed4b71dc7bed0cc,5487037,rds,local,vector,NA,,10.32,NA,NA
 od_commute_raw,stem,02e8fb06b5595485,24ee2857ca82f91c,316d915afebd2eb3,-306658284,,2023-03-26T07:00:03Z,10ab8f08b9bb31bd,1035036,rds,local,vector,NA,,0.073,NA,NA
-od_data,stem,0cc28f25e74d0c19,543a1e45c31d3c88,b6a1a0eab9127456,-1950608183,,2023-07-08T11:51:00Z,a0256d5353e8738f,1291067,rds,local,vector,NA,,0.91,NA,NA
-param_file,stem,01d392e929e1f967,9c1a31a16c352029,ef46db3751d8e999,-1046133151,,2023-07-08T11:26:27Z,53d67a509bd209ee,171,file,local,vector,NA,,0,NA,NA
-parameters,stem,91b2dbb25ebbdf33,3ef8c0c7ce7967e1,06208838f8b1d4f8,780725592,,2023-07-08T11:27:16Z,334ec4c391c6746c,186,rds,local,vector,NA,,0.02,NA,NA
-r_school,stem,9c64a665fa6e7aa7,30efd0447e710fbd,8ddb05ffe87f082b,-989549808,,2023-07-08T11:50:59Z,3b3c1c07307e5a06,14009201,rds,local,vector,NA,,1420.28,row names were found from a short variable and have been discarded. row names were found from a short variable and have been discarded. row names were found from a short variable and have been discarded. row names were found from a short variable and have been discarded. row names were found from a short variable and have been discarded. row names were found from a short variable and have been discarded. row names were found from a short variable and have been discarded. row names were found from a short variable and have been discarded. row names were found from a short variable and have been discarded. row names were found from a short variable and have been discarded. row names were found from a short variable and have been discarded. row names were found from a short variable and have been discarded. row names were found from a short variable and have been discarded. row names were found from a short variable and have been discarded. row names were found from a short variable and have been discarded. row names were found from a short variable and have been discarded. row names were found from a short variable and have been discarded. row names were found from a short variable and have been discarded. row names were found from a short variable and have been discarded. row names were found from a short variable and have been discarded. row names were found from a short variable and have been discarded. row names were found from a short variable and have been discarded. row names were found from a short variable and have been discarded. row names were found from a short variable and have been discarded,NA
-study_area,stem,d731cf8310cd6ccb,71a7eb32cd0b97c8,ca32deb7ef7308dc,-988187226,,2023-07-08T11:27:16Z,a1c456b03adbfbf8,44,rds,local,vector,NA,,0,NA,NA
+od_data,stem,0cc28f25e74d0c19,543a1e45c31d3c88,89721ced77ee8dcb,-1950608183,,2023-07-09T09:00:06Z,a0256d5353e8738f,1291067,rds,local,vector,NA,,0.64,NA,NA
+param_file,stem,360fe5d56f608844,9c1a31a16c352029,ef46db3751d8e999,-1046133151,,2023-07-09T08:57:32Z,c8c08b546a334f8d,170,file,local,vector,NA,,0,NA,NA
+parameters,stem,a95c565d665a3aa3,3ef8c0c7ce7967e1,78ac91ba18bbf3c8,780725592,,2023-07-09T08:58:17Z,253a8b79276e1ed4,185,rds,local,vector,NA,,0.01,NA,NA
+study_area,stem,d731cf8310cd6ccb,71a7eb32cd0b97c8,0d22422908f22159,-988187226,,2023-07-09T08:58:17Z,a1c456b03adbfbf8,44,rds,local,vector,NA,,0,NA,NA
 subpoints_destinations,stem,f635f4276c5b5bb2,8ec9bb96cebe6c9d,316d915afebd2eb3,-1697010667,,2023-07-07T15:41:45Z,2fbdde33a96884c6,102630,rds,local,vector,NA,,0.005,NA,NA
 subpoints_origins,stem,3b4dcd069f774193,4f6c193fa8e04c95,316d915afebd2eb3,450966405,,2023-07-07T15:41:45Z,81d819b58ebfaa6d,898656,rds,local,vector,NA,,0.039,NA,NA
 tile,stem,3576bf4c7c4f3f90,29ee67e989530aba,c31d9850c3ea2345,1337127750,,2023-04-01T14:26:18Z,44989414465ff33d,49,rds,local,vector,NA,,7.975,NA,NA
 uptake_list,stem,808463ff1d06a9c3,fcea9596174ddaf1,0b6da0999a07e233,955218489,,2023-06-01T16:06:50Z,165a95c5d89c8582,125773,rds,local,vector,NA,,0.175,NA,NA
-uptake_list_school,stem,e7ffb5ff64c35a90,66a82b15476368c4,7ee53d7de3d7cda3,914090884,,2023-07-08T11:51:09Z,c5b8c225777fb2cd,15036040,rds,local,vector,NA,,6.82,NA,NA
-zones,stem,35dbcecb4a182799,b6dd0753aed4e7b9,67251fa0c190ec54,-1975358009,,2023-07-08T11:27:16Z,5efc1f03e8849747,1524606,rds,local,vector,NA,,0.02,NA,NA
-od_commute_jittered,stem,60b1c6cd2ecd30ad,9ceda8777295dfd4,f0bc8a7efc66aee5,674506102,,2023-07-08T12:06:49Z,6ed4b71dc7bed0cc,5487037,rds,local,vector,NA,,10.32,NA,NA
-rnet_school_list,stem,588d7b8dcf2bab62,bce5b9250af4dcbd,7cab1c78f937845e,705836314,,2023-07-08T12:10:21Z,fa5b876349542ece,8240845,rds,local,vector,NA,,209.62,NA,NA
-od_commute_subset,stem,a5331d4f47adc7ff,aa6a0d07fcafc875,536a5116c8d1ec04,-1812505247,,2023-07-08T12:10:22Z,1a3ffcdebe54b5c9,186370,rds,local,vector,NA,,0.7,NA,NA
-r_commute,stem,7bfd55909087dcbf,707722d3ac04aa0f,bb843cba5071508a,-1169720700,,2023-07-08T13:30:53Z,5ab7eb445507f900,33392242,rds,local,vector,NA,,4826.11,NA,NA
-calculate_benefits,stem,7bfd55909087dcbf,387252c9786e687f,1814b14f406245fe,-1625165940,,2023-07-08T13:30:58Z,5ab7eb445507f900,33392242,rds,local,vector,NA,,0,NA,NA
-zone_stats,stem,35dbcecb4a182799,1e9648b83edb22a4,3628b081cee6260d,-1203691813,,2023-07-08T13:30:58Z,5efc1f03e8849747,1524606,rds,local,vector,NA,,0,NA,NA
-uptake_list_commute,stem,3ac3e064c114b9b6,cf5e30a0bb249b54,26fad787dd251d15,-1417656883,,2023-07-08T13:31:17Z,9ad7cb3d7297895a,34318475,rds,local,vector,NA,,14.37,NA,NA
-rnet_commute_list,stem,5f6e7d81ef28ebd2,2dde5361791e0c29,b62673dc27d6a2b9,-1500100641,,2023-07-08T13:35:03Z,23c73b44347ecaff,8057317,rds,local,vector,NA,,225.01,NA,NA
-combined_network,stem,b3c6541a4707bedf,7acd34e5b886a4ec,ae75e7541a964b5d,1815710017,,2023-07-08T13:42:04Z,837441e8e9576ce1,6829408,rds,local,vector,NA,,419.61,NA,NA
-save_outputs,stem,732548c1e77faef2,b4eaa253ec7e0fb6,33241ef39df6d5ea,1635958269,,2023-07-08T13:42:12Z,41200f7f0df0ebd3,96,rds,local,vector,NA,,8.2,"Thats a lot of columns for the GeoJSON, are they all needed. zip not found. tippecanoe not found",NA
-upload_data,stem,3857bb3d7fc9552b,995578c51a8046df,45991840d2531c61,412588227,,2023-07-08T13:43:04Z,e655bbbdcbba1d63,81,rds,local,vector,NA,,51.48,NA,NA
+zones,stem,35dbcecb4a182799,b6dd0753aed4e7b9,6fdd0fbb9987778c,-1975358009,,2023-07-09T08:58:18Z,5efc1f03e8849747,1524606,rds,local,vector,NA,,0.03,NA,NA
+r_school,stem,9e51bc7b8e55f225,c98cff048c69abea,25026dec1dca990a,-989549808,,2023-07-09T12:11:30Z,ad12a15bfae8bdfc,834569,rds,local,vector,NA,,125.33,NA,NA
+uptake_list_school,stem,776964de694d93f3,66a82b15476368c4,b74c5893d934001b,914090884,,2023-07-09T12:11:31Z,b5f40111e111593d,877030,rds,local,vector,NA,,0.72,NA,NA
+rnet_school_list,stem,c4b5e78f926cff9e,bce5b9250af4dcbd,4f53b4de4c6c93b2,705836314,,2023-07-09T12:11:36Z,ff2e761e2c72d863,704694,rds,local,vector,NA,,5.61,NA,NA
+od_commute_subset,stem,924f88ca3cc3b8e3,b56265c80f50bf22,8aaee0c7330d4187,-1812505247,,2023-07-09T12:11:37Z,90958821d5eedceb,14225,rds,local,vector,NA,,0.35,NA,NA
+r_commute,stem,586a365438a68fa8,8aeb1fb5c011600e,cbb4e87e0763c270,-1169720700,,2023-07-09T12:15:41Z,039545c5af8f25ff,1729545,rds,local,vector,NA,,243.75,NA,NA
+calculate_benefits,stem,586a365438a68fa8,387252c9786e687f,96414f8c33bda429,-1625165940,,2023-07-09T12:15:42Z,039545c5af8f25ff,1729545,rds,local,vector,NA,,0,NA,NA
+zone_stats,stem,35dbcecb4a182799,1e9648b83edb22a4,cb860556902a3982,-1203691813,,2023-07-09T12:15:42Z,5efc1f03e8849747,1524606,rds,local,vector,NA,,0,NA,NA
+uptake_list_commute,stem,daeb1f91b8f3e22a,cf5e30a0bb249b54,0091f0892c0b41ff,-1417656883,,2023-07-09T12:15:43Z,8de6a94f59881e97,1801245,rds,local,vector,NA,,0.97,NA,NA
+rnet_commute_list,stem,9ccf391314468c27,2dde5361791e0c29,de2eb27e7ab5e0a6,-1500100641,,2023-07-09T12:15:51Z,8f8567928c733487,896910,rds,local,vector,NA,,7.51,NA,NA
+combined_network,stem,6ff420fd39587131,7acd34e5b886a4ec,c2ba1a925a58f23f,1815710017,,2023-07-09T12:16:01Z,87eb3b58f88d3f05,751040,rds,local,vector,NA,,9.74,NA,NA
+save_outputs,stem,1ba50025735fd729,b4eaa253ec7e0fb6,6c6082988d94136a,1635958269,,2023-07-09T12:16:02Z,41200f7f0df0ebd3,96,rds,local,vector,NA,,0.98,"Thats a lot of columns for the GeoJSON, are they all needed. zip not found. tippecanoe not found",NA
+upload_data,stem,8874db3eb61d1a7f,995578c51a8046df,0b93269ead3daa56,412588227,,2023-07-09T12:16:34Z,e655bbbdcbba1d63,81,rds,local,vector,NA,,31.97,NA,NA

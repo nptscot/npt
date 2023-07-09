@@ -157,9 +157,9 @@ list(
       schools_dl = schools_dl[study_area, op = sf::st_within]
     }
     schools_dl = schools_dl %>%
-      top_n(n = parameters$max_to_route, wt = count)
+      slice_max(order_by = count, n = parameters$max_to_route, with_ties = FALSE)
     folder_name = paste0("outputdata/", parameters$date_routing)
-      routes_school = get_routes(
+    routes_school = get_routes(
         schools_dl,
         plans = parameters$plans, purpose = "school",
         folder = folder_name,
