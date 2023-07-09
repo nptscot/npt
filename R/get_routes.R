@@ -63,9 +63,6 @@ get_routes = function(od, plans, purpose = "work", folder = ".", batch = TRUE, b
       message("Saving ", savename_f)
       saveRDS(routes_filtered, savename_f)
     }
-    routes_filtered = routes_filtered %>% 
-      mutate(routing_integer = stringr::str_sub(edition, start = -6),
-             routing_date = lubridate::ymd(routing_integer))
     route_list[[paste(plan)]] = routes_filtered
   }
   route_list

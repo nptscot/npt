@@ -121,7 +121,7 @@ list(
     odcs = od_commute_jittered %>%
       filter(dist_euclidean_jittered < 20000) %>%
       filter(dist_euclidean_jittered > 500) %>%
-      slice_max(n = parameters$max_to_route, order_by = bicycle)
+      slice_max(n = parameters$max_to_route, order_by = bicycle, with_ties = FALSE)
     odcs
   }),
   
@@ -361,11 +361,6 @@ list(
       filter(type == "stem")
     readr::write_csv(metadata_targets, "outputs/metadata_targets.csv")
     
-    # Get routing date (not needed if doing full routing)
-    routing_edition = r_commute$fastest$edition[1]
-    routing_integer = stringr::str_sub(routing_edition, start = -6)
-    routing_edition_date = lubridate::ymd(routing_integer)
-    
     # Todo: add more columns
     build_summary = tibble::tibble(
       n_segment_cells = nrow(combined_network) * ncol(combined_network),
@@ -376,7 +371,7 @@ list(
                                     filter(name == "r_commute") %>% 
                                     pull(seconds) / 60, 
                                   digits = 2),
-      routing_date = routing_edition_date
+      routing_date = get_routing_date()
     )
     # # To overwrite previous build summary:
     # write_csv(build_summary, "outputs/build_summary.csv")
