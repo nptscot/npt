@@ -221,7 +221,7 @@ list(
     #p = "fastest"
     for(p in parameters$plans) {
       message("Building ", p, " network")
-      rnet = make_rnets(uptake_list_commute[[p]], ncores = 20)
+      rnet = make_rnets(uptake_list_commute[[p]], ncores = 1)
       
       f = paste0("outputdata/rnet_commute_", p, ".Rds")
       # saveRDS(rnet, f)
@@ -239,7 +239,7 @@ list(
     #p = "fastest"
     for(p in parameters$plans) {
       message("Building ", p, " network")
-      rnet = make_rnets(uptake_list_school[[p]], ncores = 20)
+      rnet = make_rnets(uptake_list_school[[p]], ncores = 1)
       
       f = paste0("outputdata/rnet_school_", p, ".Rds")
       saveRDS(rnet, f)
@@ -262,7 +262,7 @@ list(
     names(rnet_sl) = paste0("school_", names(rnet_sl))
     
     rnet_combined = combine_rnets(c(rnet_cl, rnet_sl),
-                                  ncores = 20, 
+                                  ncores = 1, 
                                   regionalise = 1e5,
                                   add_all = TRUE)
     # Sort rnet for tileing, low values drawn first
