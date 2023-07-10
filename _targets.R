@@ -224,7 +224,7 @@ list(
       rnet = make_rnets(uptake_list_commute[[p]], ncores = 20)
       
       f = paste0("outputdata/rnet_commute_", p, ".Rds")
-      saveRDS(rnet, f)
+      # saveRDS(rnet, f)
       rnet_commute_list[[p]] = rnet
     }
     
