@@ -11,7 +11,7 @@ get_routes = function(od, plans, purpose = "work", folder = ".", batch = TRUE, b
       message("Routes already exist: reading from file: ", savename_f)
       routes_filtered = readRDS(savename_f)
     } else {
-      if(batch) {
+      if(batch && !batch_save) {
         routes_raw = cyclestreets::batch(
           desire_lines = od,
           wait = TRUE,
@@ -56,16 +56,13 @@ get_routes = function(od, plans, purpose = "work", folder = ".", batch = TRUE, b
         }
       }
       routes_filtered = routes_raw %>% 
-        rename(length_route = length) %>% 
         group_by(route_id) %>% 
         mutate(route_hilliness = mean(gradient_smooth)) %>% 
+        mutate(length_route = sum(distances)) %>% 
         ungroup()
       message("Saving ", savename_f)
       saveRDS(routes_filtered, savename_f)
     }
-    routes_filtered = routes_filtered %>% 
-      mutate(routing_integer = stringr::str_sub(edition, start = -6),
-             routing_date = lubridate::ymd(routing_integer))
     route_list[[paste(plan)]] = routes_filtered
   }
   route_list

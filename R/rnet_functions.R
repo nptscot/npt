@@ -6,7 +6,7 @@
 
 #TODO: inconsistent capitalisation Quietness vs quietness
 
-make_rnets = function(r, ncores = 20, regionalise = 1e5){
+make_rnets = function(r, ncores = 1, regionalise = 1e5){
   r = r[r$bicycle_go_dutch > 0 | r$bicycle > 0,]
   r$Gradient = round(r$gradient_smooth * 100)
   r$Quietness = round(r$quietness)
@@ -14,7 +14,8 @@ make_rnets = function(r, ncores = 20, regionalise = 1e5){
   rnet = stplanr::overline2(r, 
                             attrib = c("bicycle","bicycle_go_dutch","Quietness","Gradient"), 
                             fun = list(sum = sum, max = first),
-                            ncores = ncores, regionalise = regionalise)
+                            ncores = ncores,
+                            regionalise = regionalise)
   
   rnet = rnet[,c("bicycle_sum","bicycle_go_dutch_sum","Gradient_max","Quietness_max")]
   names(rnet) = gsub("_sum$","",names(rnet))
@@ -36,7 +37,7 @@ make_rnets = function(r, ncores = 20, regionalise = 1e5){
 # e.g. "commute_fastest_" is addeded to "bicycle_go_dutch"
 # Gradient & Quietness are not renamed
 
-combine_rnets = function(rnl, ncores = 20, regionalise = 1e5, add_all = TRUE){
+combine_rnets = function(rnl, ncores = 1, regionalise = 1e5, add_all = TRUE){
   
   # Check list has names
   if(is.null(names(rnl))){

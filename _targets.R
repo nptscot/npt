@@ -4,7 +4,7 @@
 #   https://books.ropensci.org/targets/walkthrough.html#inspect-the-pipeline # nolint
 
 # Load packages required to define the pipeline:
-remotes::install_github("cyclestreets/cyclestreets-r")
+remotes::install_github("cyclestreets/cyclestreets-r", ref = "69-speed-up-json2sf_cs")
 remotes::install_github("dabreegster/odjitter", subdir = "r")
 library(targets)
 library(tidyverse)
@@ -121,7 +121,7 @@ list(
     odcs = od_commute_jittered %>%
       filter(dist_euclidean_jittered < 20000) %>%
       filter(dist_euclidean_jittered > 500) %>%
-      top_n(n = parameters$max_to_route, wt = bicycle)
+      slice_max(n = parameters$max_to_route, order_by = bicycle, with_ties = FALSE)
     odcs
   }),
   
@@ -133,9 +133,9 @@ list(
     # stplanr::route(l = od_to_route, route_fun = cyclestreets::journey, plan = "balanced")
     folder_name = paste0("outputdata/", parameters$date_routing)
     
-    routes_commute = get_routes(od_commute_subset,
+    routes_commute = get_routes(od = od_commute_subset,
                                 plans = parameters$plans, purpose = "commute",
-                                folder = folder_name, batch = TRUE, nrow_batch = 1000000,
+                                folder = folder_name, batch = TRUE, nrow_batch = 99999,
                                 batch_save = TRUE)
     routes_commute
   }),
@@ -156,19 +156,17 @@ list(
     if(parameters$geo_subset) {
       schools_dl = schools_dl[study_area, op = sf::st_within]
     }
-    
     schools_dl = schools_dl %>%
-      top_n(n = parameters$max_to_route, wt = count)
+      slice_max(order_by = count, n = parameters$max_to_route, with_ties = FALSE)
     folder_name = paste0("outputdata/", parameters$date_routing)
-    
     routes_school = get_routes(
-      schools_dl,
-      plans = parameters$plans, purpose = "school",
-      folder = folder_name,
-      batch = FALSE,
-      nrow_batch = 20000
-    )
-    routes_school
+        schools_dl,
+        plans = parameters$plans, purpose = "school",
+        folder = folder_name,
+        batch = FALSE,
+        nrow_batch = 100000
+        )
+      routes_school
   }),
   
   tar_target(uptake_list_commute, {
@@ -223,10 +221,10 @@ list(
     #p = "fastest"
     for(p in parameters$plans) {
       message("Building ", p, " network")
-      rnet = make_rnets(uptake_list_commute[[p]], ncores = 20)
+      rnet = make_rnets(uptake_list_commute[[p]], ncores = 1)
       
       f = paste0("outputdata/rnet_commute_", p, ".Rds")
-      saveRDS(rnet, f)
+      # saveRDS(rnet, f)
       rnet_commute_list[[p]] = rnet
     }
     
@@ -241,7 +239,7 @@ list(
     #p = "fastest"
     for(p in parameters$plans) {
       message("Building ", p, " network")
-      rnet = make_rnets(uptake_list_school[[p]], ncores = 20)
+      rnet = make_rnets(uptake_list_school[[p]], ncores = 1)
       
       f = paste0("outputdata/rnet_school_", p, ".Rds")
       saveRDS(rnet, f)
@@ -264,14 +262,13 @@ list(
     names(rnet_sl) = paste0("school_", names(rnet_sl))
     
     rnet_combined = combine_rnets(c(rnet_cl, rnet_sl),
-                                  ncores = 20, 
+                                  ncores = 1, 
                                   regionalise = 1e5,
                                   add_all = TRUE)
     # Sort rnet for tileing, low values drawn first
     rnet_combined = rnet_combined[order(rnet_combined$all_fastest_bicycle_go_dutch, 
                                         rnet_combined$all_quietest_bicycle_go_dutch),]
     
-    saveRDS(rnet_combined, "outputdata/combined_network.Rds")
     rnet_combined
   }),
   
@@ -286,13 +283,14 @@ list(
   }),
   
   tar_target(save_outputs, {
+    message("Saving outputs for ", parameters$date_routing)
     saveRDS(rnet_commute_list, "outputdata/rnet_commute_list.Rds")
     saveRDS(od_commute_subset, "outputdata/od_commute_subset.Rds")
     saveRDS(combined_network, "outputdata/combined_network.Rds")
     # Saved by get_routes()
     # f = paste0("outputdata/routes_commute_", nrow(od_commute_subset), "_rows.Rds")
     # saveRDS(r_commute, f)
-    save_outputs = Sys.time()
+    sys_time = Sys.time()
     # See code in R/make_geojson.R
     make_geojson_zones(combined_network, "outputdata/combined_network.geojson")
     zip(zipfile = "outputdata/combined_network.zip", "outputdata/combined_network.geojson")
@@ -308,7 +306,7 @@ list(
     date_routing = parameters$date_routing
     msg = glue::glue("tippecanoe -o outputdata/rnet_{date_routing}.pmtiles")
     system(paste(msg, msg_verbose))
-    save_outputs
+    sys_time
   }),
   
   # tar_target(visualise_rnet, {
@@ -325,7 +323,7 @@ list(
     commit = gert::git_log(max = 1)
     message("Commit: ", commit)
     
-    # if(Sys.info()[['sysname']] == "Linux") {
+    if(Sys.info()[['sysname']] == "Linux" | TRUE ) {
     v = paste0("v", save_outputs, "_commit_", commit$commit)
     v = gsub(pattern = " |:", replacement = "-", x = v)
     setwd("outputdata")
@@ -363,11 +361,6 @@ list(
       filter(type == "stem")
     readr::write_csv(metadata_targets, "outputs/metadata_targets.csv")
     
-    # Get routing date (not needed if doing full routing)
-    routing_edition = r_commute$fastest$edition[1]
-    routing_integer = stringr::str_sub(routing_edition, start = -6)
-    routing_date = lubridate::ymd(routing_integer)
-    
     # Todo: add more columns
     build_summary = tibble::tibble(
       n_segment_cells = nrow(combined_network) * ncol(combined_network),
@@ -378,7 +371,7 @@ list(
                                     filter(name == "r_commute") %>% 
                                     pull(seconds) / 60, 
                                   digits = 2),
-      routing_date = routing_date
+      routing_date = get_routing_date()
     )
     # # To overwrite previous build summary:
     # write_csv(build_summary, "outputs/build_summary.csv")
