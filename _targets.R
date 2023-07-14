@@ -291,11 +291,12 @@ list(
     # f = paste0("outputdata/routes_commute_", nrow(od_commute_subset), "_rows.Rds")
     # saveRDS(r_commute, f)
     sys_time = Sys.time()
-    # Bash code to get combined network before running the tiling code:
+    # # Bash code to get combined network before running the tiling code:
     # cd outputdata
     # gh release list
-    # See here for releases: https://github.com/nptscot/outputdata/releases
-    # gh release download v2023-07-11-00-00-48.247456_commit_282d4661618e5e60ad9c34a6368db84745473d18 --pattern 'combined*' --clobber
+    # # See here for releases: https://github.com/nptscot/outputdata/releases
+    # gh release download v2023-07-08-14-42-06.466773_commit_21ee5f538b7e3e13d60c59f9e2745858ca15c188 --pattern 'combined*' --clobber
+    # combined_network = readRDS("outputdata/combined_network.Rds")
     make_geojson_zones(combined_network, "outputdata/combined_network.geojson")
     zip(zipfile = "outputdata/combined_network.zip", "outputdata/combined_network.geojson")
     file.rename("outputdata/combined_network.geojson", "rnet.geojson")
@@ -305,8 +306,9 @@ list(
     msg_verbose = paste0(
       "--name=rnet --layer=rnet --attribution=UniverstyofLeeds --minimum-zoom=6 ",
       "--maximum-zoom=13 --drop-smallest-as-needed --maximum-tile-bytes=5000000 ",
-      "--simplification=10 --buffer=5 --force --coalesce rnet.geojson"
+      "--simplification=100 --buffer=5 --force --coalesce --visvalingam rnet.geojson"
     )
+    # date_routing = "2023-07-14"
     date_routing = parameters$date_routing
     msg = glue::glue("tippecanoe -o outputdata/rnet_{date_routing}.pmtiles")
     system(paste(msg, msg_verbose))

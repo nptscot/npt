@@ -93,6 +93,11 @@ od_data = read.csv("https://github.com/nptscot/npt/raw/main/data-raw/od_subset.c
 
 2. What's the average distance of trips according to the `dist_euclidean` column in that dataset?
 
+```{r, echo=FALSE, eval=FALSE}
+mean(od_data$dist_euclidean)
+```
+
+
 3. The values in the `dist_euclidean` column represent straight line distance between zone centroids. In what way could the values be over or under-estimates of the distances of trips taken between the OD pairs?
 
 4. Use the function `od_to_sf()` to convert the OD data into desire lines. Hint: a starting point could be:
