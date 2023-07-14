@@ -291,7 +291,11 @@ list(
     # f = paste0("outputdata/routes_commute_", nrow(od_commute_subset), "_rows.Rds")
     # saveRDS(r_commute, f)
     sys_time = Sys.time()
-    # See code in R/make_geojson.R
+    # Bash code to get combined network before running the tiling code:
+    # cd outputdata
+    # gh release list
+    # See here for releases: https://github.com/nptscot/outputdata/releases
+    # gh release download v2023-07-11-00-00-48.247456_commit_282d4661618e5e60ad9c34a6368db84745473d18 --pattern 'combined*' --clobber
     make_geojson_zones(combined_network, "outputdata/combined_network.geojson")
     zip(zipfile = "outputdata/combined_network.zip", "outputdata/combined_network.geojson")
     file.rename("outputdata/combined_network.geojson", "rnet.geojson")
@@ -301,7 +305,7 @@ list(
     msg_verbose = paste0(
       "--name=rnet --layer=rnet --attribution=UniverstyofLeeds --minimum-zoom=6 ",
       "--maximum-zoom=13 --drop-smallest-as-needed --maximum-tile-bytes=5000000 ",
-      "--simplification=10 --buffer=5 --force  rnet.geojson"
+      "--simplification=10 --buffer=5 --force --coalesce -x rnet.geojson"
     )
     date_routing = parameters$date_routing
     msg = glue::glue("tippecanoe -o outputdata/rnet_{date_routing}.pmtiles")
