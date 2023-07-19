@@ -15,6 +15,16 @@ scotland_polygons = oe_get("Scotland", layer = "multipolygons", extra_tags = "sh
 shop_polygons = scotland_polygons %>% 
   filter(!is.na(shop))
 
+# mapview::mapview(shop_polygons)
+# mapview::mapview(shop_points)
+
+# Remove polygons that have points inside them
+
+# Join remaining polygons and points together
+
+# Make a grid of shop density
+
+
 shopping_grid = readRDS("./data-private/shopping_grid.Rds")
 shopping_grid = shopping_grid[zones_region, ]
 
