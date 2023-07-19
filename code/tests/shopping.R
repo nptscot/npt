@@ -1,4 +1,5 @@
 library(tidyverse)
+library(osmextract)
 
 # Calculate number of trips / number of cyclists
 trip_purposes = read.csv("./data-raw/scottish-household-survey-2012-19.csv")
@@ -7,7 +8,12 @@ shop_percent = trip_purposes %>%
   select(Mean)
 
 # Get shopping destinations from OSM
-shops = osmextract::oe_get("shops")
+scotland_points = oe_get("Scotland", layer = "points", extra_tags = "shop")
+shop_points = scotland_points %>% 
+  filter(!is.na(shop))
+scotland_polygons = oe_get("Scotland", layer = "multipolygons", extra_tags = "shop")
+shop_polygons = scotland_polygons %>% 
+  filter(!is.na(shop))
 
 shopping_grid = readRDS("./data-private/shopping_grid.Rds")
 shopping_grid = shopping_grid[zones_region, ]
