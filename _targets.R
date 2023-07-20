@@ -107,7 +107,13 @@ list(
     # source("data-raw/get_wpz.R")
     # sf::read_sf("data-raw/workplaces_simple_edinburgh.geojson")
     #readRDS("inputdata/workplaces_simple.Rds") #Not enough points when using DataZones
-    readRDS("inputdata/oas.Rds") 
+    path_teams = Sys.getenv("NPT_TEAMS_PATH")
+    if(nchar(path_teams) == 0){
+      stop("Can't find Teams folder of secure data. Use usethis::edit_r_environ() to define NPT_TEAMS_PATH ")
+    }
+    pts = file.path(path_teams,"secure_data/OS/os_poi.Rds")
+    pts = pts[pts$workplace, ]
+    pts
   }),
   tar_target(od_commute_jittered, {
     # od_jittered = od_data # for no jittering
