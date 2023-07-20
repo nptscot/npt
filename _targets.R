@@ -63,7 +63,7 @@ list(
   #   setwd("..")
   # }),
   tar_target(zones, {
-    z = readRDS("inputdata/zones_national_simple.Rds") # 1230 zones
+    z = readRDS("inputdata/DataZones.Rds") # 6976 zones
     if(parameters$geo_subset) {
       z = z[study_area, op = sf::st_within]
     }
@@ -77,11 +77,24 @@ list(
   # }),
   tar_target(od_data, {
     min_flow = parameters$min_flow # Set to 1 for full build, set to high value (e.g. 400) for tests
-    desire_lines_raw = readRDS("inputdata/desire_lines_scotland.Rds")
+    
+    #desire_lines_raw = readRDS("inputdata/desire_lines_scotland.Rds")
+    path_teams = Sys.getenv("NPT_TEAMS_PATH")
+    if(nchar(path_teams) == 0){
+      stop("Can't find Teams folder of secure data. Use usethis::edit_r_environ() to define NPT_TEAMS_PATH ")
+    }
+    if(file.exists(file.path(path_teams,"secure_data/commute/commute_dl_sub30km.Rds"))){
+      desire_lines_raw = readRDS(file.path(path_teams, "secure_data/commute/commute_dl_sub30km.Rds"))
+    } else {
+      desire_lines_raw = NULL
+    }
+    
+    
+    
     od_raw = as_tibble(sf::st_drop_geometry(desire_lines_raw))
     od_subset = od_raw %>%
-      filter(geo_code1 %in% zones$InterZone) %>%
-      filter(geo_code2 %in% zones$InterZone) %>%
+      filter(geo_code1 %in% zones$DataZone) %>%
+      filter(geo_code2 %in% zones$DataZone) %>%
       filter(dist_euclidean < 20000) %>%
       filter(dist_euclidean > 1000) %>%
       filter(all >= min_flow)
