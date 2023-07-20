@@ -109,7 +109,8 @@ list(
       zones = zones,
       subpoints_origins = subpoints_origins,
       subpoints_destinations = subpoints_destinations,
-      disaggregation_threshold = 30
+      disaggregation_threshold = 30,
+      deduplicate_pairs = FALSE
     )
     odj$dist_euclidean_jittered = as.numeric(sf::st_length(odj))
     odj = odj %>%
