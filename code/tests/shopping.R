@@ -36,6 +36,7 @@ shop_points = shop_points %>%
 
 
 # create 500m grid covering whole of scotland
+# Geographic data downloaded from https://hub.arcgis.com/datasets/ons::scottish-parliamentary-constituencies-december-2022-boundaries-sc-bgc-2/
 scot_zones = st_read("./data-raw/Scottish_Parliamentary_Constituencies_December_2022_Boundaries_SC_BGC_-9179620948196964406.gpkg")
 grid = st_make_grid(scot_zones, cellsize = 500, what = "centers")
 # tm_shape(grid) + tm_dots() # to check (looks solid black)
