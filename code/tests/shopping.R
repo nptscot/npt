@@ -17,6 +17,9 @@ scotland_polygons = oe_get("Scotland", layer = "multipolygons", extra_tags = "sh
 shop_polygons = scotland_polygons %>% 
   filter(!is.na(shop))
 
+shop_points = shop_points %>% 
+  st_transform(27700)
+
 # mapview::mapview(shop_polygons)
 # mapview::mapview(shop_points)
 
@@ -25,22 +28,41 @@ shop_polygons = scotland_polygons %>%
 # Join remaining polygons and points together
 
 # Make a grid of shop density
-f = system.file("extdata", "data_sources.csv", package = "ukboundaries")
-data_sources = readr::read_csv(f)
+# f = system.file("extdata", "data_sources.csv", package = "ukboundaries")
+# data_sources = readr::read_csv(f)
+# scot = getData("GADM", country = "UK", level = 1)
+# scot_zones = ukboundaries::duraz(u = "https://api.os.uk/downloads/v1/products/BoundaryLine/downloads?area=GB&format=GeoPackage&redirect")
+# scot_zones = ukboundaries::duraz(u = "https://hub.arcgis.com/datasets/Scottish_Parliamentary_Constituencies_December_2022_Boundaries_SC_BGC_-9179620948196964406.gpkg")
 
-# create 500m grid covering whole of ireland
-scot_zones = ukboundaries::duraz(u = "https://hub.arcgis.com/datasets/ons::scottish-parliamentary-constituencies-december-2022-boundaries-sc-bgc-2/")
-zones = pct::get_pct_zones("scotland")
-zones_27700 = zones %>% 
-  st_transform(27700)
-grid = st_make_grid(zones_27700, cellsize = 500, what = "centers")
+
+# create 500m grid covering whole of scotland
+scot_zones = st_read("./data-raw/Scottish_Parliamentary_Constituencies_December_2022_Boundaries_SC_BGC_-9179620948196964406.gpkg")
+grid = st_make_grid(scot_zones, cellsize = 500, what = "centers")
 # tm_shape(grid) + tm_dots() # to check (looks solid black)
 grid_df = data.frame(grid)
 grid_df = tibble::rowid_to_column(grid_df, "grid_id")
 
 
-shopping_grid = readRDS("./data-private/shopping_grid.Rds")
-shopping_grid = shopping_grid[zones_region, ]
+# assign points in shopping (can include duplicates) to their nearest grid point
+shopping = shop_points %>% 
+  mutate(grid_id = st_nearest_feature(shop_points, grid))
+
+# calculate size of each grid point
+shopping_grid = shopping %>% 
+  st_drop_geometry() %>% 
+  group_by(grid_id) %>% 
+  summarise(size = n())
+
+# assign grid geometry
+shopping_join = inner_join(grid_df, shopping_grid)
+shopping_sf = st_as_sf(shopping_join)
+shopping_sf = st_transform(shopping_sf, 4326)
+# tm_shape(shopping_sf) + tm_dots("size") # check points look right
+
+saveRDS(shopping_sf, "./inputdata/shopping_grid.Rds")
+
+
+shopping_grid = readRDS("./inputdata/shopping_grid.Rds")
 
 # Spatial interaction model of journeys
 od_shopping = si_to_od(zones_other_region, shopping_grid, max_dist = max_length_euclidean_km * 1000)
