@@ -6,5 +6,8 @@ curl https://sh.rustup.rs -sSf | sh
 # Add cargo to the path:
 export PATH="$HOME/.cargo/bin:$PATH"
 
+# Add cargo to the path permanently:
+echo 'export PATH="$HOME/.cargo/bin:$PATH"' >> ~/.bashrc
+
 # Install odjitter:
 cargo install --git https://github.com/dabreegster/odjitter odjitter
