@@ -1,5 +1,6 @@
 library(targets)
 library(tidyverse)
+library(sf)
 tar_source()
 tar_load(r_school)
 plot(r_school$fastest$geometry)
@@ -20,3 +21,7 @@ uptake_list_school = lapply(parameters$plan, function(p) {
 })
 names(uptake_list_school) = parameters$plans
 uptake_list_school
+
+summary(uptake_list_school$fastest$bicycle / uptake_list_school$fastest$all)
+summary(uptake_list_school$fastest$bicycle_go_dutch / uptake_list_school$fastest$all)
+summary(uptake_list_school$fastest$length_route)
