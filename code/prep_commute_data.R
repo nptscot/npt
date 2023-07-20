@@ -55,6 +55,7 @@ unzip("../inputdata/SIMD/simd2020_withgeog.zip",
 zones <- read_sf(file.path(tempdir(),"SIMD/simd2020_withgeog/sc_dz_11.shp"))
 unlink(file.path(tempdir(),"SIMD"), recursive = TRUE)
 zones = zones[,"DataZone"]
+zones = st_make_valid(zones)
 saveRDS(zones, "inputdata/DataZones.Rds")
 
 #OA Centroids

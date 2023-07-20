@@ -4,7 +4,7 @@
 #   https://books.ropensci.org/targets/walkthrough.html#inspect-the-pipeline # nolint
 
 # Load packages required to define the pipeline:
-remotes::install_github("cyclestreets/cyclestreets-r", ref = "69-speed-up-json2sf_cs")
+remotes::install_github("cyclestreets/cyclestreets-r")
 remotes::install_github("dabreegster/odjitter", subdir = "r")
 library(targets)
 library(tidyverse)
@@ -89,8 +89,6 @@ list(
       desire_lines_raw = NULL
     }
     
-    
-    
     od_raw = as_tibble(sf::st_drop_geometry(desire_lines_raw))
     od_subset = od_raw %>%
       filter(geo_code1 %in% zones$DataZone) %>%
@@ -108,7 +106,8 @@ list(
   tar_target(subpoints_destinations, {
     # source("data-raw/get_wpz.R")
     # sf::read_sf("data-raw/workplaces_simple_edinburgh.geojson")
-    readRDS("inputdata/workplaces_simple.Rds")
+    #readRDS("inputdata/workplaces_simple.Rds") #Not enough points when using DataZones
+    readRDS("inputdata/oas.Rds") 
   }),
   tar_target(od_commute_jittered, {
     # od_jittered = od_data # for no jittering

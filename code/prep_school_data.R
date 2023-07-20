@@ -91,7 +91,8 @@ flow_jitter = odjitter::jitter(
   subpoints_destinations = locs,
   disaggregation_key = "count",
   disaggregation_threshold = 30,
-  show_command = TRUE
+  show_command = TRUE,
+  deduplicate_pairs = FALSE
 )
 
 # TODO: De duplicate lines, reduces routing
