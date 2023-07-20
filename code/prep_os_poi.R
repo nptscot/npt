@@ -2,6 +2,7 @@
 # Secure Data not for publication
 library(sf)
 library(dplyr)
+library(targets)
 sf_use_s2(FALSE)
 
 secure_path = Sys.getenv("NPT_TEAMS_PATH")
@@ -27,6 +28,34 @@ types$count <- NULL
 
 poi_scot = left_join(poi_scot, types, by = c("groupname","categoryname","classname"))
 poi_scot = st_transform(poi_scot, 4326)
+
+# Add in OA centroids when no POI in a zone
+zones = readRDS("inputdata/DataZones.Rds")
+subpoints_origins = readRDS("inputdata/oas.Rds")
+
+poi_scot_join = st_join(poi_scot[poi_scot$workplace,], zones)
+poi_scot_join = unique(poi_scot_join$DataZone)
+
+zones_missing = zones[!zones$DataZone %in% poi_scot_join,]
+subpoints_origins = subpoints_origins[zones_missing,]
+
+subpoints_origins$ref_no = 0
+subpoints_origins$name = subpoints_origins$code
+subpoints_origins$groupname = "OA Centroid"
+subpoints_origins$categoryname = "OA Centroid"
+subpoints_origins$classname = "OA Centroid"
+subpoints_origins$brand = NA
+subpoints_origins$qualifier_type = NA
+subpoints_origins$qualifier_data = NA
+subpoints_origins$workplace = TRUE
+subpoints_origins$geom = subpoints_origins$geometry
+subpoints_origins$geometry = NULL
+st_geometry(subpoints_origins) = "geom"
+
+subpoints_origins = subpoints_origins[,names(poi_scot)]
+
+poi_scot = rbind(poi_scot, subpoints_origins)
+
 
 saveRDS(poi_scot,file.path(secure_path,"secure_data/OS/os_poi.Rds"))
 
