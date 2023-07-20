@@ -1,5 +1,7 @@
 library(tidyverse)
 library(osmextract)
+devtools::install_github("robinlovelace/ukboundaries")
+library(ukboundaries)
 
 # Calculate number of trips / number of cyclists
 trip_purposes = read.csv("./data-raw/scottish-household-survey-2012-19.csv")
@@ -23,6 +25,18 @@ shop_polygons = scotland_polygons %>%
 # Join remaining polygons and points together
 
 # Make a grid of shop density
+f = system.file("extdata", "data_sources.csv", package = "ukboundaries")
+data_sources = readr::read_csv(f)
+
+# create 500m grid covering whole of ireland
+scot_zones = ukboundaries::duraz(u = "https://hub.arcgis.com/datasets/ons::scottish-parliamentary-constituencies-december-2022-boundaries-sc-bgc-2/")
+zones = pct::get_pct_zones("scotland")
+zones_27700 = zones %>% 
+  st_transform(27700)
+grid = st_make_grid(zones_27700, cellsize = 500, what = "centers")
+# tm_shape(grid) + tm_dots() # to check (looks solid black)
+grid_df = data.frame(grid)
+grid_df = tibble::rowid_to_column(grid_df, "grid_id")
 
 
 shopping_grid = readRDS("./data-private/shopping_grid.Rds")
