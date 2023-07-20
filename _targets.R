@@ -111,7 +111,7 @@ list(
     if(nchar(path_teams) == 0){
       stop("Can't find Teams folder of secure data. Use usethis::edit_r_environ() to define NPT_TEAMS_PATH ")
     }
-    pts = file.path(path_teams,"secure_data/OS/os_poi.Rds")
+    pts = readRDS(file.path(path_teams,"secure_data/OS/os_poi.Rds"))
     pts = pts[pts$workplace, ]
     pts
   }),
