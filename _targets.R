@@ -4,10 +4,9 @@
 #   https://books.ropensci.org/targets/walkthrough.html#inspect-the-pipeline # nolint
 
 # Load packages required to define the pipeline:
-remotes::install_github("cyclestreets/cyclestreets-r"
-                        # , ref = "69-speed-up-json2sf_cs"
-                        )
+remotes::install_github("cyclestreets/cyclestreets-r")
 remotes::install_github("dabreegster/odjitter", subdir = "r")
+remotes::install_cran("targets")
 library(targets)
 library(tidyverse)
 # library(tmap)

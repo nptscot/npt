@@ -73,6 +73,7 @@ plot(desire_lines)
 Generating route networks:
 
 ```{r}
+
 # Create a subset of the desire lines for speed of computation:
 desire_lines_subset = desire_lines |>
   slice_max(n = 30, order_by = all)
