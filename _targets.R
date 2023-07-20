@@ -4,7 +4,9 @@
 #   https://books.ropensci.org/targets/walkthrough.html#inspect-the-pipeline # nolint
 
 # Load packages required to define the pipeline:
-remotes::install_github("cyclestreets/cyclestreets-r", ref = "69-speed-up-json2sf_cs")
+remotes::install_github("cyclestreets/cyclestreets-r"
+                        # , ref = "69-speed-up-json2sf_cs"
+                        )
 remotes::install_github("dabreegster/odjitter", subdir = "r")
 library(targets)
 library(tidyverse)
@@ -108,7 +110,8 @@ list(
       zones = zones,
       subpoints_origins = subpoints_origins,
       subpoints_destinations = subpoints_destinations,
-      disaggregation_threshold = 30
+      disaggregation_threshold = 30,
+      deduplicate_pairs = FALSE
     )
     odj$dist_euclidean_jittered = as.numeric(sf::st_length(odj))
     odj = odj %>%
