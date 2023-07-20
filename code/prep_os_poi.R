@@ -56,9 +56,12 @@ subpoints_origins = subpoints_origins[,names(poi_scot)]
 
 poi_scot = rbind(poi_scot, subpoints_origins)
 
+foo = zones[zones$DataZone == "S01008460",]
+bar = poi_scot[foo,]
+qtm(foo) + qtm(bar)
 
 saveRDS(poi_scot,file.path(secure_path,"secure_data/OS/os_poi.Rds"))
 
-
+# jitterS01008460
 # foo = poi_scot[poi_scot$classname == "Historic Buildings Including Castles, Forts and Abbeys",]
 # qtm(foo) 
