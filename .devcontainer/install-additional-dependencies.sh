@@ -11,3 +11,6 @@ echo 'export PATH="$HOME/.cargo/bin:$PATH"' >> ~/.bashrc
 
 # Install odjitter:
 cargo install --git https://github.com/dabreegster/odjitter odjitter
+
+# Install targets
+Rscript -e 'install.packages("targets")'
