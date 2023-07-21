@@ -32,6 +32,9 @@ options(clustermq.scheduler = "multicore")
 tar_source()
 
 # Targets -----------------------------------------------------------------
+if(!file.exists("outputdata")){
+  dir.create("outputdata")
+}
 
 list(
   # Detect when parameter file has changed:
@@ -52,7 +55,12 @@ list(
   # Case study area:
   tar_target(study_area, {
     if(parameters$geo_subset) {
-      s_area = get_area("Forth Bridge", d = 20)
+      if(parameters$open_data_build) {
+        s_area = sf::read_sf("data-raw/study_area.geojson")
+      } else {
+        # Change the centrepoint and distance in km for other areas
+        s_area = get_area("Forth Bridge", d = 20)
+      }
     } else {
       s_area = NULL
     }
