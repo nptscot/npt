@@ -98,16 +98,15 @@ list(
     }
     if(file.exists(file.path(path_teams,"secure_data/commute/commute_dl_sub30km.Rds"))){
       desire_lines_raw = readRDS(file.path(path_teams, "secure_data/commute/commute_dl_sub30km.Rds"))
+      od_raw = as_tibble(sf::st_drop_geometry(desire_lines_raw))
     } else {
       if(parameters$open_data_build) {
-        desire_lines_raw = read_csv("data-raw/od_data_dz_synthetic.csv")
+        od_raw = read_csv("data-raw/od_data_dz_synthetic.csv")
       } else {
         warning("No IZ data found. Set open_data_build to true or request the data")
         desire_lines_raw = NULL
       }
-    }
-    
-    od_raw = as_tibble(sf::st_drop_geometry(desire_lines_raw))
+    }   
     od_subset = od_raw %>%
       filter(geo_code1 %in% zones$DataZone) %>%
       filter(geo_code2 %in% zones$DataZone) %>%
