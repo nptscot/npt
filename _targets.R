@@ -404,8 +404,8 @@ list(
     file.remove(f)
     setwd("..")
   }  else {
-    message("gh command line tool not available")
-    message("Now create a release with this version number and upload the files")
+    message("Not full build or gh command line tool not available")
+    message("Not uploading files")
   }
   Sys.Date()
   }),
