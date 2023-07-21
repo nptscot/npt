@@ -99,7 +99,12 @@ list(
     if(file.exists(file.path(path_teams,"secure_data/commute/commute_dl_sub30km.Rds"))){
       desire_lines_raw = readRDS(file.path(path_teams, "secure_data/commute/commute_dl_sub30km.Rds"))
     } else {
-      desire_lines_raw = NULL
+      if(parameters$open_data_build) {
+        desire_lines_raw = read_csv("data-raw/od_data_dz_synthetic.csv")
+      } else {
+        warning("No IZ data found. Set open_data_build to true or request the data")
+        desire_lines_raw = NULL
+      }
     }
     
     od_raw = as_tibble(sf::st_drop_geometry(desire_lines_raw))
