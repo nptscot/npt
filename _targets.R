@@ -72,7 +72,11 @@ list(
   #   setwd("..")
   # }),
   tar_target(zones, {
-    z = readRDS("inputdata/DataZones.Rds") # 6976 zones
+    if(paremeters$open_data_build) {
+      z = sf::read_sf("data-raw/DataZones.geojson")
+    } else {
+      z = readRDS("inputdata/DataZones.Rds") # 6976 zones
+    }
     if(parameters$geo_subset) {
       z = z[study_area, op = sf::st_within]
     }
