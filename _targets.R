@@ -196,6 +196,9 @@ list(
   
   tar_target(r_school, {
     # Get School OD
+    if(parameters$open_data_build) {
+      schools_dl = sf::read_sf("data-raw/school_desire_lines_open.geojson")
+    } else {
     path_teams = Sys.getenv("NPT_TEAMS_PATH")
     if(nchar(path_teams) == 0){
       stop("Can't find Teams folder of secure data. Use usethis::edit_r_environ() to define NPT_TEAMS_PATH ")
@@ -203,10 +206,9 @@ list(
     if(file.exists(file.path(path_teams,"secure_data/schools/school_dl_sub30km.Rds"))){
       schools_dl = readRDS(file.path(path_teams, "secure_data/schools/school_dl_sub30km.Rds"))
     } else {
-      # stop("Can't find ",file.path(path_teams,"secure_data/schools/school_dl_sub30km.Rds"))
-      schools_dl = NULL
+      stop("Can't find ",file.path(path_teams,"secure_data/schools/school_dl_sub30km.Rds"))
     }
-    
+    }
     if(parameters$geo_subset) {
       schools_dl = schools_dl[study_area, op = sf::st_within]
     }
@@ -220,7 +222,7 @@ list(
         batch = FALSE,
         nrow_batch = 100000
         )
-      routes_school
+    routes_school
   }),
   
   tar_target(uptake_list_commute, {
