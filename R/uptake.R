@@ -16,11 +16,11 @@ get_scenario_go_dutch = function(routes, purpose = "work") {
         bicycle_go_dutch = pcycle_go_dutch * all,
         bicycle_increase = bicycle_go_dutch - bicycle,
         car_driver_go_dutch = car_driver - (bicycle_increase * car_driver / all),
-        car_passenger_go_dutch = car_passenger - (bicycle_increase * car_passenger / all),
+        #car_passenger_go_dutch = car_passenger - (bicycle_increase * car_passenger / all),
         public_transport = train + bus,
         public_transport_go_dutch = public_transport - (bicycle_increase * public_transport / all),
         foot_go_dutch = foot - (bicycle_increase * foot / all),
-        other_go_dutch = other - (bicycle_increase * other / all)
+        #other_go_dutch = other - (bicycle_increase * other / all)
       )
   } else if(purpose == "school") {
     routes = routes %>%
@@ -38,11 +38,11 @@ get_scenario_go_dutch = function(routes, purpose = "work") {
         bicycle_go_dutch = pcycle_go_dutch * all,
         bicycle_increase = bicycle_go_dutch - bicycle,
         car_driver_go_dutch = 1 - (bicycle_increase * 1 / all),
-        car_passenger_go_dutch = 1 - (bicycle_increase * 1 / all),
+        #car_passenger_go_dutch = 1 - (bicycle_increase * 1 / all),
         public_transport = 1 + 1,
         public_transport_go_dutch = 1 - (bicycle_increase * 1 / all),
         foot_go_dutch = 1 - (bicycle_increase * 1 / all),
-        other_go_dutch = 1 - (bicycle_increase * 1 / all)
+        #other_go_dutch = 1 - (bicycle_increase * 1 / all)
       )
   } else {
     stop("Purpose ", purpose, " not yet supported")
