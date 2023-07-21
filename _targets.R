@@ -89,8 +89,9 @@ list(
   #   readRDS("inputdata/od_izo.Rds")
   # }),
   tar_target(od_data, {
-    min_flow = parameters$min_flow # Set to 1 for full build, set to high value (e.g. 400) for tests
-    
+    if(parameters$open_data_build) {
+      od_raw = read_csv("data-raw/od_data_dz_synthetic.csv")
+    } else {
     #desire_lines_raw = readRDS("inputdata/desire_lines_scotland.Rds")
     path_teams = Sys.getenv("NPT_TEAMS_PATH")
     if(nchar(path_teams) == 0){
@@ -100,19 +101,15 @@ list(
       desire_lines_raw = readRDS(file.path(path_teams, "secure_data/commute/commute_dl_sub30km.Rds"))
       od_raw = as_tibble(sf::st_drop_geometry(desire_lines_raw))
     } else {
-      if(parameters$open_data_build) {
-        od_raw = read_csv("data-raw/od_data_dz_synthetic.csv")
-      } else {
-        warning("No IZ data found. Set open_data_build to true or request the data")
-        desire_lines_raw = NULL
-      }
-    }   
+      stop("Can't find ",file.path(path_teams,"secure_data/commute/commute_dl_sub30km.Rds"))
+    }
+    }  
     od_subset = od_raw %>%
       filter(geo_code1 %in% zones$DataZone) %>%
       filter(geo_code2 %in% zones$DataZone) %>%
       filter(dist_euclidean < 20000) %>%
       filter(dist_euclidean > 1000) %>%
-      filter(all >= min_flow)
+      filter(all >= parameters$min_flow)
     od_subset
   }),
   tar_target(subpoints_origins, {
