@@ -347,14 +347,13 @@ list(
     # See code in R/make_geojson.R
     make_geojson_zones(combined_network, "outputdata/combined_network.geojson")
     zip(zipfile = "outputdata/combined_network.zip", "outputdata/combined_network.geojson")
-    file.rename("outputdata/combined_network.geojson", "rnet.geojson")
     # zip(zipfile = "outputdata/combined_network.zip", "rnet.geojson")
     # Tile the data:
     # system("bash code/tile.sh")
     msg_verbose = paste0(
       "--name=rnet --layer=rnet --attribution=UniverstyofLeeds --minimum-zoom=6 ",
       "--maximum-zoom=13 --drop-smallest-as-needed --maximum-tile-bytes=5000000 ",
-      "--simplification=10 --buffer=5 --force  rnet.geojson"
+      "--simplification=10 --buffer=5 --force  outputdata/combined_network.geojson"
     )
     date_routing = parameters$date_routing
     msg = glue::glue("tippecanoe -o outputdata/rnet_{date_routing}.pmtiles")
