@@ -150,11 +150,15 @@ list(
     # od_jittered = od_data # for no jittering
     # Install the Rust crate and the associated R package:
     # system("cargo install --git https://github.com/dabreegster/odjitter")
-    
+    z = zones
+    z = z[subpoints_destinations, ]
+    od = od_data |>
+      filter(geo_code1 %in% z$DataZone) |>
+      filter(geo_code2 %in% z$DataZone)
     set.seed(2023)
     odj = odjitter::jitter(
-      od = od_data,
-      zones = zones,
+      od = od,
+      zones = z,
       subpoints_origins = subpoints_origins,
       subpoints_destinations = subpoints_destinations,
       disaggregation_threshold = 30,
@@ -372,8 +376,10 @@ list(
     length(r_commute)
     commit = gert::git_log(max = 1)
     message("Commit: ", commit)
-    
-    if(Sys.info()[['sysname']] == "Linux" | TRUE ) {
+    full_build = isFALSE(parameters$geo_subset) &&     
+      isFALSE(parameters$open_data_build) &&
+      parameters$max_to_route > 100e3
+    if((Sys.info()[['sysname']] == "Linux" | TRUE) && full_build ) {
     v = paste0("v", save_outputs, "_commit_", commit$commit)
     v = gsub(pattern = " |:", replacement = "-", x = v)
     setwd("outputdata")
