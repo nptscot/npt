@@ -2,6 +2,11 @@ library(tidyverse)
 library(osmextract)
 devtools::install_github("robinlovelace/ukboundaries")
 library(ukboundaries)
+devtools::install_github("robinlovelace/simodels")
+library(simodels)
+source("R/gravity_model.R")
+
+# Add osm highways for scotland
 
 # Calculate number of trips / number of cyclists
 trip_purposes = read.csv("./data-raw/scottish-household-survey-2012-19.csv")
@@ -65,15 +70,20 @@ saveRDS(shopping_sf, "./inputdata/shopping_grid.Rds")
 
 shopping_grid = readRDS("./inputdata/shopping_grid.Rds")
 
+# Estimate number of shopping trips from each origin zone
+# zones = targets::tar_load(zones)
+# zones_shopping = zones %>% ...
+
 # Spatial interaction model of journeys
-od_shopping = si_to_od(zones_other_region, shopping_grid, max_dist = max_length_euclidean_km * 1000)
+max_length_euclidean_km = 5
+od_shopping = si_to_od(zones, shopping_grid, max_dist = max_length_euclidean_km * 1000)
 od_interaction = od_shopping %>% 
   si_calculate(fun = gravity_model, 
-               m = origin_shopping,
+               m = origin_ResPop2011,
                n = destination_size,
                d = distance_euclidean,
                beta = 0.5,
-               constraint_production = origin_shopping)
+               constraint_production = origin_ResPop2011)
 od_interaction = od_interaction %>% 
   filter(quantile(interaction, 0.9) < interaction)
 
@@ -83,7 +93,7 @@ shopping_polygons = sf::st_buffer(shopping_grid, dist = 0.0001)
 
 od_interaction_jittered = odjitter::jitter(
   od = od_interaction,
-  zones = zones_other_region,
+  zones = zones,
   zones_d = shopping_polygons,
   subpoints_origins = osm_highways_region,
   subpoints_destinations = shopping_grid,
