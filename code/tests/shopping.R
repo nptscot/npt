@@ -8,11 +8,6 @@ source("R/gravity_model.R")
 
 # Add osm highways for scotland
 
-# Calculate number of trips / number of cyclists
-trip_purposes = read.csv("./data-raw/scottish-household-survey-2012-19.csv")
-shop_percent = trip_purposes %>% 
-  filter(Purpose =="Shopping") %>% 
-  select(Mean)
 
 # Get shopping destinations from secure OS data
 path_teams = Sys.getenv("NPT_TEAMS_PATH")
@@ -67,6 +62,7 @@ grid_df = tibble::rowid_to_column(grid_df, "grid_id")
 
 # assign points in shopping (can include duplicates) to their nearest grid point
 # shopping = shop_points %>% 
+#   mutate(grid_id = st_nearest_feature(shop_points, grid))
 shopping = os_retail %>% 
   mutate(grid_id = st_nearest_feature(os_retail, grid))
 
@@ -88,19 +84,34 @@ saveRDS(shopping_sf, "./inputdata/shopping_grid.Rds")
 shopping_grid = readRDS("./inputdata/shopping_grid.Rds")
 
 # Estimate number of shopping trips from each origin zone
-# zones = targets::tar_load(zones)
-# zones_shopping = zones %>% ...
+# Calculate number of trips / number of cyclists
+trip_purposes = read.csv("./data-raw/scottish-household-survey-2012-19.csv")
+shop_percent = trip_purposes %>% 
+  filter(Purpose =="Shopping") %>% 
+  select(Mean)
+shop_percent = shop_percent[[1]]/100
+
+# need to improve on this figure:
+# 2019 mean distance travelled is 9.6km (from transport-and-travel-in-scotland-2019-local-authority-tables.xlsx)
+# find which % of these journeys are by bicycle
+
+zones = targets::tar_load(zones)
+zones_shopping = zones %>%
+  mutate(shopping_km = ResPop2011 * 9.6 * shop_percent) # resident population (should use 18+ only) * km travelled per person * percent of trips (should be kms) that are for shopping
+cycle_mode_share = 0.012 # (can get this by local authority)
+zones_shopping = zones_shopping %>% 
+  mutate(shopping_cycle = shopping_km * cycle_mode_share)
 
 # Spatial interaction model of journeys
 max_length_euclidean_km = 5
 od_shopping = si_to_od(zones, shopping_grid, max_dist = max_length_euclidean_km * 1000)
 od_interaction = od_shopping %>% 
   si_calculate(fun = gravity_model, 
-               m = origin_ResPop2011,
+               m = origin_shopping_cycle,
                n = destination_size,
                d = distance_euclidean,
                beta = 0.5,
-               constraint_production = origin_ResPop2011)
+               constraint_production = origin_shopping_cycle)
 od_interaction = od_interaction %>% 
   filter(quantile(interaction, 0.9) < interaction)
 
