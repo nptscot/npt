@@ -1,23 +1,21 @@
 name,type,data,command,depend,seed,path,time,size,bytes,format,repository,iteration,parent,children,seconds,warnings,error
-metadata,stem,142e97f5ff7a07c4,dca8d37085375432,950e4b25c665f301,2062409165,,2023-06-23T11:00:16Z,8092608347162eca,393,rds,local,vector,NA,,0.44,NA,NA
-od_data,stem,bb3163571a6d5837,543a1e45c31d3c88,3a34bd4979c139e6,-1950608183,,2023-07-19T11:45:02Z,4db2ab0427d665c2,1291067,rds,local,vector,NA,,0.41,NA,NA
-param_file,stem,bc82f1a654914d7a,9c1a31a16c352029,ef46db3751d8e999,-1046133151,,2023-07-12T11:59:49Z,a561f5c86943cfd2,175,file,local,vector,NA,,0,NA,NA
-parameters,stem,26d2d465d326f9ea,3ef8c0c7ce7967e1,c2ba680a292ee1c4,780725592,,2023-07-14T10:12:17Z,989179deaf36b184,191,rds,local,vector,NA,,0,"No .Renviron file, routing may not work",NA
-r_school,stem,4801fea9af6f911a,c98cff048c69abea,4e5dc9da6b990ea6,-989549808,,2023-07-19T11:45:01Z,d8cffa0d44bac959,480824786,rds,local,vector,NA,,8917.7,NA,NA
-study_area,stem,60c85de45e4d9920,71a7eb32cd0b97c8,dfbf4d3e15d31393,-988187226,,2023-07-14T10:12:17Z,3bd8f66805fd112b,45,rds,local,vector,NA,,0,NA,NA
-subpoints_destinations,stem,b17d5ce27baf5641,8ec9bb96cebe6c9d,316d915afebd2eb3,-1697010667,,2023-05-19T15:19:00Z,2221fdddc211cc57,102630,rds,local,vector,NA,,0.01,NA,NA
-subpoints_origins,stem,79b95b0788d6487b,4f6c193fa8e04c95,316d915afebd2eb3,450966405,,2023-05-19T15:19:00Z,a0867b0fdea1ef70,898653,rds,local,vector,NA,,0.06,NA,NA
-uptake_list,stem,368e87d515a18f6e,fcea9596174ddaf1,d63d47c9cc5bae27,955218489,,2023-06-03T07:18:25Z,b8b968b15a5c6f33,1308829420,rds,local,vector,NA,,504.75,NA,NA
-uptake_list_school,stem,d6aaddf923d90242,66a82b15476368c4,ef60e42298ab57dc,914090884,,2023-07-19T11:47:58Z,4ddb227b2c53c47b,504591458,rds,local,vector,NA,,123.19,NA,NA
-zones,stem,9f9cf1fc679e971c,b6dd0753aed4e7b9,0d270e0df176ba76,-1975358009,,2023-07-14T10:12:17Z,86131436e7769814,1524604,rds,local,vector,NA,,0.11,NA,NA
-od_commute_jittered,stem,e1259b4a37639e90,83e59f427e64e749,2202beed03dcde94,674506102,,2023-07-19T12:19:56Z,a0e5ee7cbf1b957d,5486727,rds,local,vector,NA,,7.69,NA,NA
-rnet_school_list,stem,ccec3a63e468b192,0ed14f2d57918a90,ea3e03b25bbe412d,705836314,,2023-07-19T12:33:59Z,31574699d7812588,55859097,rds,local,vector,NA,,815.74,NA,NA
-od_commute_subset,stem,1ec7ec93f255471f,b56265c80f50bf22,7d3a561be500192a,-1812505247,,2023-07-19T12:34:01Z,45c8cdd1988097de,5633323,rds,local,vector,NA,,0.19,NA,NA
-r_commute,stem,593c7d06fa30d07a,8aeb1fb5c011600e,e9f46a19fad327bd,-1169720700,,2023-07-19T19:42:15Z,7b5dd42c7d5bc004,1198184515,rds,local,vector,NA,,25538.39,NA,NA
-calculate_benefits,stem,593c7d06fa30d07a,387252c9786e687f,86b64cea20253b31,-1625165940,,2023-07-19T19:44:52Z,7b5dd42c7d5bc004,1198184515,rds,local,vector,NA,,0,NA,NA
-zone_stats,stem,9f9cf1fc679e971c,1e9648b83edb22a4,0a26731d21a9f389,-1203691813,,2023-07-19T19:44:53Z,86131436e7769814,1524604,rds,local,vector,NA,,0,NA,NA
-uptake_list_commute,stem,146a0244373e8340,cf5e30a0bb249b54,4b6f08be4eb3f62e,-1417656883,,2023-07-19T19:54:37Z,efa9784fc690eb93,1226604138,rds,local,vector,NA,,430.06,NA,NA
-rnet_commute_list,stem,68ce6447aeb379ff,688b4850a36f5e8c,0813c9e52f062113,-1500100641,,2023-07-19T20:17:54Z,ca0e0a779deaac46,51507519,rds,local,vector,NA,,1391.82,NA,NA
-combined_network,stem,0812e37aee0ff32f,21ac4310f7f29518,67a1acd97af2a193,1815710017,,2023-07-19T20:24:29Z,7d4d5b986865b231,27196946,rds,local,vector,NA,,391.25,NA,NA
-save_outputs,stem,c89873040a71002a,b4eaa253ec7e0fb6,f2ba6d9697bd9785,1635958269,,2023-07-19T20:24:57Z,b2129b1ae72103bd,97,rds,local,vector,NA,,27.8,"Thats a lot of columns for the GeoJSON, are they all needed. zip not found. tippecanoe not found",NA
-upload_data,stem,2160b359086e08d4,995578c51a8046df,f963c46ee3b748cc,412588227,,2023-07-19T20:27:23Z,369e3c9a0bfec73b,83,rds,local,vector,NA,,146.44,NA,NA
+param_file,stem,ff62206ce4d6d5ac,9c1a31a16c352029,ef46db3751d8e999,-1046133151,,2023-07-21T11:42:46Z,2c02ccb1d6d3878b,191,file,local,vector,NA,,0.001,NA,NA
+parameters,stem,be45cca5c86fce03,3ef8c0c7ce7967e1,81eecc75e90fb1f3,780725592,,2023-07-21T11:43:14Z,4b46e8ae20ede711,198,rds,local,vector,NA,,0.018,"No .Renviron file, routing may not work",NA
+r_school,stem,571546e734e6c2e2,3c3ff141c7cc79f4,f2dae6af2377bd99,-989549808,,2023-07-21T13:08:34Z,e143d3d00b9b30f0,878825,rds,local,vector,NA,,549.356,NA,NA
+study_area,stem,f10050e8b8b10e2a,82e58913785ce54b,76f2b197476dbf8b,-988187226,,2023-07-21T11:43:14Z,ba5ccc799e37b5a1,2273,rds,local,vector,NA,,0.016,NA,NA
+subpoints_origins,stem,6919aed237f7dfc6,cb8938d7ea9fdc7e,08b5bf5d8fb6f186,450966405,,2023-07-21T13:09:12Z,027d7c346c8dbc28,307974,rds,local,vector,NA,,37.476,no nonmissing arguments to min returning Inf. no nonmissing arguments to min returning Inf. no nonmissing arguments to max returning Inf. no nonmissing arguments to max returning Inf. no nonmissing arguments to min returning Inf. no nonmissing arguments to min returning Inf. no nonmissing arguments to max returning Inf. no nonmissing arguments to max returning Inf,NA
+zones,stem,f583a09258ee3a79,ead726b6b23fe76b,11bc60c8c5d87d02,-1975358009,,2023-07-21T11:43:14Z,177b79f5180c767d,96053,rds,local,vector,NA,,0.191,NA,NA
+od_data,stem,c64ad6de671f9d2e,516a921dfab17831,437f110fe223c184,-1950608183,,2023-07-21T13:38:50Z,2873ce3b68a6cdf4,2339,rds,local,vector,NA,,0.228,NA,NA
+uptake_list_school,stem,530d5b63dc564144,66a82b15476368c4,71ddc050780bbc05,914090884,,2023-07-21T13:38:51Z,b9532ef50e4d9de0,913543,rds,local,vector,NA,,0.511,NA,NA
+subpoints_destinations,stem,6919aed237f7dfc6,e934d42a86598b81,6ac748e6a9eeadf1,-1697010667,,2023-07-21T13:38:51Z,027d7c346c8dbc28,307974,rds,local,vector,NA,,0.001,NA,NA
+rnet_school_list,stem,088a112aa1fd22a4,0ed14f2d57918a90,858e1898e215432f,705836314,,2023-07-21T13:38:57Z,c90456c267efd204,527152,rds,local,vector,NA,,5.983,NA,NA
+od_commute_jittered,stem,ff9321a2450e49a8,d82a9a1fa0e1cb57,794b73d82ef8a91a,674506102,,2023-07-21T13:38:59Z,53da5c7e1c22bf0e,9110,rds,local,vector,NA,,1.348,NA,NA
+od_commute_subset,stem,9b8a68733a4c0a12,b56265c80f50bf22,477d8c2c2977e027,-1812505247,,2023-07-21T13:38:59Z,2ba4066071a47eb8,9273,rds,local,vector,NA,,0.009,NA,NA
+r_commute,stem,2361d142607b32ea,8aeb1fb5c011600e,0efbc8075e8cf143,-1169720700,,2023-07-21T13:47:41Z,599267fab5451ca5,1227512,rds,local,vector,NA,,521.942,NA,NA
+calculate_benefits,stem,2361d142607b32ea,387252c9786e687f,7f13fdcd535241eb,-1625165940,,2023-07-21T13:47:41Z,599267fab5451ca5,1227512,rds,local,vector,NA,,0,NA,NA
+zone_stats,stem,f583a09258ee3a79,1e9648b83edb22a4,936930d389122737,-1203691813,,2023-07-21T13:47:41Z,177b79f5180c767d,96053,rds,local,vector,NA,,0,NA,NA
+uptake_list_commute,stem,580ff5efd39e1403,cf5e30a0bb249b54,a1a39cb5556b9a43,-1417656883,,2023-07-21T13:47:43Z,5282dab00304fe37,1254645,rds,local,vector,NA,,0.893,NA,NA
+rnet_commute_list,stem,be52b74d604b71cd,688b4850a36f5e8c,938a922e714473fe,-1500100641,,2023-07-21T13:47:49Z,04bd859b5cb20a5b,583680,rds,local,vector,NA,,6.457,NA,NA
+combined_network,stem,0474dbb383e2346b,21ac4310f7f29518,09cff5b7a9bbf929,1815710017,,2023-07-21T13:47:58Z,875580e5d2973eca,462067,rds,local,vector,NA,,8.538,NA,NA
+save_outputs,stem,94eadb9cde5c8975,b4eaa253ec7e0fb6,d7647ef6c95457fd,1635958269,,2023-07-21T13:48:00Z,41200f7f0df0ebd3,96,rds,local,vector,NA,,2.599,"Thats a lot of columns for the GeoJSON, are they all needed",NA
+upload_data,stem,80707771b904708e,cb79013adc5f7ccd,8506ed38ba13ab1d,412588227,,2023-07-21T13:48:01Z,e655bbbdcbba1d63,81,rds,local,vector,NA,,0.083,NA,NA

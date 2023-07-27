@@ -32,6 +32,9 @@ options(clustermq.scheduler = "multicore")
 tar_source()
 
 # Targets -----------------------------------------------------------------
+if(!file.exists("outputdata")){
+  dir.create("outputdata")
+}
 
 list(
   # Detect when parameter file has changed:
@@ -52,7 +55,12 @@ list(
   # Case study area:
   tar_target(study_area, {
     if(parameters$geo_subset) {
-      s_area = get_area("Forth Bridge", d = 20)
+      if(parameters$open_data_build) {
+        s_area = sf::read_sf("data-raw/study_area.geojson")
+      } else {
+        # Change the centrepoint and distance in km for other areas
+        s_area = get_area("Forth Bridge", d = 20)
+      }
     } else {
       s_area = NULL
     }
@@ -64,7 +72,11 @@ list(
   #   setwd("..")
   # }),
   tar_target(zones, {
-    z = readRDS("inputdata/DataZones.Rds") # 6976 zones
+    if(parameters$open_data_build) {
+      z = sf::read_sf("data-raw/DataZones.geojson")
+    } else {
+      z = readRDS("inputdata/DataZones.Rds") # 6976 zones
+    }
     if(parameters$geo_subset) {
       z = z[study_area, op = sf::st_within]
     }
@@ -77,8 +89,9 @@ list(
   #   readRDS("inputdata/od_izo.Rds")
   # }),
   tar_target(od_data, {
-    min_flow = parameters$min_flow # Set to 1 for full build, set to high value (e.g. 400) for tests
-    
+    if(parameters$open_data_build) {
+      od_raw = read_csv("data-raw/od_data_dz_synthetic.csv")
+    } else {
     #desire_lines_raw = readRDS("inputdata/desire_lines_scotland.Rds")
     path_teams = Sys.getenv("NPT_TEAMS_PATH")
     if(nchar(path_teams) == 0){
@@ -86,45 +99,63 @@ list(
     }
     if(file.exists(file.path(path_teams,"secure_data/commute/commute_dl_sub30km.Rds"))){
       desire_lines_raw = readRDS(file.path(path_teams, "secure_data/commute/commute_dl_sub30km.Rds"))
+      od_raw = as_tibble(sf::st_drop_geometry(desire_lines_raw))
     } else {
-      desire_lines_raw = NULL
+      stop("Can't find ",file.path(path_teams,"secure_data/commute/commute_dl_sub30km.Rds"))
     }
-    
-    od_raw = as_tibble(sf::st_drop_geometry(desire_lines_raw))
+    }  
     od_subset = od_raw %>%
       filter(geo_code1 %in% zones$DataZone) %>%
       filter(geo_code2 %in% zones$DataZone) %>%
       filter(dist_euclidean < 20000) %>%
       filter(dist_euclidean > 1000) %>%
-      filter(all >= min_flow)
+      filter(all >= parameters$min_flow)
     od_subset
   }),
   tar_target(subpoints_origins, {
     # source("data-raw/get_wpz.R")
     # sf::read_sf("data-raw/oas.geojson")
-    readRDS("inputdata/oas.Rds")
+    if(parameters$open_data_build) {
+      # create a sample of randomly located points in each zone: 
+      spo = st_sample(zones, size = nrow(zones) * 20, by_polygon = TRUE)
+    } else {
+      spo = readRDS("inputdata/oas.Rds")
+    }
+  spo
   }),
   tar_target(subpoints_destinations, {
     # source("data-raw/get_wpz.R")
     # sf::read_sf("data-raw/workplaces_simple_edinburgh.geojson")
     #readRDS("inputdata/workplaces_simple.Rds") #Not enough points when using DataZones
-    path_teams = Sys.getenv("NPT_TEAMS_PATH")
-    if(nchar(path_teams) == 0){
-      stop("Can't find Teams folder of secure data. Use usethis::edit_r_environ() to define NPT_TEAMS_PATH ")
+    message("Getting destinations")
+    spd = NULL
+    if(parameters$open_data_build) {
+      # message("Getting destinations for ", nrow(zones), " zones")
+      # spd = st_sample(zones, size = nrow(zones) * 20, by_polygon = TRUE)
+      spd = subpoints_origins
+    } else {
+    # path_teams = Sys.getenv("NPT_TEAMS_PATH")
+    # if(nchar(path_teams) == 0){
+    #   stop("Can't find Teams folder of secure data. Use usethis::edit_r_environ() to define NPT_TEAMS_PATH ")
+    # }
+    # # pts = readRDS(file.path(path_teams,"secure_data/OS/os_poi.Rds"))
+    # spd = pts[pts$workplace, ]
     }
-    pts = readRDS(file.path(path_teams,"secure_data/OS/os_poi.Rds"))
-    pts = pts[pts$workplace, ]
-    pts
+  spd
   }),
   tar_target(od_commute_jittered, {
     # od_jittered = od_data # for no jittering
     # Install the Rust crate and the associated R package:
     # system("cargo install --git https://github.com/dabreegster/odjitter")
-    
+    z = zones
+    z = z[subpoints_destinations, ]
+    od = od_data |>
+      filter(geo_code1 %in% z$DataZone) |>
+      filter(geo_code2 %in% z$DataZone)
     set.seed(2023)
     odj = odjitter::jitter(
-      od = od_data,
-      zones = zones,
+      od = od,
+      zones = z,
       subpoints_origins = subpoints_origins,
       subpoints_destinations = subpoints_destinations,
       disaggregation_threshold = 30,
@@ -162,6 +193,9 @@ list(
   
   tar_target(r_school, {
     # Get School OD
+    if(parameters$open_data_build) {
+      schools_dl = sf::read_sf("data-raw/school_desire_lines_open.geojson")
+    } else {
     path_teams = Sys.getenv("NPT_TEAMS_PATH")
     if(nchar(path_teams) == 0){
       stop("Can't find Teams folder of secure data. Use usethis::edit_r_environ() to define NPT_TEAMS_PATH ")
@@ -169,10 +203,9 @@ list(
     if(file.exists(file.path(path_teams,"secure_data/schools/school_dl_sub30km.Rds"))){
       schools_dl = readRDS(file.path(path_teams, "secure_data/schools/school_dl_sub30km.Rds"))
     } else {
-      # stop("Can't find ",file.path(path_teams,"secure_data/schools/school_dl_sub30km.Rds"))
-      schools_dl = NULL
+      stop("Can't find ",file.path(path_teams,"secure_data/schools/school_dl_sub30km.Rds"))
     }
-    
+    }
     if(parameters$geo_subset) {
       schools_dl = schools_dl[study_area, op = sf::st_within]
     }
@@ -186,7 +219,7 @@ list(
         batch = FALSE,
         nrow_batch = 100000
         )
-      routes_school
+    routes_school
   }),
   
   tar_target(uptake_list_commute, {
@@ -314,14 +347,13 @@ list(
     # See code in R/make_geojson.R
     make_geojson_zones(combined_network, "outputdata/combined_network.geojson")
     zip(zipfile = "outputdata/combined_network.zip", "outputdata/combined_network.geojson")
-    file.rename("outputdata/combined_network.geojson", "rnet.geojson")
     # zip(zipfile = "outputdata/combined_network.zip", "rnet.geojson")
     # Tile the data:
     # system("bash code/tile.sh")
     msg_verbose = paste0(
       "--name=rnet --layer=rnet --attribution=UniverstyofLeeds --minimum-zoom=6 ",
       "--maximum-zoom=13 --drop-smallest-as-needed --maximum-tile-bytes=5000000 ",
-      "--simplification=10 --buffer=5 --force  rnet.geojson"
+      "--simplification=10 --buffer=5 --force  outputdata/combined_network.geojson"
     )
     date_routing = parameters$date_routing
     msg = glue::glue("tippecanoe -o outputdata/rnet_{date_routing}.pmtiles")
@@ -342,8 +374,10 @@ list(
     length(r_commute)
     commit = gert::git_log(max = 1)
     message("Commit: ", commit)
-    
-    if(Sys.info()[['sysname']] == "Linux" | TRUE ) {
+    full_build = isFALSE(parameters$geo_subset) &&     
+      isFALSE(parameters$open_data_build) &&
+      parameters$max_to_route > 100e3
+    if((Sys.info()[['sysname']] == "Linux" | TRUE) && full_build ) {
     v = paste0("v", save_outputs, "_commit_", commit$commit)
     v = gsub(pattern = " |:", replacement = "-", x = v)
     setwd("outputdata")
@@ -368,8 +402,8 @@ list(
     file.remove(f)
     setwd("..")
   }  else {
-    message("gh command line tool not available")
-    message("Now create a release with this version number and upload the files")
+    message("Not full build or gh command line tool not available")
+    message("Not uploading files")
   }
   Sys.Date()
   }),
