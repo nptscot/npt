@@ -14,16 +14,32 @@ shop_percent = trip_purposes %>%
   filter(Purpose =="Shopping") %>% 
   select(Mean)
 
+# Get shopping destinations from secure OS data
+path_teams = Sys.getenv("NPT_TEAMS_PATH")
+os_pois = readRDS(file.path(path_teams, "secure_data/OS/os_poi.Rds"))
+os_retail = os_pois %>% 
+  filter(groupname == "Retail") # 26279 points
+
+# unique(os_retail$categoryname)
+# mapview::mapview(os_retail)
+
+os_retail = os_retail %>% 
+  st_transform(27700)
+
+
 # Get shopping destinations from OSM
 scotland_points = oe_get("Scotland", layer = "points", extra_tags = "shop")
 shop_points = scotland_points %>% 
-  filter(!is.na(shop))
+  filter(!is.na(shop)) # 14917 points
 scotland_polygons = oe_get("Scotland", layer = "multipolygons", extra_tags = "shop")
 shop_polygons = scotland_polygons %>% 
-  filter(!is.na(shop))
+  filter(!is.na(shop)) # 4550 polygons
 
 shop_points = shop_points %>% 
   st_transform(27700)
+
+saveRDS(shop_points, "./inputdata/shop_points.Rds")
+saveRDS(shop_polygons, "./inputdata/shop_polygons.Rds")
 
 # mapview::mapview(shop_polygons)
 # mapview::mapview(shop_points)
@@ -50,7 +66,8 @@ grid_df = tibble::rowid_to_column(grid_df, "grid_id")
 
 
 # assign points in shopping (can include duplicates) to their nearest grid point
-shopping = shop_points %>% 
+# shopping = shop_points %>% 
+shopping = os_retail %>% 
   mutate(grid_id = st_nearest_feature(shop_points, grid))
 
 # calculate size of each grid point
