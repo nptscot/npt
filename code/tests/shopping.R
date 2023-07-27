@@ -98,7 +98,10 @@ shop_percent = shop_percent[[1]]/100
 zones = targets::tar_load(zones)
 zones_shopping = zones %>%
   mutate(shopping_km = ResPop2011 * 9.6 * shop_percent) # resident population (should use 18+ only) * km travelled per person * percent of trips (should be kms) that are for shopping
+
+# Get cycle mode shares
 cycle_mode_share = 0.012 # (can get this by local authority)
+
 zones_shopping = zones_shopping %>% 
   mutate(shopping_cycle = shopping_km * cycle_mode_share)
 
