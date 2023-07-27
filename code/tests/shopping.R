@@ -21,27 +21,27 @@ os_retail = os_pois %>%
 os_retail = os_retail %>% 
   st_transform(27700)
 
-
-# Get shopping destinations from OSM
-scotland_points = oe_get("Scotland", layer = "points", extra_tags = "shop")
-shop_points = scotland_points %>% 
-  filter(!is.na(shop)) # 14917 points
-scotland_polygons = oe_get("Scotland", layer = "multipolygons", extra_tags = "shop")
-shop_polygons = scotland_polygons %>% 
-  filter(!is.na(shop)) # 4550 polygons
-
-shop_points = shop_points %>% 
-  st_transform(27700)
-
-saveRDS(shop_points, "./inputdata/shop_points.Rds")
-saveRDS(shop_polygons, "./inputdata/shop_polygons.Rds")
-
-# mapview::mapview(shop_polygons)
-# mapview::mapview(shop_points)
-
-# Remove polygons that have points inside them
-
-# Join remaining polygons and points together
+# Not needed now
+# # Get shopping destinations from OSM
+# scotland_points = oe_get("Scotland", layer = "points", extra_tags = "shop")
+# shop_points = scotland_points %>% 
+#   filter(!is.na(shop)) # 14917 points
+# scotland_polygons = oe_get("Scotland", layer = "multipolygons", extra_tags = "shop")
+# shop_polygons = scotland_polygons %>% 
+#   filter(!is.na(shop)) # 4550 polygons
+# 
+# shop_points = shop_points %>% 
+#   st_transform(27700)
+# 
+# saveRDS(shop_points, "./inputdata/shop_points.Rds")
+# saveRDS(shop_polygons, "./inputdata/shop_polygons.Rds")
+# 
+# # mapview::mapview(shop_polygons)
+# # mapview::mapview(shop_points)
+# 
+# # Remove polygons that have points inside them
+# 
+# # Join remaining polygons and points together
 
 # Make a grid of shop density
 # f = system.file("extdata", "data_sources.csv", package = "ukboundaries")
@@ -66,7 +66,7 @@ grid_df = tibble::rowid_to_column(grid_df, "grid_id")
 shopping = os_retail %>% 
   mutate(grid_id = st_nearest_feature(os_retail, grid))
 
-# calculate size of each grid point
+# calculate weighting of each grid point
 shopping_grid = shopping %>% 
   st_drop_geometry() %>% 
   group_by(grid_id) %>% 
@@ -104,7 +104,7 @@ zones_shopping = zones_shopping %>%
 
 # Spatial interaction model of journeys
 max_length_euclidean_km = 5
-od_shopping = si_to_od(zones, shopping_grid, max_dist = max_length_euclidean_km * 1000)
+od_shopping = si_to_od(zones_shopping, shopping_grid, max_dist = max_length_euclidean_km * 1000)
 od_interaction = od_shopping %>% 
   si_calculate(fun = gravity_model, 
                m = origin_shopping_cycle,
