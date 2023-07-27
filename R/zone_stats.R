@@ -1,3 +1,41 @@
+#' Function to summarise updake data into zone statitics
+#' @param comm uptake_list_commute list
+#' @param schl uptake_list_school list
+#' @param zones sf data frame
+#' 
+#' the names are appended to column names 
+uptake_to_zone_stats <- function(comm, schl, zones){
+  
+  # Drop Geometry
+  comm <- lapply(comm, sf::st_drop_geometry)
+  comm <- dplyr::bind_rows(comm, .id = "plan")
+  comm <- dplyr::group_by(comm, route_id, plan)
+  comm <- dplyr::summarise(comm, 
+          geo_code1 = geo_code1[1],
+          geo_code2 = geo_code2[1],
+          all = all[1],
+          from_home = from_home[1],
+          train = train[1],
+          bus = bus[1],
+          car_driver = car_driver[1],
+          bicycle = bicycle[1],
+          foot = foot[1],
+          bicycle_go_dutch = bicycle_go_dutch[1],
+          bicycle_increase = bicycle_increase[1],
+          car_driver_go_dutch = car_driver_go_dutch[1],
+          public_transport = public_transport[1],
+          public_transport_go_dutch = public_transport_go_dutch[1],
+          foot_go_dutch = foot_go_dutch[1],
+          quietness = weighted.mean(quietness, distances),
+          route_hilliness = route_hilliness[1]
+  )
+  
+  
+  
+  
+}
+
+
 
 #' Function to summarise routes into zone statistics
 #' @param r sf data frame of routes returned by cyclestreets

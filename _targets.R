@@ -47,7 +47,7 @@ list(
     if(!dir.exists(folder_name)){
       dir.create(file.path(folder_name))
     }
-    p
+    p 
   }),
   # Case study area:
   tar_target(study_area, {
@@ -298,7 +298,10 @@ list(
   }),
   
   tar_target(zone_stats, {
-    r_commute
+    # Summarise results by DataZone
+    uptake_list_school
+    uptake_list_commute
+    
     zones
   }),
   
