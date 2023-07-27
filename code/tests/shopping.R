@@ -68,7 +68,7 @@ grid_df = tibble::rowid_to_column(grid_df, "grid_id")
 # assign points in shopping (can include duplicates) to their nearest grid point
 # shopping = shop_points %>% 
 shopping = os_retail %>% 
-  mutate(grid_id = st_nearest_feature(shop_points, grid))
+  mutate(grid_id = st_nearest_feature(os_retail, grid))
 
 # calculate size of each grid point
 shopping_grid = shopping %>% 
