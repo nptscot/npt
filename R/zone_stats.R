@@ -30,8 +30,45 @@ uptake_to_zone_stats <- function(comm, schl, zones){
           route_hilliness = route_hilliness[1]
   )
   
+  # School
+  schl <- lapply(schl, sf::st_drop_geometry)
+  schl <- dplyr::bind_rows(schl, .id = "plan")
+  schl <- dplyr::group_by(schl, route_id, plan)
+  schl <- dplyr::summarise(schl, 
+                           DataZone = DataZone[1],
+                           SeedCode = SeedCode[1],
+                           all = all[1],
+                           #from_home = from_home[1],
+                           #train = train[1],
+                           #bus = bus[1],
+                           #car_driver = car_driver[1],
+                           bicycle = bicycle[1],
+                           #foot = foot[1],
+                           bicycle_go_dutch = bicycle_go_dutch[1],
+                           bicycle_increase = bicycle_increase[1],
+                           car_driver_go_dutch = car_driver_go_dutch[1],
+                           public_transport = public_transport[1],
+                           public_transport_go_dutch = public_transport_go_dutch[1],
+                           foot_go_dutch = foot_go_dutch[1],
+                           quietness = weighted.mean(quietness, distances),
+                           route_hilliness = route_hilliness[1]
+  )
   
-  
+  schl_stats_from <- dplyr::group_by(schl, DataZone, plan)
+  schl_stats_from <- dplyr::summarise(schl_stats_from,
+                                      all = sum(all, na.rm = TRUE),
+                                      bicycle = sum(bicycle, na.rm = TRUE),
+                                      bicycle_go_dutch = sum(bicycle_go_dutch, na.rm = TRUE),
+                                      bicycle_increase = sum(bicycle_increase, na.rm = TRUE),
+                                      car_driver_go_dutch = sum(car_driver_go_dutch, na.rm = TRUE),
+                                      public_transport = sum(public_transport, na.rm = TRUE),
+                                      public_transport_go_dutch = sum(public_transport_go_dutch, na.rm = TRUE),
+                                      foot_go_dutch = sum(foot_go_dutch, na.rm = TRUE),
+                                      quietness = mean(quietness, na.rm = TRUE),
+                                      route_hilliness = mean(route_hilliness, na.rm = TRUE)
+  )
+                                      
+                                      
   
 }
 
