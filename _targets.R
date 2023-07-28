@@ -15,7 +15,10 @@ library(sf)
 
 # Set target options:
 tar_option_set(
-  packages = c("tibble"), # packages that your targets need to run
+  packages = c("tibble","zonebuilder","dplyr","stplanr","lubridate",
+               "cyclestreets","odjitter","stringr","sf","tidyr","data.table",
+               "glue","zip","jsonlite","remotes","gert","collapse",
+               "pct"), # packages that your targets need to run
   format = "rds" # default storage format
   # Set other options as needed.
 )
@@ -58,11 +61,7 @@ list(
     }
     s_area
   }),
-  # tar_target(dl_data, {
-  #   setwd("inputdata")
-  #   system("gh release download v1")
-  #   setwd("..")
-  # }),
+
   tar_target(zones, {
     z = readRDS("inputdata/DataZones.Rds") # 6976 zones
     if(parameters$geo_subset) {
@@ -70,12 +69,7 @@ list(
     }
     z
   }),
-  # To get the raw data:
-  # tar_target(od_commute_raw, {
-  #   # read_csv("data-raw/od_subset.csv")
-  #   # See data-raw-get_wpz.R
-  #   readRDS("inputdata/od_izo.Rds")
-  # }),
+
   tar_target(od_data, {
     min_flow = parameters$min_flow # Set to 1 for full build, set to high value (e.g. 400) for tests
     
@@ -100,14 +94,9 @@ list(
     od_subset
   }),
   tar_target(subpoints_origins, {
-    # source("data-raw/get_wpz.R")
-    # sf::read_sf("data-raw/oas.geojson")
     readRDS("inputdata/oas.Rds")
   }),
   tar_target(subpoints_destinations, {
-    # source("data-raw/get_wpz.R")
-    # sf::read_sf("data-raw/workplaces_simple_edinburgh.geojson")
-    #readRDS("inputdata/workplaces_simple.Rds") #Not enough points when using DataZones
     path_teams = Sys.getenv("NPT_TEAMS_PATH")
     if(nchar(path_teams) == 0){
       stop("Can't find Teams folder of secure data. Use usethis::edit_r_environ() to define NPT_TEAMS_PATH ")
@@ -169,7 +158,6 @@ list(
     if(file.exists(file.path(path_teams,"secure_data/schools/school_dl_sub30km.Rds"))){
       schools_dl = readRDS(file.path(path_teams, "secure_data/schools/school_dl_sub30km.Rds"))
     } else {
-      # stop("Can't find ",file.path(path_teams,"secure_data/schools/school_dl_sub30km.Rds"))
       schools_dl = NULL
     }
     
@@ -219,7 +207,7 @@ list(
   }),
   
   tar_target(uptake_list_school, {
-    p = "balanced"
+    #p = "balanced"
     uptake_list_school = lapply(parameters$plan, function(p) {
       message("Uptake for ", p, " school routes")
       names(r_school[[1]])
@@ -240,7 +228,7 @@ list(
     rnet_commute_list = sapply(parameters$plans, function(x) NULL)
     #p = "fastest"
     for(p in parameters$plans) {
-      message("Building ", p, " network")
+      message("Building Commute ", p, " network")
       rnet = make_rnets(uptake_list_commute[[p]], ncores = 1)
       
       f = paste0("outputdata/rnet_commute_", p, ".Rds")
@@ -255,16 +243,34 @@ list(
   
   tar_target(rnet_school_list, {
     
-    rnet_school_list = sapply(parameters$plans, function(x) NULL)
-    #p = "fastest"
+    #Primary
+    rnet_primary_list = sapply(parameters$plans, function(x) NULL)
     for(p in parameters$plans) {
-      message("Building ", p, " network")
-      rnet = make_rnets(uptake_list_school[[p]], ncores = 1)
+      message("Building Primary ", p, " network")
+      rp = uptake_list_school[[p]]
+      rp = rp[rp$schooltype == "Primary",]
+      rnet = make_rnets(rp, ncores = 1)
       
-      f = paste0("outputdata/rnet_school_", p, ".Rds")
+      f = paste0("outputdata/rnet_primary_school_", p, ".Rds")
       saveRDS(rnet, f)
-      rnet_school_list[[p]] = rnet
+      rnet_primary_list[[p]] = rnet
     }
+    
+    #Secondary
+    rnet_secondary_list = sapply(parameters$plans, function(x) NULL)
+    for(p in parameters$plans) {
+      message("Building Secondary ", p, " network")
+      rs = uptake_list_school[[p]]
+      rs = rs[rs$schooltype == "Secondary",]
+      rnet = make_rnets(rp, ncores = 1)
+      
+      f = paste0("outputdata/rnet_secondary_school_", p, ".Rds")
+      saveRDS(rnet, f)
+      rnet_secondary_list[[p]] = rnet
+    }
+    
+    rnet_school_list =list(rnet_primary_list, rnet_secondary_list)
+    names(rnet_school_list) = c("Primary","Secondary")
     
     saveRDS(rnet_school_list, "outputdata/rnet_school_list.Rds")
     rnet_school_list
@@ -277,11 +283,13 @@ list(
     # rnet_commute_list = readRDS("outputdata/rnet_commute_list.Rds")
     # rnet_school_list = readRDS("outputdata/rnet_school_list.Rds")
     rnet_cl = rnet_commute_list
-    rnet_sl = rnet_school_list
+    rnet_sl_p = rnet_school_list$Primary
+    rnet_sl_s = rnet_school_list$Secondary
     names(rnet_cl) = paste0("commute_", names(rnet_cl))
-    names(rnet_sl) = paste0("school_", names(rnet_sl))
+    names(rnet_sl_p) = paste0("primary_", names(rnet_sl_p))
+    names(rnet_sl_s) = paste0("secondary_", names(rnet_sl_s))
     
-    rnet_combined = combine_rnets(c(rnet_cl, rnet_sl),
+    rnet_combined = combine_rnets(rnl = c(rnet_cl, rnet_sl_p, rnet_sl_s),
                                   ncores = 1, 
                                   regionalise = 1e5,
                                   add_all = TRUE)
@@ -292,32 +300,67 @@ list(
     rnet_combined
   }),
   
+  tar_target(combined_network_tile, {
+    # Not All Data is put into the UI
+    rnet_tile = combined_network
+    
+    # Remove Balanced Network
+    nms = !grepl("(balanced)",names(rnet_tile))
+    rnet_tile = rnet_tile[,nms]
+    
+    # Only use ebike routing for ebike scenario
+    nms_noebike = !grepl("(ebike)",names(rnet_tile)) #keep all non-ebike
+    nms_ebike2 = grepl("ebike.*ebike",names(rnet_tile)) # keep ebike twice
+    nms_ebike1 = grepl("ebike",names(rnet_tile)) # keep quietest ebike
+    nms_ebike1 = nms_ebike1 & !nms_ebike2
+    nms_ebike1 = nms_ebike1 & grepl("quietest",names(rnet_tile))
+    
+    rnet_tile = rnet_tile[,nms_noebike | nms_ebike2 | nms_ebike1]
+    names(rnet_tile) = gsub("_ebike_","_fastest_",names(rnet_tile))
+    
+    #Order Variaibles
+    nms_end = c("Gradient","Quietness","geometry" )
+    nms = names(rnet_tile)[!names(rnet_tile) %in% nms_end]
+    rnet_tile = rnet_tile[c(nms[order(nms)], nms_end)]
+    
+    rnet_tile
+  }),
+  
   tar_target(calculate_benefits, {
     benefits = function(x) x
     benefits(r_commute)
   }),
   
-  tar_target(zone_stats, {
-    # Summarise results by DataZone
-    uptake_list_school
-    uptake_list_commute
-    
-    zones
+  tar_target(zones_stats_list, {
+    # Summarise results by DataZone and School
+    zones_stats_list = uptake_to_zone_stats(comm = uptake_list_commute, 
+                                            schl = uptake_list_school, zones)
+    zones_stats_list
   }),
+  
+  tar_target(zones_stats, {
+    zones_stats_list$zones
+  }),
+  
+  tar_target(school_stats, {
+    zones_stats_list$schools
+  }),
+  
   
   tar_target(save_outputs, {
     message("Saving outputs for ", parameters$date_routing)
     saveRDS(rnet_commute_list, "outputdata/rnet_commute_list.Rds")
     saveRDS(od_commute_subset, "outputdata/od_commute_subset.Rds")
-    saveRDS(combined_network, "outputdata/combined_network.Rds")
+    saveRDS(zones_stats, "outputdata/zones_stats.Rds")
+    saveRDS(school_stats, "outputdata/school_stats.Rds")
     # Saved by get_routes()
     # f = paste0("outputdata/routes_commute_", nrow(od_commute_subset), "_rows.Rds")
     # saveRDS(r_commute, f)
     sys_time = Sys.time()
     # See code in R/make_geojson.R
-    make_geojson_zones(combined_network, "outputdata/combined_network.geojson")
-    zip(zipfile = "outputdata/combined_network.zip", "outputdata/combined_network.geojson")
-    file.rename("outputdata/combined_network.geojson", "rnet.geojson")
+    make_geojson_zones(combined_network_tile, "outputdata/combined_network_tile.geojson")
+    zip(zipfile = "outputdata/combined_network_tile.zip", "outputdata/combined_network_tile.geojson")
+    file.rename("outputdata/combined_network_tile.geojson", "rnet.geojson")
     # zip(zipfile = "outputdata/combined_network.zip", "rnet.geojson")
     # Tile the data:
     # system("bash code/tile.sh")
@@ -384,7 +427,7 @@ list(
       filter(type == "stem")
     readr::write_csv(metadata_targets, "outputs/metadata_targets.csv")
     
-    # Todo: add more columns
+    # TODO: add more columns
     build_summary = tibble::tibble(
       n_segment_cells = nrow(combined_network) * ncol(combined_network),
       min_flow = parameters$min_flow,

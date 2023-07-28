@@ -12,18 +12,19 @@ make_rnets = function(r, ncores = 1, regionalise = 1e5){
   r$Quietness = round(r$quietness)
   
   rnet = stplanr::overline2(r, 
-                            attrib = c("bicycle","bicycle_go_dutch","Quietness","Gradient"), 
+                            attrib = c("bicycle","bicycle_go_dutch","bicycle_ebike","Quietness","Gradient"), 
                             fun = list(sum = sum, max = first),
                             ncores = ncores,
                             regionalise = regionalise)
   
-  rnet = rnet[,c("bicycle_sum","bicycle_go_dutch_sum","Gradient_max","Quietness_max")]
+  rnet = rnet[,c("bicycle_sum","bicycle_go_dutch_sum","bicycle_ebike_sum","Gradient_max","Quietness_max")]
   names(rnet) = gsub("_sum$","",names(rnet))
   names(rnet) = gsub("_max$","",names(rnet))
   
   # Suppress low values, replace with 3
   rnet$bicycle = round_sdc(rnet$bicycle)
   rnet$bicycle_go_dutch = round_sdc(rnet$bicycle_go_dutch)
+  rnet$bicycle_ebike = round_sdc(rnet$bicycle_ebike)
   
   rnet
 }
@@ -73,7 +74,7 @@ combine_rnets = function(rnl, ncores = 1, regionalise = 1e5, add_all = TRUE){
   rnet_long = sf::st_as_sf(rnet_long)
   
   names_overline = names(rnet_long)[names(rnet_long) != "geometry"]
-  rnet_combined = stplanr::overline(rnet_long, 
+  rnet_combined = stplanr::overline(sl = rnet_long, 
                            attrib = names_overline,
                            fun = list(sum = sum, max = first),
                            regionalise = regionalise,
@@ -98,15 +99,23 @@ combine_rnets = function(rnl, ncores = 1, regionalise = 1e5, add_all = TRUE){
   
   # Calculate 'all' columns
   if(add_all){
-    # TODO: Generalise this process for more trip purposes
-    rnet_combined$all_fastest_bicycle = rnet_combined$school_fastest_bicycle + rnet_combined$commute_fastest_bicycle
-    rnet_combined$all_fastest_bicycle_go_dutch = rnet_combined$school_fastest_bicycle_go_dutch + rnet_combined$commute_fastest_bicycle_go_dutch
-    rnet_combined$all_quietest_bicycle = rnet_combined$school_quietest_bicycle + rnet_combined$commute_quietest_bicycle
-    rnet_combined$all_quietest_bicycle_go_dutch = rnet_combined$school_quietest_bicycle_go_dutch + rnet_combined$commute_quietest_bicycle_go_dutch
-    rnet_combined$all_balanced_bicycle = rnet_combined$school_balanced_bicycle + rnet_combined$commute_balanced_bicycle
-    rnet_combined$all_balanced_bicycle_go_dutch = rnet_combined$school_balanced_bicycle_go_dutch + rnet_combined$commute_balanced_bicycle_go_dutch
-    rnet_combined$all_ebike_bicycle = rnet_combined$school_ebike_bicycle + rnet_combined$school_ebike_bicycle
-    rnet_combined$all_ebike_bicycle_go_dutch  = rnet_combined$school_ebike_bicycle_go_dutch + rnet_combined$commute_ebike_bicycle_go_dutch
+    # Structure is purpose_route_variable
+    purps = strsplit(names(rnet_combined),"_")
+    purps = unique(sapply(purps, function(x){x[1]}))
+    purps = purps[!purps %in% c("Gradient","Quietness","geometry")]
+    purps = paste0(purps,"_")
+    
+    vars = names(rnet_combined)
+    vars = vars[!vars %in% c("Gradient","Quietness","geometry")]
+    for(i in seq_along(purps)){
+      vars = gsub(purps[i],"",vars)
+    }
+    vars = unique(vars)
+    
+    for(i in seq_along(vars)){
+      rnet_combined[paste0("all_",vars[i])] = rowSums(sf::st_drop_geometry(rnet_combined[,grepl(paste0(vars[i],"$"),names(rnet_combined))]))
+    }
+    
   }
 
   return(rnet_combined)

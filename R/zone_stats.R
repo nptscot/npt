@@ -1,4 +1,4 @@
-#' Function to summarise updake data into zone statitics
+#' Function to summarise uptake data into zone
 #' @param comm uptake_list_commute list
 #' @param schl uptake_list_school list
 #' @param zones sf data frame
@@ -6,10 +6,14 @@
 #' the names are appended to column names 
 uptake_to_zone_stats <- function(comm, schl, zones){
   
+  #comm = uptake_list_commute
+  #schl = uptake_list_school
+  
   # Drop Geometry
   comm <- lapply(comm, sf::st_drop_geometry)
   comm <- dplyr::bind_rows(comm, .id = "plan")
   comm <- dplyr::group_by(comm, route_id, plan)
+  # Go to one row per route
   comm <- dplyr::summarise(comm, 
           geo_code1 = geo_code1[1],
           geo_code2 = geo_code2[1],
@@ -20,54 +24,246 @@ uptake_to_zone_stats <- function(comm, schl, zones){
           car_driver = car_driver[1],
           bicycle = bicycle[1],
           foot = foot[1],
-          bicycle_go_dutch = bicycle_go_dutch[1],
-          bicycle_increase = bicycle_increase[1],
-          car_driver_go_dutch = car_driver_go_dutch[1],
           public_transport = public_transport[1],
+          
+          bicycle_go_dutch = bicycle_go_dutch[1],
+          bicycle_increase_go_dutch = bicycle_increase_go_dutch[1],
+          car_driver_go_dutch = car_driver_go_dutch[1],
           public_transport_go_dutch = public_transport_go_dutch[1],
           foot_go_dutch = foot_go_dutch[1],
+          
+          bicycle_ebike = bicycle_ebike[1],
+          bicycle_increase_ebike = bicycle_increase_ebike[1],
+          car_driver_ebike = car_driver_ebike[1],
+          public_transport_ebike = public_transport_ebike[1],
+          foot_ebike = foot_ebike[1],
+          
           quietness = weighted.mean(quietness, distances),
           route_hilliness = route_hilliness[1]
   )
   
+  # Commute Origin Stats
+  comm_from <- dplyr::group_by(comm, geo_code1, plan)
+  comm_from <- dplyr::summarise(comm_from, 
+                                orig_all = sum(all, na.rm = TRUE),
+                                orig_from_home = sum(from_home, na.rm = TRUE),
+                                orig_train = sum(train, na.rm = TRUE),
+                                orig_bus = sum(bus, na.rm = TRUE),
+                                orig_car_driver = sum(car_driver, na.rm = TRUE),
+                                orig_bicycle = sum(bicycle, na.rm = TRUE),
+                                orig_foot = sum(foot, na.rm = TRUE),
+                                orig_public_transport = sum(public_transport, na.rm = TRUE),
+                                
+                                orig_bicycle_go_dutch = sum(bicycle_go_dutch, na.rm = TRUE),
+                                orig_bicycle_increase_go_dutch = sum(bicycle_increase_go_dutch, na.rm = TRUE),
+                                orig_car_driver_go_dutch = sum(car_driver_go_dutch, na.rm = TRUE),
+                                orig_public_transport_go_dutch = sum(public_transport_go_dutch, na.rm = TRUE),
+                                orig_foot_go_dutch = sum(foot_go_dutch, na.rm = TRUE),
+                                
+                                orig_bicycle_ebike = sum(bicycle_ebike, na.rm = TRUE),
+                                orig_bicycle_increase_ebike = sum(bicycle_increase_ebike, na.rm = TRUE),
+                                orig_car_driver_ebike = sum(car_driver_ebike, na.rm = TRUE),
+                                orig_public_transport_ebike = sum(public_transport_ebike, na.rm = TRUE),
+                                orig_foot_ebike = sum(foot_ebike, na.rm = TRUE),
+                                
+                                orig_quietness = mean(quietness),
+                                orig_route_hilliness = mean(route_hilliness, na.rm = TRUE)
+  )
+  comm_from <- tidyr::pivot_wider(comm_from, 
+                                  id_cols = c("geo_code1","orig_all", "orig_from_home", 
+                                              "orig_train", "orig_bus", "orig_car_driver", 
+                                              "orig_bicycle", "orig_foot","orig_public_transport"),
+                                  names_from = "plan",
+                                  values_from = c("orig_bicycle_go_dutch",
+                                                  "orig_bicycle_increase_go_dutch",
+                                                  "orig_car_driver_go_dutch",
+                                                  "orig_public_transport_go_dutch",
+                                                  "orig_foot_go_dutch",
+                                                  "orig_bicycle_ebike",
+                                                  "orig_bicycle_increase_ebike",
+                                                  "orig_car_driver_ebike",
+                                                  "orig_public_transport_ebike",
+                                                  "orig_foot_ebike",
+                                                  "orig_quietness",
+                                                  "orig_route_hilliness")
+                                  )
+  
+  
+  comm_to <- dplyr::group_by(comm, geo_code2, plan)
+  comm_to <- dplyr::summarise(comm_to, 
+                                dest_all = sum(all, na.rm = TRUE),
+                                dest_from_home = sum(from_home, na.rm = TRUE),
+                                dest_train = sum(train, na.rm = TRUE),
+                                dest_bus = sum(bus, na.rm = TRUE),
+                                dest_car_driver = sum(car_driver, na.rm = TRUE),
+                                dest_bicycle = sum(bicycle, na.rm = TRUE),
+                                dest_foot = sum(foot, na.rm = TRUE),
+                                dest_public_transport = sum(public_transport, na.rm = TRUE),
+                              
+                                dest_bicycle_go_dutch = sum(bicycle_go_dutch, na.rm = TRUE),
+                                dest_bicycle_increase_go_dutch = sum(bicycle_increase_go_dutch, na.rm = TRUE),
+                                dest_car_driver_go_dutch = sum(car_driver_go_dutch, na.rm = TRUE),
+                                dest_public_transport_go_dutch = sum(public_transport_go_dutch, na.rm = TRUE),
+                                dest_foot_go_dutch = sum(foot_go_dutch, na.rm = TRUE),
+                              
+                                dest_bicycle_ebike = sum(bicycle_ebike, na.rm = TRUE),
+                                dest_bicycle_increase_ebike = sum(bicycle_increase_ebike, na.rm = TRUE),
+                                dest_car_driver_ebike = sum(car_driver_ebike, na.rm = TRUE),
+                                dest_public_transport_ebike = sum(public_transport_ebike, na.rm = TRUE),
+                                dest_foot_ebike = sum(foot_ebike, na.rm = TRUE),
+                              
+                                dest_quietness = mean(quietness),
+                                dest_route_hilliness = mean(route_hilliness, na.rm = TRUE)
+  )
+  
+  comm_to <- tidyr::pivot_wider(comm_to, 
+                                  id_cols = c("geo_code2","dest_all", "dest_from_home", 
+                                              "dest_train", "dest_bus", "dest_car_driver", 
+                                              "dest_bicycle", "dest_foot","dest_public_transport"),
+                                  names_from = "plan",
+                                  values_from = c("dest_bicycle_go_dutch",
+                                                  "dest_bicycle_increase_go_dutch",
+                                                  "dest_car_driver_go_dutch",
+                                                  "dest_public_transport_go_dutch",
+                                                  "dest_foot_go_dutch",
+                                                  "dest_bicycle_ebike",
+                                                  "dest_bicycle_increase_ebike",
+                                                  "dest_car_driver_ebike",
+                                                  "dest_public_transport_ebike",
+                                                  "dest_foot_ebike",
+                                                  "dest_quietness",
+                                                  "dest_route_hilliness")
+  )
+  
+  
+  
   # School
   schl <- lapply(schl, sf::st_drop_geometry)
   schl <- dplyr::bind_rows(schl, .id = "plan")
-  schl <- dplyr::group_by(schl, route_id, plan)
+  schl <- dplyr::group_by(schl, route_id, plan, schooltype)
+  # Go to one row per route
   schl <- dplyr::summarise(schl, 
                            DataZone = DataZone[1],
                            SeedCode = SeedCode[1],
                            all = all[1],
-                           #from_home = from_home[1],
-                           #train = train[1],
-                           #bus = bus[1],
-                           #car_driver = car_driver[1],
                            bicycle = bicycle[1],
-                           #foot = foot[1],
-                           bicycle_go_dutch = bicycle_go_dutch[1],
-                           bicycle_increase = bicycle_increase[1],
-                           car_driver_go_dutch = car_driver_go_dutch[1],
                            public_transport = public_transport[1],
+                           
+                           bicycle_go_dutch = bicycle_go_dutch[1],
+                           bicycle_increase_go_dutch = bicycle_increase_go_dutch[1],
+                           car_driver_go_dutch = car_driver_go_dutch[1],
                            public_transport_go_dutch = public_transport_go_dutch[1],
                            foot_go_dutch = foot_go_dutch[1],
+                           
+                           bicycle_ebike = bicycle_ebike[1],
+                           bicycle_increase_ebike = bicycle_increase_ebike[1],
+                           car_driver_ebike = car_driver_ebike[1],
+                           public_transport_ebike = public_transport_ebike[1],
+                           foot_ebike = foot_ebike[1],
+                           
                            quietness = weighted.mean(quietness, distances),
                            route_hilliness = route_hilliness[1]
   )
   
-  schl_stats_from <- dplyr::group_by(schl, DataZone, plan)
-  schl_stats_from <- dplyr::summarise(schl_stats_from,
-                                      all = sum(all, na.rm = TRUE),
-                                      bicycle = sum(bicycle, na.rm = TRUE),
-                                      bicycle_go_dutch = sum(bicycle_go_dutch, na.rm = TRUE),
-                                      bicycle_increase = sum(bicycle_increase, na.rm = TRUE),
-                                      car_driver_go_dutch = sum(car_driver_go_dutch, na.rm = TRUE),
-                                      public_transport = sum(public_transport, na.rm = TRUE),
-                                      public_transport_go_dutch = sum(public_transport_go_dutch, na.rm = TRUE),
-                                      foot_go_dutch = sum(foot_go_dutch, na.rm = TRUE),
-                                      quietness = mean(quietness, na.rm = TRUE),
-                                      route_hilliness = mean(route_hilliness, na.rm = TRUE)
+  schl_from <- dplyr::group_by(schl, DataZone, plan, schooltype)
+  schl_from <- dplyr::summarise(schl_from,
+                                orig_all = sum(all, na.rm = TRUE),
+                                orig_bicycle = sum(bicycle, na.rm = TRUE),
+                                orig_public_transport = sum(public_transport, na.rm = TRUE),
+                                
+                                orig_bicycle_go_dutch = sum(bicycle_go_dutch, na.rm = TRUE),
+                                orig_bicycle_increase_go_dutch = sum(bicycle_increase_go_dutch, na.rm = TRUE),
+                                orig_car_driver_go_dutch = sum(car_driver_go_dutch, na.rm = TRUE),
+                                orig_public_transport_go_dutch = sum(public_transport_go_dutch, na.rm = TRUE),
+                                orig_foot_go_dutch = sum(foot_go_dutch, na.rm = TRUE),
+                                
+                                orig_bicycle_ebike = sum(bicycle_ebike, na.rm = TRUE),
+                                orig_bicycle_increase_ebike = sum(bicycle_increase_ebike, na.rm = TRUE),
+                                orig_car_driver_ebike = sum(car_driver_ebike, na.rm = TRUE),
+                                orig_public_transport_ebike = sum(public_transport_ebike, na.rm = TRUE),
+                                orig_foot_ebike = sum(foot_ebike, na.rm = TRUE),
+                                
+                                orig_quietness = mean(quietness, na.rm = TRUE),
+                                orig_route_hilliness = mean(route_hilliness, na.rm = TRUE)
   )
-                                      
+  
+  schl_from <- tidyr::pivot_wider(schl_from, 
+                                  id_cols = c("DataZone",),
+                                  names_from = c("schooltype","plan"),
+                                  values_from = c("orig_all",
+                                                  "orig_bicycle",
+                                                  
+                                                  "orig_bicycle_go_dutch",
+                                                  "orig_bicycle_increase_go_dutch",
+                                                  "orig_car_driver_go_dutch",
+                                                  "orig_public_transport_go_dutch",
+                                                  "orig_foot_go_dutch",
+                                                  
+                                                  "orig_bicycle_ebike",
+                                                  "orig_bicycle_increase_ebike",
+                                                  "orig_car_driver_ebike",
+                                                  "orig_public_transport_ebike",
+                                                  "orig_foot_ebike",
+                                                  
+                                                  "orig_quietness",
+                                                  "orig_route_hilliness")
+  )
+  
+  
+  schl_to <- dplyr::group_by(schl, SeedCode, plan, schooltype)
+  schl_to <- dplyr::summarise(schl_to,
+                                all = sum(all, na.rm = TRUE),
+                                bicycle = sum(bicycle, na.rm = TRUE),
+                                public_transport = sum(public_transport, na.rm = TRUE),
+                                
+                                bicycle_go_dutch = sum(bicycle_go_dutch, na.rm = TRUE),
+                                bicycle_increase_go_dutch = sum(bicycle_increase_go_dutch, na.rm = TRUE),
+                                car_driver_go_dutch = sum(car_driver_go_dutch, na.rm = TRUE),
+                                public_transport_go_dutch = sum(public_transport_go_dutch, na.rm = TRUE),
+                                foot_go_dutch = sum(foot_go_dutch, na.rm = TRUE),
+                              
+                                bicycle_ebike = sum(bicycle_ebike, na.rm = TRUE),
+                                bicycle_increase_ebike = sum(bicycle_increase_ebike, na.rm = TRUE),
+                                car_driver_ebike = sum(car_driver_ebike, na.rm = TRUE),
+                                public_transport_ebike = sum(public_transport_ebike, na.rm = TRUE),
+                                foot_ebike = sum(foot_ebike, na.rm = TRUE),
+                              
+                                quietness = mean(quietness, na.rm = TRUE),
+                                route_hilliness = mean(route_hilliness, na.rm = TRUE)
+  )
+  
+  schl_to <- tidyr::pivot_wider(schl_to, 
+                                  id_cols = c("SeedCode"),
+                                  names_from = c("schooltype","plan"),
+                                  values_from = c("all",
+                                                  "bicycle","public_transport",
+                                                  
+                                                  "bicycle_go_dutch",
+                                                  "bicycle_increase_go_dutch",
+                                                  "car_driver_go_dutch",
+                                                  "public_transport_go_dutch",
+                                                  "foot_go_dutch",
+                                                  
+                                                  "bicycle_ebike",
+                                                  "bicycle_increase_ebike",
+                                                  "car_driver_ebike",
+                                                  "public_transport_ebike",
+                                                  "foot_ebike",
+                                                  "quietness",
+                                                  "route_hilliness")
+  )
+  
+  
+  # Combine Commute Origin/Dest and School Origin into a single DataZone Dataset
+  names(comm_from) <- paste0("comm_", names(comm_from))
+  names(comm_to) <- paste0("comm_", names(comm_to))
+  names(schl_from) <- paste0("schl_", names(schl_from))
+  zones2 <- dplyr::left_join(zones, comm_from, by = c("DataZone" = "comm_geo_code1"))
+  zones2 <- dplyr::left_join(zones2, comm_to, by = c("DataZone" = "comm_geo_code2"))
+  zones2 <- dplyr::left_join(zones2, schl_from, by = c("DataZone" = "schl_DataZone"))
+  
+  return(list(zones = zones2, schools = schl_to))
+  
                                       
   
 }
