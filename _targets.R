@@ -94,16 +94,36 @@ list(
     od_subset
   }),
   tar_target(subpoints_origins, {
-    readRDS("inputdata/oas.Rds")
+    # source("data-raw/get_wpz.R")
+    # sf::read_sf("data-raw/oas.geojson")
+    if(parameters$open_data_build) {
+      # create a sample of randomly located points in each zone: 
+      spo = st_sample(zones, size = nrow(zones) * 20, by_polygon = TRUE)
+    } else {
+      spo = readRDS("inputdata/oas.Rds")
+    }
+    spo
   }),
   tar_target(subpoints_destinations, {
-    path_teams = Sys.getenv("NPT_TEAMS_PATH")
-    if(nchar(path_teams) == 0){
-      stop("Can't find Teams folder of secure data. Use usethis::edit_r_environ() to define NPT_TEAMS_PATH ")
+    # source("data-raw/get_wpz.R")
+    # sf::read_sf("data-raw/workplaces_simple_edinburgh.geojson")
+    #readRDS("inputdata/workplaces_simple.Rds") #Not enough points when using DataZones
+    message("Getting destinations")
+    spd = NULL
+    if(parameters$open_data_build) {
+      # message("Getting destinations for ", nrow(zones), " zones")
+      # spd = st_sample(zones, size = nrow(zones) * 20, by_polygon = TRUE)
+      spd = subpoints_origins
+    } else {
+      path_teams = Sys.getenv("NPT_TEAMS_PATH")
+      if(nchar(path_teams) == 0){
+        stop("Can't find Teams folder of secure data. Use usethis::edit_r_environ() to define NPT_TEAMS_PATH ")
+      }
+      spd = readRDS(file.path(path_teams,"secure_data/OS/os_poi.Rds"))
+      spd = spd[spd$workplace, ]
+      
     }
-    pts = readRDS(file.path(path_teams,"secure_data/OS/os_poi.Rds"))
-    pts = pts[pts$workplace, ]
-    pts
+    spd
   }),
   tar_target(od_commute_jittered, {
     # od_jittered = od_data # for no jittering
