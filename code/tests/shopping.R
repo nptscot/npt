@@ -93,28 +93,21 @@ shop_percent = shop_percent[[1]]/100
 
 # need to improve on this figure:
 # 2019 mean distance travelled is 9.6km (from transport-and-travel-in-scotland-2019-local-authority-tables.xlsx)
-# find which % of these journeys are by bicycle
-
-zones = targets::tar_load(zones)
+targets::tar_load(zones)
 zones_shopping = zones %>%
   mutate(shopping_km = ResPop2011 * 9.6 * shop_percent) # resident population (should use 18+ only) * km travelled per person * percent of trips (should be kms) that are for shopping
 
-# Get cycle mode shares
-cycle_mode_share = 0.012 # (can get this by local authority)
-
-zones_shopping = zones_shopping %>% 
-  mutate(shopping_cycle = shopping_km * cycle_mode_share)
 
 # Spatial interaction model of journeys
 max_length_euclidean_km = 5
 od_shopping = si_to_od(zones_shopping, shopping_grid, max_dist = max_length_euclidean_km * 1000)
 od_interaction = od_shopping %>% 
   si_calculate(fun = gravity_model, 
-               m = origin_shopping_cycle,
+               m = origin_shopping_km,
                n = destination_size,
                d = distance_euclidean,
                beta = 0.5,
-               constraint_production = origin_shopping_cycle)
+               constraint_production = origin_shopping_km)
 od_interaction = od_interaction %>% 
   filter(quantile(interaction, 0.9) < interaction)
 
@@ -133,7 +126,14 @@ od_interaction_jittered = odjitter::jitter(
   min_distance_meters = min_distance_meters
 )
 
-# Trip numbers
+# Trip numbers - find which % of these journeys are by bicycle
+
+# Get cycle mode shares
+cycle_mode_share = 0.012 # (can get this by local authority)
+
+zones_shopping = zones_shopping %>% 
+  mutate(shopping_cycle = shopping_km * cycle_mode_share)
+
 od_shopping_jittered = od_interaction_jittered %>% 
   rename(
     shopping = interaction,
@@ -141,12 +141,12 @@ od_shopping_jittered = od_interaction_jittered %>%
     geo_code2 = D
   ) %>% 
   mutate(
-    cyclists = shopping * cycle_nat_mode_share,
-    drivers = shopping * car_nat_mode_share,
-    foot = shopping * foot_nat_mode_share,
-    public_transport = shopping * pt_nat_mode_share,
-    other = shopping * other_nat_mode_share,
-    passengers = 0,
+    cyclists = shopping * cycle_mode_share,
+    # drivers = shopping * car_mode_share,
+    # foot = shopping * foot_mode_share,
+    # public_transport = shopping * pt_mode_share,
+    # other = shopping * other_mode_share,
+    # passengers = 0,
     all_modes = shopping
   )
 
