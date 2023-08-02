@@ -1,21 +1,23 @@
 name,type,data,command,depend,seed,path,time,size,bytes,format,repository,iteration,parent,children,seconds,warnings,error
-param_file,stem,ff62206ce4d6d5ac,9c1a31a16c352029,ef46db3751d8e999,-1046133151,,2023-07-21T11:42:46Z,2c02ccb1d6d3878b,191,file,local,vector,NA,,0.001,NA,NA
-parameters,stem,be45cca5c86fce03,3ef8c0c7ce7967e1,81eecc75e90fb1f3,780725592,,2023-07-21T11:43:14Z,4b46e8ae20ede711,198,rds,local,vector,NA,,0.018,"No .Renviron file, routing may not work",NA
-r_school,stem,571546e734e6c2e2,3c3ff141c7cc79f4,f2dae6af2377bd99,-989549808,,2023-07-21T13:08:34Z,e143d3d00b9b30f0,878825,rds,local,vector,NA,,549.356,NA,NA
-study_area,stem,f10050e8b8b10e2a,82e58913785ce54b,76f2b197476dbf8b,-988187226,,2023-07-21T11:43:14Z,ba5ccc799e37b5a1,2273,rds,local,vector,NA,,0.016,NA,NA
-subpoints_origins,stem,6919aed237f7dfc6,cb8938d7ea9fdc7e,08b5bf5d8fb6f186,450966405,,2023-07-21T13:09:12Z,027d7c346c8dbc28,307974,rds,local,vector,NA,,37.476,no nonmissing arguments to min returning Inf. no nonmissing arguments to min returning Inf. no nonmissing arguments to max returning Inf. no nonmissing arguments to max returning Inf. no nonmissing arguments to min returning Inf. no nonmissing arguments to min returning Inf. no nonmissing arguments to max returning Inf. no nonmissing arguments to max returning Inf,NA
-zones,stem,f583a09258ee3a79,ead726b6b23fe76b,11bc60c8c5d87d02,-1975358009,,2023-07-21T11:43:14Z,177b79f5180c767d,96053,rds,local,vector,NA,,0.191,NA,NA
-od_data,stem,c64ad6de671f9d2e,516a921dfab17831,437f110fe223c184,-1950608183,,2023-07-21T13:38:50Z,2873ce3b68a6cdf4,2339,rds,local,vector,NA,,0.228,NA,NA
-uptake_list_school,stem,530d5b63dc564144,66a82b15476368c4,71ddc050780bbc05,914090884,,2023-07-21T13:38:51Z,b9532ef50e4d9de0,913543,rds,local,vector,NA,,0.511,NA,NA
-subpoints_destinations,stem,6919aed237f7dfc6,e934d42a86598b81,6ac748e6a9eeadf1,-1697010667,,2023-07-21T13:38:51Z,027d7c346c8dbc28,307974,rds,local,vector,NA,,0.001,NA,NA
-rnet_school_list,stem,088a112aa1fd22a4,0ed14f2d57918a90,858e1898e215432f,705836314,,2023-07-21T13:38:57Z,c90456c267efd204,527152,rds,local,vector,NA,,5.983,NA,NA
-od_commute_jittered,stem,ff9321a2450e49a8,d82a9a1fa0e1cb57,794b73d82ef8a91a,674506102,,2023-07-21T13:38:59Z,53da5c7e1c22bf0e,9110,rds,local,vector,NA,,1.348,NA,NA
-od_commute_subset,stem,9b8a68733a4c0a12,b56265c80f50bf22,477d8c2c2977e027,-1812505247,,2023-07-21T13:38:59Z,2ba4066071a47eb8,9273,rds,local,vector,NA,,0.009,NA,NA
-r_commute,stem,2361d142607b32ea,8aeb1fb5c011600e,0efbc8075e8cf143,-1169720700,,2023-07-21T13:47:41Z,599267fab5451ca5,1227512,rds,local,vector,NA,,521.942,NA,NA
-calculate_benefits,stem,2361d142607b32ea,387252c9786e687f,7f13fdcd535241eb,-1625165940,,2023-07-21T13:47:41Z,599267fab5451ca5,1227512,rds,local,vector,NA,,0,NA,NA
-zone_stats,stem,f583a09258ee3a79,1e9648b83edb22a4,936930d389122737,-1203691813,,2023-07-21T13:47:41Z,177b79f5180c767d,96053,rds,local,vector,NA,,0,NA,NA
-uptake_list_commute,stem,580ff5efd39e1403,cf5e30a0bb249b54,a1a39cb5556b9a43,-1417656883,,2023-07-21T13:47:43Z,5282dab00304fe37,1254645,rds,local,vector,NA,,0.893,NA,NA
-rnet_commute_list,stem,be52b74d604b71cd,688b4850a36f5e8c,938a922e714473fe,-1500100641,,2023-07-21T13:47:49Z,04bd859b5cb20a5b,583680,rds,local,vector,NA,,6.457,NA,NA
-combined_network,stem,0474dbb383e2346b,21ac4310f7f29518,09cff5b7a9bbf929,1815710017,,2023-07-21T13:47:58Z,875580e5d2973eca,462067,rds,local,vector,NA,,8.538,NA,NA
-save_outputs,stem,94eadb9cde5c8975,b4eaa253ec7e0fb6,d7647ef6c95457fd,1635958269,,2023-07-21T13:48:00Z,41200f7f0df0ebd3,96,rds,local,vector,NA,,2.599,"Thats a lot of columns for the GeoJSON, are they all needed",NA
-upload_data,stem,80707771b904708e,cb79013adc5f7ccd,8506ed38ba13ab1d,412588227,,2023-07-21T13:48:01Z,e655bbbdcbba1d63,81,rds,local,vector,NA,,0.083,NA,NA
+metadata,stem,d74591e24fb9c068,4c9ed1b12f6daba6,b9bb8c2ab77fe6e0,2062409165,,2023-07-28T14:08:02Z,a7c6c3ba8318f0f6,640,rds,local,vector,NA,,0.59,NA,NA
+od_commute_jittered,stem,90d1c5bfdb44d42d,d82a9a1fa0e1cb57,b31a490f7f6ba075,674506102,,2023-07-28T13:31:54Z,01105ac1f740853c,7953,rds,local,vector,NA,,1.4,NA,NA
+uptake_list,stem,368e87d515a18f6e,fcea9596174ddaf1,d63d47c9cc5bae27,955218489,,2023-06-03T07:18:25Z,b8b968b15a5c6f33,1308829420,rds,local,vector,NA,,504.75,NA,NA
+param_file,stem,da23843901d77857,9c1a31a16c352029,ef46db3751d8e999,-1046133151,,2023-07-28T14:21:02Z,7ef6a54c598fd8bf,203,file,local,vector,NA,,0,NA,NA
+parameters,stem,328ac0f3d66a13c8,3ef8c0c7ce7967e1,1c9c23bf56abf390,780725592,,2023-07-28T14:22:56Z,133046f721ebc445,199,rds,local,vector,NA,,0.05,"No .Renviron file, routing may not work",NA
+study_area,stem,a3568ad6916deaa6,82e58913785ce54b,51579e73fdd224e1,-988187226,,2023-07-28T14:22:56Z,e46d344bde923973,2274,rds,local,vector,NA,,0.04,NA,NA
+zones,stem,0764c5c1f49aa67f,ead726b6b23fe76b,1eb471eee093f844,-1975358009,,2023-07-28T14:22:57Z,64156dc02fb0121e,96054,rds,local,vector,NA,,0.24,NA,NA
+r_school,stem,f244cb488785c59a,3c3ff141c7cc79f4,f57ac4b12489ae33,-989549808,,2023-07-28T14:31:35Z,11f4a7d913a017c4,1178390,rds,local,vector,NA,,517.84,NA,NA
+subpoints_origins,stem,f5d81ac000f9dfa3,cb8938d7ea9fdc7e,8923b14513f32419,450966405,,2023-07-28T14:31:50Z,127bdfea8906f02f,308439,rds,local,vector,NA,,14.93,no nonmissing arguments to min returning Inf. no nonmissing arguments to min returning Inf. no nonmissing arguments to max returning Inf. no nonmissing arguments to max returning Inf. no nonmissing arguments to min returning Inf. no nonmissing arguments to min returning Inf. no nonmissing arguments to max returning Inf. no nonmissing arguments to max returning Inf. no nonmissing arguments to min returning Inf. no nonmissing arguments to min returning Inf. no nonmissing arguments to max returning Inf. no nonmissing arguments to max returning Inf. no nonmissing arguments to min returning Inf. no nonmissing arguments to min returning Inf. no nonmissing arguments to max returning Inf. no nonmissing arguments to max returning Inf. no nonmissing arguments to min returning Inf. no nonmissing arguments to min returning Inf. no nonmissing arguments to max returning Inf. no nonmissing arguments to max returning Inf. no nonmissing arguments to min returning Inf. no nonmissing arguments to min returning Inf. no nonmissing arguments to max returning Inf. no nonmissing arguments to max returning Inf. no nonmissing arguments to min returning Inf. no nonmissing arguments to min returning Inf. no nonmissing arguments to max returning Inf. no nonmissing arguments to max returning Inf,NA
+od_data,stem,ae8b6f75c9faa2a9,516a921dfab17831,01e85871559dcf81,-1950608183,,2023-07-28T14:31:50Z,36f46210233ca9b0,2339,rds,local,vector,NA,,0.09,NA,NA
+uptake_list_school,stem,92af05147b7ffc5d,66a82b15476368c4,c61a64c896f5aacd,914090884,,2023-07-28T14:31:51Z,78bbf4bef2149902,1215089,rds,local,vector,NA,,0.41,NA,NA
+subpoints_destinations,stem,f5d81ac000f9dfa3,e934d42a86598b81,4ca1ba1d1624702a,-1697010667,,2023-07-28T14:31:51Z,127bdfea8906f02f,308439,rds,local,vector,NA,,0,NA,NA
+rnet_school_list,stem,8819f9044f045a29,0ed14f2d57918a90,8f3f301cb090fc23,705836314,,2023-07-28T14:31:54Z,33660cc527b94816,526834,rds,local,vector,NA,,3.66,NA,NA
+od_commute_subset,stem,68b58302993114e1,b56265c80f50bf22,341f990e38410706,-1812505247,,2023-07-28T14:31:54Z,65cc1dca6a67987a,8094,rds,local,vector,NA,,0,NA,NA
+r_commute,stem,444c4caa6f3aa695,8aeb1fb5c011600e,63149ca436c5a429,-1169720700,,2023-07-28T14:37:32Z,f6500be1ebe9a41c,1280994,rds,local,vector,NA,,337.76,NA,NA
+calculate_benefits,stem,444c4caa6f3aa695,387252c9786e687f,b82d127c9e279581,-1625165940,,2023-07-28T14:37:33Z,f6500be1ebe9a41c,1280994,rds,local,vector,NA,,0,NA,NA
+zone_stats,stem,0764c5c1f49aa67f,1e9648b83edb22a4,d4b2cab023b72420,-1203691813,,2023-07-28T14:37:33Z,64156dc02fb0121e,96054,rds,local,vector,NA,,0,NA,NA
+uptake_list_commute,stem,b3368d1dbebb9e98,cf5e30a0bb249b54,b7eab91100937681,-1417656883,,2023-07-28T14:37:34Z,56ec98f76f17cacc,1307295,rds,local,vector,NA,,0.61,NA,NA
+rnet_commute_list,stem,9f00d4f7c5c61f93,688b4850a36f5e8c,efc80ace17f77a07,-1500100641,,2023-07-28T14:37:37Z,b0f4a07961b797b8,532664,rds,local,vector,NA,,3.43,NA,NA
+combined_network,stem,f22a83b9c9d2d855,21ac4310f7f29518,a575404327174885,1815710017,,2023-07-28T14:37:42Z,3aa9d7736ea921ab,446366,rds,local,vector,NA,,4.67,NA,NA
+save_outputs,stem,aa94c2acd22595cf,0bb63f0f3cd0b4e7,a6df124d3a7f45e2,1635958269,,2023-07-28T14:37:42Z,f43a1dad04e131de,98,rds,local,vector,NA,,0.48,"Thats a lot of columns for the GeoJSON, are they all needed. zip not found. tippecanoe not found",NA
+upload_data,stem,f09add3cd2a9220b,cb79013adc5f7ccd,13c0f3107b7f13f0,412588227,,2023-07-28T14:37:43Z,369e3c9a0bfec73b,83,rds,local,vector,NA,,0.64,NA,NA
