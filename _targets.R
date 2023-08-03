@@ -191,14 +191,15 @@ list(
     if(parameters$open_data_build) {
       schools_dl = sf::read_sf("data-raw/school_desire_lines_open.geojson")
     } else {
-    path_teams = Sys.getenv("NPT_TEAMS_PATH")
-    if(nchar(path_teams) == 0){
-      stop("Can't find Teams folder of secure data. Use usethis::edit_r_environ() to define NPT_TEAMS_PATH ")
-    }
-    if(file.exists(file.path(path_teams,"secure_data/schools/school_dl_sub30km.Rds"))){
-      schools_dl = readRDS(file.path(path_teams, "secure_data/schools/school_dl_sub30km.Rds"))
-    } else {
-      stop("Can't find ",file.path(path_teams,"secure_data/schools/school_dl_sub30km.Rds"))
+      path_teams = Sys.getenv("NPT_TEAMS_PATH")
+      if(nchar(path_teams) == 0){
+        stop("Can't find Teams folder of secure data. Use usethis::edit_r_environ() to define NPT_TEAMS_PATH ")
+      }
+      if(file.exists(file.path(path_teams,"secure_data/schools/school_dl_sub30km.Rds"))){
+        schools_dl = readRDS(file.path(path_teams, "secure_data/schools/school_dl_sub30km.Rds"))
+      } else {
+        stop("Can't find ",file.path(path_teams,"secure_data/schools/school_dl_sub30km.Rds"))
+      }
     }
     if(parameters$geo_subset) {
       schools_dl = schools_dl[study_area, op = sf::st_within]
@@ -207,12 +208,12 @@ list(
       slice_max(order_by = count, n = parameters$max_to_route, with_ties = FALSE)
     folder_name = paste0("outputdata/", parameters$date_routing)
     routes_school = get_routes(
-        schools_dl,
-        plans = parameters$plans, purpose = "school",
-        folder = folder_name,
-        batch = FALSE,
-        nrow_batch = 100000
-        )
+      schools_dl,
+      plans = parameters$plans, purpose = "school",
+      folder = folder_name,
+      batch = FALSE,
+      nrow_batch = 100000
+    )
     routes_school
   }),
   
