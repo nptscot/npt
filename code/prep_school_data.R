@@ -100,7 +100,7 @@ flow_jitter = odjitter::jitter(
 flow_jitter$length_km <- round(as.numeric(st_length(flow_jitter)) / 1000,1)
 summary(flow_jitter$length_km)
 flow_jitter <- flow_jitter[flow_jitter$length_km < 30,]
-flow_jitter <- flow_jitter[,c("DataZone","SeedCode","count")]
+flow_jitter <- flow_jitter[,c("DataZone","SeedCode","schooltype","count")]
 flow_jitter$route_id <- 1:nrow(flow_jitter)
 flow_jitter$count <- round(flow_jitter$count)
 
@@ -120,7 +120,7 @@ flow_jitter$other <- ifelse(is.na(flow_jitter$other),1 - flow_jitter$walk - flow
 #flow_split = group_split(flow_split)
 flow_split = split(flow_jitter, flow_jitter$SeedCode)
 
-x = flow_split[[(1:length(flow_split))[names(flow_split) == "5553024"]]]
+#x = flow_split[[(1:length(flow_split))[names(flow_split) == "5553024"]]]
 
 random_integers <- function(total_value, num_elements, max_value, seed) {
   #message(total_value, num_elements)
@@ -223,6 +223,7 @@ flow_bicycle = bind_rows(flow_bicycle)
 
 flow_bicycle$lenght_km_str = NULL
 
+flow_bicycle$schooltype <- gsub("Special ","",flow_bicycle$schooltype)
 
 saveRDS(flow_bicycle, file.path(secure_path,"secure_data/schools/school_dl_sub30km.Rds"))
 
