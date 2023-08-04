@@ -404,6 +404,11 @@ list(
     # zip(zipfile = "outputdata/combined_network.zip", "rnet.geojson")
     # Tile the data:
     # system("bash code/tile.sh")
+    
+    # # Manually get geojson:
+    # cd outputdata
+    # gh release download z2023-07-28 --pattern *.geojson
+    # cd ..
     msg_verbose = paste0(
       "--name=rnet --layer=rnet --attribution=UniverstyofLeeds --minimum-zoom=6 ",
       "--maximum-zoom=13 --drop-smallest-as-needed --maximum-tile-bytes=5000000 ",
@@ -412,6 +417,11 @@ list(
     date_routing = parameters$date_routing
     msg = glue::glue("tippecanoe -o outputdata/rnet_{date_routing}.pmtiles")
     system(paste(msg, msg_verbose))
+    
+    # Upload pmtiles to release
+    # cd outputdata
+    # gh release upload z2023-07-28 rnet_2023-07-04.pmtiles
+    # cd ..
     sys_time
   }),
   
