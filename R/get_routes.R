@@ -1,4 +1,4 @@
-get_routes = function(od, plans, purpose = "work", folder = ".", batch = TRUE, batch_save = TRUE, nrow_batch = 100) {
+get_routes = function(od, plans, purpose = "work", folder = ".", batch = TRUE, batch_save = FALSE, nrow_batch = 100) {
   if (nrow(od) < 250) {
     batch = FALSE
   }
