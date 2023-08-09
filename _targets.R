@@ -386,6 +386,17 @@ list(
     zones_stats_list$schools
   }),
   
+  tar_target(zones_stats_json, {
+    if(!dir.exists("outputdata/json")){
+      dir.create("outputdata/json")
+    }
+    export_zone_json(zones_stats, "DataZone")
+  }),
+  
+  tar_target(school_stats_json, {
+    export_zone_json(school_stats, "SeedCode")
+  }),
+  
   
   tar_target(save_outputs, {
     message("Saving outputs for ", parameters$date_routing)

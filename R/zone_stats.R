@@ -232,6 +232,8 @@ uptake_to_zone_stats <- function(comm, schl, zones){
                                 route_hilliness = mean(route_hilliness, na.rm = TRUE)
   )
   
+  schl_to <- dplyr::ungroup(schl_to)
+  
   schl_to <- tidyr::pivot_wider(schl_to, 
                                   id_cols = c("SeedCode"),
                                   names_from = c("schooltype","plan"),
@@ -379,12 +381,13 @@ routes_to_zone_stats <- function(r, route_type = "fastest", route_purpose = "com
 
 #' Function to convert a data.frame into a folder of JSON files
 #' @param x data frame with column called geo_code
+#' @parm idcol name of column with unique id
 #' @param path folder to save JSON
 #' @param zip logical, if true zips the json into a single zip folder
 #' 
 #' Will drop any sf geometry and name files based on geo_code
 
-export_zone_json <- function(x,path = "outputdata/json", zip = TRUE){
+export_zone_json <- function(x,  idcol = "DataZone", path = "outputdata/json", zip = TRUE){
   
   if(!dir.exists(path)){
     stop("path is not a valid folder")
@@ -398,32 +401,34 @@ export_zone_json <- function(x,path = "outputdata/json", zip = TRUE){
     x <- sf::st_drop_geometry(x)
   }
   
-  x <- split(x, x$geo_code)
+  x <- dplyr::group_split(x, x[idcol])
   
   if(zip){
     dir.create(file.path(tempdir(),"jsonzip"))
     message("Writing JSON")
     for(i in seq(1,length(x))){
       sub <- x[[i]]
-      jsonlite::write_json(sub, file.path(tempdir(),"jsonzip",paste0(sub$geo_code,".json")))
+      jsonlite::write_json(sub, file.path(tempdir(),"jsonzip",paste0(sub[idcol],".json")))
     }
     files <- list.files(file.path(tempdir(),"jsonzip"))
-    message("Zipping")
+    message("Zipping JSON")
     my_wd <- getwd()
     setwd(file.path(tempdir(),"jsonzip"))
-    utils::zip(file.path(my_wd,path,"zipped_json.zip"),files)
+    utils::zip(file.path(my_wd,path,paste0(idcol,"_json.zip")),files, flags="-q")
     setwd(my_wd)
     unlink(file.path(tempdir(),"jsonzip"), recursive = TRUE)
+    
+    return(file.path(my_wd,path,paste0(idcol,"_json.zip")))
     
   } else {
     message("Writing JSON")
     for(i in seq(1,length(x))){
       sub <- x[[i]]
-      jsonlite::write_json(sub, file.path(path,paste0(sub$geo_code,".json")))
+      jsonlite::write_json(sub, file.path(path,paste0(sub[idcol],".json")))
     }
   }
   
-
+  return(path)
   
 }
 
