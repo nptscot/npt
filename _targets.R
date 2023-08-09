@@ -302,7 +302,7 @@ list(
       message("Building Secondary ", p, " network")
       rs = uptake_list_school[[p]]
       rs = rs[rs$schooltype == "Secondary",]
-      rnet = make_rnets(rp, ncores = 1)
+      rnet = make_rnets(rs, ncores = 1)
       
       f = paste0("outputdata/rnet_secondary_school_", p, ".Rds")
       saveRDS(rnet, f)
