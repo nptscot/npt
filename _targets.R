@@ -431,7 +431,8 @@ list(
     full_build = isFALSE(parameters$geo_subset) &&     
       isFALSE(parameters$open_data_build) &&
       parameters$max_to_route > 100e3
-    if((Sys.info()[['sysname']] == "Linux" | TRUE) && full_build ) {
+    is_linux = Sys.info()[['sysname']] == "Linux"
+    if(full_build) {
     v = paste0("v", save_outputs, "_commit_", commit$commit)
     v = gsub(pattern = " |:", replacement = "-", x = v)
     setwd("outputdata")
