@@ -182,7 +182,9 @@ list(
     routes_commute = get_routes(od = od_commute_subset,
                                 plans = parameters$plans, purpose = "commute",
                                 folder = folder_name, batch = TRUE, nrow_batch = 99999,
-                                batch_save = TRUE)
+                                batch_save = TRUE,
+                                date = parameters$date_routing
+                                )
     routes_commute
   }),
   
@@ -212,7 +214,8 @@ list(
       plans = parameters$plans, purpose = "school",
       folder = folder_name,
       batch = FALSE,
-      nrow_batch = 100000
+      nrow_batch = 100000,
+      date = parameters$date_routing
     )
     routes_school
   }),
