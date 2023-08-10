@@ -4,7 +4,7 @@
 #   https://books.ropensci.org/targets/walkthrough.html#inspect-the-pipeline # nolint
 
 # Load packages required to define the pipeline:
-remotes::install_github("cyclestreets/cyclestreets-r", "75-repeated-message-on-batch-routing")
+remotes::install_github("cyclestreets/cyclestreets-r")
 remotes::install_github("dabreegster/odjitter", subdir = "r")
 remotes::install_cran("targets")
 library(targets)
