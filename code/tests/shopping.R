@@ -114,14 +114,15 @@ od_interaction = od_shopping %>%
 od_interaction = od_interaction %>% 
   filter(quantile(interaction, 0.9) < interaction)
 
-saveRDS(od_interaction, "./inputdata/shopping_interaction.Rds")
+# saveRDS(od_interaction, "./inputdata/shopping_interaction.Rds")
+# od_interaction = readRDS("./inputdata/shopping_interaction.Rds")
 
 # Jittering
 shopping_polygons = sf::st_buffer(shopping_grid, dist = 0.0001)
 
 od_interaction_jittered = odjitter::jitter(
   od = od_interaction,
-  zones = zones,
+  zones = zones_shopping,
   zones_d = shopping_polygons,
   subpoints_origins = osm_highways,
   subpoints_destinations = shopping_grid,
