@@ -6,8 +6,11 @@ devtools::install_github("robinlovelace/simodels")
 library(simodels)
 source("R/gravity_model.R")
 
-# Add osm highways for scotland
+disag_threshold = 50
+min_distance_meters = 500
 
+# Add osm highways for scotland
+osm_highways = readRDS("./inputdata/osm_highways_2023-08-09.Rds")
 
 # Get shopping destinations from secure OS data
 path_teams = Sys.getenv("NPT_TEAMS_PATH")
@@ -93,7 +96,7 @@ shop_percent = shop_percent[[1]]/100
 
 # need to improve on this figure:
 # 2019 mean distance travelled is 9.6km (from transport-and-travel-in-scotland-2019-local-authority-tables.xlsx)
-targets::tar_load(zones)
+zones = readRDS("inputdata/DataZones.Rds")
 zones_shopping = zones %>%
   mutate(shopping_km = ResPop2011 * 9.6 * shop_percent) # resident population (should use 18+ only) * km travelled per person * percent of trips (should be kms) that are for shopping
 
@@ -111,19 +114,22 @@ od_interaction = od_shopping %>%
 od_interaction = od_interaction %>% 
   filter(quantile(interaction, 0.9) < interaction)
 
+# saveRDS(od_interaction, "./inputdata/shopping_interaction.Rds")
+# od_interaction = readRDS("./inputdata/shopping_interaction.Rds")
 
 # Jittering
 shopping_polygons = sf::st_buffer(shopping_grid, dist = 0.0001)
 
 od_interaction_jittered = odjitter::jitter(
   od = od_interaction,
-  zones = zones,
+  zones = zones_shopping,
   zones_d = shopping_polygons,
-  subpoints_origins = osm_highways_region,
+  subpoints_origins = osm_highways,
   subpoints_destinations = shopping_grid,
   disaggregation_key = "interaction",
   disaggregation_threshold = disag_threshold,
-  min_distance_meters = min_distance_meters
+  min_distance_meters = min_distance_meters,
+  deduplicate_pairs = FALSE
 )
 
 # Trip numbers - find which % of these journeys are by bicycle

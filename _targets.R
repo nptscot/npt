@@ -182,7 +182,9 @@ list(
     routes_commute = get_routes(od = od_commute_subset,
                                 plans = parameters$plans, purpose = "commute",
                                 folder = folder_name, batch = TRUE, nrow_batch = 99999,
-                                batch_save = TRUE)
+                                batch_save = TRUE,
+                                date = parameters$date_routing
+                                )
     routes_commute
   }),
   
@@ -212,7 +214,8 @@ list(
       plans = parameters$plans, purpose = "school",
       folder = folder_name,
       batch = FALSE,
-      nrow_batch = 100000
+      nrow_batch = 100000,
+      date = parameters$date_routing
     )
     routes_school
   }),
@@ -441,7 +444,8 @@ list(
     full_build = isFALSE(parameters$geo_subset) &&     
       isFALSE(parameters$open_data_build) &&
       parameters$max_to_route > 100e3
-    if((Sys.info()[['sysname']] == "Linux" | TRUE) && full_build ) {
+    is_linux = Sys.info()[['sysname']] == "Linux"
+    if(full_build) {
     v = paste0("v", save_outputs, "_commit_", commit$commit)
     v = gsub(pattern = " |:", replacement = "-", x = v)
     setwd("outputdata")

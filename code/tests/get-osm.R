@@ -54,5 +54,5 @@ osm_highways = osm_lines %>%
 
 
 dim(osm_highways) 
-# [1] 422559     30
-saveRDS(osm_highways, "inputdata/osm_highways_2023-07-28.Rds") # 100 MB file
+# [1] 423190     30
+saveRDS(osm_highways, "inputdata/osm_highways_2023-08-09.Rds") # 46 MB file
