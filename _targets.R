@@ -288,7 +288,7 @@ list(
     for(p in parameters$plans) {
       message("Building Primary ", p, " network")
       rp = uptake_list_school[[p]]
-      rp = rp[rp$schooltype == "Primary",]
+      rp = rp[rp$schooltype == "primary",]
       rnet = make_rnets(rp, ncores = 1)
       
       f = paste0("outputdata/rnet_primary_school_", p, ".Rds")
@@ -301,7 +301,7 @@ list(
     for(p in parameters$plans) {
       message("Building Secondary ", p, " network")
       rs = uptake_list_school[[p]]
-      rs = rs[rs$schooltype == "Secondary",]
+      rs = rs[rs$schooltype == "secondary",]
       rnet = make_rnets(rs, ncores = 1)
       
       f = paste0("outputdata/rnet_secondary_school_", p, ".Rds")

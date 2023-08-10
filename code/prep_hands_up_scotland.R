@@ -50,12 +50,19 @@ saveRDS(res_all,file.path(secure_path,"secure_data/schools/hands_up_scotland.Rds
 res_all[4:13] <- lapply(res_all[4:13], function(x){round(as.numeric(x),2)})
 
 # Reduce modes to standard list https://github.com/nptscot/npt/issues/191
-res_all$walk = rowSums(res_all[,c("Walk","Scooter / Skate")], na.rm = TRUE)
 res_all$bicycle = res_all$Cycle
 res_all$public_transport = res_all$Bus
-res_all$car = rowSums(res_all[,c("Driven","Park & Stride")], na.rm = TRUE) 
 res_all$taxi = res_all$Taxi
 res_all$other = res_all$Other
+
+# For multiple modes 0 + NA == NA but 0.5 + NA == 0.5
+# This because 0 are provided but low values are suppressed
+res_all$walk = ifelse(rowSums(res_all[,c("Walk","Scooter / Skate")], na.rm = TRUE) == 0,
+                      NA,
+                      rowSums(res_all[,c("Walk","Scooter / Skate")], na.rm = TRUE))
+res_all$car = ifelse(rowSums(res_all[,c("Driven","Park & Stride")], na.rm = TRUE) == 0,
+                      NA,
+                      rowSums(res_all[,c("Driven","Park & Stride")], na.rm = TRUE)) 
 
 res_all = res_all[,c("Local Authority","SEED No.","School Name","Year",
                      "Total","type","walk","bicycle","public_transport","car",
@@ -63,6 +70,7 @@ res_all = res_all[,c("Local Authority","SEED No.","School Name","Year",
 
 # Fill in missing data
 res_summary <- res_all %>%
+ filter(!is.na(Total)) %>%
  group_by(`Local Authority`, `type`) %>%
  summarise(walk = median(walk, na.rm = TRUE),
            bicycle = median(bicycle, na.rm = TRUE),
@@ -79,42 +87,111 @@ names(res_all) = c("la","SEED","school_name","year","total_pupils","type",
                    "walk","bicycle","public_transport","car","taxi","other")
 
 res_all$other <- ifelse(is.na(res_all$total_pupils),NA,res_all$other)
-
-stop()
-
-
-res_summary = res_summary[,c("Local Authority","type","walk","bicycle")]
 names(res_summary) = c("la","type","walk_ave","bicycle_ave","public_transport_ave","car_ave",
                        "taxi_ave","other_ave")
 
 res_join = left_join(res_all, res_summary, by = c("la","type"))
 
-res_join$walk = ifelse(is.na(res_join$walk),res_join$walk_ave,res_join$walk)
-res_join$bicycle = ifelse(is.na(res_join$bicycle),res_join$bicycle_ave,res_join$bicycle)
-res_join$public_transport = ifelse(is.na(res_join$public_transport),res_join$public_transport_ave,res_join$public_transport)
-res_join$car = ifelse(is.na(res_join$car),res_join$car_ave,res_join$car)
-res_join$taxi = ifelse(is.na(res_join$taxi),res_join$taxi_ave,res_join$taxi)
-res_join$other = ifelse(is.na(res_join$other),round(1 - res_join$bicycle - res_join$walk - 
-                                                      res_join$public_transport - res_join$car - 
-                                                      res_join$taxi, 2),res_join$other)
-res_join$data = ifelse(is.na(res_join$total_pupils),"modeled","observed")
+# Drop Nursery, SEN, Independent for now
+res_join = res_join[!res_join$type %in% c("nursery","independent","sen"), ]
 
-summary(res_join$other) # TODO: Some have -ve other mode share as knonw modes are high %
+infill_modalshare = function(x){
+  
+  x = as.data.frame(x)
+  
+  # Check missing data
+  if(all(c(!is.na(x$walk), !is.na(x$bicycle), !is.na(x$public_transport), !is.na(x$car), !is.na(x$taxi), !is.na(x$other)))){
+    x = x[,c("la","SEED","id","school_name","year","total_pupils","type","walk","bicycle","public_transport","car","taxi","other")]
+    return(x)
+  }
+  
+  knownshare = rowSums(x[,c("walk","bicycle","public_transport","car","taxi","other")], na.rm = TRUE)
+  knownshare = ifelse(knownshare > 1, 1, knownshare)
+  
+  unknownshare = 1 - knownshare
+  unknownshare = ifelse(unknownshare > 1, 1, unknownshare)
+  
+  weights = as.numeric(t(x[,c("walk_ave","bicycle_ave","public_transport_ave","car_ave","taxi_ave","other_ave")]))
+  names(weights) = c("walk","bicycle","public_transport","car","taxi","other")
+  weights[is.na(weights)] = 0
+  
+  # Give 0 weight to known variables
+  for(i in seq_along(weights)){
+    if(!is.na(x[names(weights)[i]])){
+      weights[i] <- 0
+    }
+  }
+  
+  if(sum(weights, na.rm = TRUE) == 0){
+    weights[weights == 0] = 1
+    for(i in seq_along(weights)){
+      if(!is.na(x[names(weights)[i]])){
+        weights[i] <- 0
+      }
+    }
+    
+    #stop("Zero Weights applied ",x$SEED)
+  }
+  
+  # Distribute unknown by weight
+  weights = weights / sum(weights)
+  weights = weights * unknownshare
+  
+  # Hand out new mode share
+  for(i in seq_along(weights)){
+    if(is.na(x[names(weights)[i]])){
+      x[names(weights)[i]] = weights[i]
+    }
+  }
+  
+  x = x[,c("la","SEED","id","school_name","year","total_pupils","type","walk","bicycle","public_transport","car","taxi","other")]
+  return(x)
+  
+}
 
-#TODO: Better method of filling in gaps
-res_join$bicycle = ifelse(is.na(res_join$bicycle),median(res_join$bicycle, na.rm = TRUE),res_join$bicycle)
-res_join$walk = ifelse(is.na(res_join$walk),median(res_join$walk, na.rm = TRUE),res_join$walk)
+res_join$id <- seq(1,nrow(res_join))
+res_split <- dplyr::group_split(res_join, res_join$id)
 
-# Check other matches 
-#res_join$foo = res_join$other -  (1 - res_join$bicycle - res_join$walk)
-#res_join$other = 1 - res_join$bicycle - res_join$walk
+res_split = pbapply::pblapply(res_split, infill_modalshare)
+res_split = bind_rows(res_split)
 
-# Some SEED codes duplicated when two schools on the same site. Sort to favor real data
-res_join <- res_join[order(res_join$data, decreasing = TRUE),]
-res_join <- res_join[!duplicated(res_join$SEED),]
+res_split[8:13] <- lapply(res_split[8:13], round, digits = 3)
+res_split$ptot <- rowSums(res_split[8:13])
 
-res_join <- res_join[,c("la","SEED","school_name","year","data","total_pupils","type",
-                        "walk","bicycle","public_transport","car","taxi","other")]
+res_split$other <- ifelse(res_split$ptot == 1, res_split$other, res_split$other + 1 - res_split$ptot)
+res_split$other <- ifelse(res_split$other < 0, 0, res_split$other)
 
-saveRDS(res_join,file.path(secure_path,"secure_data/schools/school_mode_split.Rds"))
+res_split$ptot = NULL
 
+summary(res_split)
+
+saveRDS(res_split,file.path(secure_path,"secure_data/schools/school_mode_split.Rds"))
+
+# stop()
+# 
+# res_join$walk = ifelse(is.na(res_join$walk),res_join$walk_ave,res_join$walk)
+# res_join$bicycle = ifelse(is.na(res_join$bicycle),res_join$bicycle_ave,res_join$bicycle)
+# res_join$public_transport = ifelse(is.na(res_join$public_transport),res_join$public_transport_ave,res_join$public_transport)
+# res_join$car = ifelse(is.na(res_join$car),res_join$car_ave,res_join$car)
+# res_join$taxi = ifelse(is.na(res_join$taxi),res_join$taxi_ave,res_join$taxi)
+# res_join$other = ifelse(is.na(res_join$other),round(1 - res_join$bicycle - res_join$walk - 
+#                                                       res_join$public_transport - res_join$car - 
+#                                                       res_join$taxi, 2),res_join$other)
+# res_join$data = ifelse(is.na(res_join$total_pupils),"modeled","observed")
+# 
+# summary(res_join$other) # TODO: Some have -ve other mode share as knonw modes are high %
+# 
+# #TODO: Better method of filling in gaps
+# res_join$bicycle = ifelse(is.na(res_join$bicycle),median(res_join$bicycle, na.rm = TRUE),res_join$bicycle)
+# res_join$walk = ifelse(is.na(res_join$walk),median(res_join$walk, na.rm = TRUE),res_join$walk)
+# 
+# # Check other matches 
+# #res_join$foo = res_join$other -  (1 - res_join$bicycle - res_join$walk)
+# #res_join$other = 1 - res_join$bicycle - res_join$walk
+# 
+# # Some SEED codes duplicated when two schools on the same site. Sort to favor real data
+# res_join <- res_join[order(res_join$data, decreasing = TRUE),]
+# res_join <- res_join[!duplicated(res_join$SEED),]
+# 
+# res_join <- res_join[,c("la","SEED","school_name","year","data","total_pupils","type",
+#                         "walk","bicycle","public_transport","car","taxi","other")]
