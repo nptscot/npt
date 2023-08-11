@@ -99,6 +99,8 @@ flow_jitter = odjitter::jitter(
 
 flow_jitter$length_km <- round(as.numeric(st_length(flow_jitter)) / 1000,1)
 summary(flow_jitter$length_km)
+
+#TODO: excluding long trips distorts overal mode share (edge case but should be considered)
 flow_jitter <- flow_jitter[flow_jitter$length_km < 30,]
 flow_jitter <- flow_jitter[,c("DataZone","SeedCode","schooltype","count")]
 flow_jitter$route_id <- 1:nrow(flow_jitter)
@@ -108,17 +110,31 @@ flow_jitter$count <- round(flow_jitter$count)
 flow_jitter$lenght_km_str <- as.numeric(st_length(flow_jitter)) / 1000
 
 flow_mode <- readRDS(file.path(secure_path,"secure_data/schools/school_mode_split.Rds"))
-flow_mode <- flow_mode[,c("SEED","walk","bicycle","other")]
-flow_jitter = left_join(flow_jitter, flow_mode, by = c("SeedCode" = "SEED"))
+
+# Edge case two primary schools same location, but very little data for Gaelic school, so use main school modeshare
+flow_mode <- flow_mode[flow_mode$school_name != "Gilcomstoun Primary School Gaelic",]
+
+flow_mode <- flow_mode[,c("SEED","type","walk","bicycle","public_transport","car","taxi","other")]
+
+flow_jitter$schooltype <- tolower(flow_jitter$schooltype)
+flow_jitter = left_join(flow_jitter, flow_mode, by = c("SeedCode" = "SEED", "schooltype" = "type"))
 
 # Fill in data for missing schools
 flow_jitter$walk <- ifelse(is.na(flow_jitter$walk),0.44, flow_jitter$walk)
 flow_jitter$bicycle <- ifelse(is.na(flow_jitter$bicycle),0.03, flow_jitter$bicycle)
-flow_jitter$other <- ifelse(is.na(flow_jitter$other),1 - flow_jitter$walk - flow_jitter$bicycle, flow_jitter$other)
 
-#flow_split = group_by(flow_jitter, SeedCode)
-#flow_split = group_split(flow_split)
-flow_split = split(flow_jitter, flow_jitter$SeedCode)
+flow_jitter$public_transport <- ifelse(is.na(flow_jitter$public_transport),0.06, flow_jitter$public_transport)
+flow_jitter$car <- ifelse(is.na(flow_jitter$car),0.32, flow_jitter$car)
+flow_jitter$taxi <- ifelse(is.na(flow_jitter$taxi),0.005, flow_jitter$taxi)
+
+flow_jitter$other <- ifelse(is.na(flow_jitter$other),1 - flow_jitter$walk - 
+                              flow_jitter$bicycle - flow_jitter$public_transport - flow_jitter$car - flow_jitter$taxi, flow_jitter$other)
+
+summary(flow_jitter)
+
+flow_split = group_by(flow_jitter, SeedCode, schooltype)
+flow_split = group_split(flow_split)
+#flow_split = split(flow_jitter, flow_jitter$SeedCode)
 
 #x = flow_split[[(1:length(flow_split))[names(flow_split) == "5553024"]]]
 
@@ -163,57 +179,141 @@ random_integers <- function(total_value, num_elements, max_value, seed) {
 distribute_cycling <- function(x){
   mode_walk = x$walk[1]
   mode_bicycle = x$bicycle[1]
+  mode_public_transport = x$public_transport[1]
+  mode_car = x$car[1]
+  mode_taxi = x$taxi[1]
   mode_other = x$other[1]
   
   n_bicycle = round(mode_bicycle * sum(x$count))
   n_walk = round(mode_walk * sum(x$count))
+  n_public_transport = round(mode_public_transport * sum(x$count))
+  n_car = round(mode_car * sum(x$count))
+  n_taxi = round(mode_taxi * sum(x$count))
+  n_other = round(mode_other * sum(x$count))
   
-  if(n_bicycle == 0){
-    x$walk = NULL
-    x$other = NULL
-    return(x)
-  }
   
-  # Only allocated to less than 4km, unless need more routes to meet demand
-  x = x[order(x$lenght_km_str),]
-  x$count_cumsum <- cumsum(x$count)
-  if(nrow(x) == 1){
-    x$bicycle_alocated <- TRUE
+  #TODO: WHY???
+  if(n_bicycle != 0){
+    # Only allocated to less than 4km, unless need more routes to meet demand
+    x = x[order(x$lenght_km_str),]
+    x$count_cumsum <- cumsum(x$count)
+    if(nrow(x) == 1){
+      x$bicycle_alocated <- TRUE
+    } else {
+      x$bicycle_alocated <- ifelse(x$lenght_km_str < 3 | c(0,x$count_cumsum[seq(1, nrow(x) - 1)]) <  n_bicycle, TRUE, FALSE)
+    }
+    
+    # Check if no route allocated
+    if(sum(x$bicycle_alocated) == 0){
+      x$bicycle_alocated[1] = TRUE
+    }
+    
+    x_bike = x[x$bicycle_alocated,]
+    x = x[!x$bicycle_alocated,]
+    
+    #Pick a random number around average cyclists per route
+    x_bike$n_bicycle = random_integers(total_value = n_bicycle, 
+                                       num_elements = nrow(x_bike), 
+                                       max_value = x_bike$count, 
+                                       seed = x$SeedCode[1])
+    
+    if(sum(x_bike$n_bicycle) != n_bicycle){
+      stop("3 Wrong number of bikes, SEED = ",x$SeedCode[1]," ",sum(x_bike$n_bicycle)," ",n_bicycle)
+    }
+    
+    x_bike$bicycle = x_bike$n_bicycle
+    x$bicycle = 0
+    
+    x_bike = x_bike[names(x)]
+    x = rbind(x,x_bike)
   } else {
-    x$bicycle_alocated <- ifelse(x$lenght_km_str < 3 | c(0,x$count_cumsum[seq(1, nrow(x) - 1)]) <  n_bicycle, TRUE, FALSE)
-  }
- 
-  # Check if no route allocated
-  if(sum(x$bicycle_alocated) == 0){
-    x$bicycle_alocated[1] = TRUE
+    x$bicycle = 0
   }
   
-  x_bike = x[x$bicycle_alocated,]
-  x = x[!x$bicycle_alocated,]
   
-  #Pick a random number around average cyclists per route
-  x_bike$n_bicycle = random_integers(total_value = n_bicycle, 
-                                     num_elements = nrow(x_bike), 
-                                     max_value = x_bike$count, 
-                                     seed = x$SeedCode[1])
   
-  if(sum(x_bike$n_bicycle) != n_bicycle){
-    stop("3 Wrong number of bikes, SEED = ",x$SeedCode[1]," ",sum(x_bike$n_bicycle)," ",n_bicycle)
-  }
   
-  x_bike$bicycle = x_bike$n_bicycle
-  x$bicycle = 0
+  # Give out other modes randomly
   
-  x_bike = x_bike[names(x)]
-  x = rbind(x,x_bike)
+  extra_modes = distribute_mode(n_total = x$count - x$bicycle, 
+                        n_walk = n_walk, 
+                        n_public_transport = n_public_transport, 
+                        n_car = n_car, 
+                        n_taxi = n_taxi, 
+                        n_other = n_other)
   
-  # TODO: Add support of other modes
-  x$walk = NULL
-  x$other = NULL
+  x = cbind(x[!names(x) %in% names(extra_modes)], extra_modes)
+  
   x$bicycle_alocated = NULL
   x$count_cumsum = NULL
   
   return(x)
+  
+}
+
+distribute_mode = function(n_total, n_walk, n_public_transport, n_car, n_taxi, n_other){
+  
+ nms = c(rep("walk", n_walk),
+         rep("public_transport", n_public_transport),
+         rep("car", n_car),
+         rep("taxi", n_taxi),
+         rep("other", n_other))
+ 
+ nms = sample(nms, length(nms), replace = FALSE)
+ 
+ if(length(nms) != sum(n_total)){
+   if(length(nms) > sum(n_total)){
+     nms = nms[seq(1, sum(n_total))]
+   } else {
+     nms = c(nms, rep("other",sum(n_total) - length(nms)))
+   }
+ }
+ 
+ 
+ 
+ group_index <- rep(1:length(n_total), times = n_total)
+ grouped_data <- split(nms, group_index)
+ 
+ names(grouped_data) <- seq_len(length(n_total))[n_total != 0]
+ 
+ #Add any 0s
+ if(sum(n_total == 0) > 0){
+   grouped_data_0 <- vector("list", length = sum(n_total == 0))
+   names(grouped_data_0) <- seq_len(length(n_total))[n_total == 0]
+   
+   grouped_data = c(grouped_data,grouped_data_0)
+   grouped_data = grouped_data[order(as.numeric(names(grouped_data)))]
+   
+ }
+ 
+ extracols = data.frame(walk = 0,
+                        public_transport = 0,
+                        car = 0,
+                        taxi = 0,
+                        other = 0)
+ 
+ # Make into data.frame
+ res = list()
+ 
+ for(i in seq_along(grouped_data)){
+   sub = grouped_data[[i]]
+   if(is.null(sub)){
+     res[[i]] = extracols
+   } else {
+     sub = table(sub)
+     
+     count_df <- data.frame(matrix(sub, ncol = length(sub), byrow = TRUE))
+     colnames(count_df) <- names(sub)
+     
+     count_df = cbind(count_df, extracols[!names(extracols) %in% names(count_df)])
+     res[[i]] = count_df
+   }
+   
+   
+ }
+ 
+ res = dplyr::bind_rows(res)
+return(res)
   
 }
 
@@ -223,7 +323,7 @@ flow_bicycle = bind_rows(flow_bicycle)
 
 flow_bicycle$lenght_km_str = NULL
 
-flow_bicycle$schooltype <- gsub("Special ","",flow_bicycle$schooltype)
+flow_bicycle$schooltype <- gsub("special ","",flow_bicycle$schooltype)
 
 saveRDS(flow_bicycle, file.path(secure_path,"secure_data/schools/school_dl_sub30km.Rds"))
 

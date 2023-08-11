@@ -305,8 +305,7 @@ list(
       message("Building Secondary ", p, " network")
       rs = uptake_list_school[[p]]
       rs = rs[rs$schooltype == "secondary",]
-      rnet = make_rnets(rp, ncores = 1)
-      
+      rnet = make_rnets(rs, ncores = 1)
       f = paste0("outputdata/rnet_secondary_school_", p, ".Rds")
       saveRDS(rnet, f)
       rnet_secondary_list[[p]] = rnet
@@ -387,6 +386,17 @@ list(
   
   tar_target(school_stats, {
     zones_stats_list$schools
+  }),
+  
+  tar_target(zones_stats_json, {
+    if(!dir.exists("outputdata/json")){
+      dir.create("outputdata/json")
+    }
+    export_zone_json(zones_stats, "DataZone")
+  }),
+  
+  tar_target(school_stats_json, {
+    export_zone_json(school_stats, "SeedCode")
   }),
   
   
