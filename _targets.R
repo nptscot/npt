@@ -182,7 +182,9 @@ list(
     routes_commute = get_routes(od = od_commute_subset,
                                 plans = parameters$plans, purpose = "commute",
                                 folder = folder_name, batch = TRUE, nrow_batch = 99999,
-                                batch_save = TRUE)
+                                batch_save = TRUE,
+                                date = parameters$date_routing
+                                )
     routes_commute
   }),
   
@@ -212,7 +214,8 @@ list(
       plans = parameters$plans, purpose = "school",
       folder = folder_name,
       batch = FALSE,
-      nrow_batch = 100000
+      nrow_batch = 100000,
+      date = parameters$date_routing
     )
     routes_school
   }),
@@ -283,7 +286,7 @@ list(
   
   tar_target(rnet_school_list, {
     
-    #Primary
+    # Primary
     rnet_primary_list = sapply(parameters$plans, function(x) NULL)
     for(p in parameters$plans) {
       message("Building Primary ", p, " network")
@@ -303,7 +306,6 @@ list(
       rs = uptake_list_school[[p]]
       rs = rs[rs$schooltype == "secondary",]
       rnet = make_rnets(rs, ncores = 1)
-      
       f = paste0("outputdata/rnet_secondary_school_", p, ".Rds")
       saveRDS(rnet, f)
       rnet_secondary_list[[p]] = rnet
@@ -452,7 +454,8 @@ list(
     full_build = isFALSE(parameters$geo_subset) &&     
       isFALSE(parameters$open_data_build) &&
       parameters$max_to_route > 100e3
-    if((Sys.info()[['sysname']] == "Linux" | TRUE) && full_build ) {
+    is_linux = Sys.info()[['sysname']] == "Linux"
+    if(full_build) {
     v = paste0("v", save_outputs, "_commit_", commit$commit)
     v = gsub(pattern = " |:", replacement = "-", x = v)
     setwd("outputdata")

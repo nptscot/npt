@@ -1,4 +1,4 @@
-get_routes = function(od, plans, purpose = "work", folder = ".", batch = TRUE, batch_save = TRUE, nrow_batch = 100) {
+get_routes = function(od, plans, purpose = "work", folder = ".", batch = TRUE, batch_save = TRUE, nrow_batch = 100, date = NULL) {
   if (nrow(od) < 250) {
     batch = FALSE
   }
@@ -22,6 +22,8 @@ get_routes = function(od, plans, purpose = "work", folder = ".", batch = TRUE, b
       } else {
         if(batch_save) {
           if(!dir.exists("tmp")){dir.create("tmp")}
+          tmp_path = file.path("tmp", date)
+          if(!dir.exists(tmp_path)){dir.create(tmp_path)}
           routes_raw = batch_routes(
             od,
             fun = stplanr::route,
@@ -30,7 +32,7 @@ get_routes = function(od, plans, purpose = "work", folder = ".", batch = TRUE, b
             plan = plan,
             warnNA = FALSE, 
             nrow_batch = nrow_batch,
-            temp_folder = "tmp",
+            temp_folder = tmp_path,
             # comment-out this line to use default instance:
             base_url = paste0(
               "http://",
