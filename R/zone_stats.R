@@ -387,7 +387,7 @@ routes_to_zone_stats <- function(r, route_type = "fastest", route_purpose = "com
 #' 
 #' Will drop any sf geometry and name files based on geo_code
 
-export_zone_json <- function(x,  idcol = "DataZone", path = "outputdata", zip = TRUE){
+export_zone_json <- function(x,  idcol = "DataZone", path = "outputdata/json", zip = TRUE){
   
   if(!dir.exists(path)){
     if(dir.exists("outputdata")) {

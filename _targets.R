@@ -389,14 +389,11 @@ list(
   }),
   
   tar_target(zones_stats_json, {
-    if(!dir.exists("outputdata/json")){
-      dir.create("outputdata/json")
-    }
-    export_zone_json(zones_stats, "DataZone")
+    export_zone_json(zones_stats, "DataZone", path = "outputdata")
   }),
   
   tar_target(school_stats_json, {
-    export_zone_json(school_stats, "SeedCode")
+    export_zone_json(school_stats, "SeedCode", path = "outputdata")
   }),
   
   
@@ -412,25 +409,25 @@ list(
     sys_time = Sys.time()
     # See code in R/make_geojson.R
     make_geojson_zones(combined_network_tile, "outputdata/combined_network_tile.geojson")
-    zip(zipfile = "outputdata/combined_network_tile.zip", "outputdata/combined_network_tile.geojson")
-    file.rename("outputdata/combined_network_tile.geojson", "rnet.geojson")
-    # zip(zipfile = "outputdata/combined_network.zip", "rnet.geojson")
     # Tile the data:
     # system("bash code/tile.sh")
-    
     # # Manually get geojson:
     # cd outputdata
     # gh release download z2023-07-28 --pattern *.geojson
     # cd ..
+    if(!file.exists("outputdata/combined_network_tile.geojson")) {
+      stop("No combined network")
+    } 
     msg_verbose = paste0(
       "--name=rnet --layer=rnet --attribution=UniverstyofLeeds --minimum-zoom=6 ",
       "--maximum-zoom=13 --drop-smallest-as-needed --maximum-tile-bytes=5000000 ",
-      "--simplification=10 --buffer=5 --force  outputdata/combined_network.geojson"
+      "--simplification=10 --buffer=5 --force  outputdata/combined_network_tile.geojson"
     )
     date_routing = parameters$date_routing
     msg = glue::glue("tippecanoe -o outputdata/rnet_{date_routing}.pmtiles")
     system(paste(msg, msg_verbose))
-    
+    zip(zipfile = "outputdata/combined_network_tile.zip", "outputdata/combined_network_tile.geojson")
+    file.remove("outputdata/combined_network_tile.geojson")
     # Upload pmtiles to release
     # cd outputdata
     # gh release upload z2023-07-28 rnet_2023-07-04.pmtiles
