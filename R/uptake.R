@@ -100,4 +100,3 @@ get_scenario_go_dutch = function(routes, purpose = "work") {
   }
   routes
 }
-
