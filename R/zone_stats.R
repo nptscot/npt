@@ -4,13 +4,15 @@
 #' @param zones sf data frame
 #' 
 #' the names are appended to column names 
-uptake_to_zone_stats <- function(comm, schl, zones){
+uptake_to_zone_stats <- function(comm, schl, zones,
+                                 exclude = "elevations|whenc"){
   
   #comm = uptake_list_commute
   #schl = uptake_list_school
   
   # Drop Geometry
   comm <- lapply(comm, sf::st_drop_geometry)
+  comm <- lapply(comm, function(x) dplyr::select(x, -matches(exclude)))
   comm <- dplyr::bind_rows(comm, .id = "plan")
   comm <- dplyr::group_by(comm, route_id, plan)
   # Go to one row per route
@@ -139,6 +141,7 @@ uptake_to_zone_stats <- function(comm, schl, zones){
   
   # School
   schl <- lapply(schl, sf::st_drop_geometry)
+  schl <- lapply(schl, function(x) dplyr::select(x, -matches(exclude)))
   schl <- dplyr::bind_rows(schl, .id = "plan")
   schl <- dplyr::group_by(schl, route_id, plan, schooltype)
   # Go to one row per route

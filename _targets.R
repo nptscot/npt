@@ -4,7 +4,7 @@
 #   https://books.ropensci.org/targets/walkthrough.html#inspect-the-pipeline # nolint
 
 # Load packages required to define the pipeline:
-remotes::install_github("cyclestreets/cyclestreets-r")
+# remotes::install_github("cyclestreets/cyclestreets-r")
 remotes::install_github("dabreegster/odjitter", subdir = "r")
 remotes::install_cran("targets")
 library(targets)
@@ -14,11 +14,13 @@ library(stplanr)
 library(sf)
 
 # Set target options:
+pkgs = c("tibble","zonebuilder","dplyr","stplanr","lubridate",
+         "stringr","sf","tidyr","data.table",
+         "glue","zip","jsonlite","pct","gert")
+# Uncomment this line to install the packages:
+# remotes::install_cran(pkgs)
 tar_option_set(
-  packages = c("tibble","zonebuilder","dplyr","stplanr","lubridate",
-               "cyclestreets","odjitter","stringr","sf","tidyr","data.table",
-               "glue","zip","jsonlite","remotes","gert","collapse",
-               "pct"), # packages that your targets need to run
+  packages = pkgs, # packages that your targets need to run
   format = "rds" # default storage format
   # Set other options as needed.
 )
