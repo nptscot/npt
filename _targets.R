@@ -451,9 +451,10 @@ list(
     length(r_commute)
     commit = gert::git_log(max = 1)
     message("Commit: ", commit)
-    full_build = isFALSE(parameters$geo_subset) &&     
+    full_build = 
+      # isFALSE(parameters$geo_subset) &&     
       isFALSE(parameters$open_data_build) &&
-      parameters$max_to_route > 100e3
+      parameters$max_to_route > 20e3
     is_linux = Sys.info()[['sysname']] == "Linux"
     if(full_build) {
     v = paste0("v", save_outputs, "_commit_", commit$commit)
@@ -481,7 +482,7 @@ list(
     setwd("..")
   }  else {
     message("Not full build or gh command line tool not available")
-    message("Not uploading files")
+    message("Not uploading files: manually move contents of outputdata (see upload_data target for details)")
   }
   Sys.Date()
   }),
