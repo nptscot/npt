@@ -390,7 +390,11 @@ routes_to_zone_stats <- function(r, route_type = "fastest", route_purpose = "com
 export_zone_json <- function(x,  idcol = "DataZone", path = "outputdata/json", zip = TRUE){
   
   if(!dir.exists(path)){
-    stop("path is not a valid folder")
+    if(dir.exists("outputdata")) {
+      dir.create(path)
+    } else {
+      stop("path is not a valid folder")
+    }
   }
   
   if(!inherits(x, "data.frame")){
