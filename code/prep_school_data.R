@@ -115,19 +115,20 @@ flow_mode <- readRDS(file.path(secure_path,"secure_data/schools/school_mode_spli
 flow_mode <- flow_mode[flow_mode$school_name != "Gilcomstoun Primary School Gaelic",]
 
 flow_mode <- flow_mode[,c("SEED","type","walk","bicycle","public_transport","car","taxi","other")]
+names(flow_mode)[names(flow_mode) == "walk"] = "foot"
 
 flow_jitter$schooltype <- tolower(flow_jitter$schooltype)
 flow_jitter = left_join(flow_jitter, flow_mode, by = c("SeedCode" = "SEED", "schooltype" = "type"))
 
 # Fill in data for missing schools
-flow_jitter$walk <- ifelse(is.na(flow_jitter$walk),0.44, flow_jitter$walk)
+flow_jitter$foot <- ifelse(is.na(flow_jitter$foot),0.44, flow_jitter$foot)
 flow_jitter$bicycle <- ifelse(is.na(flow_jitter$bicycle),0.03, flow_jitter$bicycle)
 
 flow_jitter$public_transport <- ifelse(is.na(flow_jitter$public_transport),0.06, flow_jitter$public_transport)
 flow_jitter$car <- ifelse(is.na(flow_jitter$car),0.32, flow_jitter$car)
 flow_jitter$taxi <- ifelse(is.na(flow_jitter$taxi),0.005, flow_jitter$taxi)
 
-flow_jitter$other <- ifelse(is.na(flow_jitter$other),1 - flow_jitter$walk - 
+flow_jitter$other <- ifelse(is.na(flow_jitter$other),1 - flow_jitter$foot - 
                               flow_jitter$bicycle - flow_jitter$public_transport - flow_jitter$car - flow_jitter$taxi, flow_jitter$other)
 
 summary(flow_jitter)
@@ -177,7 +178,7 @@ random_integers <- function(total_value, num_elements, max_value, seed) {
 
 
 distribute_cycling <- function(x){
-  mode_walk = x$walk[1]
+  mode_foot = x$foot[1]
   mode_bicycle = x$bicycle[1]
   mode_public_transport = x$public_transport[1]
   mode_car = x$car[1]
@@ -185,7 +186,7 @@ distribute_cycling <- function(x){
   mode_other = x$other[1]
   
   n_bicycle = round(mode_bicycle * sum(x$count))
-  n_walk = round(mode_walk * sum(x$count))
+  n_foot = round(mode_foot * sum(x$count))
   n_public_transport = round(mode_public_transport * sum(x$count))
   n_car = round(mode_car * sum(x$count))
   n_taxi = round(mode_taxi * sum(x$count))
@@ -236,7 +237,7 @@ distribute_cycling <- function(x){
   # Give out other modes randomly
   
   extra_modes = distribute_mode(n_total = x$count - x$bicycle, 
-                        n_walk = n_walk, 
+                        n_foot = n_foot, 
                         n_public_transport = n_public_transport, 
                         n_car = n_car, 
                         n_taxi = n_taxi, 
@@ -251,9 +252,9 @@ distribute_cycling <- function(x){
   
 }
 
-distribute_mode = function(n_total, n_walk, n_public_transport, n_car, n_taxi, n_other){
+distribute_mode = function(n_total, n_foot, n_public_transport, n_car, n_taxi, n_other){
   
- nms = c(rep("walk", n_walk),
+ nms = c(rep("foot", n_foot),
          rep("public_transport", n_public_transport),
          rep("car", n_car),
          rep("taxi", n_taxi),
@@ -286,7 +287,7 @@ distribute_mode = function(n_total, n_walk, n_public_transport, n_car, n_taxi, n
    
  }
  
- extracols = data.frame(walk = 0,
+ extracols = data.frame(foot = 0,
                         public_transport = 0,
                         car = 0,
                         taxi = 0,

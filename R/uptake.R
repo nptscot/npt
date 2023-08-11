@@ -38,12 +38,12 @@ get_scenario_go_dutch = function(routes, purpose = "work") {
         
         car_go_dutch = car * mode_ratio_go_dutch,
         public_transport_go_dutch = public_transport * mode_ratio_go_dutch,
-        walk_go_dutch = walk * mode_ratio_go_dutch,
+        foot_go_dutch = foot * mode_ratio_go_dutch,
         taxi_go_dutch = taxi * mode_ratio_go_dutch,
         
         car_ebike = car * mode_ratio_ebike,
         public_transport_ebike = public_transport * mode_ratio_ebike,
-        walk_ebike = walk * mode_ratio_ebike,
+        foot_ebike = foot * mode_ratio_ebike,
         taxi_ebike = taxi * mode_ratio_ebike
         
       )
@@ -85,15 +85,15 @@ get_scenario_go_dutch = function(routes, purpose = "work") {
         
         car_go_dutch = car * mode_ratio_go_dutch,
         public_transport_go_dutch = public_transport * mode_ratio_go_dutch,
-        walk_go_dutch = walk * mode_ratio_go_dutch,
+        foot_go_dutch = foot * mode_ratio_go_dutch,
         taxi_go_dutch = taxi * mode_ratio_go_dutch,
-        other_go_dutch = taxi * mode_ratio_go_dutch,
+        other_go_dutch = other * mode_ratio_go_dutch,
         
         car_ebike = car * mode_ratio_ebike,
         public_transport_ebike = public_transport * mode_ratio_ebike,
-        walk_ebike = walk * mode_ratio_ebike,
+        foot_ebike = foot * mode_ratio_ebike,
         taxi_ebike = taxi * mode_ratio_ebike,
-        other_ebike = ebike * mode_ratio_go_dutch,
+        other_ebike = other * mode_ratio_go_dutch,
       )
   } else {
     stop("Purpose ", purpose, " not yet supported")

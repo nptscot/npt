@@ -18,7 +18,7 @@ names(flow) = c("mode_id","cars_household","geo_code1","LA_work","geo_code2")
 flow = flow[,c(c("geo_code1","geo_code2","mode_id"))]
 
 mode_match <- data.frame(mode_id = paste0("0",1:9), 
-                         mode = c("from_home","train","underground","bus","car","bicycle","walk","taxi","no_fixed_place"))
+                         mode = c("from_home","train","underground","bus","car","bicycle","foot","taxi","no_fixed_place"))
 
 flow = left_join(flow, mode_match, by = "mode_id")
 
@@ -51,7 +51,7 @@ table(flow_wide$geo_code2[!flow_wide$geo_code2 %in% datazone_cent$DataZone])
 #6976      4406      6976 
 flow_wide = flow_wide[flow_wide$geo_code2 %in% datazone_cent$DataZone,]
 
-flow_wide$all = rowSums(flow_wide[,c("car","taxi","walk","bicycle","public_transport")])
+flow_wide$all = rowSums(flow_wide[,c("car","taxi","foot","bicycle","public_transport")])
 summary(flow_wide$all)
 
 # Data Zones
