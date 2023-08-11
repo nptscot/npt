@@ -182,7 +182,9 @@ list(
     routes_commute = get_routes(od = od_commute_subset,
                                 plans = parameters$plans, purpose = "commute",
                                 folder = folder_name, batch = TRUE, nrow_batch = 99999,
-                                batch_save = TRUE)
+                                batch_save = TRUE,
+                                date = parameters$date_routing
+                                )
     routes_commute
   }),
   
@@ -212,7 +214,8 @@ list(
       plans = parameters$plans, purpose = "school",
       folder = folder_name,
       batch = FALSE,
-      nrow_batch = 100000
+      nrow_batch = 100000,
+      date = parameters$date_routing
     )
     routes_school
   }),
@@ -283,7 +286,7 @@ list(
   
   tar_target(rnet_school_list, {
     
-    #Primary
+    # Primary
     rnet_primary_list = sapply(parameters$plans, function(x) NULL)
     for(p in parameters$plans) {
       message("Building Primary ", p, " network")
@@ -303,7 +306,6 @@ list(
       rs = uptake_list_school[[p]]
       rs = rs[rs$schooltype == "secondary",]
       rnet = make_rnets(rs, ncores = 1)
-      
       f = paste0("outputdata/rnet_secondary_school_", p, ".Rds")
       saveRDS(rnet, f)
       rnet_secondary_list[[p]] = rnet
@@ -387,14 +389,11 @@ list(
   }),
   
   tar_target(zones_stats_json, {
-    if(!dir.exists("outputdata/json")){
-      dir.create("outputdata/json")
-    }
-    export_zone_json(zones_stats, "DataZone")
+    export_zone_json(zones_stats, "DataZone", path = "outputdata")
   }),
   
   tar_target(school_stats_json, {
-    export_zone_json(school_stats, "SeedCode")
+    export_zone_json(school_stats, "SeedCode", path = "outputdata")
   }),
   
   
@@ -410,25 +409,25 @@ list(
     sys_time = Sys.time()
     # See code in R/make_geojson.R
     make_geojson_zones(combined_network_tile, "outputdata/combined_network_tile.geojson")
-    zip(zipfile = "outputdata/combined_network_tile.zip", "outputdata/combined_network_tile.geojson")
-    file.rename("outputdata/combined_network_tile.geojson", "rnet.geojson")
-    # zip(zipfile = "outputdata/combined_network.zip", "rnet.geojson")
     # Tile the data:
     # system("bash code/tile.sh")
-    
     # # Manually get geojson:
     # cd outputdata
     # gh release download z2023-07-28 --pattern *.geojson
     # cd ..
+    if(!file.exists("outputdata/combined_network_tile.geojson")) {
+      stop("No combined network")
+    } 
     msg_verbose = paste0(
       "--name=rnet --layer=rnet --attribution=UniverstyofLeeds --minimum-zoom=6 ",
       "--maximum-zoom=13 --drop-smallest-as-needed --maximum-tile-bytes=5000000 ",
-      "--simplification=10 --buffer=5 --force  outputdata/combined_network.geojson"
+      "--simplification=10 --buffer=5 --force  outputdata/combined_network_tile.geojson"
     )
     date_routing = parameters$date_routing
     msg = glue::glue("tippecanoe -o outputdata/rnet_{date_routing}.pmtiles")
     system(paste(msg, msg_verbose))
-    
+    zip(zipfile = "outputdata/combined_network_tile.zip", "outputdata/combined_network_tile.geojson")
+    file.remove("outputdata/combined_network_tile.geojson")
     # Upload pmtiles to release
     # cd outputdata
     # gh release upload z2023-07-28 rnet_2023-07-04.pmtiles
@@ -449,10 +448,12 @@ list(
     length(r_commute)
     commit = gert::git_log(max = 1)
     message("Commit: ", commit)
-    full_build = isFALSE(parameters$geo_subset) &&     
+    full_build = 
+      # isFALSE(parameters$geo_subset) &&     
       isFALSE(parameters$open_data_build) &&
-      parameters$max_to_route > 100e3
-    if((Sys.info()[['sysname']] == "Linux" | TRUE) && full_build ) {
+      parameters$max_to_route > 20e3
+    is_linux = Sys.info()[['sysname']] == "Linux"
+    if(full_build) {
     v = paste0("v", save_outputs, "_commit_", commit$commit)
     v = gsub(pattern = " |:", replacement = "-", x = v)
     setwd("outputdata")
@@ -478,7 +479,7 @@ list(
     setwd("..")
   }  else {
     message("Not full build or gh command line tool not available")
-    message("Not uploading files")
+    message("Not uploading files: manually move contents of outputdata (see upload_data target for details)")
   }
   Sys.Date()
   }),
