@@ -32,13 +32,7 @@ flow_short = summarise(flow_short, count = sum(count))
 flow_wide = pivot_wider(flow_short, names_from = "mode", values_from = "count",
                         id_cols = c("geo_code1","geo_code2"),values_fill = 0)
 
-# Standardised the modes with other data
-flow_wide$public_transport = flow_wide$bus + flow_wide$train + flow_wide$underground
-flow_wide$bus = NULL
-flow_wide$train = NULL
-flow_wide$underground = NULL
-flow_wide$no_fixed_place = NULL
-flow_wide$from_home = NULL
+
 
 # Get Centroids
 datazone_cent <- st_read("../inputdata/data_zone_centroids.geojson")
@@ -50,6 +44,7 @@ table(flow_wide$geo_code2[!flow_wide$geo_code2 %in% datazone_cent$DataZone])
 #NOFIXEDWP OFF-SHORE WORKFHOME 
 #6976      4406      6976 
 flow_wide = flow_wide[flow_wide$geo_code2 %in% datazone_cent$DataZone,]
+
 
 flow_wide$all = rowSums(flow_wide[,c("car","taxi","foot","bicycle","public_transport")])
 summary(flow_wide$all)
@@ -77,7 +72,7 @@ subpoints_origins = st_transform(subpoints_origins, 4326)
 dl = od2line(flow_wide, datazone_cent)
 
 # Match to old format
-#names(dl)[names(dl) == "car"] <- "car_driver"
+names(dl)[names(dl) == "car"] <- "car_driver"
 dl$dist_euclidean <- as.numeric(st_length(dl))
 
 #Drop to sub 30km
