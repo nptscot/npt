@@ -1,4 +1,19 @@
-get_routes = function(od, plans, purpose = "work", folder = ".", batch = TRUE, batch_save = TRUE, nrow_batch = 100, date = NULL) {
+get_routes = function(od, plans, purpose = "work", folder = ".", batch = TRUE,
+                      batch_save = TRUE, nrow_batch = 100, date = NULL,
+                      cols_to_keep = c(
+                        "geo_code1",
+                        "geo_code2",
+                        "no_fixed_place",
+                        "bus", "car_driver", "taxi", "foot", "bicycle", "train", "from_home", 
+                        "underground", "all", "dist_euclidean", "dist_euclidean_jittered", 
+                        "route_id", "splittingID", "id", "geometry", "route_hilliness", 
+                        "name", # not used currently but could be handy
+                        "distance",
+                        "gradient_smooth",
+                        "quietness",
+                        "length_route"
+                        )
+                      ) {
   if (nrow(od) < 250) {
     batch = FALSE
   }
@@ -160,6 +175,8 @@ batch_routes = function(od, fun, nrow_batch = 100, plan = "fastest", purpose, ..
   message("Combining results")
   saveRDS(results, file.path(temp_folder, "results_list.Rds"))
   result = bind_sf(results)
+  # Keep only columns we actually use:
+  # result = results[cols_to_keep]
   return(result)
 }
 
