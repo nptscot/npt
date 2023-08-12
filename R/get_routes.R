@@ -77,6 +77,7 @@ get_routes = function(od, plans, purpose = "work", folder = ".", batch = TRUE,
         mutate(route_hilliness = mean(gradient_smooth)) %>% 
         mutate(length_route = sum(distances)) %>% 
         ungroup()
+      routes_filtered = routes_filtered[cols_to_keep]
       message("Saving ", savename_f)
       saveRDS(routes_filtered, savename_f)
     }
@@ -176,7 +177,7 @@ batch_routes = function(od, fun, nrow_batch = 100, plan = "fastest", purpose, ..
   saveRDS(results, file.path(temp_folder, "results_list.Rds"))
   result = bind_sf(results)
   # Keep only columns we actually use:
-  result = results[cols_to_keep]
+  result = results
   return(result)
 }
 
