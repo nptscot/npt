@@ -176,7 +176,7 @@ batch_routes = function(od, fun, nrow_batch = 100, plan = "fastest", purpose, ..
   saveRDS(results, file.path(temp_folder, "results_list.Rds"))
   result = bind_sf(results)
   # Keep only columns we actually use:
-  # result = results[cols_to_keep]
+  result = results[cols_to_keep]
   return(result)
 }
 
