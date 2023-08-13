@@ -165,9 +165,9 @@ list(
   }),
   tar_target(od_commute_subset, {
     odcs = od_commute_jittered %>%
-      filter(dist_euclidean_jittered < 20000) %>%
-      filter(dist_euclidean_jittered > 500) %>%
-      slice_max(n = parameters$max_to_route, order_by = bicycle, with_ties = FALSE)
+      filter(dist_euclidean_jittered < 16000) %>%
+      filter(dist_euclidean_jittered > 1000) %>%
+      slice_max(n = parameters$max_to_route, order_by = all, with_ties = FALSE)
     odcs
   }),
   
@@ -181,8 +181,7 @@ list(
     
     routes_commute = get_routes(od = od_commute_subset,
                                 plans = parameters$plans, purpose = "commute",
-                                folder = folder_name, batch = TRUE, nrow_batch = 300000,
-                                batch_save = TRUE,
+                                folder = folder_name,
                                 date = parameters$date_routing
                                 )
     routes_commute
@@ -206,14 +205,16 @@ list(
     if(parameters$geo_subset) {
       schools_dl = schools_dl[study_area, op = sf::st_within]
     }
+    schools_dl$dist_euclidean_jittered = round(as.numeric(sf::st_length(schools_dl)))
     schools_dl = schools_dl %>%
+      filter(dist_euclidean_jittered < 10000) %>%
+      filter(dist_euclidean_jittered > 1000) %>%
       slice_max(order_by = count, n = parameters$max_to_route, with_ties = FALSE)
     folder_name = paste0("outputdata/", parameters$date_routing)
     routes_school = get_routes(
       schools_dl,
       plans = parameters$plans, purpose = "school",
       folder = folder_name,
-      batch = FALSE,
       nrow_batch = 100000,
       date = parameters$date_routing
     )
