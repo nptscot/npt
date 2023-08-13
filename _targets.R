@@ -181,7 +181,7 @@ list(
     
     routes_commute = get_routes(od = od_commute_subset,
                                 plans = parameters$plans, purpose = "commute",
-                                folder = folder_name, batch = TRUE, nrow_batch = 99999,
+                                folder = folder_name, batch = TRUE, nrow_batch = 300000,
                                 batch_save = TRUE,
                                 date = parameters$date_routing
                                 )
