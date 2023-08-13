@@ -58,7 +58,7 @@ get_routes = function(od, plans, purpose = "work", folder = ".", batch = TRUE, b
         }
       }
       routes_filtered = routes_raw %>% 
-        group_by(route_id) %>% 
+        group_by(route_number) %>% 
         mutate(route_hilliness = mean(gradient_smooth)) %>% 
         mutate(length_route = sum(distances)) %>% 
         ungroup()
@@ -69,6 +69,9 @@ get_routes = function(od, plans, purpose = "work", folder = ".", batch = TRUE, b
   }
   route_list
 }
+
+# route_number ------------------------------------------------------------
+
 
 #' Save routes in batches before returning the result
 #' 
@@ -164,8 +167,7 @@ batch_routes = function(od, fun, nrow_batch = 100, plan = "fastest", purpose, ..
 }
 
 bind_sf = function(x) {
-  if (length(x) == 0)
-    stop("Empty list")
+  if (length(x) == 0) stop("Empty list")
   geom_name = attr(x[[1]], "sf_column")
   x = data.table::rbindlist(x, use.names = FALSE)
   x[[geom_name]] = sf::st_sfc(x[[geom_name]], recompute_bbox = TRUE)
