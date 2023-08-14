@@ -342,44 +342,44 @@ list(
     rnet_tile
   }),
   
-  tar_target(calculate_benefits, {
-    benefits = function(x) x
-    benefits(r_commute)
-  }),
+  # tar_target(calculate_benefits, {
+  #   TODO
+  # }),
   
-  tar_target(zones_stats_list, {
-    # Summarise results by DataZone and School
-    zones_stats_list = uptake_to_zone_stats(comm = uptake_list_commute, 
-                                            schl = uptake_list_school, zones)
-    zones_stats_list
-  }),
-  
-  tar_target(zones_stats, {
-    zones_stats_list$zones
-  }),
-  
-  tar_target(school_stats, {
-    zones_stats_list$schools
-  }),
-  
-  tar_target(zones_stats_json, {
-    export_zone_json(zones_stats, "DataZone", path = "outputdata")
-  }),
-  
-  tar_target(school_stats_json, {
-    export_zone_json(school_stats, "SeedCode", path = "outputdata")
-  }),
+  # TODO: re-write zone stats code without needing huge uptake_list_commute object
+  # tar_target(zones_stats_list, {
+  #   # Summarise results by DataZone and School
+  #   zones_stats_list = uptake_to_zone_stats(comm = uptake_list_commute, 
+  #                                           schl = uptake_list_school, zones)
+  #   zones_stats_list
+  # }),
+  # 
+  # tar_target(zones_stats, {
+  #   zones_stats_list$zones
+  # }),
+  # 
+  # tar_target(school_stats, {
+  #   zones_stats_list$schools
+  # }),
+  # 
+  # tar_target(zones_stats_json, {
+  #   export_zone_json(zones_stats, "DataZone", path = "outputdata")
+  # }),
+  # 
+  # tar_target(school_stats_json, {
+  #   export_zone_json(school_stats, "SeedCode", path = "outputdata")
+  # }),
   
   
   tar_target(save_outputs, {
     message("Saving outputs for ", parameters$date_routing)
     saveRDS(rnet_commute_list, "outputdata/rnet_commute_list.Rds")
     saveRDS(od_commute_subset, "outputdata/od_commute_subset.Rds")
-    saveRDS(zones_stats, "outputdata/zones_stats.Rds")
-    saveRDS(school_stats, "outputdata/school_stats.Rds")
-    # Saved by get_routes()
-    # f = paste0("outputdata/routes_commute_", nrow(od_commute_subset), "_rows.Rds")
-    # saveRDS(r_commute, f)
+    
+    # TODO: re-implement:
+    # saveRDS(zones_stats, "outputdata/zones_stats.Rds")
+    # saveRDS(school_stats, "outputdata/school_stats.Rds")
+    
     sys_time = Sys.time()
     # See code in R/make_geojson.R
     make_geojson_zones(combined_network_tile, "outputdata/combined_network_tile.geojson")
@@ -418,8 +418,7 @@ list(
   # tarchetypes::tar_render(report, path = "README.Rmd", params = list(zones, rnet)),
   tar_target(upload_data, {
     
-    # Ensure the target runs after
-    length(r_commute)
+    length(combined_network)
     commit = gert::git_log(max = 1)
     message("Commit: ", commit)
     full_build = 
