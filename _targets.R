@@ -349,18 +349,15 @@ list(
   
   # TODO: re-write zone stats code without needing huge uptake_list_commute object
   tar_target(zones_stats_list, {
-    
+    length(rnet_commute_list) # Ensure it runs after this
     # Create list object without the huge geometries:
     # Drop Geometry
     comm <- lapply(parameters$plans, function(plan) {
       sf::st_drop_geometry(readRDS(paste0("outputdata/uptake_commute_", plan, ".Rds")))
     })
-    schl <- lapply(parameters$plans, function(plan) {
-      sf::st_drop_geometry(readRDS(paste0("outputdata/uptake_school_", plan, ".Rds")))
-    })
     
     # Summarise results by DataZone and School
-    zones_stats_list = uptake_to_zone_stats(comm, schl, zones)
+    zones_stats_list = uptake_to_zone_stats(comm, uptake_list_school, zones)
     zones_stats_list
   }),
   # 

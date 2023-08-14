@@ -115,7 +115,7 @@ uptake_to_zone_stats <- function(comm, schl, zones){
   )
   
   
-  
+  schl <- lapply(schl, sf::st_drop_geometry)
   schl <- dplyr::bind_rows(schl, .id = "plan")
   schl <- dplyr::group_by(schl, route_id, plan, schooltype)
   # Go to one row per route
