@@ -103,7 +103,8 @@ list(
       filter(geo_code2 %in% zones$DataZone) %>%
       filter(dist_euclidean < 20000) %>%
       filter(dist_euclidean > 1000) %>%
-      filter(all >= parameters$min_flow)
+      filter(all >= parameters$min_flow) %>% 
+      od_cat()
     od_subset
   }),
   tar_target(subpoints_origins, {
