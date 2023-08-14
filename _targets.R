@@ -4,8 +4,7 @@
 #   https://books.ropensci.org/targets/walkthrough.html#inspect-the-pipeline # nolint
 
 # Load packages required to define the pipeline:
-#remotes::install_cran("cyclestreets")
-remotes::install_github("nptscot/cyclestreets-r")
+remotes::install_dev("cyclestreets")
 remotes::install_github("dabreegster/odjitter", subdir = "r")
 remotes::install_cran("targets")
 library(targets)
@@ -104,7 +103,8 @@ list(
       filter(geo_code2 %in% zones$DataZone) %>%
       filter(dist_euclidean < 20000) %>%
       filter(dist_euclidean > 1000) %>%
-      filter(all >= parameters$min_flow)
+      filter(all >= parameters$min_flow) %>% 
+      mutate_od_commute()
     od_subset
   }),
   tar_target(subpoints_origins, {
@@ -231,7 +231,8 @@ list(
     schools_dl = schools_dl %>%
       filter(dist_euclidean_jittered < 10000) %>%
       filter(dist_euclidean_jittered > 1000) %>%
-      slice_max(order_by = count, n = parameters$max_to_route, with_ties = FALSE)
+      slice_max(order_by = count, n = parameters$max_to_route, with_ties = FALSE) %>% 
+      mutate_od_school()
     folder_name = paste0("outputdata/", parameters$date_routing)
     routes_school = get_routes(
       schools_dl,
