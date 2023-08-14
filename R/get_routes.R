@@ -1,4 +1,4 @@
-get_routes = function(od, plans, purpose = "work", folder = ".", batch = TRUE, batch_save = FALSE, nrow_batch = 100, date = NULL) {
+get_routes = function(od, plans, purpose = "work", folder = ".", batch = TRUE, batch_save = FALSE, nrow_batch = 100000, date = NULL) {
   if (nrow(od) < 250) {
     batch = FALSE
   }
@@ -62,8 +62,10 @@ get_routes = function(od, plans, purpose = "work", folder = ".", batch = TRUE, b
         mutate(route_hilliness = mean(gradient_smooth)) %>% 
         mutate(length_route = sum(distances)) %>% 
         ungroup()
-      message("Saving ", savename_f)
-      saveRDS(routes_filtered, savename_f)
+      
+      # # Don't save for now:
+      # message("Saving ", savename_f)
+      # saveRDS(routes_filtered, savename_f)
     }
     route_list[[paste(plan)]] = routes_filtered
   }
@@ -81,7 +83,7 @@ get_routes = function(od, plans, purpose = "work", folder = ".", batch = TRUE, b
 # nrow_batch = 10
 # plan = "fastest"
 # purpose = "work"
-batch_routes = function(od, fun, nrow_batch = 100, plan = "fastest", purpose, ..., temp_folder = tempdir()) {
+batch_routes = function(od, fun, nrow_batch = 100000, plan = "fastest", purpose, ..., temp_folder = tempdir()) {
   
   nrow_od = nrow(od)  
   #Split up into list

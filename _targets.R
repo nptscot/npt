@@ -172,20 +172,37 @@ list(
     odcs
   }),
   
-  tar_target(r_commute, {
-    
+  tar_target(rnet_commute_list, {
     message(parameters$date_routing)
     message("Calculating ", nrow(od_commute_subset), " routes")
-    # Test routing:
-    # stplanr::route(l = od_to_route, route_fun = cyclestreets::journey, plan = "balanced")
     folder_name = paste0("outputdata/", parameters$date_routing)
+    rnet_commute_list = sapply(parameters$plans, function(x) NULL)
     
-    routes_commute = get_routes(od = od_commute_subset,
-                                plans = parameters$plans, purpose = "commute",
-                                folder = folder_name,
-                                date = parameters$date_routing
-                                )
-    routes_commute
+    p = "fastest" # for testing
+    for(p in parameters$plans) {
+      routes_commute = get_routes(
+        od = od_commute_subset,
+        plans = p,
+        folder = folder_name,
+        date = parameters$date_routing,
+        batch_save = TRUE
+      )
+      routes_commute = routes_commute[[p]] %>%
+        get_scenario_go_dutch() %>%
+        as_tibble()
+      
+      # # TODO: Remove if not needed:
+      routes_commute[["geometry"]] = st_sfc(routes_commute[["geometry"]], recompute_bbox = TRUE)
+      routes_commute = st_as_sf(routes_commute)
+      
+      message("Building Commute ", p, " network")
+      rnet = make_rnets(routes_commute, ncores = 1)
+      
+      f = paste0("outputdata/rnet_commute_", p, ".Rds")
+      # saveRDS(rnet, f)
+      rnet_commute_list[[p]] = rnet
+    }
+    rnet_commute_list
   }),
   
   tar_target(r_school, {
@@ -218,38 +235,10 @@ list(
       plans = parameters$plans, purpose = "school",
       folder = folder_name,
       nrow_batch = 100000,
-      date = parameters$date_routing
+      date = parameters$date_routing,
+      batch_save = TRUE
     )
     routes_school
-  }),
-  
-  tar_target(uptake_list_commute, {
-    p = "fastest"
-    for(p in parameters$plans) {
-      
-      # # For local routes:
-      # f = paste0("outputdata/routes_max_dist_commute_", p, ".Rds")
-      # routes = readRDS(f)
-      
-      # # For routes from targets
-      routes = r_commute[[p]]
-      message("Uptake for ", p)
-      # system.time({
-      routes = routes %>%
-        get_scenario_go_dutch() %>%
-        as_tibble()
-      routes[["geometry"]] = st_sfc(routes[["geometry"]], recompute_bbox = TRUE)
-      routes = st_as_sf(routes)
-      # })
-      f = paste0("outputdata/routes_commute_", p, ".Rds")
-      saveRDS(routes, f)
-    }
-    uptake_list_commute = lapply(parameters$plan, function(p) {
-      f = paste0("outputdata/routes_commute_", p, ".Rds")
-      readRDS(f)
-    })
-    names(uptake_list_commute) = parameters$plans
-    uptake_list_commute
   }),
   
   tar_target(uptake_list_school, {
@@ -267,24 +256,6 @@ list(
     })
     names(uptake_list_school) = parameters$plans
     uptake_list_school
-  }),
-  
-  tar_target(rnet_commute_list, {
-    
-    rnet_commute_list = sapply(parameters$plans, function(x) NULL)
-    #p = "fastest"
-    for(p in parameters$plans) {
-      message("Building Commute ", p, " network")
-      rnet = make_rnets(uptake_list_commute[[p]], ncores = 1)
-      
-      f = paste0("outputdata/rnet_commute_", p, ".Rds")
-      # saveRDS(rnet, f)
-      rnet_commute_list[[p]] = rnet
-    }
-    
-    # saveRDS(rnet_commute_list, "outputdata/rnet_commute_list.Rds")
-    rnet_commute_list
-    
   }),
   
   tar_target(rnet_school_list, {
