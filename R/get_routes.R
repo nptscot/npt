@@ -1,4 +1,4 @@
-get_routes = function(od, plans, purpose = "work", folder = ".", batch = TRUE, batch_save = FALSE, nrow_batch = 100, date = NULL) {
+get_routes = function(od, plans, purpose = "work", folder = ".", batch = TRUE, batch_save = FALSE, nrow_batch = 100, date = NULL, segments = TRUE) {
   if (nrow(od) < 250) {
     batch = FALSE
   }
@@ -17,7 +17,8 @@ get_routes = function(od, plans, purpose = "work", folder = ".", batch = TRUE, b
           wait = TRUE,
           maxDistance = 30000,
           username = "robinlovelace",
-          strategies = plan
+          strategies = plan,
+          segments = TRUE
         )
       } else {
         if(batch_save) {
@@ -57,13 +58,27 @@ get_routes = function(od, plans, purpose = "work", folder = ".", batch = TRUE, b
           )  
         }
       }
-      routes_filtered = routes_raw %>% 
-        group_by(route_id) %>% 
-        mutate(route_hilliness = mean(gradient_smooth)) %>% 
-        mutate(length_route = sum(distances)) %>% 
-        ungroup()
+      
+      if(is.character(segments)){
+        r_filtered = routes_raw$routes %>% 
+          group_by(route_id) %>% 
+          mutate(route_hilliness = mean(gradient_smooth)) %>% 
+          mutate(length_route = sum(distances)) %>% 
+          ungroup()
+        
+        routes_filtered = list(routes = r_filtered, segments = routes_raw$segments)
+      } else {
+        routes_filtered = routes_raw %>% 
+          group_by(route_id) %>% 
+          mutate(route_hilliness = mean(gradient_smooth)) %>% 
+          mutate(length_route = sum(distances)) %>% 
+          ungroup()
+        
+      }
+      rm(routes_raw)
       message("Saving ", savename_f)
       saveRDS(routes_filtered, savename_f)
+      
     }
     route_list[[paste(plan)]] = routes_filtered
   }
