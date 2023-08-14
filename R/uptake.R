@@ -17,27 +17,23 @@ get_scenario_go_dutch = function(routes, purpose = "work") {
     
     routes = routes %>%
       mutate(
-        pcycle_go_dutch = pcycle_go_dutch + (bicycle / all),
-        pcycle_go_dutch = case_when(# Prevent the percentage of trips made by bike going above 100%:
-          pcycle_go_dutch > 1 ~ 1,
-          TRUE ~ pcycle_go_dutch),
-        pcycle_ebike = pcycle_ebike + (bicycle / all),
-        pcycle_ebike = case_when(# Prevent the percentage of trips made by bike going above 100%:
-          pcycle_ebike > 1 ~ 1,
-          TRUE ~ pcycle_ebike),
-        bicycle_go_dutch = pcycle_go_dutch * all,
-        bicycle_ebike = pcycle_ebike * all,
-        bicycle_increase_go_dutch = bicycle_go_dutch - bicycle,
-        bicycle_increase_ebike = bicycle_ebike - bicycle,
-        car_driver_go_dutch = car_driver - (bicycle_increase_go_dutch * car_driver / all),
-        car_driver_ebike = car_driver - (bicycle_increase_ebike * car_driver / all),
-        #car_passenger_go_dutch = car_passenger - (bicycle_increase * car_passenger / all),
-        public_transport = train + bus,
-        public_transport_go_dutch = public_transport - (bicycle_increase_go_dutch * public_transport / all),
-        foot_go_dutch = foot - (bicycle_increase_go_dutch * foot / all),
-        public_transport_ebike = public_transport - (bicycle_increase_ebike * public_transport / all),
-        foot_ebike = foot - (bicycle_increase_ebike * foot / all),
-        #other_go_dutch = other - (bicycle_increase * other / all)
+        bicycle_go_dutch = max(c(pcycle_go_dutch * all, bicycle)),
+        bicycle_ebike = max(c(pcycle_ebike * all, bicycle)),
+        
+        mode_ratio_go_dutch = (all - bicycle_go_dutch)/(all - bicycle),
+        mode_ratio_go_dutch = case_when(is.infinite(mode_ratio_go_dutch) ~ 1, .default = mode_ratio_go_dutch),
+        mode_ratio_ebike = (all - bicycle_ebike)/(all - bicycle),
+        mode_ratio_ebike = case_when(is.infinite(mode_ratio_ebike) ~ 1, .default = mode_ratio_ebike),
+        
+        car_go_dutch = car * mode_ratio_go_dutch,
+        public_transport_go_dutch = public_transport * mode_ratio_go_dutch,
+        foot_go_dutch = foot * mode_ratio_go_dutch,
+        taxi_go_dutch = taxi * mode_ratio_go_dutch,
+        
+        car_ebike = car * mode_ratio_ebike,
+        public_transport_ebike = public_transport * mode_ratio_ebike,
+        foot_ebike = foot * mode_ratio_ebike,
+        taxi_ebike = taxi * mode_ratio_ebike
       )
   } else if(purpose == "school") {
     routes = routes %>%
@@ -57,27 +53,25 @@ get_scenario_go_dutch = function(routes, purpose = "work") {
     
     routes = routes %>%
       mutate(
-        pcycle_go_dutch = pcycle_go_dutch + (bicycle / all),
-        pcycle_go_dutch = case_when(# Prevent the percentage of trips made by bike going above 100%:
-          pcycle_go_dutch > 1 ~ 1,
-          TRUE ~ pcycle_go_dutch),
-        pcycle_ebike = pcycle_ebike + (bicycle / all),
-        pcycle_ebike = case_when(# Prevent the percentage of trips made by bike going above 100%:
-          pcycle_ebike > 1 ~ 1,
-          TRUE ~ pcycle_go_dutch),
-        bicycle_go_dutch = pcycle_go_dutch * all,
-        bicycle_increase_go_dutch = bicycle_go_dutch - bicycle,
-        bicycle_ebike = pcycle_ebike * all,
-        bicycle_increase_ebike = bicycle_ebike - bicycle,
-        car_driver_go_dutch = 1 - (bicycle_increase_go_dutch * 1 / all),
-        car_driver_ebike = 1 - (bicycle_increase_ebike * 1 / all),
-        #car_passenger_go_dutch = 1 - (bicycle_increase * 1 / all),
-        public_transport = 1 + 1, #TODO: Fix this
-        public_transport_go_dutch = 1 - (bicycle_increase_go_dutch * 1 / all),
-        foot_go_dutch = 1 - (bicycle_increase_go_dutch * 1 / all),
-        public_transport_ebike = 1 - (bicycle_increase_ebike * 1 / all),
-        foot_ebike = 1 - (bicycle_increase_ebike * 1 / all),
-        #other_go_dutch = 1 - (bicycle_increase * 1 / all)
+        bicycle_go_dutch = max(c(pcycle_go_dutch * all, bicycle)),
+        bicycle_ebike = max(c(pcycle_ebike * all, bicycle)),
+        
+        mode_ratio_go_dutch = (all - bicycle_go_dutch)/(all - bicycle),
+        mode_ratio_go_dutch = case_when(is.infinite(mode_ratio_go_dutch) ~ 1, .default = mode_ratio_go_dutch),
+        mode_ratio_ebike = (all - bicycle_ebike)/(all - bicycle),
+        mode_ratio_ebike = case_when(is.infinite(mode_ratio_ebike) ~ 1, .default = mode_ratio_ebike),
+        
+        car_go_dutch = car * mode_ratio_go_dutch,
+        public_transport_go_dutch = public_transport * mode_ratio_go_dutch,
+        foot_go_dutch = foot * mode_ratio_go_dutch,
+        taxi_go_dutch = taxi * mode_ratio_go_dutch,
+        other_go_dutch = other * mode_ratio_go_dutch,
+        
+        car_ebike = car * mode_ratio_ebike,
+        public_transport_ebike = public_transport * mode_ratio_ebike,
+        foot_ebike = foot * mode_ratio_ebike,
+        taxi_ebike = taxi * mode_ratio_ebike,
+        other_ebike = other * mode_ratio_go_dutch,
       )
   } else {
     stop("Purpose ", purpose, " not yet supported")

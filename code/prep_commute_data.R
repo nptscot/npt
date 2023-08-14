@@ -45,7 +45,8 @@ table(flow_wide$geo_code2[!flow_wide$geo_code2 %in% datazone_cent$DataZone])
 #6976      4406      6976 
 flow_wide = flow_wide[flow_wide$geo_code2 %in% datazone_cent$DataZone,]
 
-flow_wide$all = rowSums(flow_wide[,c("no_fixed_place","bus","car","taxi","foot","bicycle","train","from_home","underground")])
+
+flow_wide$all = rowSums(flow_wide[,c("car","taxi","foot","bicycle","public_transport")])
 summary(flow_wide$all)
 
 # Data Zones
