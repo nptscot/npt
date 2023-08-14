@@ -254,7 +254,15 @@ list(
     #p = "balanced"
     uptake_list_school = lapply(parameters$plan, function(p) {
       message("Uptake for ", p, " school routes")
-      names(r_school[[1]])
+      
+      # Workaround for #250 (TODO, remove):
+      names_school = names(r_school[[1]])
+      if("walk" %in% names_school) {
+        for(i in seq(length(r_school))) {
+          r_school[[i]]$foot = r_school[[i]]$walk
+        }
+      }
+      
       routes = r_school[[p]] %>%
         mutate(all = count) %>% 
         get_scenario_go_dutch(purpose = "school") %>%
