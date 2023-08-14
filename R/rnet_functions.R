@@ -7,19 +7,21 @@
 #TODO: inconsistent capitalisation Quietness vs quietness
 
 make_rnets = function(r, ncores = 1, regionalise = 1e5){
-  r = r[r$bicycle_go_dutch > 0 | r$bicycle > 0,]
-  r$Gradient = round(r$gradient_smooth * 100)
-  r$Quietness = round(r$quietness)
+  r = r[r$bicycle_go_dutch > 0 | r$bicycle > 0 | r$bicycle_ebike > 0,]
+  #r$Gradient = round(r$gradient_smooth * 100)
+  #r$Quietness = round(r$quietness)
   
   rnet = stplanr::overline2(r, 
-                            attrib = c("bicycle","bicycle_go_dutch","bicycle_ebike","Quietness","Gradient"), 
-                            fun = list(sum = sum, max = first),
+                            #attrib = c("bicycle","bicycle_go_dutch","bicycle_ebike","Quietness","Gradient"),
+                            attrib = c("bicycle","bicycle_go_dutch","bicycle_ebike"),
+                            #fun = list(sum = sum, max = first),
+                            fun = sum,
                             ncores = ncores,
                             regionalise = regionalise)
   
-  rnet = rnet[,c("bicycle_sum","bicycle_go_dutch_sum","bicycle_ebike_sum","Gradient_max","Quietness_max")]
-  names(rnet) = gsub("_sum$","",names(rnet))
-  names(rnet) = gsub("_max$","",names(rnet))
+  #rnet = rnet[,c("bicycle_sum","bicycle_go_dutch_sum","bicycle_ebike_sum","Gradient_max","Quietness_max")]
+  #names(rnet) = gsub("_sum$","",names(rnet))
+  #names(rnet) = gsub("_max$","",names(rnet))
   
   # Suppress low values, replace with 3
   rnet$bicycle = round_sdc(rnet$bicycle)
@@ -76,7 +78,7 @@ combine_rnets = function(rnl, ncores = 1, regionalise = 1e5, add_all = TRUE){
   names_overline = names(rnet_long)[names(rnet_long) != "geometry"]
   rnet_combined = stplanr::overline(sl = rnet_long, 
                            attrib = names_overline,
-                           fun = list(sum = sum, max = first),
+                           fun = list(sum = sum, max = max),
                            regionalise = regionalise,
                            ncores = ncores)
   

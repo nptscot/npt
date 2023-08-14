@@ -191,14 +191,6 @@ list(
   
   tar_target(r_commute, {
     routes = lapply(r_commute_rns, `[[`, "routes")
-    
-    #tempfix 
-    routes = lapply(routes, function(x){
-      x$quietness = 100
-      x$gradient_smooth = 0.01
-      x
-    })
-    
     routes
   }),
   
@@ -247,14 +239,6 @@ list(
   
   tar_target(r_school, {
     routes = lapply(r_school_rns, `[[`, "routes")
-    
-    #tempfix 
-    routes = lapply(routes, function(x){
-      x$quietness = 100
-      x$gradient_smooth = 0.01
-      x
-    })
-    
     routes
   }),
   
@@ -310,6 +294,16 @@ list(
     names(uptake_list_school) = parameters$plans
     uptake_list_school
   }),
+  
+  tar_target(rnet_segments, {
+    rnet = c(s_commute, s_school)
+    rnet = bind_sf(rnet)
+    rnet$Gradient = round(rnet$gradient_smooth * 100)
+    rnet$Quietness = round(rnet$quietness)
+    rnet = stplanr::overline2(rnet, c("Quietness","Gradient"), fun = first)
+    rnet
+  }),
+  
   
   tar_target(rnet_commute_list, {
     
@@ -372,11 +366,14 @@ list(
     rnet_cl = rnet_commute_list
     rnet_sl_p = rnet_school_list$Primary
     rnet_sl_s = rnet_school_list$Secondary
+    rnet_quietness = rnet_segments
     names(rnet_cl) = paste0("commute_", names(rnet_cl))
     names(rnet_sl_p) = paste0("primary_", names(rnet_sl_p))
     names(rnet_sl_s) = paste0("secondary_", names(rnet_sl_s))
     
-    rnet_combined = combine_rnets(rnl = c(rnet_cl, rnet_sl_p, rnet_sl_s),
+    rnl = c(rnet_cl, rnet_sl_p, rnet_sl_s, list(rnet_quietness))
+    
+    rnet_combined = combine_rnets(rnl = rnl,
                                   ncores = 1, 
                                   regionalise = 1e5,
                                   add_all = TRUE)
