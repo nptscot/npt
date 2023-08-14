@@ -49,9 +49,9 @@ list(
       warning("No .Renviron file, routing may not work")
     }
     p = jsonlite::read_json(param_file, simplifyVector = T)
-    folder_name = paste0("outputdata/", p$date_routing)
-    if(!dir.exists(folder_name)){
-      dir.create(file.path(folder_name))
+    folder = paste0("outputdata/", p$date_routing)
+    if(!dir.exists(folder)){
+      dir.create(file.path(folder))
     }
     p 
   }),
@@ -175,7 +175,7 @@ list(
   tar_target(rnet_commute_list, {
     message(parameters$date_routing)
     message("Calculating ", nrow(od_commute_subset), " routes")
-    folder_name = paste0("outputdata/", parameters$date_routing)
+    folder = paste0("outputdata/", parameters$date_routing)
     rnet_commute_list = sapply(parameters$plans, function(x) NULL)
     
     p = "fastest" # for testing
@@ -183,7 +183,7 @@ list(
       routes_commute = get_routes(
         od = od_commute_subset,
         plans = p,
-        folder = folder_name,
+        folder = folder,
         date = parameters$date_routing,
         batch_save = TRUE
       )
@@ -194,6 +194,7 @@ list(
       # # TODO: Remove if not needed:
       routes_commute[["geometry"]] = st_sfc(routes_commute[["geometry"]], recompute_bbox = TRUE)
       routes_commute = st_as_sf(routes_commute)
+      saveRDS(routes_commute, paste0("outputdata/uptake_commute_", p, ".Rds"))
       
       message("Building Commute ", p, " network")
       rnet = make_rnets(routes_commute, ncores = 1)
@@ -229,11 +230,11 @@ list(
       filter(dist_euclidean_jittered > 1000) %>%
       slice_max(order_by = count, n = parameters$max_to_route, with_ties = FALSE) %>% 
       mutate_od_school()
-    folder_name = paste0("outputdata/", parameters$date_routing)
+    folder = paste0("outputdata/", parameters$date_routing)
     routes_school = get_routes(
       schools_dl,
       plans = parameters$plans, purpose = "school",
-      folder = folder_name,
+      folder = folder,
       nrow_batch = 100000,
       date = parameters$date_routing,
       batch_save = TRUE
@@ -347,12 +348,21 @@ list(
   # }),
   
   # TODO: re-write zone stats code without needing huge uptake_list_commute object
-  # tar_target(zones_stats_list, {
-  #   # Summarise results by DataZone and School
-  #   zones_stats_list = uptake_to_zone_stats(comm = uptake_list_commute, 
-  #                                           schl = uptake_list_school, zones)
-  #   zones_stats_list
-  # }),
+  tar_target(zones_stats_list, {
+    
+    # Create list object without the huge geometries:
+    # Drop Geometry
+    comm <- lapply(parameters$plans, function(plan) {
+      sf::st_drop_geometry(readRDS(paste0("outputdata/uptake_commute_", plan, ".Rds")))
+    })
+    schl <- lapply(parameters$plans, function(plan) {
+      sf::st_drop_geometry(readRDS(paste0("outputdata/uptake_school_", plan, ".Rds")))
+    })
+    
+    # Summarise results by DataZone and School
+    zones_stats_list = uptake_to_zone_stats(comm, schl, zones)
+    zones_stats_list
+  }),
   # 
   # tar_target(zones_stats, {
   #   zones_stats_list$zones
