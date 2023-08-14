@@ -4,7 +4,8 @@
 #   https://books.ropensci.org/targets/walkthrough.html#inspect-the-pipeline # nolint
 
 # Load packages required to define the pipeline:
-remotes::install_cran("cyclestreets")
+#remotes::install_cran("cyclestreets")
+remotes::install_github("nptscot/cyclestreets-r")
 remotes::install_github("dabreegster/odjitter", subdir = "r")
 remotes::install_cran("targets")
 library(targets)
@@ -171,7 +172,7 @@ list(
     odcs
   }),
   
-  tar_target(r_commute, {
+  tar_target(r_commute_rns, {
     
     message(parameters$date_routing)
     message("Calculating ", nrow(od_commute_subset), " routes")
@@ -182,12 +183,33 @@ list(
     routes_commute = get_routes(od = od_commute_subset,
                                 plans = parameters$plans, purpose = "commute",
                                 folder = folder_name,
-                                date = parameters$date_routing
+                                date = parameters$date_routing,
+                                segments = "both"
                                 )
     routes_commute
   }),
   
-  tar_target(r_school, {
+  tar_target(r_commute, {
+    routes = lapply(r_commute_rns, `[[`, "routes")
+    
+    #tempfix 
+    routes = lapply(routes, function(x){
+      x$quietness = 100
+      x$gradient_smooth = 0.01
+      x
+    })
+    
+    routes
+  }),
+  
+  tar_target(s_commute, {
+    segments = lapply(r_commute_rns, `[[`, "segments")
+    nms = c("quietness","gradient_smooth","geometry")
+    segments = lapply(segments, function(x){x[,c(nms)]})
+    segments
+  }),
+  
+  tar_target(r_school_rns, {
     # Get School OD
     if(parameters$open_data_build) {
       schools_dl = sf::read_sf("data-raw/school_desire_lines_open.geojson")
@@ -216,9 +238,30 @@ list(
       plans = parameters$plans, purpose = "school",
       folder = folder_name,
       nrow_batch = 100000,
-      date = parameters$date_routing
+      date = parameters$date_routing,
+      segments = "both"
     )
     routes_school
+  }),
+  
+  tar_target(r_school, {
+    routes = lapply(r_school_rns, `[[`, "routes")
+    
+    #tempfix 
+    routes = lapply(routes, function(x){
+      x$quietness = 100
+      x$gradient_smooth = 0.01
+      x
+    })
+    
+    routes
+  }),
+  
+  tar_target(s_school, {
+    segments = lapply(r_school_rns, `[[`, "segments")
+    nms = c("quietness","gradient_smooth","geometry")
+    segments = lapply(segments, function(x){x[,c(nms)]})
+    segments
   }),
   
   tar_target(uptake_list_commute, {

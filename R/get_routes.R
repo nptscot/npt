@@ -18,7 +18,7 @@ get_routes = function(od, plans, purpose = "work", folder = ".", batch = TRUE, b
           maxDistance = 30000,
           username = "robinlovelace",
           strategies = plan,
-          segments = TRUE
+          segments = segments
         )
       } else {
         if(batch_save) {
@@ -31,7 +31,6 @@ get_routes = function(od, plans, purpose = "work", folder = ".", batch = TRUE, b
             route_fun = cyclestreets::journey,
             purpose = purpose,
             plan = plan,
-            warnNA = FALSE, 
             nrow_batch = nrow_batch,
             temp_folder = tmp_path,
             # comment-out this line to use default instance:
@@ -47,7 +46,6 @@ get_routes = function(od, plans, purpose = "work", folder = ".", batch = TRUE, b
             l = od,
             route_fun = cyclestreets::journey,
             plan = plan,
-            warnNA = FALSE,
             # comment-out this line to use default instance:
             base_url = paste0(
               "http://",
