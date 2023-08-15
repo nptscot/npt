@@ -1,8 +1,6 @@
 
 
 # Taken a dataset with these columns
-
-
 mutate_od_commute = function(od) {
   nms = names(od)
   
