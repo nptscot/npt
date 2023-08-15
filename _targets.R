@@ -15,6 +15,7 @@ library(sf)
 
 # Set target options:
 tar_option_set(
+  memory = "transient", garbage_collection = TRUE,
   packages = c("tibble","zonebuilder","dplyr","stplanr","lubridate",
                "cyclestreets","odjitter","stringr","sf","tidyr","data.table",
                "glue","zip","jsonlite","remotes","gert","collapse",
