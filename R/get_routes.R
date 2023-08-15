@@ -1,4 +1,4 @@
-get_routes = function(od, plans, purpose = "work", folder = ".", batch = TRUE, batch_save = FALSE, nrow_batch = 100000, date = NULL) {
+get_routes = function(od, plans, purpose = "work", folder = ".", batch = TRUE, batch_save = FALSE, nrow_batch = 300000, date = NULL) {
   if (nrow(od) < 250) {
     batch = FALSE
   }
@@ -83,7 +83,7 @@ get_routes = function(od, plans, purpose = "work", folder = ".", batch = TRUE, b
 # nrow_batch = 10
 # plan = "fastest"
 # purpose = "work"
-batch_routes = function(od, fun, nrow_batch = 100000, plan = "fastest", purpose, ..., temp_folder = tempdir()) {
+batch_routes = function(od, fun, nrow_batch = 300000, plan = "fastest", purpose, ..., temp_folder = tempdir()) {
   
   nrow_od = nrow(od)  
   #Split up into list
