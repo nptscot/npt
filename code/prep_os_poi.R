@@ -3,11 +3,15 @@
 library(sf)
 library(dplyr)
 library(targets)
+library(tmap)
 sf_use_s2(FALSE)
 
 secure_path = Sys.getenv("NPT_TEAMS_PATH")
-
-poi = st_read("D:/OneDrive - University of Leeds/Data/OS/Points of Intrest/2023/Download_2300307/poi_5111956/poi_5111956.gpkg")
+dir.create(file.path(tempdir(),"poi"))
+unzip("D:/OneDrive - University of Leeds/Data/OS/Points of Intrest/2023/Download_2300307.zip",
+      exdir = file.path(tempdir(),"poi"))
+poi = st_read(file.path(tempdir(),"poi/poi_5111956/poi_5111956.gpkg"))
+unlink(file.path(tempdir(),"poi"), recursive = TRUE)
 poi = poi[,c("ref_no","name","groupname","categoryname","classname", "brand","qualifier_type","qualifier_data")]
 
 scot = readRDS("inputdata/lads_scotland.Rds")
@@ -28,6 +32,10 @@ types$count <- NULL
 
 poi_scot = left_join(poi_scot, types, by = c("groupname","categoryname","classname"))
 poi_scot = st_transform(poi_scot, 4326)
+
+#Remove a few problem locations
+poi_scot$workplace[poi_scot$ref_no %in% c(161055074, 159995345, 161138082)] <- FALSE
+
 
 # Add in OA centroids when no POI in a zone
 zones = readRDS("inputdata/DataZones.Rds")

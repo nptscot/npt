@@ -6,6 +6,7 @@
 # Load packages required to define the pipeline:
 remotes::install_dev("cyclestreets")
 remotes::install_github("dabreegster/odjitter", subdir = "r")
+remotes::install_github("ropensci/stplanr")# Improved overline
 remotes::install_cran("targets")
 library(targets)
 library(tidyverse)
@@ -15,6 +16,8 @@ library(sf)
 
 # Set target options:
 tar_option_set(
+  memory = "transient", 
+  garbage_collection = TRUE,
   packages = c("tibble","zonebuilder","dplyr","stplanr","lubridate",
                "cyclestreets","odjitter","stringr","sf","tidyr","data.table",
                "glue","zip","jsonlite","remotes","gert","collapse",

@@ -1,7 +1,7 @@
 # Tippcanoe Instructions using WSL2
 
 cd /mnt/d/GitHub/nptscot/npt/outputs
-cd /mnt/d/GitHub/atumscot/atumscot/outputs
+cd /mnt/f/GitHub/atumscot/atumscot/outputs
 
 
 # Route network
@@ -16,7 +16,7 @@ tippecanoe -o rnet-dev.pmtiles \
   --maximum-tile-bytes=5000000 \
   --simplification=10 \
   --buffer=5 \
-  --force  rnet_school_commute.geojson
+  --force  combined_network_tile.geojson
 
 
 # Routes
