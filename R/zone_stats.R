@@ -12,30 +12,30 @@ uptake_to_zone_stats <- function(comm, schl, zones){
   # Drop Geometry
   comm <- lapply(comm, sf::st_drop_geometry)
   comm <- dplyr::bind_rows(comm, .id = "plan")
-  comm <- dplyr::group_by(comm, route_id, plan)
+  #comm <- dplyr::group_by(comm, route_id, plan)
   # Go to one row per route
-  comm <- dplyr::summarise(comm, 
-          geo_code1 = geo_code1[1],
-          geo_code2 = geo_code2[1],
-          all = all[1],
-          car = car[1],
-          bicycle = bicycle[1],
-          foot = foot[1],
-          public_transport = public_transport[1],
-          
-          bicycle_go_dutch = bicycle_go_dutch[1],
-          car_go_dutch = car_go_dutch[1],
-          public_transport_go_dutch = public_transport_go_dutch[1],
-          foot_go_dutch = foot_go_dutch[1],
-          
-          bicycle_ebike = bicycle_ebike[1],
-          car_ebike = car_ebike[1],
-          public_transport_ebike = public_transport_ebike[1],
-          foot_ebike = foot_ebike[1],
-          
-          quietness = weighted.mean(quietness, distances),
-          route_hilliness = route_hilliness[1]
-  )
+  # comm <- dplyr::summarise(comm, 
+  #         geo_code1 = geo_code1[1],
+  #         geo_code2 = geo_code2[1],
+  #         all = all[1],
+  #         car = car[1],
+  #         bicycle = bicycle[1],
+  #         foot = foot[1],
+  #         public_transport = public_transport[1],
+  #         
+  #         bicycle_go_dutch = bicycle_go_dutch[1],
+  #         car_go_dutch = car_go_dutch[1],
+  #         public_transport_go_dutch = public_transport_go_dutch[1],
+  #         foot_go_dutch = foot_go_dutch[1],
+  #         
+  #         bicycle_ebike = bicycle_ebike[1],
+  #         car_ebike = car_ebike[1],
+  #         public_transport_ebike = public_transport_ebike[1],
+  #         foot_ebike = foot_ebike[1],
+  #         
+  #         quietness = weighted.mean(quietness, distances),
+  #         route_hilliness = route_hilliness[1]
+  # )
   
   # Commute Origin Stats
   comm_from <- dplyr::group_by(comm, geo_code1, plan)
@@ -360,22 +360,26 @@ export_zone_json <- function(x,  idcol = "DataZone", path = "outputdata/json", z
     x <- sf::st_drop_geometry(x)
   }
   
+  if(!inherits(x, "tibble")){
+    x <- as.data.frame(x)
+  }
+  
   x <- dplyr::group_split(x, x[idcol])
   
   if(zip){
-    dir.create(file.path(tempdir(),"jsonzip"))
+    dir.create(file.path(tempdir(),paste0("jsonzip",idcol)))
     message("Writing JSON")
     for(i in seq(1,length(x))){
-      sub <- x[[i]]
-      jsonlite::write_json(sub, file.path(tempdir(),"jsonzip",paste0(sub[idcol],".json")))
+      sub <- as.data.frame(x[[i]])
+      jsonlite::write_json(sub, file.path(tempdir(),paste0("jsonzip",idcol),paste0(sub[idcol],".json")))
     }
-    files <- list.files(file.path(tempdir(),"jsonzip"))
+    files <- list.files(file.path(tempdir(),paste0("jsonzip",idcol)))
     message("Zipping JSON")
     my_wd <- getwd()
-    setwd(file.path(tempdir(),"jsonzip"))
+    setwd(file.path(tempdir(),paste0("jsonzip",idcol)))
     utils::zip(file.path(my_wd,path,paste0(idcol,"_json.zip")),files, flags="-q")
     setwd(my_wd)
-    unlink(file.path(tempdir(),"jsonzip"), recursive = TRUE)
+    unlink(file.path(tempdir(),paste0("jsonzip",idcol)), recursive = TRUE)
     
     return(file.path(my_wd,path,paste0(idcol,"_json.zip")))
     
