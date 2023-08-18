@@ -6,6 +6,7 @@
 # Load packages required to define the pipeline:
 remotes::install_dev("cyclestreets")
 remotes::install_github("dabreegster/odjitter", subdir = "r")
+remotes::install_github("ropensci/stplanr")# Improved overline
 remotes::install_cran("targets")
 library(targets)
 library(tidyverse)
@@ -15,6 +16,8 @@ library(sf)
 
 # Set target options:
 tar_option_set(
+  memory = "transient", 
+  garbage_collection = TRUE,
   packages = c("tibble","zonebuilder","dplyr","stplanr","lubridate",
                "cyclestreets","odjitter","stringr","sf","tidyr","data.table",
                "glue","zip","jsonlite","remotes","gert","collapse",
@@ -172,7 +175,7 @@ list(
     odcs
   }),
   
-  tar_target(r_commute, {
+  tar_target(r_commute_rns, {
     
     message(parameters$date_routing)
     message("Calculating ", nrow(od_commute_subset), " routes")
@@ -183,12 +186,25 @@ list(
     routes_commute = get_routes(od = od_commute_subset,
                                 plans = parameters$plans, purpose = "commute",
                                 folder = folder_name,
-                                date = parameters$date_routing
+                                date = parameters$date_routing,
+                                segments = "both"
                                 )
     routes_commute
   }),
   
-  tar_target(r_school, {
+  tar_target(r_commute, {
+    routes = lapply(r_commute_rns, `[[`, "routes")
+    routes
+  }),
+  
+  tar_target(s_commute, {
+    segments = lapply(r_commute_rns, `[[`, "segments")
+    nms = c("quietness","gradient_smooth","geometry")
+    segments = lapply(segments, function(x){x[,c(nms)]})
+    segments
+  }),
+  
+  tar_target(r_school_rns, {
     # Get School OD
     if(parameters$open_data_build) {
       schools_dl = sf::read_sf("data-raw/school_desire_lines_open.geojson")
@@ -218,9 +234,22 @@ list(
       plans = parameters$plans, purpose = "school",
       folder = folder_name,
       nrow_batch = 100000,
-      date = parameters$date_routing
+      date = parameters$date_routing,
+      segments = "both"
     )
     routes_school
+  }),
+  
+  tar_target(r_school, {
+    routes = lapply(r_school_rns, `[[`, "routes")
+    routes
+  }),
+  
+  tar_target(s_school, {
+    segments = lapply(r_school_rns, `[[`, "segments")
+    nms = c("quietness","gradient_smooth","geometry")
+    segments = lapply(segments, function(x){x[,c(nms)]})
+    segments
   }),
   
   tar_target(uptake_list_commute, {
@@ -268,6 +297,16 @@ list(
     names(uptake_list_school) = parameters$plans
     uptake_list_school
   }),
+  
+  tar_target(rnet_segments, {
+    rnet = c(s_commute, s_school)
+    rnet = bind_sf(rnet)
+    rnet$Gradient = round(rnet$gradient_smooth * 100)
+    rnet$Quietness = round(rnet$quietness)
+    rnet = stplanr::overline2(rnet, c("Quietness","Gradient"), fun = first)
+    rnet
+  }),
+  
   
   tar_target(rnet_commute_list, {
     
@@ -330,11 +369,14 @@ list(
     rnet_cl = rnet_commute_list
     rnet_sl_p = rnet_school_list$Primary
     rnet_sl_s = rnet_school_list$Secondary
+    rnet_quietness = rnet_segments
     names(rnet_cl) = paste0("commute_", names(rnet_cl))
     names(rnet_sl_p) = paste0("primary_", names(rnet_sl_p))
     names(rnet_sl_s) = paste0("secondary_", names(rnet_sl_s))
     
-    rnet_combined = combine_rnets(rnl = c(rnet_cl, rnet_sl_p, rnet_sl_s),
+    rnl = c(rnet_cl, rnet_sl_p, rnet_sl_s, list(rnet_quietness))
+    
+    rnet_combined = combine_rnets(rnl = rnl,
                                   ncores = 1, 
                                   regionalise = 1e5,
                                   add_all = TRUE)
