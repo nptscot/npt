@@ -515,63 +515,6 @@ tar_target(rnet_secondary_balanced, {
   rnet
 }),
 
-
-
-# School uptake -----------------------------------------------------------
-
-  # tar_target(uptake_list_school, {
-  #   #p = "balanced"
-  #   uptake_list_school = lapply(parameters$plan, function(p) {
-  #     message("Uptake for ", p, " school routes")
-  #     names(r_school[[1]])
-  #     routes = r_school[[p]] %>%
-  #       mutate(all = count) %>% 
-  #       get_scenario_go_dutch(purpose = "school") %>%
-  #       as_tibble()
-  #     routes[["geometry"]] = st_sfc(routes[["geometry"]], recompute_bbox = TRUE)
-  #     routes = st_as_sf(routes)
-  #     routes
-  #   })
-  #   names(uptake_list_school) = parameters$plans
-  #   uptake_list_school
-  # }),
-  
-
-  # tar_target(rnet_school_list, {
-  #   
-  #   # Primary
-  #   rnet_primary_list = sapply(parameters$plans, function(x) NULL)
-  #   for(p in parameters$plans) {
-  #     message("Building Primary ", p, " network")
-  #     rp = uptake_list_school[[p]]
-  #     rp = rp[rp$schooltype == "primary",]
-  #     rnet = make_rnets(rp, ncores = 1)
-  #     
-  #     f = paste0("outputdata/rnet_primary_school_", p, ".Rds")
-  #     saveRDS(rnet, f)
-  #     rnet_primary_list[[p]] = rnet
-  #   }
-  #   
-  #   #Secondary
-  #   rnet_secondary_list = sapply(parameters$plans, function(x) NULL)
-  #   for(p in parameters$plans) {
-  #     message("Building Secondary ", p, " network")
-  #     rs = uptake_list_school[[p]]
-  #     rs = rs[rs$schooltype == "secondary",]
-  #     rnet = make_rnets(rs, ncores = 1)
-  #     f = paste0("outputdata/rnet_secondary_school_", p, ".Rds")
-  #     saveRDS(rnet, f)
-  #     rnet_secondary_list[[p]] = rnet
-  #   }
-  #   
-  #   rnet_school_list =list(rnet_primary_list, rnet_secondary_list)
-  #   names(rnet_school_list) = c("Primary","Secondary")
-  #   
-  #   saveRDS(rnet_school_list, "outputdata/rnet_school_list.Rds")
-  #   rnet_school_list
-  # }),
-
-
 # Combine Results ---------------------------------------------------------
 
 
