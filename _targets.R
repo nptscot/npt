@@ -183,6 +183,7 @@ list(
 # Commute routing ---------------------------------------------------------
 
   tar_target(rs_commute_fastest, {
+    length(rs_school_balanced) # Do school routing first
     rs = get_routes(od = od_commute_subset,
                         plans = "fastest", 
                         purpose = "commute",
@@ -260,56 +261,115 @@ list(
     segments2rnet(rs_commute_balanced[[1]]$segments)
   }),
 
+
+# School OD ---------------------------------------------------------------
+
+tar_target(od_school, {
+  # Get School OD
+  if(parameters$open_data_build) {
+    schools_dl = sf::read_sf("data-raw/school_desire_lines_open.geojson")
+  } else {
+    path_teams = Sys.getenv("NPT_TEAMS_PATH")
+    if(nchar(path_teams) == 0){
+      stop("Can't find Teams folder of secure data. Use usethis::edit_r_environ() to define NPT_TEAMS_PATH ")
+    }
+    if(file.exists(file.path(path_teams,"secure_data/schools/school_dl_sub30km.Rds"))){
+      schools_dl = readRDS(file.path(path_teams, "secure_data/schools/school_dl_sub30km.Rds"))
+    } else {
+      stop("Can't find ",file.path(path_teams,"secure_data/schools/school_dl_sub30km.Rds"))
+    }
+  }
+  if(parameters$geo_subset) {
+    schools_dl = schools_dl[study_area, op = sf::st_within]
+  }
+  schools_dl$dist_euclidean_jittered = round(as.numeric(sf::st_length(schools_dl)))
+  schools_dl = schools_dl %>%
+    filter(dist_euclidean_jittered < 10000) %>%
+    filter(dist_euclidean_jittered > 1000) %>%
+    slice_max(order_by = all, n = parameters$max_to_route, with_ties = FALSE) %>% 
+    mutate_od_school()
+  schools_dl
+}),
+
 # School routing ----------------------------------------------------------
 
-  tar_target(r_school_rns, {
-    # Get School OD
-    if(parameters$open_data_build) {
-      schools_dl = sf::read_sf("data-raw/school_desire_lines_open.geojson")
-    } else {
-      path_teams = Sys.getenv("NPT_TEAMS_PATH")
-      if(nchar(path_teams) == 0){
-        stop("Can't find Teams folder of secure data. Use usethis::edit_r_environ() to define NPT_TEAMS_PATH ")
-      }
-      if(file.exists(file.path(path_teams,"secure_data/schools/school_dl_sub30km.Rds"))){
-        schools_dl = readRDS(file.path(path_teams, "secure_data/schools/school_dl_sub30km.Rds"))
-      } else {
-        stop("Can't find ",file.path(path_teams,"secure_data/schools/school_dl_sub30km.Rds"))
-      }
-    }
-    if(parameters$geo_subset) {
-      schools_dl = schools_dl[study_area, op = sf::st_within]
-    }
-    schools_dl$dist_euclidean_jittered = round(as.numeric(sf::st_length(schools_dl)))
-    schools_dl = schools_dl %>%
-      filter(dist_euclidean_jittered < 10000) %>%
-      filter(dist_euclidean_jittered > 1000) %>%
-      slice_max(order_by = count, n = parameters$max_to_route, with_ties = FALSE) %>% 
-      mutate_od_school()
-    folder_name = paste0("outputdata/", parameters$date_routing)
-    routes_school = get_routes(
-      schools_dl,
-      plans = parameters$plans, purpose = "school",
-      folder = folder_name,
-      nrow_batch = 100000,
-      date = parameters$date_routing,
-      segments = "both"
-    )
-    routes_school
-  }),
-  
-  tar_target(r_school, {
-    routes = lapply(r_school_rns, `[[`, "routes")
-    routes
-  }),
-  
-  tar_target(s_school, {
-    segments = lapply(r_school_rns, `[[`, "segments")
-    nms = c("quietness","gradient_smooth","geometry")
-    segments = lapply(segments, function(x){x[,c(nms)]})
-    segments
-  }),
-  
+tar_target(rs_school_fastest, {
+  rs = get_routes(od = od_school,
+                  plans = "fastest", 
+                  purpose = "school",
+                  folder = paste0("outputdata/", parameters$date_routing),
+                  date = parameters$date_routing,
+                  segments = "both")
+  rs
+}),
+
+tar_target(rs_school_quietest, {
+  length(rs_school_fastest)
+  rs = get_routes(od = od_school,
+                  plans = "quietest", 
+                  purpose = "school",
+                  folder = paste0("outputdata/", parameters$date_routing),
+                  date = parameters$date_routing,
+                  segments = "both")
+  rs
+}),
+
+tar_target(rs_school_ebike, {
+  length(rs_school_quietest)
+  rs = get_routes(od = od_school,
+                  plans = "ebike", 
+                  purpose = "school",
+                  folder = paste0("outputdata/", parameters$date_routing),
+                  date = parameters$date_routing,
+                  segments = "both")
+  rs
+}),
+
+tar_target(rs_school_balanced, {
+  length(rs_school_ebike)
+  rs = get_routes(od = od_school,
+                  plans = "balanced", 
+                  purpose = "school",
+                  folder = paste0("outputdata/", parameters$date_routing),
+                  date = parameters$date_routing,
+                  segments = "both")
+  rs
+}),
+
+
+# School routing post-processing -----------------------------------------
+
+tar_target(r_school_fastest, {
+  rs_school_fastest[[1]]$routes
+}),
+
+tar_target(r_school_quietest, {
+  rs_school_quietest[[1]]$routes
+}),
+
+tar_target(r_school_ebike, {
+  rs_school_ebike[[1]]$routes
+}),
+
+tar_target(r_school_balanced, {
+  rs_school_balanced[[1]]$routes
+}),
+
+tar_target(rnet_gq_school_fastest, {
+  segments2rnet(rs_school_fastest[[1]]$segments)
+}),
+
+tar_target(rnet_gq_school_quietest, {
+  segments2rnet(rs_school_quietest[[1]]$segments)
+}),
+
+tar_target(rnet_gq_school_ebike, {
+  segments2rnet(rs_school_ebike[[1]]$segments)
+}),
+
+tar_target(rnet_gq_school_balanced, {
+  segments2rnet(rs_school_balanced[[1]]$segments)
+}),
 
 # Commute Uptake ----------------------------------------------------------
 
@@ -341,6 +401,32 @@ list(
     routes
   }),
   
+# School Uptake ----------------------------------------------------------
+
+tar_target(uptake_school_fastest, {
+  routes = r_school_fastest %>%
+    get_scenario_go_dutch(purpose = "school")
+  routes
+}),
+
+tar_target(uptake_school_quietest, {
+  routes = r_school_quietest %>%
+    get_scenario_go_dutch(purpose = "school")
+  routes
+}),
+
+tar_target(uptake_school_ebike, {
+  routes = r_school_ebike %>%
+    get_scenario_go_dutch(purpose = "school")
+  routes
+}),
+
+tar_target(uptake_school_balanced, {
+  routes = r_school_balanced %>%
+    get_scenario_go_dutch(purpose = "school")
+  routes
+}),
+
 
 # Commute RNets -----------------------------------------------------------
 
@@ -359,70 +445,131 @@ list(
   tar_target(rnet_commute_balanced, {
     stplanr::overline2(uptake_commute_balanced, c("bicycle","bicycle_go_dutch","bicycle_ebike"))
   }),
-  
+
+
+# Primary School RNets -----------------------------------------------------------
+
+tar_target(rnet_primary_fastest, {
+  rnet = uptake_school_fastest
+  rnet = rnet[rnet$schooltype == "primary",]
+  rnet = stplanr::overline2(rnet, c("bicycle","bicycle_go_dutch","bicycle_ebike"))
+  saveRDS(rnet, paste0("outputdata/rnet_primary_school_fastest.Rds"))
+  rnet
+}),
+
+tar_target(rnet_primary_quietest, {
+  rnet = uptake_school_quietest
+  rnet = rnet[rnet$schooltype == "primary",]
+  rnet = stplanr::overline2(rnet, c("bicycle","bicycle_go_dutch","bicycle_ebike"))
+  saveRDS(rnet, paste0("outputdata/rnet_primary_school_quietest.Rds"))
+  rnet
+}),
+
+tar_target(rnet_primary_ebike, {
+  rnet = uptake_school_ebike
+  rnet = rnet[rnet$schooltype == "primary",]
+  rnet = stplanr::overline2(rnet, c("bicycle","bicycle_go_dutch","bicycle_ebike"))
+  saveRDS(rnet, paste0("outputdata/rnet_primary_school_ebike.Rds"))
+  rnet
+}),
+
+tar_target(rnet_primary_balanced, {
+  rnet = uptake_school_balanced
+  rnet = rnet[rnet$schooltype == "primary",]
+  rnet = stplanr::overline2(rnet, c("bicycle","bicycle_go_dutch","bicycle_ebike"))
+  saveRDS(rnet, paste0("outputdata/rnet_primary_school_balanced.Rds"))
+  rnet
+}),
+
+# Secondary School RNets -----------------------------------------------------------
+
+tar_target(rnet_secondary_fastest, {
+  rnet = uptake_school_fastest
+  rnet = rnet[rnet$schooltype == "secondary",]
+  rnet = stplanr::overline2(rnet, c("bicycle","bicycle_go_dutch","bicycle_ebike"))
+  saveRDS(rnet, paste0("outputdata/rnet_primary_school_fastest.Rds"))
+  rnet
+}),
+
+tar_target(rnet_secondary_quietest, {
+  rnet = uptake_school_quietest
+  rnet = rnet[rnet$schooltype == "secondary",]
+  rnet = stplanr::overline2(rnet, c("bicycle","bicycle_go_dutch","bicycle_ebike"))
+  saveRDS(rnet, paste0("outputdata/rnet_primary_school_quietest.Rds"))
+  rnet
+}),
+
+tar_target(rnet_secondary_ebike, {
+  rnet = uptake_school_ebike
+  rnet = rnet[rnet$schooltype == "secondary",]
+  rnet = stplanr::overline2(rnet, c("bicycle","bicycle_go_dutch","bicycle_ebike"))
+  saveRDS(rnet, paste0("outputdata/rnet_primary_school_ebike.Rds"))
+  rnet
+}),
+
+tar_target(rnet_secondary_balanced, {
+  rnet = uptake_school_balanced
+  rnet = rnet[rnet$schooltype == "secondary",]
+  rnet = stplanr::overline2(rnet, c("bicycle","bicycle_go_dutch","bicycle_ebike"))
+  saveRDS(rnet, paste0("outputdata/rnet_primary_school_balanced.Rds"))
+  rnet
+}),
+
+
 
 # School uptake -----------------------------------------------------------
 
-  tar_target(uptake_list_school, {
-    #p = "balanced"
-    uptake_list_school = lapply(parameters$plan, function(p) {
-      message("Uptake for ", p, " school routes")
-      names(r_school[[1]])
-      routes = r_school[[p]] %>%
-        mutate(all = count) %>% 
-        get_scenario_go_dutch(purpose = "school") %>%
-        as_tibble()
-      routes[["geometry"]] = st_sfc(routes[["geometry"]], recompute_bbox = TRUE)
-      routes = st_as_sf(routes)
-      routes
-    })
-    names(uptake_list_school) = parameters$plans
-    uptake_list_school
-  }),
-  
-  tar_target(rnet_segments_school, {
-    rnet = s_school
-    rnet = bind_sf(rnet)
-    rnet$Gradient = round(rnet$gradient_smooth * 100)
-    rnet$Quietness = round(rnet$quietness)
-    rnet = stplanr::overline2(rnet, c("Quietness","Gradient"), fun = first)
-    rnet
-  }),
+  # tar_target(uptake_list_school, {
+  #   #p = "balanced"
+  #   uptake_list_school = lapply(parameters$plan, function(p) {
+  #     message("Uptake for ", p, " school routes")
+  #     names(r_school[[1]])
+  #     routes = r_school[[p]] %>%
+  #       mutate(all = count) %>% 
+  #       get_scenario_go_dutch(purpose = "school") %>%
+  #       as_tibble()
+  #     routes[["geometry"]] = st_sfc(routes[["geometry"]], recompute_bbox = TRUE)
+  #     routes = st_as_sf(routes)
+  #     routes
+  #   })
+  #   names(uptake_list_school) = parameters$plans
+  #   uptake_list_school
+  # }),
   
 
-  tar_target(rnet_school_list, {
-    
-    # Primary
-    rnet_primary_list = sapply(parameters$plans, function(x) NULL)
-    for(p in parameters$plans) {
-      message("Building Primary ", p, " network")
-      rp = uptake_list_school[[p]]
-      rp = rp[rp$schooltype == "primary",]
-      rnet = make_rnets(rp, ncores = 1)
-      
-      f = paste0("outputdata/rnet_primary_school_", p, ".Rds")
-      saveRDS(rnet, f)
-      rnet_primary_list[[p]] = rnet
-    }
-    
-    #Secondary
-    rnet_secondary_list = sapply(parameters$plans, function(x) NULL)
-    for(p in parameters$plans) {
-      message("Building Secondary ", p, " network")
-      rs = uptake_list_school[[p]]
-      rs = rs[rs$schooltype == "secondary",]
-      rnet = make_rnets(rs, ncores = 1)
-      f = paste0("outputdata/rnet_secondary_school_", p, ".Rds")
-      saveRDS(rnet, f)
-      rnet_secondary_list[[p]] = rnet
-    }
-    
-    rnet_school_list =list(rnet_primary_list, rnet_secondary_list)
-    names(rnet_school_list) = c("Primary","Secondary")
-    
-    saveRDS(rnet_school_list, "outputdata/rnet_school_list.Rds")
-    rnet_school_list
-  }),
+  # tar_target(rnet_school_list, {
+  #   
+  #   # Primary
+  #   rnet_primary_list = sapply(parameters$plans, function(x) NULL)
+  #   for(p in parameters$plans) {
+  #     message("Building Primary ", p, " network")
+  #     rp = uptake_list_school[[p]]
+  #     rp = rp[rp$schooltype == "primary",]
+  #     rnet = make_rnets(rp, ncores = 1)
+  #     
+  #     f = paste0("outputdata/rnet_primary_school_", p, ".Rds")
+  #     saveRDS(rnet, f)
+  #     rnet_primary_list[[p]] = rnet
+  #   }
+  #   
+  #   #Secondary
+  #   rnet_secondary_list = sapply(parameters$plans, function(x) NULL)
+  #   for(p in parameters$plans) {
+  #     message("Building Secondary ", p, " network")
+  #     rs = uptake_list_school[[p]]
+  #     rs = rs[rs$schooltype == "secondary",]
+  #     rnet = make_rnets(rs, ncores = 1)
+  #     f = paste0("outputdata/rnet_secondary_school_", p, ".Rds")
+  #     saveRDS(rnet, f)
+  #     rnet_secondary_list[[p]] = rnet
+  #   }
+  #   
+  #   rnet_school_list =list(rnet_primary_list, rnet_secondary_list)
+  #   names(rnet_school_list) = c("Primary","Secondary")
+  #   
+  #   saveRDS(rnet_school_list, "outputdata/rnet_school_list.Rds")
+  #   rnet_school_list
+  # }),
 
 
 # Combine Results ---------------------------------------------------------
@@ -435,9 +582,21 @@ tar_target(combined_network, {
                    quietest = rnet_commute_quietest,
                    ebike = rnet_commute_ebike,
                    balanced = rnet_commute_balanced)
-    rnet_sl_p = rnet_school_list$Primary
-    rnet_sl_s = rnet_school_list$Secondary
-    rnet_quietness = list(rnet_segments_school,
+    
+    rnet_sl_p = list(fastest = rnet_primary_fastest,
+                     quietest = rnet_primary_quietest,
+                     ebike = rnet_primary_ebike,
+                     balanced = rnet_primary_balanced)
+    
+    rnet_sl_s = list(fastest = rnet_secondary_fastest,
+                     quietest = rnet_secondary_quietest,
+                     ebike = rnet_secondary_ebike,
+                     balanced = rnet_secondary_balanced)
+    
+    rnet_quietness = list(rnet_gq_school_fastest,
+                          rnet_gq_school_quietest,
+                          rnet_gq_school_ebike,
+                          rnet_gq_school_balanced,
                           rnet_gq_commute_fastest,
                           rnet_gq_commute_quietest,
                           rnet_gq_commute_ebike,
@@ -497,8 +656,13 @@ tar_target(combined_network, {
                 ebike = uptake_commute_ebike,
                 balanced = uptake_commute_balanced)
     
+    schl = list(fastest = uptake_school_fastest,
+                quietest = uptake_school_quietest,
+                ebike = uptake_school_ebike,
+                balanced = uptake_school_balanced)
+    
     zones_stats_list = uptake_to_zone_stats(comm = comm, 
-                                            schl = uptake_list_school, zones)
+                                            schl = schl, zones)
     zones_stats_list
   }),
   
