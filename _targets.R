@@ -223,11 +223,12 @@ list(
       schools_dl = schools_dl[study_area, op = sf::st_within]
     }
     schools_dl$dist_euclidean_jittered = round(as.numeric(sf::st_length(schools_dl)))
+    names(schools_dl)
     schools_dl = schools_dl %>%
       filter(dist_euclidean_jittered < 10000) %>%
       filter(dist_euclidean_jittered > 1000) %>%
-      slice_max(order_by = count, n = parameters$max_to_route, with_ties = FALSE) %>% 
-      mutate_od_school()
+      mutate_od_school() %>% 
+      slice_max(order_by = all, n = parameters$max_to_route, with_ties = FALSE)
     folder_name = paste0("outputdata/", parameters$date_routing)
     routes_school = get_routes(
       schools_dl,
