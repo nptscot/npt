@@ -6,8 +6,12 @@ devtools::install_github("robinlovelace/simodels")
 library(simodels)
 source("R/gravity_model.R")
 
-disag_threshold = 50
-min_distance_meters = 500
+disag_threshold = 50 # would increasing this reduce the number of od pairs?
+# > summary(od_interaction_jittered$interaction)
+# Min. 1st Qu.  Median    Mean 3rd Qu.    Max. 
+# 49.65   49.91   49.96   49.94   49.98   50.00 
+min_distance_meters = 500 # does this mean that any shops closer than 500m away are essentially ignored? 
+# It would be better to route to these, then exclude them afterwards as too close for the trip to be worth cycling
 
 # Add osm highways for scotland
 osm_highways = readRDS("./inputdata/osm_highways_2023-08-09.Rds")
@@ -100,6 +104,12 @@ zones = readRDS("inputdata/DataZones.Rds")
 zones_shopping = zones %>%
   mutate(shopping_km = ResPop2011 * 9.6 * shop_percent) # resident population (should use 18+ only) * km travelled per person * percent of trips (should be kms) that are for shopping
 
+# # Missing zone 
+# (could find a more systematic way to do this)
+# missing_zone =  zones %>% filter(DataZone == "S01010206")
+# mapview::mapview(missing_zone) # The entire zone sits within a building site so it has no public road within it
+zones_shopping = zones_shopping %>% 
+  filter(DataZone != "S01010206")
 
 # Spatial interaction model of journeys
 max_length_euclidean_km = 5
@@ -114,8 +124,11 @@ od_interaction = od_shopping %>%
 od_interaction = od_interaction %>% 
   filter(quantile(interaction, 0.9) < interaction)
 
-# saveRDS(od_interaction, "./inputdata/shopping_interaction.Rds")
-# od_interaction = readRDS("./inputdata/shopping_interaction.Rds")
+saveRDS(od_interaction, "./inputdata/shopping_interaction.Rds")
+od_interaction = readRDS("./inputdata/shopping_interaction.Rds")
+
+# od_interaction = od_interaction %>% 
+#   filter(!O == "S01010206")
 
 # Jittering
 shopping_polygons = sf::st_buffer(shopping_grid, dist = 0.0001)
@@ -131,6 +144,8 @@ od_interaction_jittered = odjitter::jitter(
   min_distance_meters = min_distance_meters,
   deduplicate_pairs = FALSE
 )
+
+saveRDS(od_interaction_jittered, "./inputdata/od_interaction_jittered.Rds")
 
 # Trip numbers - find which % of these journeys are by bicycle
 
