@@ -93,9 +93,14 @@ shopping_grid = readRDS("./inputdata/shopping_grid.Rds")
 # Estimate number of shopping trips from each origin zone
 # Calculate number of trips / number of cyclists
 trip_purposes = read.csv("./data-raw/scottish-household-survey-2012-19.csv")
+go_home = trip_purposes$Mean[trip_purposes$Purpose == "Go Home"]
+trip_purposes = trip_purposes %>% 
+  filter(Purpose != "Sample size (=100%)") %>% 
+  mutate(adjusted_mean = Mean/(sum(Mean)-go_home)*sum(Mean)
+         )
 shop_percent = trip_purposes %>% 
   filter(Purpose =="Shopping") %>% 
-  select(Mean)
+  select(adjusted_mean)
 shop_percent = shop_percent[[1]]/100
 
 # need to improve on this figure:
@@ -176,4 +181,4 @@ od_shopping_jittered_updated = od_shopping_jittered %>%
 n_short_lines_removed = nrow(od_shopping_jittered) - nrow(od_shopping_jittered_updated)
 message(n_short_lines_removed, " short or long desire lines removed")
 
-saveRDS(od_shopping_jittered_updated, "./inputdata/od_shopping_jittered.Rds"))
+saveRDS(od_shopping_jittered_updated, "./inputdata/od_shopping_jittered.Rds")
