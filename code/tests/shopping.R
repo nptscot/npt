@@ -6,7 +6,7 @@ devtools::install_github("robinlovelace/simodels")
 library(simodels)
 source("R/gravity_model.R")
 
-disag_threshold = 50 # would increasing this reduce the number of od pairs?
+disag_threshold = 1000 # increasing this reduces the number of od pairs
 # > summary(od_interaction_jittered$interaction)
 # Min. 1st Qu.  Median    Mean 3rd Qu.    Max. 
 # 49.65   49.91   49.96   49.94   49.98   50.00 
@@ -93,16 +93,22 @@ shopping_grid = readRDS("./inputdata/shopping_grid.Rds")
 # Estimate number of shopping trips from each origin zone
 # Calculate number of trips / number of cyclists
 trip_purposes = read.csv("./data-raw/scottish-household-survey-2012-19.csv")
+go_home = trip_purposes$Mean[trip_purposes$Purpose == "Go Home"]
+trip_purposes = trip_purposes %>% 
+  filter(Purpose != "Sample size (=100%)") %>% 
+  mutate(adjusted_mean = Mean/(sum(Mean)-go_home)*sum(Mean)
+         )
 shop_percent = trip_purposes %>% 
   filter(Purpose =="Shopping") %>% 
-  select(Mean)
+  select(adjusted_mean)
 shop_percent = shop_percent[[1]]/100
 
 # need to improve on this figure:
-# 2019 mean distance travelled is 9.6km (from transport-and-travel-in-scotland-2019-local-authority-tables.xlsx)
+# from NTS 2019 (England) average 953 trips/person/year divided by 365 = 2.61 trips/day
+# previously used: 2019 mean distance travelled is 9.6km (from transport-and-travel-in-scotland-2019-local-authority-tables.xlsx)
 zones = readRDS("inputdata/DataZones.Rds")
 zones_shopping = zones %>%
-  mutate(shopping_km = ResPop2011 * 9.6 * shop_percent) # resident population (should use 18+ only) * km travelled per person * percent of trips (should be kms) that are for shopping
+  mutate(shopping_trips = ResPop2011 * 2.61 * shop_percent) # resident population (should use 18+ only) * trips per person (from NTS 2019 England) * percent of trips that are for shopping
 
 # # Missing zone 
 # (could find a more systematic way to do this)
@@ -112,15 +118,16 @@ zones_shopping = zones_shopping %>%
   filter(DataZone != "S01010206")
 
 # Spatial interaction model of journeys
+# We could validate this SIM using the Scottish data on mean km travelled 
 max_length_euclidean_km = 5
 od_shopping = si_to_od(zones_shopping, shopping_grid, max_dist = max_length_euclidean_km * 1000)
 od_interaction = od_shopping %>% 
   si_calculate(fun = gravity_model, 
-               m = origin_shopping_km,
+               m = origin_shopping_trips,
                n = destination_size,
                d = distance_euclidean,
                beta = 0.5,
-               constraint_production = origin_shopping_km)
+               constraint_production = origin_shopping_trips)
 od_interaction = od_interaction %>% 
   filter(quantile(interaction, 0.9) < interaction)
 
@@ -133,6 +140,7 @@ od_interaction = readRDS("./inputdata/shopping_interaction.Rds")
 # Jittering
 shopping_polygons = sf::st_buffer(shopping_grid, dist = 0.0001)
 
+# why does distance_euclidean drop so dramatically when we go from od_interaction to od_interaction_jittered? 
 od_interaction_jittered = odjitter::jitter(
   od = od_interaction,
   zones = zones_shopping,
@@ -145,35 +153,32 @@ od_interaction_jittered = odjitter::jitter(
   deduplicate_pairs = FALSE
 )
 
-saveRDS(od_interaction_jittered, "./inputdata/od_interaction_jittered.Rds")
+saveRDS(od_interaction_jittered, "./inputdata/shopping_interaction_jittered.Rds")
+
+od_interaction_jittered = readRDS("./inputdata/shopping_interaction_jittered.Rds")
 
 # Trip numbers - find which % of these journeys are by bicycle
 
 # Get cycle mode shares
-cycle_mode_share = 0.012 # (can get this by local authority)
-
-zones_shopping = zones_shopping %>% 
-  mutate(shopping_cycle = shopping_km * cycle_mode_share)
+cycle_mode_share = 0.012 
+# it would be nice to get this by local authority 
+# but table 16 in transport-and-travel-in-scotland-2019-local-authority-tables.xlsx
+# is not accurate enough (no decimal places for the cycle % mode shares)
 
 od_shopping_jittered = od_interaction_jittered %>% 
   rename(
-    shopping = interaction,
+    shopping_all_modes = interaction,
     geo_code1 = O,
     geo_code2 = D
   ) %>% 
-  mutate(
-    cyclists = shopping * cycle_mode_share,
-    # drivers = shopping * car_mode_share,
-    # foot = shopping * foot_mode_share,
-    # public_transport = shopping * pt_mode_share,
-    # other = shopping * other_mode_share,
-    # passengers = 0,
-    all_modes = shopping
-  )
+  mutate(shopping_cycle = shopping_all_modes * cycle_mode_share)
 
 od_shopping_jittered_updated = od_shopping_jittered %>% 
   rename(length_euclidean_unjittered = distance_euclidean) %>% 
-  mutate(length_euclidean_jittered = units::drop_units(st_length(od_shopping_jittered))/1000) %>%
+  mutate(
+    length_euclidean_unjittered = length_euclidean_unjittered/1000,
+    length_euclidean_jittered = units::drop_units(st_length(od_shopping_jittered))/1000
+    ) %>%
   filter(
     length_euclidean_jittered > (min_distance_meters/1000),
     length_euclidean_jittered < max_length_euclidean_km
@@ -181,4 +186,4 @@ od_shopping_jittered_updated = od_shopping_jittered %>%
 n_short_lines_removed = nrow(od_shopping_jittered) - nrow(od_shopping_jittered_updated)
 message(n_short_lines_removed, " short or long desire lines removed")
 
-saveRDS(od_shopping_jittered_updated, file.path(rds_folder, "od_shopping_jittered.Rds"))
+saveRDS(od_shopping_jittered_updated, "./inputdata/od_shopping_jittered.Rds")
