@@ -118,6 +118,7 @@ zones_shopping = zones_shopping %>%
   filter(DataZone != "S01010206")
 
 # Spatial interaction model of journeys
+# We could validate this SIM using the Scottish data on mean km travelled 
 max_length_euclidean_km = 5
 od_shopping = si_to_od(zones_shopping, shopping_grid, max_dist = max_length_euclidean_km * 1000)
 od_interaction = od_shopping %>% 
