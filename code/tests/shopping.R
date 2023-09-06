@@ -104,10 +104,11 @@ shop_percent = trip_purposes %>%
 shop_percent = shop_percent[[1]]/100
 
 # need to improve on this figure:
-# 2019 mean distance travelled is 9.6km (from transport-and-travel-in-scotland-2019-local-authority-tables.xlsx)
+# from NTS 2019 (England) average 953 trips/person/year divided by 365 = 2.61 trips/day
+# previously used: 2019 mean distance travelled is 9.6km (from transport-and-travel-in-scotland-2019-local-authority-tables.xlsx)
 zones = readRDS("inputdata/DataZones.Rds")
 zones_shopping = zones %>%
-  mutate(shopping_km = ResPop2011 * 9.6 * shop_percent) # resident population (should use 18+ only) * km travelled per person * percent of trips (should be kms) that are for shopping
+  mutate(shopping_trips = ResPop2011 * 2.61 * shop_percent) # resident population (should use 18+ only) * trips per person (from NTS 2019 England) * percent of trips that are for shopping
 
 # # Missing zone 
 # (could find a more systematic way to do this)
@@ -121,11 +122,11 @@ max_length_euclidean_km = 5
 od_shopping = si_to_od(zones_shopping, shopping_grid, max_dist = max_length_euclidean_km * 1000)
 od_interaction = od_shopping %>% 
   si_calculate(fun = gravity_model, 
-               m = origin_shopping_km,
+               m = origin_shopping_trips,
                n = destination_size,
                d = distance_euclidean,
                beta = 0.5,
-               constraint_production = origin_shopping_km)
+               constraint_production = origin_shopping_trips)
 od_interaction = od_interaction %>% 
   filter(quantile(interaction, 0.9) < interaction)
 
@@ -158,7 +159,10 @@ od_interaction_jittered = readRDS("./inputdata/shopping_interaction_jittered.Rds
 # Trip numbers - find which % of these journeys are by bicycle
 
 # Get cycle mode shares
-cycle_mode_share = 0.012 # (can get this by local authority)
+cycle_mode_share = 0.012 
+# it would be nice to get this by local authority 
+# but table 16 in transport-and-travel-in-scotland-2019-local-authority-tables.xlsx
+# is not accurate enough (no decimal places for the cycle % mode shares)
 
 od_shopping_jittered = od_interaction_jittered %>% 
   rename(
