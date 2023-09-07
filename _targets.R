@@ -4,14 +4,15 @@
 #   https://books.ropensci.org/targets/walkthrough.html#inspect-the-pipeline # nolint
 
 # Load packages required to define the pipeline:
-remotes::install_dev("cyclestreets")
-remotes::install_github("dabreegster/odjitter", subdir = "r")
-remotes::install_github("ropensci/stplanr")# Improved overline
-remotes::install_cran("targets")
+if(FALSE){ # Repeated builds can it GitHub API limit, set to TRUE to check for package updates
+  remotes::install_dev("cyclestreets")
+  remotes::install_github("dabreegster/odjitter", subdir = "r")
+  remotes::install_github("ropensci/stplanr")# Improved overline
+  remotes::install_cran("targets")
+}
+
 library(targets)
-library(tidyverse)
-# library(tmap)
-library(stplanr)
+library(magrittr) # Light load of %>%
 library(sf)
 
 # Set target options:
@@ -181,88 +182,6 @@ list(
   }),
   
 
-# Commute routing ---------------------------------------------------------
-
-  tar_target(rs_commute_fastest, {
-    length(rs_school_balanced) # Do school routing first
-    rs = get_routes(od = od_commute_subset,
-                        plans = "fastest", 
-                        purpose = "commute",
-                        folder = paste0("outputdata/", parameters$date_routing),
-                        date = parameters$date_routing,
-                        segments = "both")
-    rs
-  }),
-
-  tar_target(rs_commute_quietest, {
-    length(rs_commute_fastest)
-    rs = get_routes(od = od_commute_subset,
-                    plans = "quietest", 
-                    purpose = "commute",
-                    folder = paste0("outputdata/", parameters$date_routing),
-                    date = parameters$date_routing,
-                    segments = "both")
-    rs
-  }),
-
-  tar_target(rs_commute_ebike, {
-    length(rs_commute_quietest)
-    rs = get_routes(od = od_commute_subset,
-                    plans = "ebike", 
-                    purpose = "commute",
-                    folder = paste0("outputdata/", parameters$date_routing),
-                    date = parameters$date_routing,
-                    segments = "both")
-    rs
-  }),
-
-  tar_target(rs_commute_balanced, {
-    length(rs_commute_ebike)
-    rs = get_routes(od = od_commute_subset,
-                    plans = "balanced", 
-                    purpose = "commute",
-                    folder = paste0("outputdata/", parameters$date_routing),
-                    date = parameters$date_routing,
-                    segments = "both")
-    rs
-  }),
-
-
-# Commute routing post-processing -----------------------------------------
-
-  tar_target(r_commute_fastest, {
-    rs_commute_fastest[[1]]$routes
-  }),
-  
-  tar_target(r_commute_quietest, {
-    rs_commute_quietest[[1]]$routes
-  }),
-  
-  tar_target(r_commute_ebike, {
-    rs_commute_ebike[[1]]$routes
-  }),
-  
-  tar_target(r_commute_balanced, {
-    rs_commute_balanced[[1]]$routes
-  }),
-  
-  tar_target(rnet_gq_commute_fastest, {
-    segments2rnet(rs_commute_fastest[[1]]$segments)
-  }),
-  
-  tar_target(rnet_gq_commute_quietest, {
-    segments2rnet(rs_commute_quietest[[1]]$segments)
-  }),
-  
-  tar_target(rnet_gq_commute_ebike, {
-    segments2rnet(rs_commute_ebike[[1]]$segments)
-  }),
-
-  tar_target(rnet_gq_commute_balanced, {
-    segments2rnet(rs_commute_balanced[[1]]$segments)
-  }),
-
-
 # School OD ---------------------------------------------------------------
 
 tar_target(od_school, {
@@ -335,6 +254,87 @@ tar_target(rs_school_balanced, {
                   date = parameters$date_routing,
                   segments = "both")
   rs
+}),
+
+# Commute routing ---------------------------------------------------------
+
+tar_target(rs_commute_fastest, {
+  length(rs_school_balanced) # Do school routing first
+  rs = get_routes(od = od_commute_subset,
+                  plans = "fastest", 
+                  purpose = "commute",
+                  folder = paste0("outputdata/", parameters$date_routing),
+                  date = parameters$date_routing,
+                  segments = "both")
+  rs
+}),
+
+tar_target(rs_commute_quietest, {
+  length(rs_commute_fastest)
+  rs = get_routes(od = od_commute_subset,
+                  plans = "quietest", 
+                  purpose = "commute",
+                  folder = paste0("outputdata/", parameters$date_routing),
+                  date = parameters$date_routing,
+                  segments = "both")
+  rs
+}),
+
+tar_target(rs_commute_ebike, {
+  length(rs_commute_quietest)
+  rs = get_routes(od = od_commute_subset,
+                  plans = "ebike", 
+                  purpose = "commute",
+                  folder = paste0("outputdata/", parameters$date_routing),
+                  date = parameters$date_routing,
+                  segments = "both")
+  rs
+}),
+
+tar_target(rs_commute_balanced, {
+  length(rs_commute_ebike)
+  rs = get_routes(od = od_commute_subset,
+                  plans = "balanced", 
+                  purpose = "commute",
+                  folder = paste0("outputdata/", parameters$date_routing),
+                  date = parameters$date_routing,
+                  segments = "both")
+  rs
+}),
+
+
+# Commute routing post-processing -----------------------------------------
+
+tar_target(r_commute_fastest, {
+  rs_commute_fastest[[1]]$routes
+}),
+
+tar_target(r_commute_quietest, {
+  rs_commute_quietest[[1]]$routes
+}),
+
+tar_target(r_commute_ebike, {
+  rs_commute_ebike[[1]]$routes
+}),
+
+tar_target(r_commute_balanced, {
+  rs_commute_balanced[[1]]$routes
+}),
+
+tar_target(rnet_gq_commute_fastest, {
+  segments2rnet(rs_commute_fastest[[1]]$segments)
+}),
+
+tar_target(rnet_gq_commute_quietest, {
+  segments2rnet(rs_commute_quietest[[1]]$segments)
+}),
+
+tar_target(rnet_gq_commute_ebike, {
+  segments2rnet(rs_commute_ebike[[1]]$segments)
+}),
+
+tar_target(rnet_gq_commute_balanced, {
+  segments2rnet(rs_commute_balanced[[1]]$segments)
 }),
 
 
@@ -431,21 +431,21 @@ tar_target(uptake_school_balanced, {
 
 # Commute RNets -----------------------------------------------------------
 
-  tar_target(rnet_commute_fastest, {
-    stplanr::overline2(uptake_commute_fastest, c("bicycle","bicycle_go_dutch","bicycle_ebike"))
-  }),
-  
-  tar_target(rnet_commute_quietest, {
-    stplanr::overline2(uptake_commute_quietest, c("bicycle","bicycle_go_dutch","bicycle_ebike"))
-  }),
-  
-  tar_target(rnet_commute_ebike, {
-    stplanr::overline2(uptake_commute_ebike, c("bicycle","bicycle_go_dutch","bicycle_ebike"))
-  }),
-  
-  tar_target(rnet_commute_balanced, {
-    stplanr::overline2(uptake_commute_balanced, c("bicycle","bicycle_go_dutch","bicycle_ebike"))
-  }),
+tar_target(rnet_commute_fastest, {
+  stplanr::overline2(uptake_commute_fastest, c("bicycle","bicycle_go_dutch","bicycle_ebike"))
+}),
+
+tar_target(rnet_commute_quietest, {
+  stplanr::overline2(uptake_commute_quietest, c("bicycle","bicycle_go_dutch","bicycle_ebike"))
+}),
+
+tar_target(rnet_commute_ebike, {
+  stplanr::overline2(uptake_commute_ebike, c("bicycle","bicycle_go_dutch","bicycle_ebike"))
+}),
+
+tar_target(rnet_commute_balanced, {
+  stplanr::overline2(uptake_commute_balanced, c("bicycle","bicycle_go_dutch","bicycle_ebike"))
+}),
 
 
 # Primary School RNets -----------------------------------------------------------
@@ -516,35 +516,200 @@ tar_target(rnet_secondary_balanced, {
   rnet
 }),
 
-# Combine Results ---------------------------------------------------------
+# Commute Zone stats ---------------------------------------------------------
 
+tar_target(commute_stats_baseline, {
+  stats = sf::st_drop_geometry(od_commute_subset)
+  stats_from = dplyr::group_by(stats, geo_code1) %>%
+    dplyr::summarise(all = sum(all, na.rm = TRUE),
+                     bicycle = sum(bicycle, na.rm = TRUE),
+                     car = sum(car, na.rm = TRUE),
+                     foot = sum(foot, na.rm = TRUE),
+                     public_transport = sum(public_transport, na.rm = TRUE),
+                     taxi = sum(taxi, na.rm = TRUE))
+  stats_to = dplyr::group_by(stats, geo_code2) %>%
+    dplyr::summarise(all = sum(all, na.rm = TRUE),
+                     bicycle = sum(bicycle, na.rm = TRUE),
+                     car = sum(car, na.rm = TRUE),
+                     foot = sum(foot, na.rm = TRUE),
+                     public_transport = sum(public_transport, na.rm = TRUE),
+                     taxi = sum(taxi, na.rm = TRUE))
+  
+  names(stats_from)[1] = "DataZone"
+  names(stats_to)[1] = "DataZone"
+  
+  names(stats_from)[2:ncol(stats_from)] = paste0("comm_orig_",names(stats_from)[2:ncol(stats_from)])
+  names(stats_to)[2:ncol(stats_to)] = paste0("comm_dest_",names(stats_to)[2:ncol(stats_to)])
+  
+  stats = dplyr::full_join(stats_from, stats_to, by = "DataZone")
+  stats
+}),
+
+tar_target(commute_stats_fastest, {
+  make_commute_stats(uptake_commute_fastest, "fastest")
+}),
+
+tar_target(commute_stats_quietest, {
+  make_commute_stats(uptake_commute_quietest, "quietest")
+}),
+
+tar_target(commute_stats_ebike, {
+  make_commute_stats(uptake_commute_ebike, "ebike")
+}),
+
+tar_target(commute_stats_balanced, {
+  make_commute_stats(uptake_commute_balanced, "balanced")
+}),
+
+
+# School Zone stats ---------------------------------------------------------
+
+tar_target(school_stats_baseline, {
+  stats = sf::st_drop_geometry(od_school)
+  stats = dplyr::group_by(stats, SeedCode, schooltype) %>%
+    dplyr::summarise(all = sum(all, na.rm = TRUE),
+                     bicycle = sum(bicycle, na.rm = TRUE),
+                     car = sum(car, na.rm = TRUE),
+                     foot = sum(foot, na.rm = TRUE),
+                     public_transport = sum(public_transport, na.rm = TRUE),
+                     other = sum(other, na.rm = TRUE))
+  stats = tidyr::pivot_wider(stats, 
+                             id_cols = c("SeedCode"),
+                             names_from = c("schooltype"),
+                             values_from = names(stats)[3:ncol(stats)])
+  stats
+}),
+
+tar_target(school_stats_from_baseline, {
+  stats = sf::st_drop_geometry(od_school)
+  stats = dplyr::group_by(stats, DataZone, schooltype) %>%
+    dplyr::summarise(all = sum(all, na.rm = TRUE),
+                     bicycle = sum(bicycle, na.rm = TRUE),
+                     car = sum(car, na.rm = TRUE),
+                     foot = sum(foot, na.rm = TRUE),
+                     public_transport = sum(public_transport, na.rm = TRUE),
+                     other = sum(other, na.rm = TRUE))
+  stats = tidyr::pivot_wider(stats, 
+                             id_cols = c("DataZone"),
+                             names_from = c("schooltype"),
+                             values_from = names(stats)[3:ncol(stats)])
+  stats
+}),
+
+tar_target(school_stats_fastest, {
+  make_school_stats(uptake_school_fastest, "fastest")
+}),
+
+tar_target(school_stats_quietest, {
+  make_school_stats(uptake_school_quietest, "quietest")
+}),
+
+tar_target(school_stats_ebike, {
+  make_school_stats(uptake_school_ebike, "ebike")
+}),
+
+tar_target(school_stats_balanced, {
+  make_school_stats(uptake_school_balanced, "balanced")
+}),
+
+tar_target(school_stats_from_fastest, {
+  make_school_stats_from(uptake_school_fastest, "fastest")
+}),
+
+tar_target(school_stats_from_quietest, {
+  make_school_stats_from(uptake_school_quietest, "quietest")
+}),
+
+tar_target(school_stats_from_ebike, {
+  make_school_stats_from(uptake_school_ebike, "ebike")
+}),
+
+tar_target(school_stats_from_balanced, {
+  make_school_stats_from(uptake_school_balanced, "balanced")
+}),
+
+# Combine stats  ---------------------------------------------------------
+
+tar_target(school_stats, {
+  # Ebike routes for ebike scenario
+  ebike = school_stats_ebike
+  fastest = school_stats_fastest
+  ebike = ebike[,!grepl("go_dutch",names(ebike))]
+  fastest = fastest[,!grepl("ebike",names(fastest))]
+  names(ebike) = gsub("_ebike$","_fastest",names(ebike))
+  
+  stats = dplyr::left_join(school_stats_baseline, fastest, by = "SeedCode")
+  stats = dplyr::left_join(stats, ebike, by = "SeedCode")
+  stats = dplyr::left_join(stats, school_stats_quietest, by = "SeedCode")
+  stats
+}),
+
+tar_target(school_stats_from, {
+  # Ebike routes for ebike scenario
+  ebike = school_stats_from_ebike
+  fastest = school_stats_from_fastest
+  ebike = ebike[,!grepl("go_dutch",names(ebike))]
+  fastest = fastest[,!grepl("ebike",names(fastest))]
+  names(ebike) = gsub("_ebike$","_fastest",names(ebike))
+  
+  stats = dplyr::left_join(school_stats_from_baseline, fastest, by = "DataZone")
+  stats = dplyr::left_join(stats, ebike, by = "DataZone")
+  stats = dplyr::left_join(stats, school_stats_from_quietest, by = "DataZone")
+  stats
+}),
+
+
+tar_target(commute_stats, {
+  # Ebike routes for ebike scenario
+  ebike = commute_stats_ebike
+  fastest = commute_stats_fastest
+  ebike = ebike[,!grepl("go_dutch",names(ebike))]
+  fastest = fastest[,!grepl("ebike",names(fastest))]
+  names(ebike) = gsub("_ebike$","_fastest",names(ebike))
+  
+  stats = dplyr::left_join(commute_stats_baseline, fastest, by = "DataZone")
+  stats = dplyr::left_join(stats, ebike, by = "DataZone")
+  stats = dplyr::left_join(stats, commute_stats_quietest, by = "DataZone")
+  stats
+}),
+
+tar_target(zones_stats, {
+  dplyr::full_join(commute_stats, school_stats_from, by = "DataZone")
+}),
+
+
+tar_target(zones_stats_json, {
+  export_zone_json(zones_stats, "DataZone", path = "outputdata")
+}),
+
+tar_target(school_stats_json, {
+  export_zone_json(school_stats, "SeedCode", path = "outputdata")
+}),
+
+
+# Combine networks ---------------------------------------------------------
 
 tar_target(combined_network, {
     
     # Purpose: Combine individual rnets into single rnet -----------------------
     rnet_cl = list(fastest = rnet_commute_fastest,
                    quietest = rnet_commute_quietest,
-                   ebike = rnet_commute_ebike,
-                   balanced = rnet_commute_balanced)
+                   ebike = rnet_commute_ebike)
     
     rnet_sl_p = list(fastest = rnet_primary_fastest,
                      quietest = rnet_primary_quietest,
-                     ebike = rnet_primary_ebike,
-                     balanced = rnet_primary_balanced)
+                     ebike = rnet_primary_ebike)
     
     rnet_sl_s = list(fastest = rnet_secondary_fastest,
                      quietest = rnet_secondary_quietest,
-                     ebike = rnet_secondary_ebike,
-                     balanced = rnet_secondary_balanced)
+                     ebike = rnet_secondary_ebike)
     
     rnet_quietness = list(rnet_gq_school_fastest,
                           rnet_gq_school_quietest,
                           rnet_gq_school_ebike,
-                          rnet_gq_school_balanced,
                           rnet_gq_commute_fastest,
                           rnet_gq_commute_quietest,
-                          rnet_gq_commute_ebike,
-                          rnet_gq_commute_balanced)
+                          rnet_gq_commute_ebike)
     names(rnet_cl) = paste0("commute_", names(rnet_cl))
     names(rnet_sl_p) = paste0("primary_", names(rnet_sl_p))
     names(rnet_sl_s) = paste0("secondary_", names(rnet_sl_s))
@@ -555,7 +720,7 @@ tar_target(combined_network, {
                                   ncores = 1, 
                                   regionalise = 1e5,
                                   add_all = TRUE)
-    # Sort rnet for tileing, low values drawn first
+    # Sort rnet for tiling, low values drawn first
     rnet_combined = rnet_combined[order(rnet_combined$all_fastest_bicycle_go_dutch, 
                                         rnet_combined$all_quietest_bicycle_go_dutch),]
     
@@ -565,10 +730,6 @@ tar_target(combined_network, {
   tar_target(combined_network_tile, {
     # Not All Data is put into the UI
     rnet_tile = combined_network
-    
-    # Remove Balanced Network
-    nms = !grepl("(balanced)",names(rnet_tile))
-    rnet_tile = rnet_tile[,nms]
     
     # Only use ebike routing for ebike scenario
     nms_noebike = !grepl("(ebike)",names(rnet_tile)) #keep all non-ebike
@@ -588,43 +749,9 @@ tar_target(combined_network, {
     rnet_tile
   }),
   
-  # tar_target(calculate_benefits, {
-  #   benefits = function(x) x
-  #   benefits(r_commute)
-  # }),
+
   
-  tar_target(zones_stats_list, {
-    # Summarise results by DataZone and School
-    comm = list(fastest = uptake_commute_fastest,
-                quietest = uptake_commute_quietest,
-                ebike = uptake_commute_ebike,
-                balanced = uptake_commute_balanced)
-    
-    schl = list(fastest = uptake_school_fastest,
-                quietest = uptake_school_quietest,
-                ebike = uptake_school_ebike,
-                balanced = uptake_school_balanced)
-    
-    zones_stats_list = uptake_to_zone_stats(comm = comm, 
-                                            schl = schl, zones)
-    zones_stats_list
-  }),
   
-  tar_target(zones_stats, {
-    zones_stats_list$zones
-  }),
-  
-  tar_target(school_stats, {
-    zones_stats_list$schools
-  }),
-  
-  tar_target(zones_stats_json, {
-    export_zone_json(zones_stats, "DataZone", path = "outputdata")
-  }),
-  
-  tar_target(school_stats_json, {
-    export_zone_json(school_stats, "SeedCode", path = "outputdata")
-  }),
   
   
   tar_target(save_outputs, {
