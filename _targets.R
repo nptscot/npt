@@ -36,7 +36,7 @@ tar_option_set(
 #options(clustermq.scheduler = "multicore")
 
 # llib configuration (okay to leave alone):
-future::plan(future::multisession, workers = 4)
+future::plan(future::multisession, workers = 2)
 # Then targets::tar_make_future()
 
 # Run the R scripts in the R/ folder with your custom functions:
