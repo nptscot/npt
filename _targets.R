@@ -15,6 +15,7 @@ library(stplanr)
 library(sf)
 
 httr::timeout(seconds = 60 * 60 * 3) # hr
+httr::set_config(httr::timeout(seconds = 600))
 # Set target options:
 tar_option_set(
   memory = "transient", 
