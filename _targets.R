@@ -14,7 +14,7 @@ library(tidyverse)
 library(stplanr)
 library(sf)
 
-options(timeout = 600)
+httr::timeout(seconds = 60 * 60 * 3) # hr
 # Set target options:
 tar_option_set(
   memory = "transient", 
