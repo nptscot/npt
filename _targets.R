@@ -14,6 +14,7 @@ library(tidyverse)
 library(stplanr)
 library(sf)
 
+options(timeout = 600)
 # Set target options:
 tar_option_set(
   memory = "transient", 
