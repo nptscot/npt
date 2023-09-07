@@ -14,8 +14,6 @@ library(tidyverse)
 library(stplanr)
 library(sf)
 
-httr::timeout(seconds = 60 * 60 * 3) # hr
-httr::set_config(httr::timeout(seconds = 600))
 # Set target options:
 tar_option_set(
   memory = "transient", 
@@ -297,45 +295,65 @@ tar_target(od_school, {
 # School routing ----------------------------------------------------------
 
 tar_target(rs_school_fastest, {
+  f = paste0("outputdata/", parameters$date_routing, "routes_max_dist_school_fastest.Rds")
+  if (file.exists(f)) {
+    rs = readRDS(f)
+  } else {
   rs = get_routes(od = od_school,
                   plans = "fastest", 
                   purpose = "school",
                   folder = paste0("outputdata/", parameters$date_routing),
                   date = parameters$date_routing,
                   segments = "both")
+  }
   rs
 }),
 
 tar_target(rs_school_quietest, {
   length(rs_school_fastest)
+  f = paste0("outputdata/", parameters$date_routing, "routes_max_dist_school_quietest.Rds")
+  if (file.exists(f)) {
+    rs = readRDS(f)
+  } else {
   rs = get_routes(od = od_school,
                   plans = "quietest", 
                   purpose = "school",
                   folder = paste0("outputdata/", parameters$date_routing),
                   date = parameters$date_routing,
                   segments = "both")
+  }
   rs
 }),
 
 tar_target(rs_school_ebike, {
   length(rs_school_quietest)
+  f = paste0("outputdata/", parameters$date_routing, "routes_max_dist_school_ebike.Rds")
+  if (file.exists(f)) {
+    rs = readRDS(f)
+  } else {
   rs = get_routes(od = od_school,
                   plans = "ebike", 
                   purpose = "school",
                   folder = paste0("outputdata/", parameters$date_routing),
                   date = parameters$date_routing,
                   segments = "both")
+  }
   rs
 }),
 
 tar_target(rs_school_balanced, {
   length(rs_school_ebike)
+  f =paste0("outputdata/", parameters$date_routing, "routes_max_dist_school_balanced.Rds")
+  if (file.exists(f)) {
+    rs = readRDS(f)
+  } else {
   rs = get_routes(od = od_school,
                   plans = "balanced", 
                   purpose = "school",
                   folder = paste0("outputdata/", parameters$date_routing),
                   date = parameters$date_routing,
                   segments = "both")
+  }
   rs
 }),
 
