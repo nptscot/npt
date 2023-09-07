@@ -12,6 +12,7 @@ disag_threshold = 1000 # increasing this reduces the number of od pairs
 # 49.65   49.91   49.96   49.94   49.98   50.00 
 min_distance_meters = 500 # does this mean that any shops closer than 500m away are essentially ignored? 
 # It would be better to route to these, then exclude them afterwards as too close for the trip to be worth cycling
+max_length_euclidean_km = 5
 
 # Add osm highways for scotland
 osm_highways = readRDS("./inputdata/osm_highways_2023-08-09.Rds")
@@ -119,7 +120,6 @@ zones_shopping = zones_shopping %>%
 
 # Spatial interaction model of journeys
 # We could validate this SIM using the Scottish data on mean km travelled 
-max_length_euclidean_km = 5
 od_shopping = si_to_od(zones_shopping, shopping_grid, max_dist = max_length_euclidean_km * 1000)
 od_interaction = od_shopping %>% 
   si_calculate(fun = gravity_model, 
