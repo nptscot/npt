@@ -19,6 +19,8 @@ library(sf)
 tar_option_set(
   memory = "transient", 
   garbage_collection = TRUE,
+  storage = "worker", 
+  retrieval = "worker",
   # packages that your targets need to run
   packages = c("tibble","zonebuilder","dplyr","stplanr","lubridate",
                "cyclestreets","odjitter","stringr","sf","tidyr","data.table",
@@ -223,8 +225,12 @@ tar_target(rs_school_fastest, {
   rs
 }),
 
+tar_target(done_school_fastest, {
+  exists(rs_school_fastest) #Hack for scheduling
+}),
+
 tar_target(rs_school_quietest, {
-  length(rs_school_fastest)
+  length(done_school_fastest)
   rs = get_routes(od = od_school,
                   plans = "quietest", 
                   purpose = "school",
@@ -234,8 +240,12 @@ tar_target(rs_school_quietest, {
   rs
 }),
 
+tar_target(done_school_quietest, {
+  exists(rs_school_quietest) #Hack for scheduling
+}),
+
 tar_target(rs_school_ebike, {
-  length(rs_school_quietest)
+  length(done_school_quietest)
   rs = get_routes(od = od_school,
                   plans = "ebike", 
                   purpose = "school",
@@ -245,8 +255,12 @@ tar_target(rs_school_ebike, {
   rs
 }),
 
+tar_target(done_school_ebike, {
+  exists(rs_school_ebike) #Hack for scheduling
+}),
+
 tar_target(rs_school_balanced, {
-  length(rs_school_ebike)
+  length(done_school_ebike)
   rs = get_routes(od = od_school,
                   plans = "balanced", 
                   purpose = "school",
@@ -256,10 +270,14 @@ tar_target(rs_school_balanced, {
   rs
 }),
 
+tar_target(done_school_balanced, {
+  exists(rs_school_balanced) #Hack for scheduling
+}),
+
 # Commute routing ---------------------------------------------------------
 
 tar_target(rs_commute_fastest, {
-  length(rs_school_balanced) # Do school routing first
+  length(done_school_balanced) # Do school routing first
   rs = get_routes(od = od_commute_subset,
                   plans = "fastest", 
                   purpose = "commute",
@@ -269,8 +287,12 @@ tar_target(rs_commute_fastest, {
   rs
 }),
 
+tar_target(done_commute_fastest, {
+  exists(rs_commute_fastest) #Hack for scheduling
+}),
+
 tar_target(rs_commute_quietest, {
-  length(rs_commute_fastest)
+  length(done_commute_fastest)
   rs = get_routes(od = od_commute_subset,
                   plans = "quietest", 
                   purpose = "commute",
@@ -278,6 +300,10 @@ tar_target(rs_commute_quietest, {
                   date = parameters$date_routing,
                   segments = "both")
   rs
+}),
+
+tar_target(done_commute_quietest, {
+  exists(rs_commute_quietest) #Hack for scheduling
 }),
 
 tar_target(rs_commute_ebike, {
@@ -291,8 +317,12 @@ tar_target(rs_commute_ebike, {
   rs
 }),
 
+tar_target(done_commute_ebike, {
+  exists(rs_commute_ebike) #Hack for scheduling
+}),
+
 tar_target(rs_commute_balanced, {
-  length(rs_commute_ebike)
+  length(done_commute_ebike)
   rs = get_routes(od = od_commute_subset,
                   plans = "balanced", 
                   purpose = "commute",
