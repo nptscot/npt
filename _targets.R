@@ -260,7 +260,7 @@ tar_target(done_school_ebike, {
 }),
 
 tar_target(rs_school_balanced, {
-  length(done_school_ebike)
+  length(done_commute_ebike)
   rs = get_routes(od = od_school,
                   plans = "balanced", 
                   purpose = "school",
@@ -277,7 +277,7 @@ tar_target(done_school_balanced, {
 # Commute routing ---------------------------------------------------------
 
 tar_target(rs_commute_fastest, {
-  length(done_school_balanced) # Do school routing first
+  length(done_school_ebike) # Do school routing first
   rs = get_routes(od = od_commute_subset,
                   plans = "fastest", 
                   purpose = "commute",
@@ -322,7 +322,7 @@ tar_target(done_commute_ebike, {
 }),
 
 tar_target(rs_commute_balanced, {
-  length(done_commute_ebike)
+  length(done_school_balanced)
   rs = get_routes(od = od_commute_subset,
                   plans = "balanced", 
                   purpose = "commute",
