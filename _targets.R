@@ -332,6 +332,10 @@ tar_target(rs_commute_balanced, {
   rs
 }),
 
+tar_target(done_commute_balanced, {
+  exists(rs_commute_balanced) #Hack for scheduling
+}),
+
 
 # Commute routing post-processing -----------------------------------------
 
@@ -833,6 +837,7 @@ tar_target(combined_network, {
     
     # Ensure the target runs after
     length(school_stats_json)
+    length(done_commute_balanced)
     commit = gert::git_log(max = 1)
     message("Commit: ", commit)
     full_build = 
