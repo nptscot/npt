@@ -307,7 +307,7 @@ tar_target(done_commute_quietest, {
 }),
 
 tar_target(rs_commute_ebike, {
-  length(rs_commute_quietest)
+  length(done_commute_quietest)
   rs = get_routes(od = od_commute_subset,
                   plans = "ebike", 
                   purpose = "commute",
