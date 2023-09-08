@@ -1,7 +1,10 @@
-# Created by use_targets().
-# Follow the comments below to fill in this target script.
-# Then follow the manual to check and run the pipeline:
-#   https://books.ropensci.org/targets/walkthrough.html#inspect-the-pipeline # nolint
+# Instructions
+
+# 1) Optional - to see real-time updates of progress
+# tar_watch(seconds = 60, outdated = FALSE, targets_only = TRUE)
+# 2) To run the build
+# tar_make_future(workers = 4)
+# If your RAM limited use tar_make() to run one job at a time
 
 # Load packages required to define the pipeline:
 if(FALSE){ # Repeated builds can it GitHub API limit, set to TRUE to check for package updates
@@ -14,6 +17,8 @@ if(FALSE){ # Repeated builds can it GitHub API limit, set to TRUE to check for p
 library(targets)
 library(magrittr) # Light load of %>%
 library(sf)
+library(future) # Needed for multi-core running
+library(future.callr)
 
 # Set target options:
 tar_option_set(
@@ -26,23 +31,13 @@ tar_option_set(
                "cyclestreets","odjitter","stringr","sf","tidyr","data.table",
                "glue","zip","jsonlite","remotes","gert","collapse","pct",
                "readr",
-               "future", "future.callr", "future.batchtools"
+               "future", "future.callr", "future.batchtools",
+               "bs4Dash", "DT", "gt", "pingr", "shinybusy", "shinyWidgets"
   ),
-  # default storage format
-  format = "rds" 
-  # Set other options as needed.
+  format = "rds" # default storage format
 )
-# # Remove previous targets objects:
-# tar_destroy()
 
-# tar_make_clustermq() configuration (okay to leave alone):
-#options(clustermq.scheduler = "multicore")
-
-# llib configuration (okay to leave alone):
-future::plan(future::multisession, workers = 2)
-# Then targets::tar_make_future()
-
-# Run the R scripts in the R/ folder with your custom functions:
+plan(callr)
 tar_source()
 
 # Targets -----------------------------------------------------------------
@@ -907,6 +902,7 @@ tar_target(combined_network, {
     write_csv(build_summary, "outputs/build_summary.csv")
   })
 )
+
 
 # # Download a snapshot of the data:
 # setwd("outputdata")
