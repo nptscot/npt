@@ -1,8 +1,8 @@
 # Instructions
-
-# 1) Optional - to see real-time updates of progress
-# tar_watch(seconds = 60, outdated = FALSE, targets_only = TRUE)
-# 2) To run the build
+# 1) library(targets)
+# 2) Optional - to see real-time updates of progress
+# tar_watch(seconds = 60, targets_only = TRUE)
+# 3) To run the build
 # tar_make_future(workers = 4)
 # If your RAM limited use tar_make() to run one job at a time
 
