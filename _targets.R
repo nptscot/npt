@@ -226,7 +226,7 @@ tar_target(rs_school_fastest, {
 }),
 
 tar_target(done_school_fastest, {
-  exists(rs_school_fastest) #Hack for scheduling
+  length(rs_school_fastest) #Hack for scheduling
 }),
 
 tar_target(rs_school_quietest, {
@@ -241,7 +241,7 @@ tar_target(rs_school_quietest, {
 }),
 
 tar_target(done_school_quietest, {
-  exists(rs_school_quietest) #Hack for scheduling
+  length(rs_school_quietest) #Hack for scheduling
 }),
 
 tar_target(rs_school_ebike, {
@@ -256,7 +256,7 @@ tar_target(rs_school_ebike, {
 }),
 
 tar_target(done_school_ebike, {
-  exists(rs_school_ebike) #Hack for scheduling
+  length(rs_school_ebike) #Hack for scheduling
 }),
 
 tar_target(rs_school_balanced, {
@@ -271,7 +271,7 @@ tar_target(rs_school_balanced, {
 }),
 
 tar_target(done_school_balanced, {
-  exists(rs_school_balanced) #Hack for scheduling
+  length(rs_school_balanced) #Hack for scheduling
 }),
 
 # Commute routing ---------------------------------------------------------
@@ -288,7 +288,7 @@ tar_target(rs_commute_fastest, {
 }),
 
 tar_target(done_commute_fastest, {
-  exists(rs_commute_fastest) #Hack for scheduling
+  length(rs_commute_fastest) #Hack for scheduling
 }),
 
 tar_target(rs_commute_quietest, {
@@ -303,7 +303,7 @@ tar_target(rs_commute_quietest, {
 }),
 
 tar_target(done_commute_quietest, {
-  exists(rs_commute_quietest) #Hack for scheduling
+  length(rs_commute_quietest) #Hack for scheduling
 }),
 
 tar_target(rs_commute_ebike, {
@@ -318,7 +318,7 @@ tar_target(rs_commute_ebike, {
 }),
 
 tar_target(done_commute_ebike, {
-  exists(rs_commute_ebike) #Hack for scheduling
+  length(rs_commute_ebike) #Hack for scheduling
 }),
 
 tar_target(rs_commute_balanced, {
@@ -333,7 +333,7 @@ tar_target(rs_commute_balanced, {
 }),
 
 tar_target(done_commute_balanced, {
-  exists(rs_commute_balanced) #Hack for scheduling
+  length(rs_commute_balanced) #Hack for scheduling
 }),
 
 
