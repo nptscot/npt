@@ -876,7 +876,7 @@ tar_target(combined_network, {
     
     # Ensure the target runs after
     length(school_stats_json)
-    length(done_commute_balanced)
+    length(rnet_commute_balanced)
     commit = gert::git_log(max = 1)
     message("Commit: ", commit)
     full_build = 
