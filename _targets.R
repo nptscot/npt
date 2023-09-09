@@ -609,7 +609,6 @@ tar_target(commute_stats_baseline, {
   
   names(stats_from)[2:ncol(stats_from)] = paste0("comm_orig_",names(stats_from)[2:ncol(stats_from)])
   names(stats_to)[2:ncol(stats_to)] = paste0("comm_dest_",names(stats_to)[2:ncol(stats_to)])
-  
   stats = dplyr::full_join(stats_from, stats_to, by = "DataZone")
   stats
 }),
