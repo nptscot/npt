@@ -788,6 +788,11 @@ tar_target(combined_network, {
                                   ncores = 1, 
                                   regionalise = 1e5,
                                   add_all = TRUE)
+    
+    # Round values
+    rnet_combined[grepl("bicycle", names(rnet_combined))] = lapply(sf::st_drop_geometry(rnet_combined[grepl("bicycle", names(rnet_combined))]), round)
+    
+    
     # Sort rnet for tiling, low values drawn first
     rnet_combined = rnet_combined[order(rnet_combined$all_fastest_bicycle_go_dutch, 
                                         rnet_combined$all_quietest_bicycle_go_dutch),]
