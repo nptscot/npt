@@ -28,10 +28,12 @@ get_scenario_go_dutch = function(routes, purpose = "work") {
         car_go_dutch = car * mode_ratio_go_dutch,
         public_transport_go_dutch = public_transport * mode_ratio_go_dutch,
         foot_go_dutch = foot * mode_ratio_go_dutch,
+        taxi_go_dutch = taxi * mode_ratio_go_dutch,
         
         car_ebike = car * mode_ratio_ebike,
         public_transport_ebike = public_transport * mode_ratio_ebike,
         foot_ebike = foot * mode_ratio_ebike,
+        taxi_ebike = taxi * mode_ratio_ebike,
       )
   } else if(purpose == "school") {
     routes = routes %>%

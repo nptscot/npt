@@ -18,6 +18,7 @@ get_routes = function(od, plans, purpose = "work", folder = ".", batch = TRUE, b
           maxDistance = 30000,
           username = "robinlovelace",
           strategies = plan,
+          cols_to_keep = c("id","distances","quietness","gradient_smooth"),
           segments = segments
         )
       } else {

@@ -75,6 +75,8 @@ dl = od2line(flow_wide, datazone_cent)
 names(dl)[names(dl) == "car"] <- "car_driver"
 dl$dist_euclidean <- as.numeric(st_length(dl))
 
+saveRDS(dl, file.path(secure_path,"secure_data/commute/commute_dl_all.Rds"))
+
 #Drop to sub 30km
 dl = dl[dl$dist_euclidean < 30000,]
 

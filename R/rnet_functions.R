@@ -138,3 +138,12 @@ round_sdc = function(x, threshold = 10, digits = 0, replacement = 3) {
 first = function(x){
   x[1]
 }
+
+#' Convert segments into an rnet
+segments2rnet = function(segments){
+  segments$Gradient = round(segments$gradient_smooth * 100)
+  segments$Quietness = round(segments$quietness)
+  segments = stplanr::overline2(segments, c("Quietness","Gradient"), fun = first)
+  segments
+}
+

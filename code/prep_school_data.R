@@ -326,6 +326,8 @@ flow_bicycle$lenght_km_str = NULL
 
 flow_bicycle$schooltype <- gsub("special ","",flow_bicycle$schooltype)
 
+names(flow_bicycle)[names(flow_bicycle) == "count"] <- "all"
+
 saveRDS(flow_bicycle, file.path(secure_path,"secure_data/schools/school_dl_sub30km.Rds"))
 
 
