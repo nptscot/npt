@@ -4,8 +4,11 @@ devtools::install_github("robinlovelace/ukboundaries")
 library(ukboundaries)
 devtools::install_github("robinlovelace/simodels")
 library(simodels)
+
 library(tmap)
 tmap_mode("view")
+tmap_options(check.and.fix = TRUE)
+
 source("R/gravity_model.R")
 
 disag_threshold = 1000 # increasing this reduces the number of od pairs
@@ -29,7 +32,9 @@ zones = readRDS("inputdata/DataZones.Rds")
 
 # Intermediate Zones
 izones = read_sf("./inputdata/SG_IntermediateZoneBdry_2011/SG_IntermediateZone_Bdry_2011.shp")
-
+izones = st_make_valid(izones)
+# st_is_valid(izones)
+# tm_shape(izones) + tm_polygons()
 
 # Highways data -----------------------------------------------------------
 
@@ -62,8 +67,8 @@ osm_highways = readRDS("./inputdata/osm_highways_2023-08-09.Rds")
 highways_grid = readRDS("./inputdata/highways_grid.Rds")
 
 # check points look right
-# tm_shape(izones) + tm_polygons() +
-#   tm_shape(highways_grid) + tm_dots("size")
+tm_shape(izones) + tm_polygons() +
+  tm_shape(highways_grid) + tm_dots("size")
 
 
 # Trip purposes -----------------------------------------------------------
@@ -94,11 +99,11 @@ od_interaction = od_visiting %>%
                d = distance_euclidean,
                beta = 0.5,
                constraint_production = origin_visiting_trips)
-od_interaction = od_interaction %>% 
-  filter(quantile(interaction, 0.9) < interaction)
+# od_interaction = od_interaction %>% 
+#   filter(quantile(interaction, 0.9) < interaction)
 
-saveRDS(od_interaction, "./inputdata/visiting_interaction.Rds")
-od_interaction = readRDS("./inputdata/visiting_interaction.Rds")
+saveRDS(od_interaction, "./inputdata/visiting_interaction_izone.Rds")
+od_interaction = readRDS("./inputdata/visiting_interaction_izone.Rds")
 
 # od_interaction = od_interaction %>% 
 #   mutate(interaction = interaction/50000)
