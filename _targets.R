@@ -783,30 +783,25 @@ tar_target(zones_contextual, {
 }),
 
 tar_target(zones_tile, {
-  zones = zones[,"DataZone"]
-  zones = dplyr::left_join(zones, zones_contextual, by = "DataZone")
+  z = zones
+  z = z[,"DataZone"]
+  z = dplyr::left_join(z, zones_contextual, by = "DataZone")
   
-  zones$area = as.numeric(st_area(zones)) / 10000
-  zones$population_density = round(zones$Total_population / zones$area)
-  zones$area = NULL
+  zs = zones_stats[,c("DataZone","comm_orig_all","comm_orig_bicycle","comm_orig_bicycle_go_dutch_fastest")]
+  zs$pcycle = round(zs$comm_orig_bicycle / zs$comm_orig_all * 100)
+  zs$pcycle_go_dutch = round(zs$comm_orig_bicycle_go_dutch_fastest / zs$comm_orig_all * 100)
+  zs = zs[,c("DataZone","pcycle","pcycle_go_dutch")]
   
-  zones
+  z = dplyr::left_join(z, zs, by = "DataZone")
+  
+  z$area = as.numeric(st_area(z)) / 10000
+  z$population_density = round(z$Total_population / z$area)
+  z$area = NULL
+  
+  z
 }),
 
 tar_target(zones_dasymetric_tile, {
-  
-  path_teams = Sys.getenv("NPT_TEAMS_PATH")
-  if(nchar(path_teams) == 0){
-    stop("Can't find Teams folder of secure data. Use usethis::edit_r_environ() to define NPT_TEAMS_PATH ")
-  }
-  
-  read_TEAMS = function(x){
-    if(file.exists(file.path(path_teams,x))){
-      b_verylow = readRDS(file.path(path_teams, x))
-    } else {
-      stop("Can't find ",file.path(path_teams,x))
-    }
-  }
   
   b_verylow = read_TEAMS("open_data/os_buildings/buildings_low_nat_lsoa_split.Rds")
   b_low = read_TEAMS("open_data/os_buildings/buildings_low_reg_lsoa_split.Rds")
@@ -815,17 +810,17 @@ tar_target(zones_dasymetric_tile, {
   
   zones = sf::st_drop_geometry(zones_tile)
   
-  b_verylow = left_join(b_verylow, zones, by = c("geo_code" = "DataZone"))
-  b_low = left_join(b_low, zones, by = c("geo_code" = "DataZone"))
-  b_med = left_join(b_med, zones, by = c("geo_code" = "DataZone"))
-  b_high = left_join(b_high, zones, by = c("geo_code" = "DataZone"))
+  b_verylow = dplyr::left_join(b_verylow, zones, by = c("geo_code" = "DataZone"))
+  b_low = dplyr::left_join(b_low, zones, by = c("geo_code" = "DataZone"))
+  b_med = dplyr::left_join(b_med, zones, by = c("geo_code" = "DataZone"))
+  b_high = dplyr::left_join(b_high, zones, by = c("geo_code" = "DataZone"))
   
   make_geojson_zones(b_verylow, "outputs/dasymetric_verylow.geojson")
   make_geojson_zones(b_low, "outputs/dasymetric_low.geojson")
   make_geojson_zones(b_med, "outputs/dasymetric_med.geojson")
   make_geojson_zones(b_high, "outputs/dasymetric_high.geojson")
   
-  
+  TRUE
 }),
 
 
@@ -951,6 +946,7 @@ tar_target(combined_network, {
     # Ensure the target runs after
     length(school_stats_json)
     length(rnet_commute_balanced)
+    length(zones_dasymetric_tile)
     commit = gert::git_log(max = 1)
     message("Commit: ", commit)
     full_build = 
