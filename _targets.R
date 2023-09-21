@@ -790,6 +790,9 @@ tar_target(zones_tile, {
   zs = zones_stats[,c("DataZone","comm_orig_all","comm_orig_bicycle","comm_orig_bicycle_go_dutch_fastest")]
   zs$pcycle = round(zs$comm_orig_bicycle / zs$comm_orig_all * 100)
   zs$pcycle_go_dutch = round(zs$comm_orig_bicycle_go_dutch_fastest / zs$comm_orig_all * 100)
+  zs$pcycle[is.na(zs$pcycle)] = 0
+  zs$pcycle_go_dutch[is.na(zs$pcycle_go_dutch)] = 0
+  
   zs = zs[,c("DataZone","pcycle","pcycle_go_dutch")]
   
   z = dplyr::left_join(z, zs, by = "DataZone")
@@ -797,6 +800,8 @@ tar_target(zones_tile, {
   z$area = as.numeric(st_area(z)) / 10000
   z$population_density = round(z$Total_population / z$area)
   z$area = NULL
+  
+  make_geojson_zones(z, "outputs/data_zones.geojson")
   
   z
 }),
