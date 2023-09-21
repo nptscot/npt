@@ -703,6 +703,8 @@ tar_target(school_stats, {
   ebike = school_stats_ebike
   fastest = school_stats_fastest
   ebike = ebike[,!grepl("go_dutch",names(ebike))]
+  # Can't use quietness/hilliness for ebike
+  ebike = ebike[,!grepl("(quietness|hilliness)",names(ebike))] 
   fastest = fastest[,!grepl("ebike",names(fastest))]
   names(ebike) = gsub("_ebike$","_fastest",names(ebike))
   
@@ -717,6 +719,8 @@ tar_target(school_stats_from, {
   ebike = school_stats_from_ebike
   fastest = school_stats_from_fastest
   ebike = ebike[,!grepl("go_dutch",names(ebike))]
+  # Can't use quietness/hilliness for ebike
+  ebike = ebike[,!grepl("(quietness|hilliness)",names(ebike))] 
   fastest = fastest[,!grepl("ebike",names(fastest))]
   names(ebike) = gsub("_ebike$","_fastest",names(ebike))
   
@@ -732,6 +736,8 @@ tar_target(commute_stats, {
   ebike = commute_stats_ebike
   fastest = commute_stats_fastest
   ebike = ebike[,!grepl("go_dutch",names(ebike))]
+  # Can't use quietness/hilliness for ebike
+  ebike = ebike[,!grepl("(quietness|hilliness)",names(ebike))] 
   fastest = fastest[,!grepl("ebike",names(fastest))]
   names(ebike) = gsub("_ebike$","_fastest",names(ebike))
   
