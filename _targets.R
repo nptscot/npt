@@ -92,17 +92,8 @@ list(
     if(parameters$open_data_build) {
       od_raw = read_csv("data-raw/od_data_dz_synthetic.csv")
     } else {
-    #desire_lines_raw = readRDS("inputdata/desire_lines_scotland.Rds")
-    path_teams = Sys.getenv("NPT_TEAMS_PATH")
-    if(nchar(path_teams) == 0){
-      stop("Can't find Teams folder of secure data. Use usethis::edit_r_environ() to define NPT_TEAMS_PATH ")
-    }
-    if(file.exists(file.path(path_teams,"secure_data/commute/commute_dl_sub30km.Rds"))){
-      desire_lines_raw = readRDS(file.path(path_teams, "secure_data/commute/commute_dl_sub30km.Rds"))
+      desire_lines_raw = read_TEAMS("secure_data/commute/commute_dl_sub30km.Rds")
       od_raw = as_tibble(sf::st_drop_geometry(desire_lines_raw))
-    } else {
-      stop("Can't find ",file.path(path_teams,"secure_data/commute/commute_dl_sub30km.Rds"))
-    }
     }  
     od_subset = od_raw %>%
       filter(geo_code1 %in% zones$DataZone) %>%
@@ -135,11 +126,7 @@ list(
       # spd = st_sample(zones, size = nrow(zones) * 20, by_polygon = TRUE)
       spd = subpoints_origins
     } else {
-      path_teams = Sys.getenv("NPT_TEAMS_PATH")
-      if(nchar(path_teams) == 0){
-        stop("Can't find Teams folder of secure data. Use usethis::edit_r_environ() to define NPT_TEAMS_PATH ")
-      }
-      spd = readRDS(file.path(path_teams,"secure_data/OS/os_poi.Rds"))
+      spd = read_TEAMS("secure_data/OS/os_poi.Rds")
       spd = spd[spd$workplace, ]
       
     }
@@ -186,15 +173,7 @@ tar_target(od_school, {
   if(parameters$open_data_build) {
     schools_dl = sf::read_sf("data-raw/school_desire_lines_open.geojson")
   } else {
-    path_teams = Sys.getenv("NPT_TEAMS_PATH")
-    if(nchar(path_teams) == 0){
-      stop("Can't find Teams folder of secure data. Use usethis::edit_r_environ() to define NPT_TEAMS_PATH ")
-    }
-    if(file.exists(file.path(path_teams,"secure_data/schools/school_dl_sub30km.Rds"))){
-      schools_dl = readRDS(file.path(path_teams, "secure_data/schools/school_dl_sub30km.Rds"))
-    } else {
-      stop("Can't find ",file.path(path_teams,"secure_data/schools/school_dl_sub30km.Rds"))
-    }
+    schools_dl = read_TEAMS("secure_data/schools/school_dl_sub30km.Rds")
   }
   if(parameters$geo_subset) {
     schools_dl = schools_dl[study_area, op = sf::st_within]
@@ -761,6 +740,95 @@ tar_target(school_stats_json, {
 }),
 
 
+
+# Data Zone Maps ----------------------------------------------------------
+tar_target(zones_contextual, {
+  dir.create(file.path(tempdir(),"SIMD"))
+  unzip("../inputdata/SIMD/simd2020_withgeog.zip",
+        exdir = file.path(tempdir(),"SIMD"))
+  files <- list.files(file.path(tempdir(),"SIMD/simd2020_withgeog"), full.names = TRUE)
+  
+  zones <- sf::read_sf(file.path(tempdir(),"SIMD/simd2020_withgeog/sc_dz_11.shp"))
+  simd <- read.csv(file.path(tempdir(),"SIMD/simd2020_withgeog/simd2020_withinds.csv"))
+  
+  unlink(file.path(tempdir(),"SIMD"), recursive = TRUE)
+  
+  zones <- zones[,c("DataZone","Name","TotPop2011","ResPop2011","HHCnt2011")]
+  simd$Intermediate_Zone <- NULL
+  simd$Council_area  <- NULL
+  
+  zones <- dplyr::left_join(zones, simd, by = c("DataZone" = "Data_Zone"))
+  zones <- sf::st_make_valid(zones)
+  
+  # Split into map
+  zones <- zones[,c("DataZone","Total_population","SIMD2020v2_Decile",
+                        "drive_petrol","drive_GP",
+                        "drive_post","drive_primary","drive_retail",
+                        "drive_secondary","PT_GP","PT_post",
+                        "PT_retail","broadband")]
+  zones <- sf::st_drop_geometry(zones)
+  
+  zones$drive_petrol <- round(zones$drive_petrol, 1)
+  zones$drive_GP <- round(zones$drive_GP, 1)
+  zones$drive_post <- round(zones$drive_post, 1)
+  zones$drive_primary <- round(zones$drive_primary, 1)
+  zones$drive_retail <- round(zones$drive_retail, 1)
+  zones$drive_secondary <- round(zones$drive_secondary, 1)
+  zones$PT_GP <- round(zones$PT_GP, 1)
+  zones$PT_post <- round(zones$PT_post, 1)
+  zones$PT_retail <- round(zones$PT_retail, 1)
+  zones$broadband <- as.integer(gsub("%","",zones$broadband))
+  
+  zones
+}),
+
+tar_target(zones_tile, {
+  z = zones
+  z = z[,"DataZone"]
+  z = dplyr::left_join(z, zones_contextual, by = "DataZone")
+  
+  zs = zones_stats[,c("DataZone","comm_orig_all","comm_orig_bicycle","comm_orig_bicycle_go_dutch_fastest")]
+  zs$pcycle = round(zs$comm_orig_bicycle / zs$comm_orig_all * 100)
+  zs$pcycle_go_dutch = round(zs$comm_orig_bicycle_go_dutch_fastest / zs$comm_orig_all * 100)
+  zs$pcycle[is.na(zs$pcycle)] = 0
+  zs$pcycle_go_dutch[is.na(zs$pcycle_go_dutch)] = 0
+  
+  zs = zs[,c("DataZone","pcycle","pcycle_go_dutch")]
+  
+  z = dplyr::left_join(z, zs, by = "DataZone")
+  
+  z$area = as.numeric(st_area(z)) / 10000
+  z$population_density = round(z$Total_population / z$area)
+  z$area = NULL
+  
+  make_geojson_zones(z, "outputs/data_zones.geojson")
+  
+  z
+}),
+
+tar_target(zones_dasymetric_tile, {
+  
+  b_verylow = read_TEAMS("open_data/os_buildings/buildings_low_nat_lsoa_split.Rds")
+  b_low = read_TEAMS("open_data/os_buildings/buildings_low_reg_lsoa_split.Rds")
+  b_med = read_TEAMS("open_data/os_buildings/buildings_med_lsoa_split.Rds")
+  b_high = read_TEAMS("open_data/os_buildings/buildings_high_lsoa_split.Rds")
+  
+  zones = sf::st_drop_geometry(zones_tile)
+  
+  b_verylow = dplyr::left_join(b_verylow, zones, by = c("geo_code" = "DataZone"))
+  b_low = dplyr::left_join(b_low, zones, by = c("geo_code" = "DataZone"))
+  b_med = dplyr::left_join(b_med, zones, by = c("geo_code" = "DataZone"))
+  b_high = dplyr::left_join(b_high, zones, by = c("geo_code" = "DataZone"))
+  
+  make_geojson_zones(b_verylow, "outputs/dasymetric_verylow.geojson")
+  make_geojson_zones(b_low, "outputs/dasymetric_low.geojson")
+  make_geojson_zones(b_med, "outputs/dasymetric_med.geojson")
+  make_geojson_zones(b_high, "outputs/dasymetric_high.geojson")
+  
+  TRUE
+}),
+
+
 # Combine networks ---------------------------------------------------------
 
 tar_target(combined_network, {
@@ -883,6 +951,7 @@ tar_target(combined_network, {
     # Ensure the target runs after
     length(school_stats_json)
     length(rnet_commute_balanced)
+    length(zones_dasymetric_tile)
     commit = gert::git_log(max = 1)
     message("Commit: ", commit)
     full_build = 

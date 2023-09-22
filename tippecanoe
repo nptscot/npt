@@ -255,7 +255,7 @@ tile-join -o oszoom_names.pmtiles --force low/oszoom_names_low.pmtiles med/oszoo
 
 ### Daysymetric buildings
 
-cd /mnt/d/GitHub/atumscot/atumscot/outputs
+cd /mnt/f/GitHub/atumscot/atumscot/outputs
 
 tippecanoe -o dasymetric_verylow.pmtiles \
   --name=dasymetric \
