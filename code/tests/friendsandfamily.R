@@ -137,3 +137,35 @@ od_interaction = readRDS("./inputdata/visiting_interaction_zone.Rds")
 # od_interaction_jittered = readRDS("./inputdata/visiting_interaction_jittered.Rds")
 
 tm_shape(od_interaction) + tm_lines()
+
+
+# Trip numbers - find which % of these journeys are by bicycle
+
+# Get cycle mode shares
+cycle_mode_share = 0.012 
+# it would be nice to get this by local authority 
+# but table 16 in transport-and-travel-in-scotland-2019-local-authority-tables.xlsx
+# is not accurate enough (no decimal places for the cycle % mode shares)
+
+od_visiting_cycletrips = od_interaction %>% 
+  rename(
+    visiting_all_modes = interaction,
+    geo_code1 = O,
+    geo_code2 = D
+  ) %>% 
+  mutate(visiting_cycle = visiting_all_modes * cycle_mode_share)
+
+od_visiting_cycletrips_updated = od_visiting_cycletrips %>% 
+  rename(length_euclidean_unjittered = distance_euclidean) %>% 
+  mutate(
+    length_euclidean_unjittered = length_euclidean_unjittered/1000,
+    length_euclidean_jittered = units::drop_units(st_length(od_visiting_jittered))/1000
+  ) %>%
+  filter(
+    length_euclidean_jittered > (min_distance_meters/1000),
+    length_euclidean_jittered < max_length_euclidean_km
+  )
+n_short_lines_removed = nrow(od_visiting_jittered) - nrow(od_visiting_jittered_updated)
+message(n_short_lines_removed, " short or long desire lines removed")
+
+saveRDS(od_visiting_jittered_updated, "./inputdata/od_visiting_jittered.Rds")
