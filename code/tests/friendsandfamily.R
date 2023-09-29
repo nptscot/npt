@@ -30,19 +30,21 @@ max_length_euclidean_km = 5
 # DataZones (too small - makes for slow jittering)
 zones = readRDS("inputdata/DataZones.Rds")
 
-# Intermediate Zones
-izones = read_sf("./inputdata/SG_IntermediateZoneBdry_2011/SG_IntermediateZone_Bdry_2011.shp")
-izones = st_make_valid(izones)
-# st_is_valid(izones)
-# tm_shape(izones) + tm_polygons()
+# # Intermediate Zones
+# izones = read_sf("./inputdata/SG_IntermediateZoneBdry_2011/SG_IntermediateZone_Bdry_2011.shp")
+# izones = st_make_valid(izones)
+# # st_is_valid(izones)
+# izones = izones %>% 
+#   st_transform(4326)
+# # tm_shape(izones) + tm_polygons()
 
 # Highways data -----------------------------------------------------------
-
-osm_highways = readRDS("./inputdata/osm_highways_2023-08-09.Rds")
-
-# This section only needs to run once
+# 
+# osm_highways = readRDS("./inputdata/osm_highways_2023-08-09.Rds")
+# 
+# # This section only needs to run once
 # scot_zones = st_read("./data-raw/Scottish_Parliamentary_Constituencies_December_2022_Boundaries_SC_BGC_-9179620948196964406.gpkg")
-# grid = st_make_grid(scot_zones, cellsize = 500, what = "centers")
+# grid = st_make_grid(scot_zones, cellsize = 300, what = "centers")
 # grid_df = data.frame(grid)
 # grid_df = tibble::rowid_to_column(grid_df, "grid_id")
 # 
@@ -63,12 +65,22 @@ osm_highways = readRDS("./inputdata/osm_highways_2023-08-09.Rds")
 # highways_sf = st_transform(highways_sf, 4326)
 # 
 # saveRDS(highways_sf, "./inputdata/highways_grid.Rds")
-
-highways_grid = readRDS("./inputdata/highways_grid.Rds")
-
-# check points look right
-tm_shape(izones) + tm_polygons() +
-  tm_shape(highways_grid) + tm_dots("size")
+# 
+# highways_grid = readRDS("./inputdata/highways_grid.Rds")
+# 
+# # check points look right
+# tm_shape(zones) + tm_polygons() +
+#   tm_shape(highways_grid) + tm_dots("size")
+# 
+# # check this is the same length as zones
+# zones_in = st_contains(zones, highways_grid)
+# summ = summary(zones_in)
+# class(summ)
+# summ = as.data.frame(summ)
+# summ = summ %>% 
+#   mutate(Freq = as.numeric(Freq))
+# summary(summ$Freq)
+# unique(summ$Freq)
 
 
 # Trip purposes -----------------------------------------------------------
@@ -84,7 +96,7 @@ visiting_percent = trip_purposes %>%
   select(adjusted_mean)
 visiting_percent = visiting_percent[[1]]/100
 
-zones_visiting = izones %>%
+zones_visiting = zones %>%
   mutate(visiting_trips = ResPop2011 * 2.61 * visiting_percent) # resident population (should use 18+ only) * trips per person (from NTS 2019 England) * percent of trips that are for visiting
 
 
@@ -99,26 +111,27 @@ od_interaction = od_visiting %>%
                d = distance_euclidean,
                beta = 0.5,
                constraint_production = origin_visiting_trips)
-# od_interaction = od_interaction %>% 
-#   filter(quantile(interaction, 0.9) < interaction)
+od_interaction_reduced = od_interaction %>%
+  filter(quantile(interaction, 0.9) < interaction)
 
-saveRDS(od_interaction, "./inputdata/visiting_interaction_izone.Rds")
-od_interaction = readRDS("./inputdata/visiting_interaction_izone.Rds")
+saveRDS(od_interaction_reduced, "./inputdata/visiting_interaction_zone.Rds")
+od_interaction = readRDS("./inputdata/visiting_interaction_zone.Rds")
 
 # od_interaction = od_interaction %>% 
 #   mutate(interaction = interaction/50000)
 
-# this isn't working. It's too slow. Maybe because interaction is too high?
-# why does distance_euclidean drop so dramatically when we go from od_interaction to od_interaction_jittered? 
-od_interaction_jittered = odjitter::jitter(
-  od = od_interaction,
-  zones = zones_visiting,
-  subpoints = highways_grid,
-  disaggregation_key = "interaction",
-  disaggregation_threshold = disag_threshold,
-  min_distance_meters = min_distance_meters,
-  deduplicate_pairs = FALSE
-)
-
-saveRDS(od_interaction_jittered, "./inputdata/visiting_interaction_jittered.Rds")
-od_interaction_jittered = readRDS("./inputdata/visiting_interaction_jittered.Rds")
+# Jittering is not needed
+# # this isn't working. It's too slow. Maybe because interaction is too high?
+# # why does distance_euclidean drop so dramatically when we go from od_interaction to od_interaction_jittered? 
+# od_interaction_jittered = odjitter::jitter(
+#   od = od_interaction,
+#   zones = zones_visiting,
+#   subpoints = highways_grid,
+#   disaggregation_key = "interaction",
+#   disaggregation_threshold = disag_threshold,
+#   min_distance_meters = min_distance_meters,
+#   deduplicate_pairs = FALSE
+# )
+# 
+# saveRDS(od_interaction_jittered, "./inputdata/visiting_interaction_jittered.Rds")
+# od_interaction_jittered = readRDS("./inputdata/visiting_interaction_jittered.Rds")
