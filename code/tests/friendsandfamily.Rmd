@@ -1,15 +1,22 @@
+---
+output: github_document
+---
+
+
+```{r}
 library(tidyverse)
 library(osmextract)
-devtools::install_github("robinlovelace/ukboundaries")
+# devtools::install_github("robinlovelace/ukboundaries")
 library(ukboundaries)
-devtools::install_github("robinlovelace/simodels")
+# devtools::install_github("robinlovelace/simodels")
 library(simodels)
+remotes::install_cran("here")
 
 library(tmap)
 tmap_mode("view")
 tmap_options(check.and.fix = TRUE)
 
-source("R/gravity_model.R")
+source(here::here("R/gravity_model.R"))
 
 disag_threshold = 50 # increasing this reduces the number of od pairs
 
@@ -28,7 +35,7 @@ max_length_euclidean_km = 5
 # Population stats are also available from https://statistics.gov.scot/slice?dataset=http%3A%2F%2Fstatistics.gov.scot%2Fdata%2Fpopulation-estimates-2011-datazone-linked-dataset&http%3A%2F%2Fpurl.org%2Flinked-data%2Fcube%23measureType=http%3A%2F%2Fstatistics.gov.scot%2Fdef%2Fmeasure-properties%2Fcount&http%3A%2F%2Fstatistics.gov.scot%2Fdef%2Fdimension%2Fage=http%3A%2F%2Fstatistics.gov.scot%2Fdef%2Fconcept%2Fage%2Fall&http%3A%2F%2Fstatistics.gov.scot%2Fdef%2Fdimension%2Fsex=http%3A%2F%2Fstatistics.gov.scot%2Fdef%2Fconcept%2Fsex%2Fall
 
 # DataZones (too small - makes for slow jittering)
-zones = readRDS("../inputdata/DataZones_population.Rds")
+zones = readRDS(here::here("../inputdata/DataZones_population.Rds"))
 
 # # Intermediate Zones
 # izones = read_sf("./inputdata/SG_IntermediateZoneBdry_2011/SG_IntermediateZone_Bdry_2011.shp")
@@ -85,7 +92,7 @@ zones = readRDS("../inputdata/DataZones_population.Rds")
 
 # Trip purposes -----------------------------------------------------------
 
-trip_purposes = read.csv("./data-raw/scottish-household-survey-2012-19.csv")
+trip_purposes = read.csv(here::here("./data-raw/scottish-household-survey-2012-19.csv"))
 go_home = trip_purposes$Mean[trip_purposes$Purpose == "Go Home"]
 trip_purposes = trip_purposes %>% 
   filter(Purpose != "Sample size (=100%)") %>% 
@@ -111,26 +118,22 @@ od_interaction = od_visiting %>%
                d = distance_euclidean,
                beta = 0.5,
                constraint_production = origin_visiting_trips)
-od_interaction_reduced = od_interaction %>%
+od_interaction = od_interaction %>%
   filter(quantile(interaction, 0.9) < interaction)
 
 summary(sf::st_length(od_interaction))
-summary(sf::st_length(od_interaction_reduced))
-
-saveRDS(od_interaction_reduced, "./inputdata/visiting_interaction_zone.Rds")
-od_interaction = readRDS("./inputdata/visiting_interaction_zone.Rds")
 
 # od_interaction = od_interaction %>% 
 #   mutate(interaction = interaction/50000)
 
 # Jittering
 
-oa_subpoints = readRDS("../inputdata/oas.Rds")
+oa_subpoints = readRDS(here::here("../inputdata/oas.Rds"))
 
 # # this isn't working. It's too slow. Maybe because interaction is too high?
 # # why does distance_euclidean drop so dramatically when we go from od_interaction to od_interaction_jittered? 
 summary(od_interaction$interaction)
-mean(od_interaction_reduced$interaction) / disag_threshold
+mean(od_interaction$interaction) / disag_threshold
 total_social_trips = 10000000
 multiplier = total_social_trips / sum(od_interaction$interaction)
 od_interaction = od_interaction %>% 
@@ -174,17 +177,20 @@ od_visiting_cycletrips = od_interaction %>%
   ) %>% 
   mutate(visiting_cycle = visiting_all_modes * cycle_mode_share)
 
-od_visiting_cycletrips_updated = od_visiting_cycletrips %>% 
-  rename(length_euclidean_unjittered = distance_euclidean) %>% 
-  mutate(
-    length_euclidean_unjittered = length_euclidean_unjittered/1000,
-    length_euclidean_jittered = units::drop_units(st_length(od_visiting_jittered))/1000
-  ) %>%
-  filter(
-    length_euclidean_jittered > (min_distance_meters/1000),
-    length_euclidean_jittered < max_length_euclidean_km
-  )
-n_short_lines_removed = nrow(od_visiting_jittered) - nrow(od_visiting_jittered_updated)
-message(n_short_lines_removed, " short or long desire lines removed")
+# od_visiting_cycletrips_updated = od_visiting_cycletrips %>% 
+#   rename(length_euclidean_unjittered = distance_euclidean) %>% 
+#   mutate(
+#     length_euclidean_unjittered = length_euclidean_unjittered/1000,
+#     length_euclidean_jittered = units::drop_units(st_length(od_interaction_jittered))/1000
+#   ) %>%
+#   filter(
+#     length_euclidean_jittered > (min_distance_meters/1000),
+#     length_euclidean_jittered < max_length_euclidean_km
+#   )
 
-saveRDS(od_visiting_jittered_updated, "./inputdata/od_visiting_jittered.Rds")
+# n_short_lines_removed = nrow(od_interaction_jittered) - nrow(od_visiting_jittered_updated)
+# message(n_short_lines_removed, " short or long desire lines removed")
+
+# saveRDS(od_visiting_jittered_updated, "./inputdata/od_visiting_jittered.Rds")
+```
+
