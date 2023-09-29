@@ -114,6 +114,9 @@ od_interaction = od_visiting %>%
 od_interaction_reduced = od_interaction %>%
   filter(quantile(interaction, 0.9) < interaction)
 
+summary(sf::st_length(od_interaction))
+summary(sf::st_length(od_interaction_reduced))
+
 saveRDS(od_interaction_reduced, "./inputdata/visiting_interaction_zone.Rds")
 od_interaction = readRDS("./inputdata/visiting_interaction_zone.Rds")
 
@@ -136,8 +139,9 @@ od_interaction = readRDS("./inputdata/visiting_interaction_zone.Rds")
 # saveRDS(od_interaction_jittered, "./inputdata/visiting_interaction_jittered.Rds")
 # od_interaction_jittered = readRDS("./inputdata/visiting_interaction_jittered.Rds")
 
-tm_shape(od_interaction) + tm_lines()
-
+od_interaction %>% 
+  sample_n(1000) %>% 
+  tm_shape() + tm_lines()
 
 # Trip numbers - find which % of these journeys are by bicycle
 
