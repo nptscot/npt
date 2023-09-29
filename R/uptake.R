@@ -22,8 +22,10 @@ get_scenario_go_dutch = function(routes, purpose = "work") {
         
         mode_ratio_go_dutch = (all - bicycle_go_dutch)/(all - bicycle),
         mode_ratio_go_dutch = case_when(is.infinite(mode_ratio_go_dutch) ~ 1, .default = mode_ratio_go_dutch),
+        mode_ratio_go_dutch = case_when(is.nan(mode_ratio_go_dutch) ~ 0, .default = mode_ratio_go_dutch),
         mode_ratio_ebike = (all - bicycle_ebike)/(all - bicycle),
         mode_ratio_ebike = case_when(is.infinite(mode_ratio_ebike) ~ 1, .default = mode_ratio_ebike),
+        mode_ratio_ebike = case_when(is.nan(mode_ratio_ebike) ~ 0, .default = mode_ratio_ebike),
         
         car_go_dutch = car * mode_ratio_go_dutch,
         public_transport_go_dutch = public_transport * mode_ratio_go_dutch,
@@ -35,6 +37,7 @@ get_scenario_go_dutch = function(routes, purpose = "work") {
         foot_ebike = foot * mode_ratio_ebike,
         taxi_ebike = taxi * mode_ratio_ebike,
       )
+    
   } else if(purpose == "school") {
     routes = routes %>%
       mutate(pcycle_go_dutch = pct::uptake_pct_godutch_school2(
@@ -58,8 +61,10 @@ get_scenario_go_dutch = function(routes, purpose = "work") {
         
         mode_ratio_go_dutch = (all - bicycle_go_dutch)/(all - bicycle),
         mode_ratio_go_dutch = case_when(is.infinite(mode_ratio_go_dutch) ~ 1, .default = mode_ratio_go_dutch),
+        mode_ratio_go_dutch = case_when(is.nan(mode_ratio_go_dutch) ~ 0, .default = mode_ratio_go_dutch),
         mode_ratio_ebike = (all - bicycle_ebike)/(all - bicycle),
         mode_ratio_ebike = case_when(is.infinite(mode_ratio_ebike) ~ 1, .default = mode_ratio_ebike),
+        mode_ratio_ebike = case_when(is.nan(mode_ratio_ebike) ~ 0, .default = mode_ratio_ebike),
         
         car_go_dutch = car * mode_ratio_go_dutch,
         public_transport_go_dutch = public_transport * mode_ratio_go_dutch,

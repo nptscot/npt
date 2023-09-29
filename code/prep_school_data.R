@@ -22,6 +22,18 @@ if(!file.exists("../inputdata/Schools/school_locations.geojson")){
   
   locs = rbind(locs, locs_extra)
   
+  # Jitter overlapping schools
+  locs_dup = locs[duplicated(locs$geometry),]
+  locs = locs[!duplicated(locs$geometry),]
+  jitter_points = function(x){
+    x[1] <- x[1] + runif(1,-0.0005,0.0005)
+    x[2] <- x[2] + runif(1,-0.0005,0.0005)
+    x
+  }
+  
+  locs_dup$geometry = lapply(locs_dup$geometry, jitter_points)
+  locs_dup$geometry = sf::st_sfc(locs_dup$geometry, crs = 4326)
+  
   st_precision(locs) <- 1000000
   st_write(locs, "../inputdata/Schools/school_locations.geojson")
 } else {
@@ -80,7 +92,6 @@ locs_buff = locs_buff[,"SeedCode"]
 
 summary(flow$DataZone %in% zones$DataZone)
 
-# Failing make reprex
 flow_jitter = odjitter::jitter(
   od = flow,
   zones = zones,
