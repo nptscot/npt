@@ -11,7 +11,7 @@ tmap_options(check.and.fix = TRUE)
 
 source("R/gravity_model.R")
 
-disag_threshold = 1000 # increasing this reduces the number of od pairs
+disag_threshold = 50 # increasing this reduces the number of od pairs
 
 min_distance_meters = 500 # does this mean that any shops closer than 500m away are essentially ignored? 
 # It would be better to route to these, then exclude them afterwards as too close for the trip to be worth cycling
@@ -129,11 +129,19 @@ oa_subpoints = readRDS("../inputdata/oas.Rds")
 
 # # this isn't working. It's too slow. Maybe because interaction is too high?
 # # why does distance_euclidean drop so dramatically when we go from od_interaction to od_interaction_jittered? 
+summary(od_interaction$interaction)
+mean(od_interaction_reduced$interaction) / disag_threshold
+total_social_trips = 10000000
+multiplier = total_social_trips / sum(od_interaction$interaction)
+od_interaction = od_interaction %>% 
+  mutate(social_trips_estimated = interaction * multiplier)
+sum(od_interaction$social_trips_estimated)
+summary(od_interaction$social_trips_estimated)
 od_interaction_jittered = odjitter::jitter(
   od = od_interaction,
   zones = zones_visiting,
   subpoints = oa_subpoints,
-  disaggregation_key = "interaction",
+  disaggregation_key = "social_trips_estimated",
   disaggregation_threshold = disag_threshold,
   min_distance_meters = min_distance_meters,
   deduplicate_pairs = FALSE
@@ -143,6 +151,10 @@ od_interaction_jittered = odjitter::jitter(
 # od_interaction_jittered = readRDS("./inputdata/visiting_interaction_jittered.Rds")
 
 od_interaction %>% 
+  sample_n(1000) %>% 
+  tm_shape() + tm_lines()
+
+od_interaction_jittered %>% 
   sample_n(1000) %>% 
   tm_shape() + tm_lines()
 
