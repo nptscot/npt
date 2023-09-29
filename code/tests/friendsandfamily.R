@@ -28,7 +28,7 @@ max_length_euclidean_km = 5
 # Population stats are also available from https://statistics.gov.scot/slice?dataset=http%3A%2F%2Fstatistics.gov.scot%2Fdata%2Fpopulation-estimates-2011-datazone-linked-dataset&http%3A%2F%2Fpurl.org%2Flinked-data%2Fcube%23measureType=http%3A%2F%2Fstatistics.gov.scot%2Fdef%2Fmeasure-properties%2Fcount&http%3A%2F%2Fstatistics.gov.scot%2Fdef%2Fdimension%2Fage=http%3A%2F%2Fstatistics.gov.scot%2Fdef%2Fconcept%2Fage%2Fall&http%3A%2F%2Fstatistics.gov.scot%2Fdef%2Fdimension%2Fsex=http%3A%2F%2Fstatistics.gov.scot%2Fdef%2Fconcept%2Fsex%2Fall
 
 # DataZones (too small - makes for slow jittering)
-zones = readRDS("inputdata/DataZones.Rds")
+zones = readRDS("../inputdata/DataZones_population.Rds")
 
 # # Intermediate Zones
 # izones = read_sf("./inputdata/SG_IntermediateZoneBdry_2011/SG_IntermediateZone_Bdry_2011.shp")
