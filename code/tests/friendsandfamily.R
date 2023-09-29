@@ -135,3 +135,5 @@ od_interaction = readRDS("./inputdata/visiting_interaction_zone.Rds")
 # 
 # saveRDS(od_interaction_jittered, "./inputdata/visiting_interaction_jittered.Rds")
 # od_interaction_jittered = readRDS("./inputdata/visiting_interaction_jittered.Rds")
+
+tm_shape(od_interaction) + tm_lines()
