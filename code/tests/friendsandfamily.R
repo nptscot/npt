@@ -120,18 +120,21 @@ od_interaction = readRDS("./inputdata/visiting_interaction_zone.Rds")
 # od_interaction = od_interaction %>% 
 #   mutate(interaction = interaction/50000)
 
-# Jittering is not needed
+# Jittering
+
+oa_subpoints = readRDS("../inputdata/oas.Rds")
+
 # # this isn't working. It's too slow. Maybe because interaction is too high?
 # # why does distance_euclidean drop so dramatically when we go from od_interaction to od_interaction_jittered? 
-# od_interaction_jittered = odjitter::jitter(
-#   od = od_interaction,
-#   zones = zones_visiting,
-#   subpoints = highways_grid,
-#   disaggregation_key = "interaction",
-#   disaggregation_threshold = disag_threshold,
-#   min_distance_meters = min_distance_meters,
-#   deduplicate_pairs = FALSE
-# )
+od_interaction_jittered = odjitter::jitter(
+  od = od_interaction,
+  zones = zones_visiting,
+  subpoints = oa_subpoints,
+  disaggregation_key = "interaction",
+  disaggregation_threshold = disag_threshold,
+  min_distance_meters = min_distance_meters,
+  deduplicate_pairs = FALSE
+)
 # 
 # saveRDS(od_interaction_jittered, "./inputdata/visiting_interaction_jittered.Rds")
 # od_interaction_jittered = readRDS("./inputdata/visiting_interaction_jittered.Rds")
