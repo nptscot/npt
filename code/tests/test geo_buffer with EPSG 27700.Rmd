@@ -33,14 +33,14 @@ Filter partial data spread over Scotland
 # Select points of interest:
 points_of_interest = c(
   # "Stonoway", # uncomment for multiple areas
-  "Thurso"
+  "Thurso", "Girlsta",  "Edinburgh"
 )
 points_of_interest_sf = tmaptools::geocode_OSM(points_of_interest, as.sf = TRUE)
 # 10km buffer around points of interest
-buffer_sf = st_buffer(points_of_interest_sf, dist = 10000)
+buffer_sf = st_buffer(points_of_interest_sf, dist = 3000)
 # Select features within the merged buffers
 rnet_y_subset = rnet_y[buffer_sf, , op = sf::st_within]
-
+mapview(rnet_y_subset)
 # Union to speed-up buffer operation:
 rnet_yu = st_union(rnet_y_subset)
 # 30 m buffer with 10000 s2 cells
@@ -84,7 +84,7 @@ for (name in name_list) {
 ```{r}
 tmap_mode("view")
 
-brks = c(0, 5, 10, 100)
+brks = c(0, 5, 10, 100,500,1000,5000,10000)
 # check size before merging:
 nrow(rnet_xp)
 nrow(rnet_yp)
