@@ -1,0 +1,90 @@
+```{r}
+remotes::install_dev("stplanr", force = TRUE)
+packageVersion("stplanr")
+sf::sf_use_s2(FALSE)
+library(stplanr)
+library(dplyr)
+library(sf)
+library(mapview)
+library(tmap)
+
+rnet_x = sf::read_sf("https://github.com/nptscot/networkmerge/releases/download/v0.1/OS_large_route_network_example_edingurgh.geojson")
+rnet_y = sf::read_sf("https://github.com/nptscot/networkmerge/releases/download/v0.1/large_route_network_example_edingurgh.geojson")
+rnet_x <- st_zm(rnet_x, drop = TRUE, what = "ZM")
+# rnet_xp = st_transform(rnet_x, 27700)
+# rnet_yp = st_transform(rnet_y, "EPSG:27700")
+rnet_xp = rnet_x
+rnet_yp = rnet_y
+```
+
+Filter partial data spread over Scotland
+
+```{r}
+# Set seed for reproducibility
+set.seed(123)
+
+# Specify multiple indices of lines and their respective buffer distances
+indices_of_interest <- c(92174, 106104, 357744)  # example indices
+index_to_buffer_distance <- c(`92174` = 0.1, `106104` = 0.1, `357744` = 0.0002)  # example mapping of index to buffer distance
+
+# Locate points of interest by indices
+points_of_interest <- rnet_yp[indices_of_interest, ]
+
+# Create buffers around points of interest with specified buffer distances
+buffers <- vector("list", length = length(indices_of_interest))
+names(buffers) <- indices_of_interest
+for (i in seq_along(indices_of_interest)) {
+  buffers[[i]] <- st_buffer(points_of_interest[i, ], dist = index_to_buffer_distance[as.character(indices_of_interest[i])])
+}
+
+# Convert list of sf objects back to a single sf object
+buffer_sf <- do.call(rbind, buffers)
+plot(buffer_sf$geometry)
+# Select features within the merged buffers
+sampled_rnet_yp <- st_intersection(rnet_yp, buffer_sf)
+
+osm_buffer <- st_buffer(sampled_rnet_yp, dist = 0.03)
+
+rnet_xp_clip <- st_intersection(rnet_xp, osm_buffer)
+mapview(rnet_xp_clip)
+```
+```
+
+```{r}
+# Extract column names from the rnet_xp data frame
+name_list <- names(rnet_yp)
+name_list
+# Initialize an empty list
+funs <- list()
+
+# Loop through each name and assign it a function based on specific conditions
+for (name in name_list) {
+  if (name == "geometry") {
+    next  # Skip the current iteration
+  } else if (name %in% c("Gradient", "Quietness")) {
+    funs[[name]] <- mean
+  } else {
+    funs[[name]] <- sum
+  }
+}
+
+```
+
+
+```{r}
+tmap_mode("view")
+
+brks = c(0, 100, 500, 1000, 5000,10000)
+rnet_merged = rnet_merge(rnet_xp_clip, sampled_rnet_yp, dist = 0.03, segment_length = 10, funs = funs, max_angle_diff = 20, crs = "EPSG:27700") 
+mapview(rnet_merged)
+
+m1 = tm_shape(sampled_rnet_yp) + tm_lines("all_fastest_bicycle", palette = "viridis", lwd = 5, breaks = brks)
+m2 = tm_shape(rnet_merged) + tm_lines("all_fastest_bicycle", palette = "viridis", lwd = 5, breaks = brks)
+tmap_arrange(m1, m2, sync = TRUE, nrow = 1)
+```
+
+
+```{r}
+
+
+```
