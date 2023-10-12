@@ -6,7 +6,7 @@ cd /mnt/f/GitHub/atumscot/atumscot/outputs
 
 # Route network
 
-tippecanoe -o rnet-simplified.pmtiles \
+tippecanoe -o rnet-simplified-2023-10-12.pmtiles \
   --name=rnet \
   --layer=rnet \
   --attribution=UniverstyofLeeds \
@@ -16,7 +16,7 @@ tippecanoe -o rnet-simplified.pmtiles \
   --maximum-tile-bytes=5000000 \
   --simplification=10 \
   --buffer=5 \
-  --force  large_exmaple_merged.geojson
+  --force  simplified_network_npt_4326.geojson
   
   
 tippecanoe -o rnet-dev.pmtiles \
