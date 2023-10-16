@@ -16,6 +16,8 @@ tar_load(study_area)
 mapview::mapview(study_area)
 study_area$geometry
 sf::write_sf(study_area, "data-raw/study_area.geojson", delete_dsn = TRUE)
+
+study_area = sf::read_sf("data-raw/study_area.geojson")
 tar_load(zones)
 plot(zones$geometry)
 zones = rmapshaper::ms_simplify(zones, keep = 0.04)
@@ -39,8 +41,7 @@ schools_dl = schools_dl %>%
   slice_max(order_by = all, n = parameters$max_to_route, with_ties = FALSE) |>
   mutate(across(where(is.numeric), add_normally_distributed_noise)) 
 summary(schools_dl)
-file.remove("data-raw/school_desire_lines_open.geojson")
-sf::write_sf(schools_dl, "data-raw/school_desire_lines_open.geojson")
+sf::write_sf(schools_dl, "data-raw/school_desire_lines_open.geojson", delete_dsn = TRUE)
 
 plot(schools_dl$geometry)
 
