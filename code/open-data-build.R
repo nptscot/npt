@@ -55,6 +55,14 @@ summary(od_data)
 od_data_open = od_data |>
   # Randomise values, but keep the same distribution:
     mutate(across(where(is.numeric), add_normally_distributed_noise)) 
+od_data_open$taxi = round(od_data_open$car / 50)
 summary(od_data_open)
 # Save:
 write_csv(od_data_open, "data-raw/od_data_dz_synthetic.csv")
+
+# Commute data:
+desire_lines_raw = read_TEAMS("secure_data/commute/commute_dl_sub30km.Rds")
+od_raw = as_tibble(sf::st_drop_geometry(desire_lines_raw))
+summary(od_raw)
+tar_load(od_data)
+waldo::compare(names(od_data), names(od_raw))
