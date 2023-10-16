@@ -13,8 +13,9 @@ add_normally_distributed_noise = function(x, sd = 5, runif_max = 10) {
 
 # Save study_area target
 tar_load(study_area)
+mapview::mapview(study_area)
 study_area$geometry
-sf::write_sf(study_area, "data-raw/study_area.geojson")
+sf::write_sf(study_area, "data-raw/study_area.geojson", delete_dsn = TRUE)
 tar_load(zones)
 plot(zones$geometry)
 zones = rmapshaper::ms_simplify(zones, keep = 0.04)
@@ -35,8 +36,10 @@ if(parameters$geo_subset) {
   schools_dl = schools_dl[study_area, op = sf::st_within]
 }
 schools_dl = schools_dl %>%
-  slice_max(order_by = count, n = parameters$max_to_route, with_ties = FALSE) |>
+  slice_max(order_by = all, n = parameters$max_to_route, with_ties = FALSE) |>
   mutate(across(where(is.numeric), add_normally_distributed_noise)) 
+summary(schools_dl)
+file.remove("data-raw/school_desire_lines_open.geojson")
 sf::write_sf(schools_dl, "data-raw/school_desire_lines_open.geojson")
 
 plot(schools_dl$geometry)
