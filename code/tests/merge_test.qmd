@@ -193,3 +193,27 @@ combined_data[cols_to_convert] = combined_data[cols_to_convert].round().astype(i
 
 combined_data.to_file(f"data-raw/simplified_network_npt_{dist}_{angle}_{timestamp}.geojson", driver='GeoJSON')
 ```
+
+Reproducible example to segment rnet_x
+
+```{r}
+rnet_x = sf::read_sf("https://github.com/ropensci/stplanr/releases/download/v1.0.2/rnet_x_ed.geojson")
+rnet_y = sf::read_sf("https://github.com/ropensci/stplanr/releases/download/v1.0.2/rnet_y_ed.geojson")
+rnet_xs <- line_segment(rnet_x, segment_length = 10)
+rnet_xs = st_make_valid(rnet_xs)
+print(dim(rnet_x))
+print(dim(rnet_xs))
+funs = list(value = sum, Quietness = mean)
+brks = c(0, 100, 500, 1000, 5000,10000)
+
+rnet_merged = rnet_merge(rnet_x, rnet_y, dist = 10, segment_length = 10, funs = funs, max_angle_diff = 20)
+rnet_merged_s = rnet_merge(rnet_xs, rnet_y, dist = 10, segment_length = 10, funs = funs, max_angle_diff = 20)
+
+tmap_mode("view")
+
+m1 = tm_shape(rnet_merged_s) + tm_lines("value", palette = "viridis", lwd = 5, breaks = brks) 
+m2 = tm_shape(rnet_merged) + tm_lines("value", palette = "viridis", lwd = 5, breaks = brks)
+m3 = tm_shape(rnet_y) + tm_lines("value", palette = "viridis", lwd = 5, breaks = brks)
+
+tmap_arrange(m1, m2,m3, sync = TRUE, nrow = 1)
+```
