@@ -1,0 +1,195 @@
+```{r}
+remotes::install_dev("stplanr")
+packageVersion("stplanr")
+sf::sf_use_s2(TRUE)
+library(stplanr)
+library(dplyr)
+library(sf)
+library(mapview)
+library(tmap)
+```
+The code below is used to generate OS_large_route_network_example_edingurgh.geojson.
+- read all the shapefiles in the folder
+- filter out the unclassified roads
+- combine all the shapefiles
+- reproject the combined data to EPSG:4326
+- save the reprojected data as a GeoJSON
+- clip the larger GeoJSON using the buffer
+
+OS Open Roads download link: https://osdatahub.os.uk/downloads/open/OpenRoads?_gl=1*1lsqtad*_ga*MTgxNDYyMTAwNy4xNjk3MTQzNjQy*_ga_59ZBN7DVBG*MTY5NzE0MzY0Mi4xLjEuMTY5NzE0MzY1MS41MS4wLjA.&_ga=2.126966605.1537450082.1697143643-1814621007.1697143642
+
+```{python,eval = FALSE}
+import geopandas as gpd
+import os
+import pandas as pd
+
+# Define the path
+path = "V:/data/"
+
+# List all SHP files in the path that contain "_RoadLink" in their filename
+all_files = [os.path.join(path, file) for file in os.listdir(path) if file.endswith('.shp') and "_RoadLink" in file]
+
+# Read, filter, and combine all the shapefiles
+filtered_gdfs = []
+for file in all_files:
+    gdf = gpd.read_file(file)
+    
+    # Ensure the current CRS is set to EPSG:27700
+    gdf.set_crs(epsg=27700, inplace=True)
+    
+    # Filter the GeoDataFrame and append to list
+    filtered_gdf = gdf[
+        (gdf['class'] != 'Unknown') & 
+        (
+            ~gdf['function'].isin(['Secondary Access Road', 'Restricted Local Access Road']) | 
+            (gdf['function'].isin(['Secondary Access Road', 'Restricted Local Access Road']) & 
+            gdf['formOfWay'].str.contains('Dual', case=False))
+        )
+    ]
+    filtered_gdfs.append(filtered_gdf)
+
+# Concatenate all the filtered GeoDataFrames
+combined_gdf = gpd.GeoDataFrame(pd.concat(filtered_gdfs, ignore_index=True))
+
+# Reproject the combined data to EPSG:4326
+combined_gdf = combined_gdf.to_crs(epsg=4326)
+
+# Save the reprojected data as a GeoJSON
+output_path = os.path.join(path, "OS_UK.geojson")
+combined_gdf[['identifier', 'geometry']].to_file(output_path, driver="GeoJSON")
+print(f"Filtered and reprojected GeoJSON saved to: {output_path}")
+```
+
+The code provided below is used to merge the NPT network with the OS network.
+
+```{r}
+# Read spatial data directly from URLs into sf objects
+rnet_x = sf::read_sf("https://github.com/nptscot/networkmerge/releases/download/v0.1/OS_large_route_network_example_edingurgh.geojson")
+rnet_y = sf::read_sf("https://github.com/nptscot/networkmerge/releases/download/v0.1/combined_network_tile.geojson")
+
+# Transform the spatial data to a different coordinate reference system (EPSG:27700)
+rnet_xp = st_transform(rnet_x, "EPSG:27700")
+rnet_yp = st_transform(rnet_y, "EPSG:27700")
+
+# Extract column names from the rnet_xp data frame
+name_list = names(rnet_yp)
+
+# Initialize an empty list
+funs = list()
+
+# Loop through each name and assign it a function based on specific conditions
+for (name in name_list) {
+  if (name == "geometry") {
+    next  # Skip the current iteration
+  } else if (name %in% c("Gradient", "Quietness")) {
+    funs[[name]] = mean
+  } else {
+    funs[[name]] = sum
+  }
+}
+
+
+# Define breaks for categorizing data
+brks = c(0, 50, 100, 200, 500,1000, 2000, 5000,10000,150000)
+
+# Merge the spatial objects rnet_xp and rnet_yp based on specified parameters
+dist = 20
+angle = 10
+
+rnet_merged_all = rnet_merge(rnet_xp, rnet_yp, dist = dist, segment_length = 10, funs = funs, max_angle_diff = angle) 
+# mapview(rnet_merged_all)
+# Remove specific columns from the merged spatial object
+rnet_merged_all = rnet_merged_all[ , !(names(rnet_merged_all) %in% c('identifier','length_x'))]
+
+# Remove Z and M dimensions (if they exist) and set geometry precision
+rnet_merged_all = st_zm(rnet_merged_all, what = "ZM")
+rnet_merged_all$geometry = st_set_precision(rnet_merged_all$geometry, 1e3)
+rnet_merged_all = rnet_merged_all %>%
+  mutate(across(where(is.numeric), ~ round(.x, 0)))      
+
+# Define columns to check for NA values
+columns_to_check = c(
+    "all_fastest_bicycle", "all_fastest_bicycle_ebike",
+    "all_fastest_bicycle_go_dutch", "all_quietest_bicycle",
+    "all_quietest_bicycle_ebike", "all_quietest_bicycle_go_dutch",
+    "commute_fastest_bicycle", "commute_fastest_bicycle_ebike",
+    "commute_fastest_bicycle_go_dutch", "commute_quietest_bicycle",
+    "commute_quietest_bicycle_ebike", "commute_quietest_bicycle_go_dutch",
+    "primary_fastest_bicycle", "primary_fastest_bicycle_ebike",
+    "primary_fastest_bicycle_go_dutch", "primary_quietest_bicycle",
+    "primary_quietest_bicycle_ebike", "primary_quietest_bicycle_go_dutch",
+    "secondary_fastest_bicycle", "secondary_fastest_bicycle_ebike",
+    "secondary_fastest_bicycle_go_dutch", "secondary_quietest_bicycle",
+    "secondary_quietest_bicycle_ebike", "secondary_quietest_bicycle_go_dutch",
+    "Gradient", "Quietness",
+)
+
+# Remove rows where all specified columns are NA using dplyr's select and filter functions
+rnet_merged_all <- rnet_merged_all %>%
+  filter(rowSums(is.na(select(., all_of(columns_to_check)))) != length(columns_to_check))
+  
+timestamp <- format(Sys.time(), "%Y%m%d_%H%M%S")
+# Write the spatial object to a GeoJSON file 
+st_write(rnet_merged_all, paste0("data-raw/rnet_merged_all_", dist, "_", angle,"_", timestamp, ".geojson"), driver = "GeoJSON")
+
+```
+
+The code below is used to identify the roads missed during the merge process and then integrate them into the simplified network.
+
+```{python}
+import geopandas as gpd
+from shapely.geometry import MultiPolygon
+import pandas as pd
+
+dist = 20
+angle = 10
+
+# need to update the timestamp
+timestamp = "20231015_155541"
+
+# rnet_merged_all = gpd.read_file(f"data-raw/rnet_merged_all_{dist}_{angle}_{timestamp}.geojson")
+rnet_merged_all = gpd.read_file(f"data-raw/rnet_merged_all_{dist}_{angle}_{timestamp}.geojson")
+rnet_y = gpd.read_file("data-raw/combined_network_tile.geojson")
+rnet_yp = rnet_y.to_crs(epsg=27700)
+rnet_yp.crs
+rnet_merged_all.crs
+
+# Set buffer distance and create a buffered GeoDataFrame around rnet_merged_all geometries, using a flat end cap style
+
+rnet_merged_all_buffer = rnet_merged_all.buffer(dist, cap_style=3)
+
+# Create a unary union of the buffered geometries to create a single geometry object
+single_rnet_merged_all_buffer = rnet_merged_all_buffer.unary_union
+# Convert the single geometry object into a GeoDataFrame
+single_rnet_merged_all_buffer_gdf = gpd.GeoDataFrame(geometry=[single_rnet_merged_all_buffer])
+
+# Perform a spatial join between rnet_yp and the buffer, keeping only those geometries from rnet_yp that are within the buffer
+within_join = gpd.sjoin(rnet_yp, single_rnet_merged_all_buffer_gdf, op='within')
+
+# Keep only those geometries from rnet_yp that were NOT within the buffer
+rnet_yp_rest = rnet_yp.loc[~rnet_yp.index.isin(within_join.index)]
+
+# Concatenate (vertically stack) the rnet_yp_rest and rnet_merged_all GeoDataFrames and check the number of columns
+combined_data = gpd.GeoDataFrame(pd.concat([rnet_yp_rest, rnet_merged_all], ignore_index=True))
+
+combined_data = combined_data.to_crs(epsg=4326)
+
+cols_to_convert = ['all_fastest_bicycle', 'all_fastest_bicycle_ebike',
+       'all_fastest_bicycle_go_dutch', 'all_quietest_bicycle',
+       'all_quietest_bicycle_ebike', 'all_quietest_bicycle_go_dutch',
+       'commute_fastest_bicycle', 'commute_fastest_bicycle_ebike',
+       'commute_fastest_bicycle_go_dutch', 'commute_quietest_bicycle',
+       'commute_quietest_bicycle_ebike', 'commute_quietest_bicycle_go_dutch',
+       'primary_fastest_bicycle', 'primary_fastest_bicycle_ebike',
+       'primary_fastest_bicycle_go_dutch', 'primary_quietest_bicycle',
+       'primary_quietest_bicycle_ebike', 'primary_quietest_bicycle_go_dutch',
+       'secondary_fastest_bicycle', 'secondary_fastest_bicycle_ebike',
+       'secondary_fastest_bicycle_go_dutch', 'secondary_quietest_bicycle',
+       'secondary_quietest_bicycle_ebike',
+       'secondary_quietest_bicycle_go_dutch', 'Gradient', 'Quietness']
+combined_data[cols_to_convert] = combined_data[cols_to_convert].fillna(0)
+
+combined_data[cols_to_convert] = combined_data[cols_to_convert].round().astype(int)
+
+combined_data.to_file(f"data-raw/simplified_network_npt_{dist}_{angle}_{timestamp}.geojson", driver='GeoJSON')
+```
