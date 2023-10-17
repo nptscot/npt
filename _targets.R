@@ -1167,21 +1167,21 @@ tar_target(pmtiles_rnet, {
   
   tar_target(metadata, {
     upload_data
-    metadata_all = tar_meta()
-    metadata_targets = metadata_all %>% 
-      filter(type == "stem")
-    readr::write_csv(metadata_targets, "outputs/metadata_targets.csv")
+    # metadata_all = tar_meta()
+    # metadata_targets = metadata_all %>% 
+    #   filter(type == "stem")
+    # readr::write_csv(metadata_targets, "outputs/metadata_targets.csv")
     
     # TODO: add more columns
     build_summary = tibble::tibble(
       n_segment_cells = nrow(combined_network) * ncol(combined_network),
       min_flow = parameters$min_flow,
       max_to_route = parameters$max_to_route,
-      time_total_mins = round(sum(metadata_targets$seconds) / 60, digits = 2),
-      time_r_commute_mins = round(metadata_targets %>% 
-                                    filter(name == "r_commute") %>% 
-                                    pull(seconds) / 60, 
-                                  digits = 2),
+      # time_total_mins = round(sum(metadata_targets$seconds) / 60, digits = 2),
+      # time_r_commute_mins = round(metadata_targets %>% 
+      #                               filter(name == "r_commute") %>% 
+      #                               pull(seconds) / 60, 
+      #                             digits = 2),
       routing_date = get_routing_date()
     )
     # # To overwrite previous build summary:
