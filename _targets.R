@@ -21,19 +21,22 @@ library(future) # Needed for multi-core running
 library(future.callr)
 
 # Set target options:
+pkgs = packages = c(
+  "tibble","zonebuilder","dplyr","stplanr","lubridate",
+  "cyclestreets","stringr","sf","tidyr","data.table",
+  "glue","zip","jsonlite","remotes","gert","collapse","pct",
+  "readr",
+  "future", "future.callr", "future.batchtools",
+  "bs4Dash", "DT", "gt", "pingr", "shinybusy", "shinyWidgets"
+)
+remotes::install_cran(pkgs)
 tar_option_set(
   memory = "transient", 
   garbage_collection = TRUE,
   storage = "worker", 
   retrieval = "worker",
   # packages that your targets need to run
-  packages = c("tibble","zonebuilder","dplyr","stplanr","lubridate",
-               "cyclestreets","odjitter","stringr","sf","tidyr","data.table",
-               "glue","zip","jsonlite","remotes","gert","collapse","pct",
-               "readr",
-               "future", "future.callr", "future.batchtools",
-               "bs4Dash", "DT", "gt", "pingr", "shinybusy", "shinyWidgets"
-  ),
+  packages = pkgs,
   format = "rds" # default storage format
 )
 
@@ -808,6 +811,10 @@ tar_target(zones_tile, {
 
 tar_target(zones_dasymetric_tile, {
   
+  if (parameters$open_data_build){
+    return(NULL)
+  }
+  
   b_verylow = read_TEAMS("open_data/os_buildings/buildings_low_nat_lsoa_split.Rds")
   b_low = read_TEAMS("open_data/os_buildings/buildings_low_reg_lsoa_split.Rds")
   b_med = read_TEAMS("open_data/os_buildings/buildings_med_lsoa_split.Rds")
@@ -1160,21 +1167,21 @@ tar_target(pmtiles_rnet, {
   
   tar_target(metadata, {
     upload_data
-    metadata_all = tar_meta()
-    metadata_targets = metadata_all %>% 
-      filter(type == "stem")
-    readr::write_csv(metadata_targets, "outputs/metadata_targets.csv")
+    # metadata_all = tar_meta()
+    # metadata_targets = metadata_all %>% 
+    #   filter(type == "stem")
+    # readr::write_csv(metadata_targets, "outputs/metadata_targets.csv")
     
     # TODO: add more columns
     build_summary = tibble::tibble(
       n_segment_cells = nrow(combined_network) * ncol(combined_network),
       min_flow = parameters$min_flow,
       max_to_route = parameters$max_to_route,
-      time_total_mins = round(sum(metadata_targets$seconds) / 60, digits = 2),
-      time_r_commute_mins = round(metadata_targets %>% 
-                                    filter(name == "r_commute") %>% 
-                                    pull(seconds) / 60, 
-                                  digits = 2),
+      # time_total_mins = round(sum(metadata_targets$seconds) / 60, digits = 2),
+      # time_r_commute_mins = round(metadata_targets %>% 
+      #                               filter(name == "r_commute") %>% 
+      #                               pull(seconds) / 60, 
+      #                             digits = 2),
       routing_date = get_routing_date()
     )
     # # To overwrite previous build summary:
