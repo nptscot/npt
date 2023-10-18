@@ -1,5 +1,5 @@
 get_routes = function(od, plans, purpose = "work", folder = ".", batch = TRUE, batch_save = FALSE, nrow_batch = 100, date = NULL, segments = TRUE) {
-  if (nrow(od) < 250) {
+  if (nrow(od) < 50) {
     batch = FALSE
   }
   route_list = sapply(plans, function(x) NULL)
@@ -54,11 +54,12 @@ get_routes = function(od, plans, purpose = "work", folder = ".", batch = TRUE, b
               "-api.cyclestreets.net"
             ),
             pat = Sys.getenv("CYCLESTREETS_BATCH")
-          )  
+          )
+        routes_raw$route_id = routes_raw$route_number
         }
       }
       
-      if(is.character(segments)){
+      if(is.character(segments) && !is(routes_raw, "sf")){
         r_filtered = routes_raw$routes %>% 
           group_by(route_id) %>% 
           mutate(route_hilliness = mean(gradient_smooth)) %>% 
@@ -77,7 +78,6 @@ get_routes = function(od, plans, purpose = "work", folder = ".", batch = TRUE, b
       rm(routes_raw)
       message("Saving ", savename_f)
       saveRDS(routes_filtered, savename_f)
-      
     }
     route_list[[paste(plan)]] = routes_filtered
   }
