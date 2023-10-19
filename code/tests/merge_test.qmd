@@ -1,10 +1,3 @@
----
-format:
-  html:
-    code-fold: true
-jupyter: python3
----
-
 ```{r}
 remotes::install_dev("stplanr")
 packageVersion("stplanr")
@@ -14,6 +7,7 @@ library(dplyr)
 library(sf)
 library(mapview)
 library(tmap)
+library(tidyr)
 ```
 The code below is used to generate OS_large_route_network_example_edingurgh.geojson.
 - read all the shapefiles in the folder
@@ -136,23 +130,33 @@ timestamp
 st_write(rnet_merged_all, paste0("data-raw/rnet_merged_all_", dist, "_", angle,"_", timestamp, ".geojson"), driver = "GeoJSON")
 
 ```
+The R code below is used to identify the roads missed during the merge process and then integrate them into the simplified network.
 
+! the st_join is running  extremely slow, need to find a way to speed it up. 
+Current solution using python to solve in next chunk
+
+```{r}
 
 ```{r}
 dist = 20
 angle = 10
-timestamp = "20231015_155541"
+timestamp = "20231019_162607"
 
 rnet_merged_all <- st_read(paste0("data-raw/rnet_merged_all_", dist, "_", angle, "_", timestamp, ".geojson"))
-rnet_y <- st_read("data-raw/combined_network_tile.geojson")
-rnet_yp <- st_transform(rnet_y, 27700)
-
+# rnet_y <- st_read("data-raw/combined_network_tile.geojson")
+rnet_y = sf::read_sf("https://github.com/ropensci/stplanr/releases/download/v1.0.2/rnet_y_ed.geojson")
+# rnet_yp <- st_transform(rnet_y, 27700)
+rnet_yp = rnet_y
 # Buffering
 rnet_merged_all_buffer <- st_buffer(rnet_merged_all, dist = dist, endCapStyle = "FLAT")
 
 # Unary Union and conversion to GeoDataFrame
 single_rnet_merged_all_buffer <- st_union(rnet_merged_all_buffer)
 single_rnet_merged_all_buffer_gdf <- st_sf(geometry = single_rnet_merged_all_buffer)
+
+rnet_yp <- st_make_valid(rnet_yp)
+
+single_rnet_merged_all_buffer_gdf <- st_make_valid(single_rnet_merged_all_buffer_gdf)
 
 # Spatial Join
 within_join <- st_join(rnet_yp, single_rnet_merged_all_buffer_gdf, join = st_within)
@@ -166,171 +170,24 @@ combined_data <- bind_rows(rnet_yp_rest, rnet_merged_all)
 # Set CRS
 combined_data <- st_transform(combined_data, 4326)
 
-# Columns to convert
-cols_to_convert <- c(
-  'all_fastest_bicycle', 'all_fastest_bicycle_ebike',
-  'all_fastest_bicycle_go_dutch', 'all_quietest_bicycle',
-  'all_quietest_bicycle_ebike', 'all_quietest_bicycle_go_dutch',
-  'commute_fastest_bicycle', 'commute_fastest_bicycle_ebike',
-  'commute_fastest_bicycle_go_dutch', 'commute_quietest_bicycle',
-  'commute_quietest_bicycle_ebike', 'commute_quietest_bicycle_go_dutch',
-  'primary_fastest_bicycle', 'primary_fastest_bicycle_ebike',
-  'primary_fastest_bicycle_go_dutch', 'primary_quietest_bicycle',
-  'primary_quietest_bicycle_ebike', 'primary_quietest_bicycle_go_dutch',
-  'secondary_fastest_bicycle', 'secondary_fastest_bicycle_ebike',
-  'secondary_fastest_bicycle_go_dutch', 'secondary_quietest_bicycle',
-  'secondary_quietest_bicycle_ebike',
-  'secondary_quietest_bicycle_go_dutch', 'Gradient', 'Quietness'
-)
+# Define columns to check for NA values
+list = as.list(names(combined_data))
+
+items_to_remove = c('geometry', 'length_x_original', 'length_x_cropped')
+# Remove the "geometry" entry from the list
+cols_to_convert = unlist(list[!(list %in% items_to_remove)])
 
 # Handling NA and conversion to integer
 combined_data[cols_to_convert] <- replace_na(combined_data[cols_to_convert], list(0))
+
 combined_data[cols_to_convert] <- lapply(combined_data[cols_to_convert], function(x) as.integer(round(x, 0)))
 
 # Saving to GeoJSON
 st_write(combined_data, paste0("data-raw/simplified_network_npt_", dist, "_", angle, "_", timestamp, ".geojson"))
 ```
-The code below is used to identify the roads missed during the merge process and then integrate them into the simplified network.
 
+The python code below is used to identify the roads missed during the merge process and then integrate them into the simplified network.
 
-
-
-```{python}
-import geopandas as gpd
-from shapely.geometry import MultiPolygon
-import pandas as pd
-
-dist = 20
-angle = 10
-
-# need to update the timestamp
-timestamp = "20231015_155541"
-
-# rnet_merged_all = gpd.read_file(f"data-raw/rnet_merged_all_{dist}_{angle}_{timestamp}.geojson")
-rnet_merged_all = gpd.read_file(f"data-raw/rnet_merged_all_{dist}_{angle}_{timestamp}.geojson")
-rnet_y = gpd.read_file("data-raw/combined_network_tile.geojson")
-rnet_y.explore()
-rnet_yp = rnet_y.to_crs(epsg=27700)
-rnet_yp.crs
-rnet_merged_all.crs
-
-# Set buffer distance and create a buffered GeoDataFrame around rnet_merged_all geometries, using a flat end cap style
-
-rnet_merged_all_buffer = rnet_merged_all.buffer(dist, cap_style=3)
-rnet_merged_all_buffer.explore()
-# Create a unary union of the buffered geometries to create a single geometry object
-single_rnet_merged_all_buffer = rnet_merged_all_buffer.unary_union
-# Convert the single geometry object into a GeoDataFrame
-single_rnet_merged_all_buffer_gdf = gpd.GeoDataFrame(geometry=[single_rnet_merged_all_buffer])
-
-# Perform a spatial join between rnet_yp and the buffer, keeping only those geometries from rnet_yp that are within the buffer
-within_join = gpd.sjoin(rnet_yp, single_rnet_merged_all_buffer_gdf, op='within')
-
-# Keep only those geometries from rnet_yp that were NOT within the buffer
-rnet_yp_rest = rnet_yp.loc[~rnet_yp.index.isin(within_join.index)]
-
-# Concatenate (vertically stack) the rnet_yp_rest and rnet_merged_all GeoDataFrames and check the number of columns
-combined_data = gpd.GeoDataFrame(pd.concat([rnet_yp_rest, rnet_merged_all], ignore_index=True))
-
-combined_data = combined_data.to_crs(epsg=4326)
-
-cols_to_convert = ['all_fastest_bicycle', 'all_fastest_bicycle_ebike',
-       'all_fastest_bicycle_go_dutch', 'all_quietest_bicycle',
-       'all_quietest_bicycle_ebike', 'all_quietest_bicycle_go_dutch',
-       'commute_fastest_bicycle', 'commute_fastest_bicycle_ebike',
-       'commute_fastest_bicycle_go_dutch', 'commute_quietest_bicycle',
-       'commute_quietest_bicycle_ebike', 'commute_quietest_bicycle_go_dutch',
-       'primary_fastest_bicycle', 'primary_fastest_bicycle_ebike',
-       'primary_fastest_bicycle_go_dutch', 'primary_quietest_bicycle',
-       'primary_quietest_bicycle_ebike', 'primary_quietest_bicycle_go_dutch',
-       'secondary_fastest_bicycle', 'secondary_fastest_bicycle_ebike',
-       'secondary_fastest_bicycle_go_dutch', 'secondary_quietest_bicycle',
-       'secondary_quietest_bicycle_ebike',
-       'secondary_quietest_bicycle_go_dutch', 'Gradient', 'Quietness']
-combined_data[cols_to_convert] = combined_data[cols_to_convert].fillna(0)
-
-combined_data[cols_to_convert] = combined_data[cols_to_convert].round().astype(int)
-
-combined_data.to_file(f"data-raw/simplified_network_npt_{dist}_{angle}_{timestamp}.geojson", driver='GeoJSON')
-```
-
-
-```{r}
-    rnet_x = sf::read_sf("https://github.com/ropensci/stplanr/releases/download/v1.0.2/rnet_x_ed.geojson")
-    rnet_y = sf::read_sf("https://github.com/ropensci/stplanr/releases/download/v1.0.2/rnet_y_ed.geojson")
-    # rnet_x <- sf::st_zm(rnet_x, what = "ZM")
-    # Transform the spatial data to a different coordinate reference system (EPSG:27700)
-    # rnet_xp = st_transform(rnet_x, "EPSG:27700")
-    # rnet_yp = st_transform(rnet_y, "EPSG:27700")
-    rnet_xp = rnet_x
-    rnet_yp = rnet_y
-
-    # Extract column names from the rnet_xp data frame
-    name_list = names(rnet_yp)
-
-    # Initialize an empty list
-    funs = list()
-
-    # Loop through each name and assign it a function based on specific conditions
-    for (name in name_list) {
-      if (name == "geometry") {
-        next  # Skip the current iteration
-      } else if (name %in% c("Gradient", "Quietness")) {
-        funs[[name]] = mean
-      } else {
-        funs[[name]] = sum
-      }
-    }
-
-    # Define breaks for categorizing data
-    brks = c(0, 50, 100, 200, 500,1000, 2000, 5000,10000,150000)
-
-    # Merge the spatial objects rnet_xp and rnet_yp based on specified parameters
-    dist = 20
-    angle = 10
-
-    rnet_merged_all = stplanr::rnet_merge(rnet_xp, rnet_yp, dist = dist, segment_length = 10, funs = funs, max_angle_diff = angle) 
-
-    # Remove specific columns from the merged spatial object
-    rnet_merged_all = rnet_merged_all[ , !(names(rnet_merged_all) %in% c('identifier','length_x'))]
-
-    # Remove Z and M dimensions (if they exist) and set geometry precision
-    # rnet_merged_all = st_zm(rnet_merged_all, what = "ZM")
-    rnet_merged_all$geometry = st_set_precision(rnet_merged_all$geometry, 1e3)
-    rnet_merged_all = rnet_merged_all %>%
-      mutate(across(where(is.numeric), ~ round(.x, 0)))      
-
-    # # Define columns to check for NA values
-    # Convert the column names of rnet_y to a list
-    rnet_yp_list = as.list(names(rnet_yp))
-
-    # Remove the "geometry" entry from the list
-    columns_to_check = unlist(rnet_yp_list[rnet_yp_list != "geometry"])
-
-    # columns_to_check = c(
-    #     "all_fastest_bicycle", "all_fastest_bicycle_ebike",
-    #     "all_fastest_bicycle_go_dutch", "all_quietest_bicycle",
-    #     "all_quietest_bicycle_ebike", "all_quietest_bicycle_go_dutch",
-    #     "commute_fastest_bicycle", "commute_fastest_bicycle_ebike",
-    #     "commute_fastest_bicycle_go_dutch", "commute_quietest_bicycle",
-    #     "commute_quietest_bicycle_ebike", "commute_quietest_bicycle_go_dutch",
-    #     "primary_fastest_bicycle", "primary_fastest_bicycle_ebike",
-    #     "primary_fastest_bicycle_go_dutch", "primary_quietest_bicycle",
-    #     "primary_quietest_bicycle_ebike", "primary_quietest_bicycle_go_dutch",
-    #     "secondary_fastest_bicycle", "secondary_fastest_bicycle_ebike",
-    #     "secondary_fastest_bicycle_go_dutch", "secondary_quietest_bicycle",
-    #     "secondary_quietest_bicycle_ebike", "secondary_quietest_bicycle_go_dutch",
-    #     "Gradient", "Quietness",
-    # )
-    # names(rnet_yp)
-    # columns_to_check = c("value")
-
-    # Remove rows where all specified columns are NA using dplyr's select and filter functions
-    rnet_merged_all <- rnet_merged_all %>%
-      filter(rowSums(is.na(select(., all_of(columns_to_check)))) != length(columns_to_check))
-    
-
-```
 
 ```{python}
 import geopandas as gpd
@@ -339,90 +196,8 @@ import pandas as pd
 
 # rnet_merged_all = gpd.read_file(f"data-raw/rnet_merged_all_{dist}_{angle}_{timestamp}.geojson")
 rnet_merged_all = gpd.read_file(r"G:\Github\npt\data-raw\rnet_merged_all.geojson")
-rnet_y = gpd.read_file(r"G:\Github\npt\data-raw\combined_network_tile.geojson")
 
-rnet_yp = rnet_y
-
-# Set buffer distance and create a buffered GeoDataFrame around rnet_merged_all geometries, using a flat end cap style
-
-rnet_merged_all_buffer = rnet_merged_all.buffer(0.0002, cap_style=3)
-
-# Create a unary union of the buffered geometries to create a single geometry object
-single_rnet_merged_all_buffer = rnet_merged_all_buffer.unary_union
-# Convert the single geometry object into a GeoDataFrame
-single_rnet_merged_all_buffer_gdf = gpd.GeoDataFrame(geometry=[single_rnet_merged_all_buffer])
-
-# Perform a spatial join between rnet_yp and the buffer, keeping only those geometries from rnet_yp that are within the buffer
-within_join = gpd.sjoin(rnet_yp, single_rnet_merged_all_buffer_gdf, op='within')
-
-# Keep only those geometries from rnet_yp that were NOT within the buffer
-rnet_yp_rest = rnet_yp.loc[~rnet_yp.index.isin(within_join.index)]
-
-# Concatenate (vertically stack) the rnet_yp_rest and rnet_merged_all GeoDataFrames and check the number of columns
-combined_data = gpd.GeoDataFrame(pd.concat([rnet_yp_rest, rnet_merged_all], ignore_index=True))
-
-combined_data = combined_data.to_crs(epsg=4326)
-
-cols_to_convert = ['all_fastest_bicycle', 'all_fastest_bicycle_ebike',
-       'all_fastest_bicycle_go_dutch', 'all_quietest_bicycle',
-       'all_quietest_bicycle_ebike', 'all_quietest_bicycle_go_dutch',
-       'commute_fastest_bicycle', 'commute_fastest_bicycle_ebike',
-       'commute_fastest_bicycle_go_dutch', 'commute_quietest_bicycle',
-       'commute_quietest_bicycle_ebike', 'commute_quietest_bicycle_go_dutch',
-       'primary_fastest_bicycle', 'primary_fastest_bicycle_ebike',
-       'primary_fastest_bicycle_go_dutch', 'primary_quietest_bicycle',
-       'primary_quietest_bicycle_ebike', 'primary_quietest_bicycle_go_dutch',
-       'secondary_fastest_bicycle', 'secondary_fastest_bicycle_ebike',
-       'secondary_fastest_bicycle_go_dutch', 'secondary_quietest_bicycle',
-       'secondary_quietest_bicycle_ebike',
-       'secondary_quietest_bicycle_go_dutch', 'Gradient', 'Quietness']
-combined_data[cols_to_convert] = combined_data[cols_to_convert].fillna(0)
-
-combined_data[cols_to_convert] = combined_data[cols_to_convert].round().astype(int)
-
-combined_data.to_file(f"data-raw/simplified_network_npt.geojson", driver='GeoJSON')
-
-```
-```{python}
-# Create a unary union of the buffered geometries to create a single geometry object
-single_rnet_merged_all_buffer = rnet_merged_all_buffer.unary_union
-# Convert the single geometry object into a GeoDataFrame
-single_rnet_merged_all_buffer_gdf = gpd.GeoDataFrame(geometry=[single_rnet_merged_all_buffer])
-
-# Perform a spatial join between rnet_yp and the buffer, keeping only those geometries from rnet_yp that are within the buffer
-within_join = gpd.sjoin(rnet_yp, single_rnet_merged_all_buffer_gdf, op='within')
-
-# Keep only those geometries from rnet_yp that were NOT within the buffer
-rnet_yp_rest = rnet_yp.loc[~rnet_yp.index.isin(within_join.index)]
-
-# Concatenate (vertically stack) the rnet_yp_rest and rnet_merged_all GeoDataFrames and check the number of columns
-combined_data = gpd.GeoDataFrame(pd.concat([rnet_yp_rest, rnet_merged_all], ignore_index=True))
-
-combined_data = combined_data.to_crs(epsg=4326)
-
-cols_to_convert = ['all_fastest_bicycle', 'all_fastest_bicycle_ebike',
-       'all_fastest_bicycle_go_dutch', 'all_quietest_bicycle',
-       'all_quietest_bicycle_ebike', 'all_quietest_bicycle_go_dutch',
-       'commute_fastest_bicycle', 'commute_fastest_bicycle_ebike',
-       'commute_fastest_bicycle_go_dutch', 'commute_quietest_bicycle',
-       'commute_quietest_bicycle_ebike', 'commute_quietest_bicycle_go_dutch',
-       'primary_fastest_bicycle', 'primary_fastest_bicycle_ebike',
-       'primary_fastest_bicycle_go_dutch', 'primary_quietest_bicycle',
-       'primary_quietest_bicycle_ebike', 'primary_quietest_bicycle_go_dutch',
-       'secondary_fastest_bicycle', 'secondary_fastest_bicycle_ebike',
-       'secondary_fastest_bicycle_go_dutch', 'secondary_quietest_bicycle',
-       'secondary_quietest_bicycle_ebike',
-       'secondary_quietest_bicycle_go_dutch', 'Gradient', 'Quietness']
-combined_data[cols_to_convert] = combined_data[cols_to_convert].fillna(0)
-
-combined_data[cols_to_convert] = combined_data[cols_to_convert].round().astype(int)
-
-combined_data.to_file(f"data-raw/simplified_network_npt_{dist}_{angle}_{timestamp}.geojson", driver='GeoJSON')
-```
-
-
-```{python}
-rnet_merged_all = gpd.read_file(r"G:\Github\npt\data-raw\rnet_merged_all.geojson")
+# rnet_y = gpd.read_file("data-raw/combined_network_tile.geojson")
 rnet_y = gpd.read_file("https://github.com/ropensci/stplanr/releases/download/v1.0.2/rnet_y_ed.geojson")
 
 
@@ -449,6 +224,7 @@ combined_data = gpd.GeoDataFrame(pd.concat([rnet_yp_rest, rnet_merged_all], igno
 combined_data = combined_data.to_crs(epsg=4326)
 
 cols_to_convert = combined_data.columns.to_list()
+
 items_to_remove = ['geometry', 'length_x_original', 'length_x_cropped', 'value']
 
 # Remove items from the list
@@ -459,7 +235,9 @@ combined_data[cols_to_convert] = combined_data[cols_to_convert].fillna(0)
 combined_data[cols_to_convert] = combined_data[cols_to_convert].round().astype(int)
 
 combined_data.to_file(r"G:\Github\npt\data-raw\simplified_network_npt.geojson", driver='GeoJSON')
+
 ```
+
 
 ```{r}
 library(targets)
