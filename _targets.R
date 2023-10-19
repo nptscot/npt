@@ -1198,14 +1198,19 @@ tar_target(pmtiles_rnet, {
 
   tar_target(simplify_network, {
     # Read spatial data directly from URLs into sf objects
-    rnet_x = sf::read_sf("https://github.com/nptscot/networkmerge/releases/download/v0.1/OS_large_route_network_example_edingurgh.geojson")
-    rnet_y = sf::read_sf("https://github.com/nptscot/networkmerge/releases/download/v0.1/combined_network_tile.geojson")
-    # rnet_x <- sf::st_zm(rnet_x, what = "ZM")
+    # rnet_x = sf::read_sf("https://github.com/nptscot/networkmerge/releases/download/v0.1/OS_large_route_network_example_edingurgh.geojson")
+    # rnet_y = sf::read_sf("https://github.com/nptscot/networkmerge/releases/download/v0.1/combined_network_tile.geojson")
+    
+    #read reproducibility of data
+    rnet_x = sf::read_sf("https://github.com/ropensci/stplanr/releases/download/v1.0.2/rnet_x_ed.geojson")
+    rnet_y = sf::read_sf("https://github.com/ropensci/stplanr/releases/download/v1.0.2/rnet_y_ed.geojson")
+
     # Transform the spatial data to a different coordinate reference system (EPSG:27700)
-    rnet_xp = st_transform(rnet_x, "EPSG:27700")
-    rnet_yp = st_transform(rnet_y, "EPSG:27700")
-    # rnet_xp = rnet_x
-    # rnet_yp = rnet_y
+    # rnet_xp = st_transform(rnet_x, "EPSG:27700")
+    # rnet_yp = st_transform(rnet_y, "EPSG:27700")
+    rnet_xp = rnet_x
+    rnet_yp = rnet_y
+
     # Extract column names from the rnet_xp data frame
     name_list = names(rnet_yp)
 
@@ -1241,69 +1246,24 @@ tar_target(pmtiles_rnet, {
     rnet_merged_all = rnet_merged_all %>%
       mutate(across(where(is.numeric), ~ round(.x, 0)))      
 
-    # Define columns to check for NA values
-    columns_to_check = c(
-        "all_fastest_bicycle", "all_fastest_bicycle_ebike",
-        "all_fastest_bicycle_go_dutch", "all_quietest_bicycle",
-        "all_quietest_bicycle_ebike", "all_quietest_bicycle_go_dutch",
-        "commute_fastest_bicycle", "commute_fastest_bicycle_ebike",
-        "commute_fastest_bicycle_go_dutch", "commute_quietest_bicycle",
-        "commute_quietest_bicycle_ebike", "commute_quietest_bicycle_go_dutch",
-        "primary_fastest_bicycle", "primary_fastest_bicycle_ebike",
-        "primary_fastest_bicycle_go_dutch", "primary_quietest_bicycle",
-        "primary_quietest_bicycle_ebike", "primary_quietest_bicycle_go_dutch",
-        "secondary_fastest_bicycle", "secondary_fastest_bicycle_ebike",
-        "secondary_fastest_bicycle_go_dutch", "secondary_quietest_bicycle",
-        "secondary_quietest_bicycle_ebike", "secondary_quietest_bicycle_go_dutch",
-        "Gradient", "Quietness",
-    )
+    # # Define columns to check for NA values
+    # Convert the column names of rnet_y to a list
+    rnet_yp_list = as.list(names(rnet_yp))
+
+    # Remove the "geometry" entry from the list
+    columns_to_check = unlist(rnet_yp_list[rnet_yp_list != "geometry"])
+
 
     # Remove rows where all specified columns are NA using dplyr's select and filter functions
     rnet_merged_all <- rnet_merged_all %>%
       filter(rowSums(is.na(select(., all_of(columns_to_check)))) != length(columns_to_check))
-      
-    # Buffering
-    rnet_merged_all_buffer <- st_buffer(rnet_merged_all, dist = dist, endCapStyle = "FLAT")
+    
 
-    # Unary Union and conversion to GeoDataFrame
-    single_rnet_merged_all_buffer <- st_union(rnet_merged_all_buffer)
-    single_rnet_merged_all_buffer_gdf <- st_sf(geometry = single_rnet_merged_all_buffer)
+    # Write the spatial object to a GeoJSON file 
+    st_write(rnet_merged_all, paste0("data-raw/rnet_merged_all",".geojson"), driver = "GeoJSON")
+    reticulate::source_python("code/sjoin_rnet.py")
 
-    # Spatial Join
-    within_join <- st_join(rnet_yp, single_rnet_merged_all_buffer_gdf, join = st_within)
-
-    # Filtering geometries not within the buffer
-    rnet_yp_rest <- rnet_yp[!rnet_yp$geometry %in% within_join$geometry, ]
-
-    # Concatenation (vertical stacking)
-    combined_data <- bind_rows(rnet_yp_rest, rnet_merged_all)
-
-    # Set CRS
-    # combined_data <- st_transform(combined_data, 4326)
-
-    # Columns to convert
-    cols_to_convert <- c(
-      'all_fastest_bicycle', 'all_fastest_bicycle_ebike',
-      'all_fastest_bicycle_go_dutch', 'all_quietest_bicycle',
-      'all_quietest_bicycle_ebike', 'all_quietest_bicycle_go_dutch',
-      'commute_fastest_bicycle', 'commute_fastest_bicycle_ebike',
-      'commute_fastest_bicycle_go_dutch', 'commute_quietest_bicycle',
-      'commute_quietest_bicycle_ebike', 'commute_quietest_bicycle_go_dutch',
-      'primary_fastest_bicycle', 'primary_fastest_bicycle_ebike',
-      'primary_fastest_bicycle_go_dutch', 'primary_quietest_bicycle',
-      'primary_quietest_bicycle_ebike', 'primary_quietest_bicycle_go_dutch',
-      'secondary_fastest_bicycle', 'secondary_fastest_bicycle_ebike',
-      'secondary_fastest_bicycle_go_dutch', 'secondary_quietest_bicycle',
-      'secondary_quietest_bicycle_ebike',
-      'secondary_quietest_bicycle_go_dutch', 'Gradient', 'Quietness'
-    )
-
-    # Handling NA and conversion to integer
-    combined_data[cols_to_convert] <- replace_na(combined_data[cols_to_convert], list(0))
-    combined_data[cols_to_convert] <- lapply(combined_data[cols_to_convert], function(x) as.integer(round(x, 0)))
-
-    # Saving to GeoJSON
-    # st_write(combined_data, paste0("data-raw/simplified_network_npt_", dist, "_", angle,  ".geojson"))
+    rnet_simple = sf::st_read("data-raw/simplified_network_npt.geojson")
 
   })
 )
