@@ -10,8 +10,23 @@ library(sf)
 library(targets)
 setwd("~/../github/nptscot/npt")
 tar_load(combined_network)
-combined_network %>% 
-  sample_n(1000) %>% 
-  plot()
+example_network = combined_network %>% 
+  sample_n(1000)
+plot(example_network)
+example_network_buffer = sf::st_buffer(sf::st_union(example_network), dist = 20, max_cells = 100000)
+library(tmap)
+tmap_mode("plot")
+example_network_polygons = sf::st_cast(example_network_buffer, "POLYGON")
+m1 = qtm(example_network_polygons[1])
+
+# Compare with projected buffer
+net_projected = sf::st_transform(sf::st_union(example_network), "EPSG:27700")
+example_network_buffer2 = sf::st_buffer(net_projected, dist = 20, max_cells = 100000)
+example_network_polygons2 = sf::st_cast(example_network_buffer2, "POLYGON")
+example_network1 = example_network[example_network_polygons, ]
+m2 = qtm(example_network_polygons2[1])
+tmap_arrange(m1 + qtm(example_network), m2 + qtm(net_projected))
+# ttm()
+# tmap_arrange(m1 + qtm(example_network), m2 + qtm(net_projected))
 ```
 
