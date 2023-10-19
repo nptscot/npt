@@ -1,0 +1,17 @@
+---
+format: gfm
+---
+
+The aim of the code in here is to explore the combined_network object.
+
+```{r}
+library(tidyverse)
+library(sf)
+library(targets)
+setwd("~/../github/nptscot/npt")
+tar_load(combined_network)
+combined_network %>% 
+  sample_n(1000) %>% 
+  plot()
+```
+
