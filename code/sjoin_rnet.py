@@ -6,7 +6,8 @@ import pandas as pd
 # rnet_y = gpd.read_file("https://github.com/nptscot/networkmerge/releases/download/v0.1/combined_network_tile.geojson")
 
 #read reproducibility of data
-rnet_merged_all = gpd.read_file(r"G:\Github\npt\data-raw\rnet_merged_all.geojson")
+rnet_merged_all = gpd.read_file(r"tmp\rnet_merged_all.gpkg")
+# To be replaced with combined network:
 rnet_y = gpd.read_file("https://github.com/ropensci/stplanr/releases/download/v1.0.2/rnet_y_ed.geojson")
 
 
@@ -42,4 +43,4 @@ combined_data[cols_to_convert] = combined_data[cols_to_convert].fillna(0)
 
 combined_data[cols_to_convert] = combined_data[cols_to_convert].round().astype(int)
 
-combined_data.to_file(r"G:\Github\npt\data-raw\simplified_network_npt.geojson", driver='GeoJSON')
+combined_data.to_file(r"tmp/simplified_network_npt.gpkg", driver='GeoPackage')
