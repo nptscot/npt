@@ -753,6 +753,8 @@ tar_target(zones_contextual, {
   
   zones <- sf::read_sf(file.path(tempdir(),"SIMD/simd2020_withgeog/sc_dz_11.shp"))
   simd <- read.csv(file.path(tempdir(),"SIMD/simd2020_withgeog/simd2020_withinds.csv"))
+  simd = simd %>% 
+    rename(Data_Zone = `ï..Data_Zone`)
   
   unlink(file.path(tempdir(),"SIMD"), recursive = TRUE)
   
