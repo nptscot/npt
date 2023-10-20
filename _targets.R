@@ -1197,6 +1197,7 @@ tar_target(pmtiles_rnet, {
   }),
 
   tar_target(simplify_network, {
+
     # Read spatial data directly from URLs into sf objects
     # rnet_x = sf::read_sf("https://github.com/nptscot/networkmerge/releases/download/v0.1/OS_large_route_network_example_edingurgh.geojson")
     # rnet_y = sf::read_sf("https://github.com/nptscot/networkmerge/releases/download/v0.1/combined_network_tile.geojson")
@@ -1238,7 +1239,7 @@ tar_target(pmtiles_rnet, {
     rnet_merged_all = rnet_merge(rnet_xp, rnet_yp, dist = dist, segment_length = 10, funs = funs, max_angle_diff = angle) 
 
     # Remove specific columns from the merged spatial object
-    rnet_merged_all = stplanr::rnet_merged_all[ , !(names(rnet_merged_all) %in% c('identifier','length_x'))]
+    rnet_merged_all = rnet_merged_all[ , !(names(rnet_merged_all) %in% c('identifier','length_x'))]
 
     # Remove Z and M dimensions (if they exist) and set geometry precision
     # rnet_merged_all = st_zm(rnet_merged_all, what = "ZM")
@@ -1262,15 +1263,20 @@ tar_target(pmtiles_rnet, {
     # Write the spatial object to a GeoJSON file 
     st_write(rnet_merged_all, "tmp/rnet_merged_all.gpkg")
 
-    # Join data with Python
-    # reticulate::source_python("code/sjoin_rnet.py")
-    # Equivalent based on this approach: tar_target(command = {system("/usr/bin/python3 step.py") "out.txt"}, format = "file")
-
   }),
-  tar_target(rnet_simple, {
-    command = {system("/usr/bin/python3 code/sjoin_rnet.py")}
 
-    sf::st_read("tmp/simplified_network.gpkg")
+  tar_target(rnet_simple, {
+      # Get the path to the Python executable using 'where python'
+      python_path <- system("where python", intern = TRUE)[3]
+      
+      # Construct the command to run the Python script
+      cmd <- paste(python_path, "G:\\Github\\npt\\code\\sjoin_rnet.py")
+
+      # Run the Python script using the system function
+      system(cmd)
+      
+      # Read the output from the Python script
+      sf::st_read("tmp/simplified_network.geojson")
   })
 )
 # # Download a snapshot of the data:
