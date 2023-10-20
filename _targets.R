@@ -1197,7 +1197,15 @@ tar_target(pmtiles_rnet, {
   }),
 
   tar_target(simplify_network, {
-
+    # remotes::install_dev("stplanr")
+    packageVersion("stplanr")
+    sf::sf_use_s2(TRUE)
+    library(stplanr)
+    library(dplyr)
+    library(sf)
+    library(mapview)
+    library(tmap)
+    library(tidyr)
     # Read spatial data directly from URLs into sf objects
     # rnet_x = sf::read_sf("https://github.com/nptscot/networkmerge/releases/download/v0.1/OS_large_route_network_example_edingurgh.geojson")
     # rnet_y = sf::read_sf("https://github.com/nptscot/networkmerge/releases/download/v0.1/combined_network_tile.geojson")
@@ -1267,7 +1275,7 @@ tar_target(pmtiles_rnet, {
 
   tar_target(rnet_simple, {
       # Get the path to the Python executable using 'where python'
-      python_path <- system("where python", intern = TRUE)[3]
+      python_path <- system("where python", intern = TRUE)[1]
       
       # Construct the command to run the Python script
       cmd <- paste(python_path, "G:\\Github\\npt\\code\\sjoin_rnet.py")
@@ -1276,7 +1284,7 @@ tar_target(pmtiles_rnet, {
       system(cmd)
       
       # Read the output from the Python script
-      sf::st_read("tmp/simplified_network.geojson")
+      sf::st_read("tmp/simplified_network.gpkg")
   })
 )
 # # Download a snapshot of the data:

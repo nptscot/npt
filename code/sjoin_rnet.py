@@ -43,4 +43,4 @@ combined_data[cols_to_convert] = combined_data[cols_to_convert].fillna(0)
 
 combined_data[cols_to_convert] = combined_data[cols_to_convert].round().astype(int)
 
-combined_data.to_file("tmp/simplified_network.geojson", driver='GeoJSON')
+combined_data.to_file("tmp/simplified_network.gpkg", driver='GPKG')
