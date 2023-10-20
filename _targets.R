@@ -1276,7 +1276,7 @@ tar_target(pmtiles_rnet, {
   tar_target(rnet_simple, {
       # Get the path to the Python executable using 'where python'
       python_path <- system("where python", intern = TRUE)[1]
-      
+
       # Construct the command to run the Python script
       cmd <- paste(python_path, "G:\\Github\\npt\\code\\sjoin_rnet.py")
 
