@@ -9,7 +9,7 @@ import pandas as pd
 rnet_merged_all = gpd.read_file("tmp/rnet_merged_all.gpkg")
 # To be replaced with combined network:
 rnet_y = gpd.read_file("https://github.com/ropensci/stplanr/releases/download/v1.0.2/rnet_y_ed.geojson")
-
+# rnet_y = gpd.read_file("https://github.com/nptscot/networkmerge/releases/download/v0.1/combined_network_tile.geojson")
 
 rnet_yp = rnet_y
 

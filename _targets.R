@@ -19,7 +19,9 @@ library(magrittr) # Light load of %>%
 library(sf)
 library(future) # Needed for multi-core running
 library(future.callr)
-
+remotes::install_dev("stplanr", force = TRUE)
+library(stplanr)
+library(dplyr)
 # Set target options:
 pkgs = packages = c(
   "tibble","zonebuilder","dplyr","stplanr","lubridate",
@@ -1197,15 +1199,7 @@ tar_target(pmtiles_rnet, {
   }),
 
   tar_target(simplify_network, {
-    # remotes::install_dev("stplanr")
-    packageVersion("stplanr")
-    sf::sf_use_s2(TRUE)
-    library(stplanr)
-    library(dplyr)
-    library(sf)
-    library(mapview)
-    library(tmap)
-    library(tidyr)
+
     # Read spatial data directly from URLs into sf objects
     # rnet_x = sf::read_sf("https://github.com/nptscot/networkmerge/releases/download/v0.1/OS_large_route_network_example_edingurgh.geojson")
     # rnet_y = sf::read_sf("https://github.com/nptscot/networkmerge/releases/download/v0.1/combined_network_tile.geojson")
