@@ -10,8 +10,10 @@ files <- list.files(file.path(tempdir(),"SIMD/simd2020_withgeog"), full.names = 
 
 zones <- read_sf(file.path(tempdir(),"SIMD/simd2020_withgeog/sc_dz_11.shp"))
 simd <- read.csv(file.path(tempdir(),"SIMD/simd2020_withgeog/simd2020_withinds.csv"))
-simd = simd %>% 
-  rename(Data_Zone = `ï..Data_Zone`)
+if(length(simd$`ï..Data_Zone`)>1) {
+  simd = simd %>% 
+    rename(Data_Zone = `ï..Data_Zone`)    
+}
 unlink(file.path(tempdir(),"SIMD"), recursive = TRUE)
 
 zones <- zones[,c("DataZone","Name","TotPop2011","ResPop2011","HHCnt2011")]
