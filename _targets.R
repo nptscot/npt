@@ -1102,10 +1102,10 @@ tar_target(pmtiles_rnet, {
     saveRDS(zones_stats, "outputdata/zones_stats.Rds")
     saveRDS(school_stats, "outputdata/school_stats.Rds")
     
-    file.copy("outputdata/daysmetric.pmtiles","outputdata/daysmetric.pmtiles")
-    file.copy("outputdata/data_zones.pmtiles","outputdata/data_zones.pmtiles")
-    file.copy("outputdata/rnet.pmtiles","outputdata/rnet.pmtiles")
-    file.copy("outputdata/schools.pmtiles","outputdata/schools.pmtiles")
+    file.copy("outputs/daysmetric.pmtiles","outputdata/daysmetric.pmtiles")
+    file.copy("outputs/data_zones.pmtiles","outputdata/data_zones.pmtiles")
+    file.copy("outputs/rnet.pmtiles","outputdata/rnet.pmtiles")
+    file.copy("outputs/schools.pmtiles","outputdata/schools.pmtiles")
 
     sys_time = Sys.time()
     zip(zipfile = "outputdata/combined_network_tile.zip", "outputdata/combined_network_tile.geojson")
