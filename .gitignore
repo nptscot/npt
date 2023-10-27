@@ -30,3 +30,9 @@ code/download_LIDAR.R
 *.gz
 npt_teams_general/
 General/
+outputs/data_zones.geojson
+outputs/dasymetric_med.geojson
+outputs/dasymetric_high.geojson
+outputs/dasymetric_low.geojson
+outputs/dasymetric_verylow.geojson
+outputs/school_locations.geojson

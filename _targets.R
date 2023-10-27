@@ -1095,11 +1095,17 @@ tar_target(pmtiles_rnet, {
   
   
   tar_target(save_outputs, {
+    length(pmtiles_rnet)
     message("Saving outputs for ", parameters$date_routing)
     
     saveRDS(od_commute_subset, "outputdata/od_commute_subset.Rds")
     saveRDS(zones_stats, "outputdata/zones_stats.Rds")
     saveRDS(school_stats, "outputdata/school_stats.Rds")
+    
+    file.copy("outputs/daysmetric.pmtiles","outputdata/daysmetric.pmtiles")
+    file.copy("outputs/data_zones.pmtiles","outputdata/data_zones.pmtiles")
+    file.copy("outputs/rnet.pmtiles","outputdata/rnet.pmtiles")
+    file.copy("outputs/schools.pmtiles","outputdata/schools.pmtiles")
 
     sys_time = Sys.time()
     zip(zipfile = "outputdata/combined_network_tile.zip", "outputdata/combined_network_tile.geojson")
