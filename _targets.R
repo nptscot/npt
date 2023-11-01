@@ -1201,20 +1201,21 @@ tar_target(pmtiles_rnet, {
   tar_target(simplify_network, {
 
     # Read spatial data directly from URLs into sf objects
-    # rnet_x = sf::read_sf("https://github.com/nptscot/networkmerge/releases/download/v0.1/OS_large_route_network_example_edingurgh.geojson")
-    # rnet_y = sf::read_sf("https://github.com/nptscot/networkmerge/releases/download/v0.1/combined_network_tile.geojson")
+    rnet_x = sf::read_sf("https://github.com/nptscot/networkmerge/releases/download/v0.1/OS_large_route_network_example_edingurgh.geojson")
+    rnet_y = sf::read_sf("https://github.com/nptscot/networkmerge/releases/download/v0.1/combined_network_tile.geojson")
     
-    #read reproducibility of data
-    rnet_x = sf::read_sf("https://github.com/ropensci/stplanr/releases/download/v1.0.2/rnet_x_ed.geojson")
-    rnet_y = sf::read_sf("https://github.com/ropensci/stplanr/releases/download/v1.0.2/rnet_y_ed.geojson")
+    # 'Read reproducibility of data
+    # 'rnet_x = sf::read_sf("https://github.com/ropensci/stplanr/releases/download/v1.0.2/rnet_x_ed.geojson")
+    # 'rnet_y = sf::read_sf("https://github.com/ropensci/stplanr/releases/download/v1.0.2/rnet_y_ed.geojson")
 
     # Transform the spatial data to a different coordinate reference system (EPSG:27700)
     # rnet_xp = st_transform(rnet_x, "EPSG:27700")
     # rnet_yp = st_transform(rnet_y, "EPSG:27700")
+
     rnet_xp = rnet_x
     rnet_yp = rnet_y
 
-    # Extract column names from the rnet_xp data frame
+    # Extract column names from the rnet_yp
     name_list = names(rnet_yp)
 
     # Initialize an empty list
@@ -1237,7 +1238,6 @@ tar_target(pmtiles_rnet, {
     # Merge the spatial objects rnet_xp and rnet_yp based on specified parameters
     dist = 20
     angle = 10
-
     rnet_merged_all = rnet_merge(rnet_xp, rnet_yp, dist = dist, segment_length = 10, funs = funs, max_angle_diff = angle) 
 
     # Remove specific columns from the merged spatial object
@@ -1245,7 +1245,11 @@ tar_target(pmtiles_rnet, {
 
     # Remove Z and M dimensions (if they exist) and set geometry precision
     # rnet_merged_all = st_zm(rnet_merged_all, what = "ZM")
+
+    # Set the precision of the geometries in the 'rnet_merged_all' spatial object to 1e3 (0.001)
     rnet_merged_all$geometry = st_set_precision(rnet_merged_all$geometry, 1e3)
+
+    # The next line is using a combination of dplyr and sf (simple features) functions to mutate the data.
     rnet_merged_all = rnet_merged_all %>%
       mutate(across(where(is.numeric), ~ round(.x, 0)))      
 
@@ -1256,12 +1260,10 @@ tar_target(pmtiles_rnet, {
     # Remove the "geometry" entry from the list
     columns_to_check = unlist(rnet_yp_list[rnet_yp_list != "geometry"])
 
-
     # Remove rows where all specified columns are NA using dplyr's select and filter functions
     rnet_merged_all <- rnet_merged_all %>%
       filter(rowSums(is.na(select(., all_of(columns_to_check)))) != length(columns_to_check))
     
-
     # Write the spatial object to a GeoJSON file 
     st_write(rnet_merged_all, "tmp/rnet_merged_all.gpkg")
 
@@ -1271,8 +1273,17 @@ tar_target(pmtiles_rnet, {
       # Get the path to the Python executable using 'where python'
       python_path <- system("where python", intern = TRUE)[1]
 
+      # Get the current working directory
+      current_wd <- getwd()
+
+      # Define the relative path to the directory containing the Python script
+      relative_script_path <- "code/sjoin_rnet.py"
+
+      # Construct the full path to the Python script using the current working directory
+      full_script_path <- file.path(current_wd, relative_script_path)
+
       # Construct the command to run the Python script
-      cmd <- paste(python_path, "G:\\Github\\npt\\code\\sjoin_rnet.py")
+      cmd <- paste(python_path, full_script_path)
 
       # Run the Python script using the system function
       system(cmd)
