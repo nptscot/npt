@@ -165,9 +165,17 @@ cycle_mode_share = 0.012
 # but table 16 in transport-and-travel-in-scotland-2019-local-authority-tables.xlsx
 # is not accurate enough (no decimal places for the cycle % mode shares)
 
-od_shopping_jittered = od_interaction_jittered %>% 
+# Need to correct the number of trips, in accordance with origin_shopping_trips
+od_adjusted_jittered = od_interaction_jittered %>% 
+  group_by(O) %>% 
+  mutate(
+    proportion = interaction / sum(interaction),
+    shopping_all_modes = origin_shopping_trips * proportion
+    ) %>% 
+  ungroup()
+
+od_shopping_jittered = od_adjusted_jittered %>% 
   rename(
-    shopping_all_modes = interaction,
     geo_code1 = O,
     geo_code2 = D
   ) %>% 
