@@ -6,8 +6,8 @@ devtools::install_github("robinlovelace/simodels")
 library(simodels)
 source("R/gravity_model.R")
 
-disag_threshold = 1000 # increasing this reduces the number of od pairs
-# > summary(od_interaction_jittered$interaction)
+disag_threshold = 100 # increasing this reduces the number of od pairs
+# > summary(od_adjusted_jittered$interaction)
 # Min. 1st Qu.  Median    Mean 3rd Qu.    Max. 
 # 49.65   49.91   49.96   49.94   49.98   50.00 
 min_distance_meters = 500 # does this mean that any shops closer than 500m away are essentially ignored? 
@@ -137,25 +137,34 @@ od_interaction = readRDS("../inputdata/shopping_interaction.Rds")
 # od_interaction = od_interaction %>% 
 #   filter(!O == "S01010206")
 
+# Need to correct the number of trips, in accordance with origin_shopping_trips
+od_adjusted = od_interaction %>% 
+  group_by(O) %>% 
+  mutate(
+    proportion = interaction / sum(interaction),
+    shopping_all_modes = origin_shopping_trips * proportion
+  ) %>% 
+  ungroup()
+
 # Jittering
 shopping_polygons = sf::st_buffer(shopping_grid, dist = 0.0001)
 
-# why does distance_euclidean drop so dramatically when we go from od_interaction to od_interaction_jittered? 
-od_interaction_jittered = odjitter::jitter(
-  od = od_interaction,
+# why does distance_euclidean drop so dramatically when we go from od_interaction to od_adjusted_jittered? 
+od_adjusted_jittered = odjitter::jitter(
+  od = od_adjusted,
   zones = zones_shopping,
   zones_d = shopping_polygons,
   subpoints_origins = osm_highways,
   subpoints_destinations = shopping_grid,
-  disaggregation_key = "interaction",
+  disaggregation_key = "shopping_all_modes",
   disaggregation_threshold = disag_threshold,
   min_distance_meters = min_distance_meters,
   deduplicate_pairs = FALSE
 )
 
-saveRDS(od_interaction_jittered, "../inputdata/shopping_interaction_jittered.Rds")
+saveRDS(od_adjusted_jittered, "../inputdata/shopping_interaction_jittered.Rds")
 
-od_interaction_jittered = readRDS("../inputdata/shopping_interaction_jittered.Rds")
+od_adjusted_jittered = readRDS("../inputdata/shopping_interaction_jittered.Rds")
 
 # Trip numbers - find which % of these journeys are by bicycle
 
@@ -164,15 +173,6 @@ cycle_mode_share = 0.012
 # it would be nice to get this by local authority 
 # but table 16 in transport-and-travel-in-scotland-2019-local-authority-tables.xlsx
 # is not accurate enough (no decimal places for the cycle % mode shares)
-
-# Need to correct the number of trips, in accordance with origin_shopping_trips
-od_adjusted_jittered = od_interaction_jittered %>% 
-  group_by(O) %>% 
-  mutate(
-    proportion = interaction / sum(interaction),
-    shopping_all_modes = origin_shopping_trips * proportion
-    ) %>% 
-  ungroup()
 
 od_shopping_jittered = od_adjusted_jittered %>% 
   rename(
