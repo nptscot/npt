@@ -65,11 +65,11 @@ The code provided below is used to merge the NPT network with the OS network.
 
 ```{r}
 # Read spatial data directly from URLs into sf objects
-# rnet_x = sf::read_sf("https://github.com/nptscot/networkmerge/releases/download/v0.1/OS_large_route_network_example_edingurgh.geojson")
-# rnet_y = sf::read_sf("https://github.com/nptscot/networkmerge/releases/download/v0.1/combined_network_tile.geojson")
+rnet_x = sf::read_sf("https://github.com/nptscot/networkmerge/releases/download/v0.1/OS_large_route_network_example_edingurgh.geojson")
+rnet_y = sf::read_sf("https://github.com/nptscot/networkmerge/releases/download/v0.1/combined_network_tile.geojson")
 
-rnet_x = sf::read_sf("https://github.com/ropensci/stplanr/releases/download/v1.0.2/rnet_x_ed.geojson")
-rnet_y = sf::read_sf("https://github.com/ropensci/stplanr/releases/download/v1.0.2/rnet_y_ed.geojson")
+# rnet_x = sf::read_sf("https://github.com/ropensci/stplanr/releases/download/v1.0.2/rnet_x_ed.geojson")
+# rnet_y = sf::read_sf("https://github.com/ropensci/stplanr/releases/download/v1.0.2/rnet_y_ed.geojson")
 
 rnet_xp = rnet_x
 rnet_yp = rnet_y
@@ -135,16 +135,17 @@ The R code below is used to identify the roads missed during the merge process a
 ! the st_join is running  extremely slow, need to find a way to speed it up. 
 Current solution using python to solve in next chunk
 
-```{r}
 
 ```{r}
 dist = 20
 angle = 10
 timestamp = "20231019_162607"
 
-rnet_merged_all <- st_read(paste0("data-raw/rnet_merged_all_", dist, "_", angle, "_", timestamp, ".geojson"))
-# rnet_y <- st_read("data-raw/combined_network_tile.geojson")
-rnet_y = sf::read_sf("https://github.com/ropensci/stplanr/releases/download/v1.0.2/rnet_y_ed.geojson")
+# rnet_merged_all <- st_read(paste0("data-raw/rnet_merged_all_", dist, "_", angle, "_", timestamp, ".geojson"))
+rnet_merged_all <- st_read("G:/Github/tmp/npt/tmp/rnet_merged_all.gpkg")
+names(rnet_y)
+rnet_y <- st_read("G:/combined_network_tile.geojson")
+# rnet_y = sf::read_sf("https://github.com/ropensci/stplanr/releases/download/v1.0.2/rnet_y_ed.geojson")
 # rnet_yp <- st_transform(rnet_y, 27700)
 rnet_yp = rnet_y
 # Buffering
@@ -164,14 +165,20 @@ within_join <- st_join(rnet_yp, single_rnet_merged_all_buffer_gdf, join = st_wit
 # Filtering geometries not within the buffer
 rnet_yp_rest <- rnet_yp[!rnet_yp$geometry %in% within_join$geometry, ]
 
+rnet_merged_all <- rnet_merged_all %>%
+  rename(geometry = geom)
+names(rnet_merged_all)
 # Concatenation (vertical stacking)
 combined_data <- bind_rows(rnet_yp_rest, rnet_merged_all)
+# Compare the structure of the two data frames
+str(rnet_yp_rest)
+str(rnet_merged_all)
 
 # Set CRS
 combined_data <- st_transform(combined_data, 4326)
 
 # Define columns to check for NA values
-list = as.list(names(combined_data))
+list = names(combined_data)
 
 items_to_remove = c('geometry', 'length_x_original', 'length_x_cropped')
 # Remove the "geometry" entry from the list
@@ -180,8 +187,11 @@ cols_to_convert = unlist(list[!(list %in% items_to_remove)])
 # Handling NA and conversion to integer
 combined_data[cols_to_convert] <- replace_na(combined_data[cols_to_convert], list(0))
 
-combined_data[cols_to_convert] <- lapply(combined_data[cols_to_convert], function(x) as.integer(round(x, 0)))
-
+combined_data[cols_to_convert] <- lapply(combined_data[cols_to_convert], function(x) {
+  x <- replace_na(x, 0)
+  round(x, 0)
+})
+str(combined_data[cols_to_convert])
 # Saving to GeoJSON
 st_write(combined_data, paste0("data-raw/simplified_network_npt_", dist, "_", angle, "_", timestamp, ".geojson"))
 ```
@@ -193,13 +203,20 @@ The python code below is used to identify the roads missed during the merge proc
 import geopandas as gpd
 from shapely.geometry import MultiPolygon
 import pandas as pd
+import os
+
+# Get the current working directory
+current_working_directory = os.getcwd()
+relative_path = "tmp/rnet_merged_all.gpkg"
+
+# Construct the full path to the file
+full_file_path = os.path.join(current_working_directory, relative_path)
 
 # rnet_merged_all = gpd.read_file(f"data-raw/rnet_merged_all_{dist}_{angle}_{timestamp}.geojson")
-rnet_merged_all = gpd.read_file(r"G:\Github\npt\data-raw\rnet_merged_all.geojson")
+rnet_merged_all = gpd.read_file(full_file_path)
 
-# rnet_y = gpd.read_file("data-raw/combined_network_tile.geojson")
-rnet_y = gpd.read_file("https://github.com/ropensci/stplanr/releases/download/v1.0.2/rnet_y_ed.geojson")
-
+rnet_y = gpd.read_file("G:/npt-2/data-raw/combined_network_tile.geojson")
+# rnet_y = gpd.read_file("https://github.com/ropensci/stplanr/releases/download/v1.0.2/rnet_y_ed.geojson")
 
 rnet_yp = rnet_y
 

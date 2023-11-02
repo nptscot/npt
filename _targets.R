@@ -19,7 +19,7 @@ library(magrittr) # Light load of %>%
 library(sf)
 library(future) # Needed for multi-core running
 library(future.callr)
-remotes::install_dev("stplanr", force = TRUE)
+remotes::install_dev("stplanr")
 library(stplanr)
 library(dplyr)
 # Set target options:
@@ -1199,7 +1199,7 @@ tar_target(pmtiles_rnet, {
   }),
 
   tar_target(simplify_network, {
-
+    cue = tar_cue(mode = "always")
     # Read spatial data directly from URLs into sf objects
     rnet_x = sf::read_sf("https://github.com/nptscot/networkmerge/releases/download/v0.1/OS_large_route_network_example_edingurgh.geojson")
     rnet_y = sf::read_sf("https://github.com/nptscot/networkmerge/releases/download/v0.1/combined_network_tile.geojson")
@@ -1238,7 +1238,7 @@ tar_target(pmtiles_rnet, {
     # Merge the spatial objects rnet_xp and rnet_yp based on specified parameters
     dist = 20
     angle = 10
-    rnet_merged_all = rnet_merge(rnet_xp, rnet_yp, dist = dist, segment_length = 10, funs = funs, max_angle_diff = angle) 
+    rnet_merged_all = rnet_merge(rnet_xp, rnet_yp, dist = dist,  funs = funs, max_angle_diff = angle)  # segment_length = 1
 
     # Remove specific columns from the merged spatial object
     rnet_merged_all = rnet_merged_all[ , !(names(rnet_merged_all) %in% c('identifier','length_x'))]
@@ -1265,11 +1265,12 @@ tar_target(pmtiles_rnet, {
       filter(rowSums(is.na(select(., all_of(columns_to_check)))) != length(columns_to_check))
     
     # Write the spatial object to a GeoJSON file 
-    st_write(rnet_merged_all, "tmp/rnet_merged_all.gpkg")
-
+    # st_write(rnet_merged_all, "tmp/rnet_merged_all.gpkg")
+    st_write(rnet_merged_all, "tmp/rnet_merged_all.geojson")
   }),
 
   tar_target(rnet_simple, {
+      cue = tar_cue(mode = "always")
       # Get the path to the Python executable using 'where python'
       python_path <- system("where python", intern = TRUE)[1]
 
