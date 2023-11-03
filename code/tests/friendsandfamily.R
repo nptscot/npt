@@ -24,11 +24,19 @@ visiting_percent = trip_purposes %>%
   select(adjusted_mean)
 visiting_percent = visiting_percent[[1]]/100
 
-zones = readRDS("inputdata/DataZones.Rds")
-zones_visiting = zones %>%
-  mutate(visiting_trips = ResPop2011 * 2.61 * visiting_percent) # resident population (should use 18+ only) * trips per person (from NTS 2019 England) * percent of trips that are for visiting
+# zones = readRDS("inputdata/DataZones.Rds")
+# zones_visiting = zones %>%
+#   mutate(visiting_trips = ResPop2011 * 2.61 * visiting_percent) # resident population (should use 18+ only) * trips per person (from NTS 2019 England) * percent of trips that are for visiting
+# zones_visiting = zones_visiting %>% 
+#   filter(DataZone != "S01010206")
+# zones_visiting = zones_visiting %>% 
+#   select(-TotPop2011, -HHCnt2011)
+
+intermediate_zones = st_read("./data-raw/SG_IntermediateZone_Bdry_2011.shp")
+zones_visiting = intermediate_zones %>% 
+  select(InterZone, ResPop2011)
 zones_visiting = zones_visiting %>% 
-  filter(DataZone != "S01010206")
+  mutate(visiting_trips = ResPop2011 * 2.61 * visiting_percent)
 
 # Edinburgh sample
 scot_zones = st_read("./data-raw/Scottish_Parliamentary_Constituencies_December_2022_Boundaries_SC_BGC_-9179620948196964406.gpkg")
@@ -40,6 +48,10 @@ tmap::tm_shape(edinburgh_zones) + tm_polygons()
 
 zones_sample = zones_visiting[edinburgh_zones,]
 tmap::tm_shape(zones_sample) + tm_polygons()
+
+# # Use 5 random points in each zone, instead of whole zone
+# random_five = st_sample(zones_sample, 3, by_polygon = TRUE)
+
 
 # Spatial interaction model of journeys
 max_length_euclidean_km = 5
