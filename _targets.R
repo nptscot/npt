@@ -19,7 +19,6 @@ library(magrittr) # Light load of %>%
 library(sf)
 library(future) # Needed for multi-core running
 library(future.callr)
-remotes::install_dev("stplanr")
 library(stplanr)
 library(dplyr)
 # Set target options:
@@ -1201,14 +1200,15 @@ tar_target(pmtiles_rnet, {
   tar_target(simplify_network, {
     cue = tar_cue(mode = "always")
     # Read spatial data directly from URLs into sf objects
-    rnet_x = sf::read_sf("https://github.com/nptscot/networkmerge/releases/download/v0.1/OS_large_route_network_example_edingurgh.geojson")
-    rnet_y = sf::read_sf("https://github.com/nptscot/networkmerge/releases/download/v0.1/combined_network_tile.geojson")
+    # rnet_x = sf::read_sf("https://github.com/nptscot/networkmerge/releases/download/v0.1/OS_large_route_network_example_edingurgh.geojson")
+    rnet_y = combined_network
     
     # 'Read reproducibility of data
-    # 'rnet_x = sf::read_sf("https://github.com/ropensci/stplanr/releases/download/v1.0.2/rnet_x_ed.geojson")
+    rnet_x = sf::read_sf("https://github.com/ropensci/stplanr/releases/download/v1.0.2/rnet_x_ed.geojson")
     # 'rnet_y = sf::read_sf("https://github.com/ropensci/stplanr/releases/download/v1.0.2/rnet_y_ed.geojson")
 
     # Transform the spatial data to a different coordinate reference system (EPSG:27700)
+    # TODO: uncomment:
     # rnet_xp = st_transform(rnet_x, "EPSG:27700")
     # rnet_yp = st_transform(rnet_y, "EPSG:27700")
 
@@ -1266,11 +1266,12 @@ tar_target(pmtiles_rnet, {
     
     # Write the spatial object to a GeoJSON file 
     # st_write(rnet_merged_all, "tmp/rnet_merged_all.gpkg")
-    st_write(rnet_merged_all, "tmp/rnet_merged_all.geojson")
+    # st_write(rnet_merged_all, "tmp/rnet_merged_all.geojson")
   }),
 
   tar_target(rnet_simple, {
-      cue = tar_cue(mode = "always")
+      # Run this target only after the 'simplify_network' target has been run:
+      simplify_network
       # Get the path to the Python executable using 'where python'
       python_path <- system("where python", intern = TRUE)[1]
 
