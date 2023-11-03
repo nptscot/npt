@@ -67,8 +67,8 @@ od_interaction = od_visiting %>%
                d = distance_euclidean,
                beta = 0.5,
                constraint_production = origin_visiting_trips)
-od_interaction = od_interaction %>% 
-  filter(quantile(interaction, 0.9) < interaction)
+# od_interaction = od_interaction %>% 
+#   filter(quantile(interaction, 0.9) < interaction)
 
 saveRDS(od_interaction, "../inputdata/visiting_interaction.Rds")
 od_interaction = readRDS("../inputdata/visiting_interaction.Rds")
