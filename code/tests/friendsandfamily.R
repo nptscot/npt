@@ -5,6 +5,7 @@ library(ukboundaries)
 devtools::install_github("robinlovelace/simodels")
 library(simodels)
 source("R/gravity_model.R")
+library(sf)
 
 disag_threshold = 100 # increasing this reduces the number of od pairs
 
@@ -37,6 +38,8 @@ zones_visiting = intermediate_zones %>%
   select(InterZone, ResPop2011)
 zones_visiting = zones_visiting %>% 
   mutate(visiting_trips = ResPop2011 * 2.61 * visiting_percent)
+zones_visiting = st_transform(zones_visiting, 4326)
+zones_visiting = st_make_valid(zones_visiting)
 
 # Edinburgh sample
 scot_zones = sf::st_read("./data-raw/Scottish_Parliamentary_Constituencies_December_2022_Boundaries_SC_BGC_-9179620948196964406.gpkg")
@@ -67,7 +70,7 @@ od_interaction = od_visiting %>%
 od_interaction = od_interaction %>% 
   filter(quantile(interaction, 0.9) < interaction)
 
-saveRDS(od_interaction, "../inputdata/visiting_interaction.Rds")
+saveRDS(od_interaction, "../inputdata/sample_interaction.Rds")
 od_interaction = readRDS("../inputdata/visiting_interaction.Rds")
 
 
@@ -76,16 +79,16 @@ od_adjusted = od_interaction %>%
   group_by(O) %>% 
   mutate(
     proportion = interaction / sum(interaction),
-    shopping_all_modes = origin_shopping_trips * proportion
+    shopping_all_modes = origin_visiting_trips * proportion
   ) %>% 
   ungroup()
 
 # why does distance_euclidean drop so dramatically when we go from od_interaction to od_adjusted_jittered? 
 od_adjusted_jittered = odjitter::jitter(
-  od = od_interaction,
+  od = od_adjusted,
   zones = zones_visiting,
   subpoints = osm_highways,
-  disaggregation_key = "interaction",
+  disaggregation_key = "shopping_all_modes",
   disaggregation_threshold = disag_threshold,
   min_distance_meters = min_distance_meters,
   deduplicate_pairs = FALSE
