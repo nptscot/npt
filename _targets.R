@@ -23,11 +23,10 @@ library(stplanr)
 library(dplyr)
 # Set target options:
 pkgs = packages = c(
-  "tibble","zonebuilder","dplyr","stplanr","lubridate",
+  "tibble","zonebuilder","dplyr","lubridate",
   "cyclestreets","stringr","sf","tidyr","data.table",
   "glue","zip","jsonlite","remotes","gert","collapse","pct",
-  "readr",
-  "future", "future.callr", "future.batchtools",
+  "readr", "future", "future.callr", "future.batchtools",
   "bs4Dash", "DT", "gt", "pingr", "shinybusy", "shinyWidgets"
 )
 remotes::install_cran(pkgs)
