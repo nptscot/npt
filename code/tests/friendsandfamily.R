@@ -59,7 +59,7 @@ tmap::tm_shape(zones_sample) + tm_polygons()
 
 # Spatial interaction model of journeys
 max_length_euclidean_km = 5
-od_visiting = si_to_od(zones_sample, zones_sample, max_dist = max_length_euclidean_km * 1000)
+od_visiting = si_to_od(zones_visiting, zones_visiting, max_dist = max_length_euclidean_km * 1000)
 od_interaction = od_visiting %>% 
   si_calculate(fun = gravity_model, 
                m = origin_visiting_trips,
@@ -70,16 +70,16 @@ od_interaction = od_visiting %>%
 od_interaction = od_interaction %>% 
   filter(quantile(interaction, 0.9) < interaction)
 
-saveRDS(od_interaction, "../inputdata/sample_interaction.Rds")
+saveRDS(od_interaction, "../inputdata/visiting_interaction.Rds")
 od_interaction = readRDS("../inputdata/visiting_interaction.Rds")
 
 
-# Need to correct the number of trips, in accordance with origin_shopping_trips
+# Need to correct the number of trips, in accordance with origin_visiting_trips
 od_adjusted = od_interaction %>% 
   group_by(O) %>% 
   mutate(
     proportion = interaction / sum(interaction),
-    shopping_all_modes = origin_visiting_trips * proportion
+    visiting_all_modes = origin_visiting_trips * proportion
   ) %>% 
   ungroup()
 
@@ -88,7 +88,7 @@ od_adjusted_jittered = odjitter::jitter(
   od = od_adjusted,
   zones = zones_visiting,
   subpoints = osm_highways,
-  disaggregation_key = "shopping_all_modes",
+  disaggregation_key = "visiting_all_modes",
   disaggregation_threshold = disag_threshold,
   min_distance_meters = min_distance_meters,
   deduplicate_pairs = FALSE
@@ -96,3 +96,33 @@ od_adjusted_jittered = odjitter::jitter(
 
 saveRDS(od_adjusted_jittered, "../inputdata/visiting_interaction_jittered.Rds")
 od_adjusted_jittered = readRDS("../inputdata/visiting_interaction_jittered.Rds")
+
+# Trip numbers - find which % of these journeys are by bicycle
+
+# Get cycle mode shares
+cycle_mode_share = 0.012 
+# it would be nice to get this by local authority 
+# but table 16 in transport-and-travel-in-scotland-2019-local-authority-tables.xlsx
+# is not accurate enough (no decimal places for the cycle % mode shares)
+
+od_visiting_jittered = od_adjusted_jittered %>% 
+  rename(
+    geo_code1 = O,
+    geo_code2 = D
+  ) %>% 
+  mutate(visiting_cycle = visiting_all_modes * cycle_mode_share)
+
+od_visiting_jittered_updated = od_visiting_jittered %>% 
+  rename(length_euclidean_unjittered = distance_euclidean) %>% 
+  mutate(
+    length_euclidean_unjittered = length_euclidean_unjittered/1000,
+    length_euclidean_jittered = units::drop_units(st_length(od_visiting_jittered))/1000
+  ) %>%
+  filter(
+    length_euclidean_jittered > (min_distance_meters/1000),
+    length_euclidean_jittered < max_length_euclidean_km
+  )
+n_short_lines_removed = nrow(od_visiting_jittered) - nrow(od_visiting_jittered_updated)
+message(n_short_lines_removed, " short or long desire lines removed")
+
+saveRDS(od_visiting_jittered_updated, "../inputdata/od_visiting_jittered.Rds")
