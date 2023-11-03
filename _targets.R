@@ -11,7 +11,6 @@ if(FALSE){ # Repeated builds can it GitHub API limit, set to TRUE to check for p
   remotes::install_dev("cyclestreets")
   remotes::install_github("dabreegster/odjitter", subdir = "r")
   remotes::install_github("ropensci/stplanr")# Improved overline
-  remotes::install_cran("targets")
 }
 
 library(targets)
@@ -24,7 +23,7 @@ library(dplyr)
 # Set target options:
 pkgs = packages = c(
   "tibble","zonebuilder","dplyr","lubridate",
-  "cyclestreets","stringr","sf","tidyr","data.table",
+  "stringr","sf","tidyr","data.table", "targets",
   "glue","zip","jsonlite","remotes","gert","collapse","pct",
   "readr", "future", "future.callr", "future.batchtools",
   "bs4Dash", "DT", "gt", "pingr", "shinybusy", "shinyWidgets"
