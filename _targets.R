@@ -1253,9 +1253,13 @@ tar_target(pmtiles_rnet, {
     sf::write_sf(rnet_yp, "rnet_yp_test.geojson", delete_dsn = TRUE)
     system("gh release create test_rnet_merge")
     system("gh release upload test_rnet_merge rnet_xp_test.geojson")
-    system("gh release upload test_rnet_merge rnet_yp_test.geojson")
 
-    rnet_merged_all = rnet_merge(rnet_xp, rnet_yp, dist = dist, funs = funs[2:3], max_angle_diff = angle)  # segment_length = 1
+    # force unload of the stplanr package:
+    unloadNamespace("stplanr")
+    remotes::install_dev("stplanr")
+    library(stplanr)
+
+    rnet_merged_all = rnet_merge(rnet_xp, rnet_yp, dist = dist, funs = funs, max_angle_diff = 20)  # segment_length = 1
 
     plot(rnet_merged_all)  
 
