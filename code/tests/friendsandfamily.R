@@ -31,10 +31,19 @@ zones_visiting = zones_visiting %>%
   filter(DataZone != "S01010206")
 
 # Edinburgh sample
+scot_zones = st_read("./data-raw/Scottish_Parliamentary_Constituencies_December_2022_Boundaries_SC_BGC_-9179620948196964406.gpkg")
+edinburgh_zones = scot_zones %>% 
+  mutate(city = substr(SPC22NM, 1, 9)) %>% 
+  filter(city %in% "Edinburgh")
+edinburgh_zones = st_transform(edinburgh_zones, 4326)
+tmap::tm_shape(edinburgh_zones) + tm_polygons()
+
+zones_sample = zones_visiting[edinburgh_zones,]
+tmap::tm_shape(zones_sample) + tm_polygons()
 
 # Spatial interaction model of journeys
 max_length_euclidean_km = 5
-od_visiting = si_to_od(zones_visiting, zones_visiting, max_dist = max_length_euclidean_km * 1000)
+od_visiting = si_to_od(zones_sample, zones_sample, max_dist = max_length_euclidean_km * 1000)
 od_interaction = od_visiting %>% 
   si_calculate(fun = gravity_model, 
                m = origin_visiting_trips,
