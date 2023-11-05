@@ -1198,11 +1198,16 @@ tar_target(pmtiles_rnet, {
   tar_target(simplify_network, {
     cue = tar_cue(mode = "always")
     # Read spatial data directly from URLs into sf objects
-    # rnet_x = sf::read_sf("https://github.com/nptscot/networkmerge/releases/download/v0.1/OS_large_route_network_example_edingurgh.geojson")
+    # TODO: use small dataset if open data build is TRUE
+    if (parameters$open_data_build) {
+      rnet_x = sf::read_sf("https://github.com/ropensci/stplanr/releases/download/v1.0.2/rnet_x_ed.geojson")
+    } else {
+      rnet_x = sf::read_sf("https://github.com/nptscot/networkmerge/releases/download/v0.1/OS_large_route_network_example_edingurgh.geojson")
+    }
     rnet_y = combined_network
     
     # 'Read reproducibility of data
-    rnet_x = sf::read_sf("https://github.com/ropensci/stplanr/releases/download/v1.0.2/rnet_x_ed.geojson")
+    # rnet_x = sf::read_sf("https://github.com/ropensci/stplanr/releases/download/v1.0.2/rnet_x_ed.geojson")
     # rnet_y = sf::read_sf("https://github.com/ropensci/stplanr/releases/download/v1.0.2/rnet_y_ed.geojson")
 
     # Transform the spatial data to a different coordinate reference system (EPSG:27700)
@@ -1287,7 +1292,7 @@ tar_target(pmtiles_rnet, {
     
     # Write the spatial object to a GeoJSON file 
     # st_write(rnet_merged_all, "tmp/rnet_merged_all.gpkg")
-    # st_write(rnet_merged_all, "tmp/rnet_merged_all.geojson")
+    st_write(rnet_merged_all, "tmp/rnet_merged_all_simple.geojson",delete_dsn = TRUE)
   }),
 
   tar_target(rnet_simple, {

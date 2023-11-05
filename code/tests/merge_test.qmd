@@ -139,11 +139,11 @@ Current solution using python to solve in next chunk
 ```{r}
 dist = 20
 angle = 10
-timestamp = "20231019_162607"
+# timestamp = "20231019_162607"
 
 # rnet_merged_all <- st_read(paste0("data-raw/rnet_merged_all_", dist, "_", angle, "_", timestamp, ".geojson"))
 rnet_merged_all <- st_read("G:/Github/tmp/npt/tmp/rnet_merged_all.gpkg")
-names(rnet_y)
+
 rnet_y <- st_read("G:/combined_network_tile.geojson")
 # rnet_y = sf::read_sf("https://github.com/ropensci/stplanr/releases/download/v1.0.2/rnet_y_ed.geojson")
 # rnet_yp <- st_transform(rnet_y, 27700)
@@ -167,12 +167,9 @@ rnet_yp_rest <- rnet_yp[!rnet_yp$geometry %in% within_join$geometry, ]
 
 rnet_merged_all <- rnet_merged_all %>%
   rename(geometry = geom)
-names(rnet_merged_all)
+
 # Concatenation (vertical stacking)
 combined_data <- bind_rows(rnet_yp_rest, rnet_merged_all)
-# Compare the structure of the two data frames
-str(rnet_yp_rest)
-str(rnet_merged_all)
 
 # Set CRS
 combined_data <- st_transform(combined_data, 4326)
@@ -191,9 +188,9 @@ combined_data[cols_to_convert] <- lapply(combined_data[cols_to_convert], functio
   x <- replace_na(x, 0)
   round(x, 0)
 })
-str(combined_data[cols_to_convert])
+
 # Saving to GeoJSON
-st_write(combined_data, paste0("data-raw/simplified_network_npt_", dist, "_", angle, "_", timestamp, ".geojson"))
+st_write(combined_data, paste0("tmp/simplified_network_npt_", dist, "_", angle,  ".geojson"))
 ```
 
 The python code below is used to identify the roads missed during the merge process and then integrate them into the simplified network.
