@@ -1,15 +1,29 @@
 import geopandas as gpd
 from shapely.geometry import MultiPolygon
 import pandas as pd
+import json
+
+# TODO: use small dataset if open data build is TRUE
+# Load parameters from JSON file
+with open('parameters.json') as f:
+    params = json.load(f)
+
+# Check the 'open_data_build' parameter
+open_data_build = params['open_data_build'][0]
+
+# Define URLs
+open_data_url = "https://github.com/ropensci/stplanr/releases/download/v1.0.2/rnet_y_ed.geojson"
+closed_data_url = "https://github.com/nptscot/networkmerge/releases/download/v0.1/combined_network_tile.geojson"
+
+# Choose the correct URL based on the parameter
+url_to_load = open_data_url if open_data_build else closed_data_url
+
+# Read the GeoJSON file into a GeoDataFrame
+rnet_y = gpd.read_file(url_to_load)
 
 # Read the GeoPackage file 'rnet_merged_all.gpkg' into a GeoDataFrame.
 # rnet_merged_all = gpd.read_file("tmp/rnet_merged_all.gpkg")
 rnet_merged_all = gpd.read_file("tmp/rnet_merged_all.geojson")
-# 'Read reproducibility of data
-rnet_y = gpd.read_file("https://github.com/ropensci/stplanr/releases/download/v1.0.2/rnet_y_ed.geojson")
-
-# Read the latest combined_network_tile GeoJSON file from a GitHub.
-# rnet_y = gpd.read_file("https://github.com/nptscot/networkmerge/releases/download/v0.1/combined_network_tile.geojson")
 
 rnet_yp = rnet_y
 

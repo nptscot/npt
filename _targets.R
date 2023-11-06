@@ -1206,10 +1206,6 @@ tar_target(pmtiles_rnet, {
     }
     rnet_y = combined_network
     
-    # 'Read reproducibility of data
-    # rnet_x = sf::read_sf("https://github.com/ropensci/stplanr/releases/download/v1.0.2/rnet_x_ed.geojson")
-    # rnet_y = sf::read_sf("https://github.com/ropensci/stplanr/releases/download/v1.0.2/rnet_y_ed.geojson")
-
     # Transform the spatial data to a different coordinate reference system (EPSG:27700)
     # TODO: uncomment:
     # rnet_xp = st_transform(rnet_x, "EPSG:27700")
@@ -1244,27 +1240,7 @@ tar_target(pmtiles_rnet, {
     dist = 20
     angle = 10
 
-    # Test on small subset of rnet_y
-    rnet_x_buffer = sf::st_buffer(sf::st_union(rnet_xp), 30)
-    rnet_yp = rnet_yp[rnet_x_buffer,]
-
-    plot(rnet_yp$geometry)
-    plot(rnet_xp$geometry, add = TRUE, col = "red")
-
-    # Save inputs to function for debugging:
-    sf::write_sf(rnet_xp, "rnet_xp_test.geojson", delete_dsn = TRUE)
-    sf::write_sf(rnet_yp, "rnet_yp_test.geojson", delete_dsn = TRUE)
-    system("gh release create test_rnet_merge")
-    system("gh release upload test_rnet_merge rnet_xp_test.geojson")
-
-    # force unload of the stplanr package:
-    unloadNamespace("stplanr")
-    remotes::install_dev("stplanr")
-    library(stplanr)
-
     rnet_merged_all = rnet_merge(rnet_xp, rnet_yp, dist = dist, funs = funs, max_angle_diff = 20)  # segment_length = 1
-
-    plot(rnet_merged_all)  
 
     # Remove specific columns from the merged spatial object
     rnet_merged_all = rnet_merged_all[ , !(names(rnet_merged_all) %in% c('identifier','length_x'))]
@@ -1292,7 +1268,7 @@ tar_target(pmtiles_rnet, {
     
     # Write the spatial object to a GeoJSON file 
     # st_write(rnet_merged_all, "tmp/rnet_merged_all.gpkg")
-    st_write(rnet_merged_all, "tmp/rnet_merged_all_simple.geojson",delete_dsn = TRUE)
+    st_write(rnet_merged_all, "tmp/rnet_merged_all.geojson",delete_dsn = TRUE)
   }),
 
   tar_target(rnet_simple, {
