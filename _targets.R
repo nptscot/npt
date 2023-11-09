@@ -1327,6 +1327,9 @@ tar_target(pmtiles_rnet, {
 
     # Write the spatial object to a GeoJSON file 
     # st_write(rnet_merged_all, "tmp/rnet_merged_all.gpkg")
+    if (!dir.exists("tmp")) {
+      dir.create("tmp")
+    }
     st_write(rnet_merged_all, "tmp/simplified_network.gpkg",delete_dsn = TRUE)
   }),
 
