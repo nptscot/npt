@@ -1082,7 +1082,7 @@ tar_target(pmtiles_rnet, {
     # Using WSL
     dir = getwd()
     command_start = 'bash -c '
-    command_cd = paste0('cd /mnt/',tolower(substr(dir,1,1)),substr(dir,3,nchar(dir)),'/outputs')
+    command_cd = paste0('cd /mnt/',tolower(substr(dir,1,1)),substr(dir,3,nchar(dir)),'/outputdata')
     
     command_all = paste(c(command_cd, command_tippecanoe), collapse = "; ")
     command_all = paste0(command_start,'"',command_all,'"')
