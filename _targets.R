@@ -1084,11 +1084,10 @@ tar_target(pmtiles_rnet, {
   responce
 }),
   
-  
-  
-  
   tar_target(save_outputs, {
-    length(pmtiles_rnet)
+    check = length(pmtiles_buildings)
+    check = length(rnet_commute_balanced)
+    check = length(zones_dasymetric_tile)
     message("Saving outputs for ", parameters$date_routing)
     
     saveRDS(od_commute_subset, "outputdata/od_commute_subset.Rds")
@@ -1120,12 +1119,8 @@ tar_target(pmtiles_rnet, {
   tar_target(upload_data, {
     
     # Ensure the target runs after
-    length(school_stats_json)
-    length(rnet_commute_balanced)
-    length(zones_dasymetric_tile)
-    length(pmtiles_school)
-    length(pmtiles_buildings)
-    length(pmtiles_rnet)
+    check = length(save_outputs)
+
     commit = gert::git_log(max = 1)
     message("Commit: ", commit)
     full_build = 
