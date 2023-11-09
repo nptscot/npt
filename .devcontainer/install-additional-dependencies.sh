@@ -31,5 +31,10 @@ echo 'export PATH="$HOME/.cargo/bin:$PATH"' >> ~/.bashrc
 # Install odjitter:
 cargo install --git https://github.com/dabreegster/odjitter odjitter
 
-# Install targets
-Rscript -e 'install.packages("targets")'
+# Install tippecannoe
+cd /tmp
+git clone https://github.com/felt/tippecanoe.git
+cd tippecanoe
+make -j
+sudo make install
+tippecanoe --version
