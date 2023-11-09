@@ -6,15 +6,15 @@ devtools::install_github("robinlovelace/simodels")
 library(simodels)
 source("R/gravity_model.R")
 
-disag_threshold = 1000 # increasing this reduces the number of od pairs
-# > summary(od_interaction_jittered$interaction)
+disag_threshold = 100 # increasing this reduces the number of od pairs
+# > summary(od_adjusted_jittered$interaction)
 # Min. 1st Qu.  Median    Mean 3rd Qu.    Max. 
 # 49.65   49.91   49.96   49.94   49.98   50.00 
 min_distance_meters = 500 # does this mean that any shops closer than 500m away are essentially ignored? 
 # It would be better to route to these, then exclude them afterwards as too close for the trip to be worth cycling
 
 # Add osm highways for scotland
-osm_highways = readRDS("./inputdata/osm_highways_2023-08-09.Rds")
+osm_highways = readRDS("../inputdata/osm_highways_2023-08-09.Rds")
 
 # Get shopping destinations from secure OS data
 path_teams = Sys.getenv("NPT_TEAMS_PATH")
@@ -41,7 +41,7 @@ os_retail = os_retail %>%
 #   st_transform(27700)
 # 
 # saveRDS(shop_points, "./inputdata/shop_points.Rds")
-# saveRDS(shop_polygons, "./inputdata/shop_polygons.Rds")
+# saveRDS(shop_polygons, "../inputdata/shop_polygons.Rds")
 # 
 # # mapview::mapview(shop_polygons)
 # # mapview::mapview(shop_points)
@@ -85,10 +85,10 @@ shopping_sf = st_as_sf(shopping_join)
 shopping_sf = st_transform(shopping_sf, 4326)
 # tm_shape(shopping_sf) + tm_dots("size") # check points look right
 
-saveRDS(shopping_sf, "./inputdata/shopping_grid.Rds")
+saveRDS(shopping_sf, "../inputdata/shopping_grid.Rds")
 
 
-shopping_grid = readRDS("./inputdata/shopping_grid.Rds")
+shopping_grid = readRDS("../inputdata/shopping_grid.Rds")
 
 # Estimate number of shopping trips from each origin zone
 # Calculate number of trips / number of cyclists
@@ -131,31 +131,40 @@ od_interaction = od_shopping %>%
 od_interaction = od_interaction %>% 
   filter(quantile(interaction, 0.9) < interaction)
 
-saveRDS(od_interaction, "./inputdata/shopping_interaction.Rds")
-od_interaction = readRDS("./inputdata/shopping_interaction.Rds")
+saveRDS(od_interaction, "../inputdata/shopping_interaction.Rds")
+od_interaction = readRDS("../inputdata/shopping_interaction.Rds")
 
 # od_interaction = od_interaction %>% 
 #   filter(!O == "S01010206")
 
+# Need to correct the number of trips, in accordance with origin_shopping_trips
+od_adjusted = od_interaction %>% 
+  group_by(O) %>% 
+  mutate(
+    proportion = interaction / sum(interaction),
+    shopping_all_modes = origin_shopping_trips * proportion
+  ) %>% 
+  ungroup()
+
 # Jittering
 shopping_polygons = sf::st_buffer(shopping_grid, dist = 0.0001)
 
-# why does distance_euclidean drop so dramatically when we go from od_interaction to od_interaction_jittered? 
-od_interaction_jittered = odjitter::jitter(
-  od = od_interaction,
+# why does distance_euclidean drop so dramatically when we go from od_interaction to od_adjusted_jittered? 
+od_adjusted_jittered = odjitter::jitter(
+  od = od_adjusted,
   zones = zones_shopping,
   zones_d = shopping_polygons,
   subpoints_origins = osm_highways,
   subpoints_destinations = shopping_grid,
-  disaggregation_key = "interaction",
+  disaggregation_key = "shopping_all_modes",
   disaggregation_threshold = disag_threshold,
   min_distance_meters = min_distance_meters,
   deduplicate_pairs = FALSE
 )
 
-saveRDS(od_interaction_jittered, "./inputdata/shopping_interaction_jittered.Rds")
+saveRDS(od_adjusted_jittered, "../inputdata/shopping_interaction_jittered.Rds")
 
-od_interaction_jittered = readRDS("./inputdata/shopping_interaction_jittered.Rds")
+od_adjusted_jittered = readRDS("../inputdata/shopping_interaction_jittered.Rds")
 
 # Trip numbers - find which % of these journeys are by bicycle
 
@@ -165,9 +174,8 @@ cycle_mode_share = 0.012
 # but table 16 in transport-and-travel-in-scotland-2019-local-authority-tables.xlsx
 # is not accurate enough (no decimal places for the cycle % mode shares)
 
-od_shopping_jittered = od_interaction_jittered %>% 
+od_shopping_jittered = od_adjusted_jittered %>% 
   rename(
-    shopping_all_modes = interaction,
     geo_code1 = O,
     geo_code2 = D
   ) %>% 
@@ -186,4 +194,4 @@ od_shopping_jittered_updated = od_shopping_jittered %>%
 n_short_lines_removed = nrow(od_shopping_jittered) - nrow(od_shopping_jittered_updated)
 message(n_short_lines_removed, " short or long desire lines removed")
 
-saveRDS(od_shopping_jittered_updated, "./inputdata/od_shopping_jittered.Rds")
+saveRDS(od_shopping_jittered_updated, "../inputdata/od_shopping_jittered.Rds")
