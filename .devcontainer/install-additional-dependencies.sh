@@ -14,7 +14,6 @@ apt-get install -y software-properties-common
 apt-get install -y python3 python3-pip
 
 # Install Python dependencies:
-pip install pandas
 pip install -r requirements.txt
 
 # Rust, cargo and then then make the https://github.com/dabreegster/odjitter crate available from the command line:
