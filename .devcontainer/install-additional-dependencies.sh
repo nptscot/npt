@@ -27,6 +27,7 @@ export PATH="$HOME/.cargo/bin:$PATH"
 
 # Add cargo to the path permanently:
 echo 'export PATH="$HOME/.cargo/bin:$PATH"' >> ~/.bashrc
+source ~/.bashrc
 
 # Install odjitter:
 cargo install --git https://github.com/dabreegster/odjitter --rev 32fb58bf7f0d68afd3b76b88cf6b1272c5c66828
