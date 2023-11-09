@@ -1,13 +1,14 @@
 # Instructions
-# 1) library(targets)
-# 2) Optional - to see real-time updates of progress
+# 1) Optional - install the latest packages using lines 12-15 below
+# 2) library(targets)
+# 3) Optional - to see real-time updates of progress
 # tar_watch(seconds = 60, targets_only = TRUE)
-# 3) To run the build
+# 4) To run the build
 # tar_make_future(workers = 4)
 # If your RAM limited use tar_make() to run one job at a time
 
 # Load packages required to define the pipeline:
-if(FALSE){ # Repeated builds can it GitHub API limit, set to TRUE to check for package updates
+if(FALSE){ # Repeated builds can hit GitHub API limit, set to TRUE to check for package updates
   remotes::install_dev("cyclestreets")
   remotes::install_github("dabreegster/odjitter", subdir = "r")
   remotes::install_github("ropensci/stplanr")# Improved overline
@@ -24,14 +25,15 @@ library(future.callr)
 library(osmextract)
 library(ukboundaries)
 library(simodels)
+library(stplanr)
+library(dplyr)
 
 # Set target options:
 pkgs = packages = c(
-  "tibble","zonebuilder","dplyr","stplanr","lubridate",
-  "cyclestreets","stringr","sf","tidyr","data.table",
+  "tibble","zonebuilder","dplyr","lubridate",
+  "stringr","sf","tidyr","data.table", "targets",
   "glue","zip","jsonlite","remotes","gert","collapse","pct",
-  "readr",
-  "future", "future.callr", "future.batchtools",
+  "readr", "future", "future.callr", "future.batchtools",
   "bs4Dash", "DT", "gt", "pingr", "shinybusy", "shinyWidgets"
 )
 remotes::install_cran(pkgs)
@@ -1477,7 +1479,7 @@ tar_target(pmtiles_rnet, {
     # Using WSL
     dir = getwd()
     command_start = 'bash -c '
-    command_cd = paste0('cd /mnt/',tolower(substr(dir,1,1)),substr(dir,3,nchar(dir)),'/outputs')
+    command_cd = paste0('cd /mnt/',tolower(substr(dir,1,1)),substr(dir,3,nchar(dir)),'/outputdata')
     
     command_all = paste(c(command_cd, command_tippecanoe), collapse = "; ")
     command_all = paste0(command_start,'"',command_all,'"')
@@ -1491,6 +1493,7 @@ tar_target(pmtiles_rnet, {
   
   tar_target(save_outputs, {
     length(pmtiles_rnet)
+    length(pmtiles_buildings)
     message("Saving outputs for ", parameters$date_routing)
     
     saveRDS(od_commute_subset, "outputdata/od_commute_subset.Rds")
@@ -1595,10 +1598,109 @@ tar_target(pmtiles_rnet, {
     # Combine previous and current build datasets
     build_summary = data.table::rbindlist(list(build_summary, build_summary_previous), fill = TRUE)
     write_csv(build_summary, "outputs/build_summary.csv")
+  }),
+
+  tar_target(simplify_network, {
+    cue = tar_cue(mode = "always")
+    # Read spatial data directly from URLs into sf objects
+    # TODO: use small dataset if open data build is TRUE
+    if (parameters$open_data_build) {
+      rnet_x = sf::read_sf("https://github.com/ropensci/stplanr/releases/download/v1.0.2/rnet_x_ed.geojson")
+    } else {
+      rnet_x = sf::read_sf("https://github.com/nptscot/networkmerge/releases/download/v0.1/OS_large_route_network_example_edingurgh.geojson")
+    }
+    rnet_y = combined_network
+    
+    # Transform the spatial data to a different coordinate reference system (EPSG:27700)
+    # TODO: uncomment:
+    # rnet_xp = st_transform(rnet_x, "EPSG:27700")
+    # rnet_yp = st_transform(rnet_y, "EPSG:27700")
+
+    rnet_xp = rnet_x
+    rnet_yp = rnet_y
+
+    # Extract column names from the rnet_yp
+    name_list = names(rnet_yp)
+    # check names
+    name_list
+
+    # Initialize an empty list
+    funs = list()
+
+    # Loop through each name and assign it a function based on specific conditions
+    for (name in name_list) {
+      if (name == "geometry") {
+        next  # Skip the current iteration
+      } else if (name %in% c("Gradient", "Quietness")) {
+        funs[[name]] = mean
+      } else {
+        funs[[name]] = sum
+      }
+    }
+
+    # Define breaks for categorizing data
+    brks = c(0, 50, 100, 200, 500,1000, 2000, 5000,10000,150000)
+
+    # Merge the spatial objects rnet_xp and rnet_yp based on specified parameters
+    dist = 20
+    angle = 10
+
+    rnet_merged_all = rnet_merge(rnet_xp, rnet_yp, dist = dist, funs = funs, max_angle_diff = 20)  # segment_length = 1
+
+    # Remove specific columns from the merged spatial object
+    rnet_merged_all = rnet_merged_all[ , !(names(rnet_merged_all) %in% c('identifier','length_x'))]
+
+    # Remove Z and M dimensions (if they exist) and set geometry precision
+    # rnet_merged_all = st_zm(rnet_merged_all, what = "ZM")
+
+    # Set the precision of the geometries in the 'rnet_merged_all' spatial object to 1e3 (0.001)
+    rnet_merged_all$geometry = st_set_precision(rnet_merged_all$geometry, 1e3)
+
+    # The next line is using a combination of dplyr and sf (simple features) functions to mutate the data.
+    rnet_merged_all = rnet_merged_all %>%
+      mutate(across(where(is.numeric), ~ round(.x, 0)))      
+
+    # # Define columns to check for NA values
+    # Convert the column names of rnet_y to a list
+    rnet_yp_list = as.list(names(rnet_yp))
+
+    # Remove the "geometry" entry from the list
+    columns_to_check = unlist(rnet_yp_list[rnet_yp_list != "geometry"])
+
+    # Remove rows where all specified columns are NA using dplyr's select and filter functions
+    rnet_merged_all <- rnet_merged_all %>%
+      filter(rowSums(is.na(select(., all_of(columns_to_check)))) != length(columns_to_check))
+    
+    # Write the spatial object to a GeoJSON file 
+    # st_write(rnet_merged_all, "tmp/rnet_merged_all.gpkg")
+    st_write(rnet_merged_all, "tmp/rnet_merged_all.geojson",delete_dsn = TRUE)
+  }),
+
+  tar_target(rnet_simple, {
+      # Run this target only after the 'simplify_network' target has been run:
+      simplify_network
+      # Get the path to the Python executable using 'where python'
+      python_path <- system("where python", intern = TRUE)[1]
+
+      # Get the current working directory
+      current_wd <- getwd()
+
+      # Define the relative path to the directory containing the Python script
+      relative_script_path <- "code/sjoin_rnet.py"
+
+      # Construct the full path to the Python script using the current working directory
+      full_script_path <- file.path(current_wd, relative_script_path)
+
+      # Construct the command to run the Python script
+      cmd <- paste(python_path, full_script_path)
+
+      # Run the Python script using the system function
+      system(cmd)
+      
+      # Read the output from the Python script
+      sf::st_read("tmp/simplified_network.gpkg")
   })
 )
-
-
 # # Download a snapshot of the data:
 # setwd("outputdata")
 # system("gh release download v2023-03-24-22-28-51_commit_e2a60d0f06e6ddbf768382b19dc524cb3824c0c4 ")
