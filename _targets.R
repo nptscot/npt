@@ -14,6 +14,7 @@ pkgs_installed = "zonebuilder" %in% installed.packages() &&
   "odjitter" %in% installed.packages()
 if (!pkgs_installed) {
   source("code/install.R")
+}
 
 library(tidyverse)
 library(targets)
@@ -159,6 +160,7 @@ list(
     # Read in test OD dataset for package development:
     # sf::read_sf("https://github.com/nptscot/npt/releases/download/v1/od_jittered_demo.geojson")
   }),
+
   tar_target(od_commute_subset, {
     odcs = od_commute_jittered %>%
       filter(dist_euclidean_jittered < 16000) %>%
