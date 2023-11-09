@@ -11,6 +11,8 @@ if(FALSE){ # Repeated builds can it GitHub API limit, set to TRUE to check for p
   remotes::install_dev("cyclestreets")
   remotes::install_github("dabreegster/odjitter", subdir = "r")
   remotes::install_github("ropensci/stplanr")# Improved overline
+  remotes::install_github("robinlovelace/ukboundaries")
+  remotes::install_github("robinlovelace/simodels")
   remotes::install_cran("targets")
 }
 
@@ -20,11 +22,8 @@ library(sf)
 library(future) # Needed for multi-core running
 library(future.callr)
 library(osmextract)
-devtools::install_github("robinlovelace/ukboundaries")
 library(ukboundaries)
-devtools::install_github("robinlovelace/simodels")
 library(simodels)
-source("R/gravity_model.R")
 
 # Set target options:
 pkgs = packages = c(
