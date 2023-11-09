@@ -1118,6 +1118,27 @@ tar_target(od_leisure, {
   saveRDS(od_leisure_jittered_updated, "../inputdata/od_leisure_jittered.Rds")
 }),
 
+tar_target(rs_shopping_fastest, {
+  length(done_commute_ebike) # Do school routing first
+  f = paste0("outputdata/", parameters$date_routing, "routes_max_dist_shopping_fastest.Rds")
+  if (file.exists(f)) {
+    rs = readRDS(f)
+  } else {
+    rs = get_routes(od = od_shopping_subset,
+                    plans = "fastest", 
+                    purpose = "shopping",
+                    folder = paste0("outputdata/", parameters$date_routing),
+                    date = parameters$date_routing,
+                    segments = "both")
+  }
+  rs
+}),
+
+tar_target(done_commute_fastest, {
+  length(rs_commute_fastest) #Hack for scheduling
+}),
+
+
 # Data Zone Maps ----------------------------------------------------------
 tar_target(zones_contextual, {
   dir.create(file.path(tempdir(),"SIMD"))
