@@ -29,7 +29,7 @@ export PATH="$HOME/.cargo/bin:$PATH"
 echo 'export PATH="$HOME/.cargo/bin:$PATH"' >> ~/.bashrc
 
 # Install odjitter:
-cargo install --git https://github.com/dabreegster/odjitter odjitter
+cargo install --git https://github.com/dabreegster/odjitter --rev 32fb58bf7f0d68afd3b76b88cf6b1272c5c66828
 
 # Install tippecannoe
 cd /tmp

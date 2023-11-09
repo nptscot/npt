@@ -1196,11 +1196,28 @@ tar_target(pmtiles_rnet, {
     # TODO: use small dataset if open data build is TRUE
     if (parameters$open_data_build) {
       rnet_x = sf::read_sf("https://github.com/ropensci/stplanr/releases/download/v1.0.2/rnet_x_ed.geojson")
+      rnet_x_buffers <- st_buffer(rnet_x, dist = 20, endCapStyle = "FLAT")
+      single_rnet_x_buffer <- st_union(rnet_x_buffers)
+      rnet_x_buffer <- st_sf(geometry = single_rnet_x_buffer)
+      rnet_x_buffer <- st_make_valid(rnet_x_buffer)
     } else {
       rnet_x = sf::read_sf("https://github.com/nptscot/networkmerge/releases/download/v0.1/OS_large_route_network_example_edingurgh.geojson")
+      rnet_x_buffer = sf::read_sf("https://github.com/nptscot/networkmerge/releases/download/v0.1/OS_large_route_network_example_edingurgh_buffer.geojson")
     }
-    rnet_y = combined_network
     
+    rnet_y = combined_network
+    # remotes::install_dev("stplanr")
+    # packageVersion("stplanr")
+    # sf::sf_use_s2(TRUE)
+    # library(stplanr)
+    # library(dplyr)
+    # library(sf)
+    # library(mapview)
+    # library(tmap)
+    # library(tidyr)
+    # rnet_x = sf::read_sf("https://github.com/nptscot/networkmerge/releases/download/v0.1/OS_large_route_network_example_edingurgh.geojson")
+    # rnet_y = sf::read_sf("https://github.com/nptscot/networkmerge/releases/download/v0.1/combined_network_tile.geojson")
+
     # Transform the spatial data to a different coordinate reference system (EPSG:27700)
     # TODO: uncomment:
     # rnet_xp = st_transform(rnet_x, "EPSG:27700")
@@ -1211,8 +1228,6 @@ tar_target(pmtiles_rnet, {
 
     # Extract column names from the rnet_yp
     name_list = names(rnet_yp)
-    # check names
-    name_list
 
     # Initialize an empty list
     funs = list()
@@ -1241,7 +1256,13 @@ tar_target(pmtiles_rnet, {
     rnet_merged_all = rnet_merged_all[ , !(names(rnet_merged_all) %in% c('identifier','length_x'))]
 
     # Remove Z and M dimensions (if they exist) and set geometry precision
-    # rnet_merged_all = st_zm(rnet_merged_all, what = "ZM")
+    has_Z_or_M <- any(st_dimension(rnet_merged_all) %in% c("XYZ", "XYM", "XYZM"))
+
+    # If Z or M dimensions exist, remove them and print a message
+    if (has_Z_or_M) {
+      rnet_merged_all <- st_zm(rnet_merged_all, what = "ZM")
+      cat("Z or M dimensions have been removed from rnet_merged_all.\n")
+    }
 
     # Set the precision of the geometries in the 'rnet_merged_all' spatial object to 1e3 (0.001)
     rnet_merged_all$geometry = st_set_precision(rnet_merged_all$geometry, 1e3)
@@ -1261,35 +1282,69 @@ tar_target(pmtiles_rnet, {
     rnet_merged_all <- rnet_merged_all %>%
       filter(rowSums(is.na(select(., all_of(columns_to_check)))) != length(columns_to_check))
     
+    # # Buffering
+    # rnet_merged_all_buffer <- st_buffer(rnet_merged_all, dist = dist, endCapStyle = "FLAT")
+
+    # # Unary Union and conversion to GeoDataFrame
+    # single_rnet_merged_all_buffer <- st_union(rnet_merged_all_buffer)
+    # single_rnet_merged_all_buffer_gdf <- st_sf(geometry = single_rnet_merged_all_buffer)
+
+    # single_rnet_merged_all_buffer_gdf <- st_make_valid(single_rnet_merged_all_buffer_gdf)
+    # st_write(single_rnet_merged_all_buffer_gdf, "tmp/OS_large_route_network_example_edingurgh_buffer.geojson",delete_dsn = TRUE)
+    
+    # Spatial Join
+    within_join <- st_join(rnet_yp, rnet_x_buffer, join = st_within)
+
+    # Filtering geometries not within the buffer
+    rnet_yp_rest <- rnet_yp[!rnet_yp$geometry %in% within_join$geometry, ]
+    
+    combined_data <- bind_rows(rnet_yp_rest, rnet_merged_all)
+
+    # Set CRS
+    combined_data <- st_transform(combined_data, 4326)
+
+    items_to_remove = c('geometry', 'length_x_original', 'length_x_cropped')
+    col_names = names(combined_data)
+    # Remove the "geometry" entry from the list
+    cols_to_convert = col_names[!col_names %in% items_to_remove]
+
+    # Apply the replacement operation to each column separately
+    for (col in cols_to_convert) {
+      combined_data[[col]][is.na(combined_data[[col]])] <- 0
+    }
+
     # Write the spatial object to a GeoJSON file 
     # st_write(rnet_merged_all, "tmp/rnet_merged_all.gpkg")
-    st_write(rnet_merged_all, "tmp/rnet_merged_all.geojson",delete_dsn = TRUE)
+    st_write(rnet_merged_all, "tmp/simplified_network.gpkg",delete_dsn = TRUE)
   }),
 
   tar_target(rnet_simple, {
-      # Run this target only after the 'simplify_network' target has been run:
-      simplify_network
-      # Get the path to the Python executable using 'where python'
-      python_path <- system("where python", intern = TRUE)[1]
+    sf::st_read("tmp/simplified_network.gpkg")
+  })      
+  # tar_target(rnet_simple, {
+  #     # Run this target only after the 'simplify_network' target has been run:
+  #     simplify_network
+  #     # Get the path to the Python executable using 'where python'
+  #     python_path <- system("where python", intern = TRUE)[1]
 
-      # Get the current working directory
-      current_wd <- getwd()
+  #     # Get the current working directory
+  #     current_wd <- getwd()
 
-      # Define the relative path to the directory containing the Python script
-      relative_script_path <- "code/sjoin_rnet.py"
+  #     # Define the relative path to the directory containing the Python script
+  #     relative_script_path <- "code/sjoin_rnet.py"
 
-      # Construct the full path to the Python script using the current working directory
-      full_script_path <- file.path(current_wd, relative_script_path)
+  #     # Construct the full path to the Python script using the current working directory
+  #     full_script_path <- file.path(current_wd, relative_script_path)
 
-      # Construct the command to run the Python script
-      cmd <- paste(python_path, full_script_path)
+  #     # Construct the command to run the Python script
+  #     cmd <- paste(python_path, full_script_path)
 
-      # Run the Python script using the system function
-      system(cmd)
+  #     # Run the Python script using the system function
+  #     system(cmd)
       
-      # Read the output from the Python script
-      sf::st_read("tmp/simplified_network.gpkg")
-  })
+  #     # Read the output from the Python script
+  #     sf::st_read("tmp/simplified_network.gpkg")
+  # })
 )
 # # Download a snapshot of the data:
 # setwd("outputdata")
