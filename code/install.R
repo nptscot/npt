@@ -14,10 +14,3 @@ if(TRUE){ # Repeated builds can it GitHub API limit, set to TRUE to check for pa
   remotes::install_github("ropensci/stplanr")# Improved overline
 }
 
-library(targets)
-library(magrittr) # Light load of %>%
-library(sf)
-library(future) # Needed for multi-core running
-library(future.callr)
-library(stplanr)
-library(dplyr)

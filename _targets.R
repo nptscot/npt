@@ -6,8 +6,20 @@
 # tar_make_future(workers = 4)
 # If your RAM limited use tar_make() to run one job at a time
 
-# Load packages required to define the pipeline:
-source("code/install.R")
+# Install packages required to define the if zonebuilder not installed:
+pkgs_installed = "zonebuilder" %in% installed.packages() && 
+  "odjitter" %in% installed.packages()
+if (!pkgs_installed) {
+  source("code/install.R")
+}
+
+library(targets)
+library(magrittr) # Light load of %>%
+library(sf)
+library(future) # Needed for multi-core running
+library(future.callr)
+library(stplanr)
+library(dplyr)
 
 tar_option_set(
   memory = "transient", 
