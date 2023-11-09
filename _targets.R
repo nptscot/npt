@@ -2,6 +2,8 @@
 # 1) library(targets)
 # 2) Optional - to see real-time updates of progress
 # tar_watch(seconds = 60, targets_only = TRUE)
+# See the current status of the targets:
+# tar_visnetwork(TRUE)
 # 3) To run the build
 # tar_make_future(workers = 4)
 # If your RAM limited use tar_make() to run one job at a time
@@ -13,21 +15,21 @@ if (!pkgs_installed) {
   source("code/install.R")
 }
 
+library(tidyverse)
 library(targets)
 library(magrittr) # Light load of %>%
 library(sf)
 library(future) # Needed for multi-core running
 library(future.callr)
 library(stplanr)
-library(dplyr)
 
 tar_option_set(
   memory = "transient", 
   garbage_collection = TRUE,
   storage = "worker", 
   retrieval = "worker",
-  # packages that your targets need to run
-  packages = pkgs,
+  # # packages that your targets need to run
+  # packages = pkgs,
   format = "rds" # default storage format
 )
 
@@ -738,7 +740,7 @@ tar_target(school_stats_json, {
 # Data Zone Maps ----------------------------------------------------------
 tar_target(zones_contextual, {
   dir.create(file.path(tempdir(),"SIMD"))
-  unzip("../inputdata/SIMD/simd2020_withgeog.zip",
+  unzip("inputdata/SIMD/simd2020_withgeog.zip",
         exdir = file.path(tempdir(),"SIMD"))
   files <- list.files(file.path(tempdir(),"SIMD/simd2020_withgeog"), full.names = TRUE)
   
@@ -828,7 +830,7 @@ tar_target(zones_dasymetric_tile, {
 
 
 tar_target(school_points, {
-  schools = sf::read_sf("../inputdata/Schools/school_locations.geojson")
+  schools = sf::read_sf("inputdata/Schools/school_locations.geojson")
   make_geojson_zones(schools, "outputs/school_locations.geojson")
   schools
 }),
@@ -936,7 +938,7 @@ tar_target(pmtiles_school, {
 
 
 tar_target(pmtiles_zones, {
-  check = length(zones_dasymetric_tile)
+  check = length(pmtiles_rnet)
   command_tippecanoe = paste('tippecanoe -o data_zones.pmtiles',
                              '--name=data_zones',
                              '--layer=data_zones',
@@ -967,8 +969,8 @@ tar_target(pmtiles_zones, {
 }),
 
 tar_target(pmtiles_buildings, {
-  check = length(pmtiles_zones)
-  
+    check = length(pmtiles_rnet)
+ 
   tippecanoe_verylow = paste('tippecanoe -o dasymetric_verylow.pmtiles',
                              '--name=dasymetric',
                              '--layer=dasymetric',
