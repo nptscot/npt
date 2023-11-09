@@ -750,8 +750,7 @@ tar_target(school_stats_json, {
 
 # Shopping OD ---------------------------------------------------------
 tar_target(od_shopping, {
-  disag_threshold = 100 # increasing this reduces the number of od pairs
-  min_distance_meters = 500 # does this mean that any shops closer than 500m away are essentially ignored? 
+  check = length(school_stats_json)
 
   # Add OD centroids for scotland
   oas = readRDS("../inputdata/oas.Rds")
@@ -850,7 +849,6 @@ tar_target(od_shopping, {
     subpoints_destinations = shopping_grid,
     disaggregation_key = "shopping_all_modes",
     disaggregation_threshold = disag_threshold,
-    min_distance_meters = min_distance_meters,
     deduplicate_pairs = FALSE
   )
   
@@ -886,9 +884,6 @@ tar_target(od_shopping, {
 
 # Visiting OD -------------------------------------------------------------
 tar_target(od_visiting, {
-  disag_threshold = 100 # increasing this reduces the number of od pairs
-  min_distance_meters = 500 # does this mean that any shops closer than 500m away are essentially ignored? 
-  # It would be better to route to these, then exclude them afterwards as too close for the trip to be worth cycling
   
   oas = readRDS("../inputdata/oas.Rds")
   
@@ -953,7 +948,6 @@ tar_target(od_visiting, {
     subpoints = oas,
     disaggregation_key = "visiting_all_modes",
     disaggregation_threshold = disag_threshold,
-    min_distance_meters = min_distance_meters,
     deduplicate_pairs = FALSE
   )
   
@@ -988,9 +982,6 @@ tar_target(od_visiting, {
 
 # Leisure OD --------------------------------------------------------------
 tar_target(od_leisure, {
-  disag_threshold = 100 # increasing this reduces the number of od pairs
-  min_distance_meters = 500 # does this mean that any destinations closer than 500m away are essentially ignored? 
-  # It would be better to route to these, then exclude them afterwards as too close for the trip to be worth cycling
   
   # Add OA centroids for scotland
   # osm_highways = readRDS("../inputdata/osm_highways_2023-08-09.Rds")
@@ -1095,7 +1086,6 @@ tar_target(od_leisure, {
     subpoints_destinations = leisure_grid,
     disaggregation_key = "leisure_all_modes",
     disaggregation_threshold = disag_threshold,
-    min_distance_meters = min_distance_meters,
     deduplicate_pairs = FALSE
   )
   

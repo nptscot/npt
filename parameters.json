@@ -4,5 +4,7 @@
   "max_to_route": [200],
   "date_routing": ["2023-10-17"],
   "geo_subset": [true],
-  "open_data_build": [true]
+  "open_data_build": [true],
+  "disag_threshold": [100],
+  "min_distance_meters": [500]
 }
