@@ -144,7 +144,8 @@ list(
       subpoints_origins = subpoints_origins,
       subpoints_destinations = subpoints_destinations,
       disaggregation_threshold = 30,
-      deduplicate_pairs = FALSE
+      deduplicate_pairs = FALSE,
+      odjitter_location = "/root/.cargo/bin/odjitter"
     )
     odj$dist_euclidean_jittered = as.numeric(sf::st_length(odj))
     odj = odj %>%
