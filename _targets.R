@@ -1096,6 +1096,7 @@ tar_target(pmtiles_rnet, {
   
   tar_target(save_outputs, {
     length(pmtiles_rnet)
+    length(pmtiles_buildings)
     message("Saving outputs for ", parameters$date_routing)
     
     saveRDS(od_commute_subset, "outputdata/od_commute_subset.Rds")
