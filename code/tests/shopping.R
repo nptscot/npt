@@ -19,6 +19,8 @@ osm_highways = readRDS("../inputdata/osm_highways_2023-08-09.Rds")
 # Get shopping destinations from secure OS data
 path_teams = Sys.getenv("NPT_TEAMS_PATH")
 os_pois = readRDS(file.path(path_teams, "secure_data/OS/os_poi.Rds"))
+os_pois = os_pois %>% 
+  mutate(groupname = as.character(groupname))
 os_retail = os_pois %>% 
   filter(groupname == "Retail") # 26279 points
 

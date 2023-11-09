@@ -760,6 +760,8 @@ tar_target(od_shopping, {
   # Get shopping destinations from secure OS data
   path_teams = Sys.getenv("NPT_TEAMS_PATH")
   os_pois = readRDS(file.path(path_teams, "secure_data/OS/os_poi.Rds"))
+  os_pois = os_pois %>% 
+    mutate(groupname = as.character(groupname))
   os_retail = os_pois %>% 
     filter(groupname == "Retail") # 26279 points
   os_retail = os_retail %>% 
@@ -804,17 +806,14 @@ tar_target(od_shopping, {
     select(adjusted_mean)
   shop_percent = shop_percent[[1]]/100
   
+  intermediate_zones = st_read("./data-raw/SG_IntermediateZone_Bdry_2011.shp")
+  zones_shopping = intermediate_zones %>% 
+    select(InterZone, ResPop2011)
   # from NTS 2019 (England) average 953 trips/person/year divided by 365 = 2.61 trips/day
-  zones = readRDS("inputdata/DataZones.Rds")
-  zones_shopping = zones %>%
-    mutate(shopping_trips = ResPop2011 * 2.61 * shop_percent) # resident population (should use 18+ only) * trips per person (from NTS 2019 England) * percent of trips that are for shopping
-  
-  # # Missing zone 
-  # (could find a more systematic way to do this)
-  # missing_zone =  zones %>% filter(DataZone == "S01010206")
-  # mapview::mapview(missing_zone) # The entire zone sits within a building site so it has no public road within it
   zones_shopping = zones_shopping %>% 
-    filter(DataZone != "S01010206")
+    mutate(shopping_trips = ResPop2011 * 2.61 * shop_percent)
+  zones_shopping = st_transform(zones_shopping, 4326)
+  zones_shopping = st_make_valid(zones_shopping)
   
   # Spatial interaction model of journeys
   # We could validate this SIM using the Scottish data on mean km travelled 
@@ -827,8 +826,6 @@ tar_target(od_shopping, {
                  d = distance_euclidean,
                  beta = 0.5,
                  constraint_production = origin_shopping_trips)
-  od_interaction = od_interaction %>% 
-    filter(quantile(interaction, 0.9) < interaction)
   
   saveRDS(od_interaction, "../inputdata/shopping_interaction.Rds")
   od_interaction = readRDS("../inputdata/shopping_interaction.Rds")
@@ -937,8 +934,6 @@ tar_target(od_visiting, {
                  d = distance_euclidean,
                  beta = 0.5,
                  constraint_production = origin_visiting_trips)
-  # od_interaction = od_interaction %>% 
-  #   filter(quantile(interaction, 0.9) < interaction)
   
   saveRDS(od_interaction, "../inputdata/visiting_interaction.Rds")
   od_interaction = readRDS("../inputdata/visiting_interaction.Rds")
@@ -1005,6 +1000,8 @@ tar_target(od_leisure, {
   # Get leisure destinations from secure OS data
   path_teams = Sys.getenv("NPT_TEAMS_PATH")
   os_pois = readRDS(file.path(path_teams, "secure_data/OS/os_poi.Rds"))
+  os_pois = os_pois %>% 
+    mutate(groupname = as.character(groupname))
   os_leisure = os_pois %>% 
     filter(groupname == "Sport and Entertainment") # 20524 points
   
@@ -1055,14 +1052,13 @@ tar_target(od_leisure, {
     select(adjusted_mean)
   leisure_percent = leisure_percent[[1]]/100
   
-  # need to improve on this figure:
-  # from NTS 2019 (England) average 953 trips/person/year divided by 365 = 2.61 trips/day
-  zones = readRDS("inputdata/DataZones.Rds")
-  zones_leisure = zones %>%
-    mutate(leisure_trips = ResPop2011 * 2.61 * leisure_percent) # resident population (should use 18+ only) * trips per person (from NTS 2019 England) * percent of trips that are for leisure
-  
+  intermediate_zones = st_read("./data-raw/SG_IntermediateZone_Bdry_2011.shp")
+  zones_leisure = intermediate_zones %>% 
+    select(InterZone, ResPop2011)
   zones_leisure = zones_leisure %>% 
-    filter(DataZone != "S01010206")
+    mutate(leisure_trips = ResPop2011 * 2.61 * leisure_percent)
+  zones_leisure = st_transform(zones_leisure, 4326)
+  zones_leisure = st_make_valid(zones_leisure)
   
   # Spatial interaction model of journeys
   # We could validate this SIM using the Scottish data on mean km travelled 
@@ -1075,8 +1071,6 @@ tar_target(od_leisure, {
                  d = distance_euclidean,
                  beta = 0.5,
                  constraint_production = origin_leisure_trips)
-  od_interaction = od_interaction %>% 
-    filter(quantile(interaction, 0.9) < interaction)
   
   saveRDS(od_interaction, "../inputdata/leisure_interaction.Rds")
   od_interaction = readRDS("../inputdata/leisure_interaction.Rds")
