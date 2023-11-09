@@ -138,6 +138,11 @@ list(
       filter(geo_code1 %in% z$DataZone) |>
       filter(geo_code2 %in% z$DataZone)
     set.seed(2023)
+    # Test if cargo is available to system:
+    if (system("cargo --version", intern = TRUE) != 0) {
+      old_path = Sys.getenv("PATH")
+      Sys.setenv(PATH = paste(old_path, "/root/.cargo/bin", sep = ":"))
+    }
     odj = odjitter::jitter(
       od = od,
       zones = z,

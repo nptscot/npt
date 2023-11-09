@@ -3,6 +3,9 @@
 # Check the Linux distro we're running:
 cat /etc/os-release
 
+# # Add atumscott to docker group:
+# usermod -aG docker atumscott
+
 # Source the R script code/install.R from command line:
 Rscript code/install.R
 
