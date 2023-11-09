@@ -19,6 +19,12 @@ library(magrittr) # Light load of %>%
 library(sf)
 library(future) # Needed for multi-core running
 library(future.callr)
+library(osmextract)
+devtools::install_github("robinlovelace/ukboundaries")
+library(ukboundaries)
+devtools::install_github("robinlovelace/simodels")
+library(simodels)
+source("R/gravity_model.R")
 
 # Set target options:
 pkgs = packages = c(
@@ -743,6 +749,391 @@ tar_target(school_stats_json, {
 }),
 
 
+# Shopping OD ---------------------------------------------------------
+tar_target(od_shopping, {
+  disag_threshold = 100 # increasing this reduces the number of od pairs
+  min_distance_meters = 500 # does this mean that any shops closer than 500m away are essentially ignored? 
+
+  # Add OD centroids for scotland
+  oas = readRDS("../inputdata/oas.Rds")
+  
+  # Get shopping destinations from secure OS data
+  path_teams = Sys.getenv("NPT_TEAMS_PATH")
+  os_pois = readRDS(file.path(path_teams, "secure_data/OS/os_poi.Rds"))
+  os_retail = os_pois %>% 
+    filter(groupname == "Retail") # 26279 points
+  os_retail = os_retail %>% 
+    st_transform(27700)
+
+  # create 500m grid covering whole of scotland
+  # Geographic data downloaded from https://hub.arcgis.com/datasets/ons::scottish-parliamentary-constituencies-december-2022-boundaries-sc-bgc-2/
+  scot_zones = st_read("./data-raw/Scottish_Parliamentary_Constituencies_December_2022_Boundaries_SC_BGC_-9179620948196964406.gpkg")
+  grid = st_make_grid(scot_zones, cellsize = 500, what = "centers")
+  # tm_shape(grid) + tm_dots() # to check (looks solid black)
+  grid_df = data.frame(grid)
+  grid_df = tibble::rowid_to_column(grid_df, "grid_id")
+
+  shopping = os_retail %>% 
+    mutate(grid_id = st_nearest_feature(os_retail, grid))
+  
+  # calculate weighting of each grid point
+  shopping_grid = shopping %>% 
+    st_drop_geometry() %>% 
+    group_by(grid_id) %>% 
+    summarise(size = n())
+  
+  # assign grid geometry
+  shopping_join = inner_join(grid_df, shopping_grid)
+  shopping_sf = st_as_sf(shopping_join)
+  shopping_sf = st_transform(shopping_sf, 4326)
+  # tm_shape(shopping_sf) + tm_dots("size") # check points look right
+  
+  saveRDS(shopping_sf, "../inputdata/shopping_grid.Rds")
+  shopping_grid = readRDS("../inputdata/shopping_grid.Rds")
+  
+  # Estimate number of shopping trips from each origin zone
+  # Calculate number of trips / number of cyclists
+  trip_purposes = read.csv("./data-raw/scottish-household-survey-2012-19.csv")
+  go_home = trip_purposes$Mean[trip_purposes$Purpose == "Go Home"]
+  trip_purposes = trip_purposes %>% 
+    filter(Purpose != "Sample size (=100%)") %>% 
+    mutate(adjusted_mean = Mean/(sum(Mean)-go_home)*sum(Mean)
+    )
+  shop_percent = trip_purposes %>% 
+    filter(Purpose =="Shopping") %>% 
+    select(adjusted_mean)
+  shop_percent = shop_percent[[1]]/100
+  
+  # from NTS 2019 (England) average 953 trips/person/year divided by 365 = 2.61 trips/day
+  zones = readRDS("inputdata/DataZones.Rds")
+  zones_shopping = zones %>%
+    mutate(shopping_trips = ResPop2011 * 2.61 * shop_percent) # resident population (should use 18+ only) * trips per person (from NTS 2019 England) * percent of trips that are for shopping
+  
+  # # Missing zone 
+  # (could find a more systematic way to do this)
+  # missing_zone =  zones %>% filter(DataZone == "S01010206")
+  # mapview::mapview(missing_zone) # The entire zone sits within a building site so it has no public road within it
+  zones_shopping = zones_shopping %>% 
+    filter(DataZone != "S01010206")
+  
+  # Spatial interaction model of journeys
+  # We could validate this SIM using the Scottish data on mean km travelled 
+  max_length_euclidean_km = 5
+  od_shopping = si_to_od(zones_shopping, shopping_grid, max_dist = max_length_euclidean_km * 1000)
+  od_interaction = od_shopping %>% 
+    si_calculate(fun = gravity_model, 
+                 m = origin_shopping_trips,
+                 n = destination_size,
+                 d = distance_euclidean,
+                 beta = 0.5,
+                 constraint_production = origin_shopping_trips)
+  od_interaction = od_interaction %>% 
+    filter(quantile(interaction, 0.9) < interaction)
+  
+  saveRDS(od_interaction, "../inputdata/shopping_interaction.Rds")
+  od_interaction = readRDS("../inputdata/shopping_interaction.Rds")
+
+  # Need to correct the number of trips, in accordance with origin_shopping_trips
+  od_adjusted = od_interaction %>% 
+    group_by(O) %>% 
+    mutate(
+      proportion = interaction / sum(interaction),
+      shopping_all_modes = origin_shopping_trips * proportion
+    ) %>% 
+    ungroup()
+  
+  # Jittering
+  shopping_polygons = sf::st_buffer(shopping_grid, dist = 0.0001)
+  
+  # why does distance_euclidean drop so dramatically when we go from od_interaction to od_adjusted_jittered? 
+  od_adjusted_jittered = odjitter::jitter(
+    od = od_adjusted,
+    zones = zones_shopping,
+    zones_d = shopping_polygons,
+    subpoints_origins = oas,
+    subpoints_destinations = shopping_grid,
+    disaggregation_key = "shopping_all_modes",
+    disaggregation_threshold = disag_threshold,
+    min_distance_meters = min_distance_meters,
+    deduplicate_pairs = FALSE
+  )
+  
+  saveRDS(od_adjusted_jittered, "../inputdata/shopping_interaction_jittered.Rds")
+  od_adjusted_jittered = readRDS("../inputdata/shopping_interaction_jittered.Rds")
+
+  # Get cycle mode shares
+  cycle_mode_share = 0.012 
+
+  od_shopping_jittered = od_adjusted_jittered %>% 
+    rename(
+      geo_code1 = O,
+      geo_code2 = D
+    ) %>% 
+    mutate(shopping_cycle = shopping_all_modes * cycle_mode_share)
+  
+  od_shopping_jittered_updated = od_shopping_jittered %>% 
+    rename(length_euclidean_unjittered = distance_euclidean) %>% 
+    mutate(
+      length_euclidean_unjittered = length_euclidean_unjittered/1000,
+      length_euclidean_jittered = units::drop_units(st_length(od_shopping_jittered))/1000
+    ) %>%
+    filter(
+      length_euclidean_jittered > (min_distance_meters/1000),
+      length_euclidean_jittered < max_length_euclidean_km
+    )
+  n_short_lines_removed = nrow(od_shopping_jittered) - nrow(od_shopping_jittered_updated)
+  message(n_short_lines_removed, " short or long desire lines removed")
+  
+  saveRDS(od_shopping_jittered_updated, "../inputdata/od_shopping_jittered.Rds")
+}),
+
+
+# Visiting OD -------------------------------------------------------------
+tar_target(od_visiting, {
+  disag_threshold = 100 # increasing this reduces the number of od pairs
+  min_distance_meters = 500 # does this mean that any shops closer than 500m away are essentially ignored? 
+  # It would be better to route to these, then exclude them afterwards as too close for the trip to be worth cycling
+  
+  oas = readRDS("../inputdata/oas.Rds")
+  
+  trip_purposes = read.csv("./data-raw/scottish-household-survey-2012-19.csv")
+  go_home = trip_purposes$Mean[trip_purposes$Purpose == "Go Home"]
+  trip_purposes = trip_purposes %>% 
+    filter(Purpose != "Sample size (=100%)") %>% 
+    mutate(adjusted_mean = Mean/(sum(Mean)-go_home)*sum(Mean)
+    )
+  visiting_percent = trip_purposes %>% 
+    filter(Purpose == "Visiting friends or relatives") %>% 
+    select(adjusted_mean)
+  visiting_percent = visiting_percent[[1]]/100
+  
+  intermediate_zones = st_read("./data-raw/SG_IntermediateZone_Bdry_2011.shp")
+  zones_visiting = intermediate_zones %>% 
+    select(InterZone, ResPop2011)
+  zones_visiting = zones_visiting %>% 
+    mutate(visiting_trips = ResPop2011 * 2.61 * visiting_percent)
+  zones_visiting = st_transform(zones_visiting, 4326)
+  zones_visiting = st_make_valid(zones_visiting)
+  
+  # # Edinburgh sample
+  # scot_zones = sf::st_read("./data-raw/Scottish_Parliamentary_Constituencies_December_2022_Boundaries_SC_BGC_-9179620948196964406.gpkg")
+  # edinburgh_zones = scot_zones %>% 
+  #   mutate(city = substr(SPC22NM, 1, 9)) %>% 
+  #   filter(city %in% "Edinburgh")
+  # edinburgh_zones = sf::st_transform(edinburgh_zones, 4326)
+  # library(tmap)
+  # tmap::tm_shape(edinburgh_zones) + tm_polygons()
+  
+  # zones_sample = zones_visiting[edinburgh_zones,]
+  # tmap::tm_shape(zones_sample) + tm_polygons()
+  
+  # Spatial interaction model of journeys
+  max_length_euclidean_km = 5
+  od_visiting = si_to_od(zones_visiting, zones_visiting, max_dist = max_length_euclidean_km * 1000)
+  od_interaction = od_visiting %>% 
+    si_calculate(fun = gravity_model, 
+                 m = origin_visiting_trips,
+                 n = destination_ResPop2011,
+                 d = distance_euclidean,
+                 beta = 0.5,
+                 constraint_production = origin_visiting_trips)
+  # od_interaction = od_interaction %>% 
+  #   filter(quantile(interaction, 0.9) < interaction)
+  
+  saveRDS(od_interaction, "../inputdata/visiting_interaction.Rds")
+  od_interaction = readRDS("../inputdata/visiting_interaction.Rds")
+  
+  # Need to correct the number of trips, in accordance with origin_visiting_trips
+  od_adjusted = od_interaction %>% 
+    group_by(O) %>% 
+    mutate(
+      proportion = interaction / sum(interaction),
+      visiting_all_modes = origin_visiting_trips * proportion
+    ) %>% 
+    ungroup()
+  
+  # why does distance_euclidean drop so dramatically when we go from od_interaction to od_adjusted_jittered? 
+  od_adjusted_jittered = odjitter::jitter(
+    od = od_adjusted,
+    zones = zones_visiting,
+    subpoints = oas,
+    disaggregation_key = "visiting_all_modes",
+    disaggregation_threshold = disag_threshold,
+    min_distance_meters = min_distance_meters,
+    deduplicate_pairs = FALSE
+  )
+  
+  saveRDS(od_adjusted_jittered, "../inputdata/visiting_interaction_jittered.Rds")
+  od_adjusted_jittered = readRDS("../inputdata/visiting_interaction_jittered.Rds")
+  
+  # Get cycle mode shares
+  cycle_mode_share = 0.012 
+  od_visiting_jittered = od_adjusted_jittered %>% 
+    rename(
+      geo_code1 = O,
+      geo_code2 = D
+    ) %>% 
+    mutate(visiting_cycle = visiting_all_modes * cycle_mode_share)
+  
+  od_visiting_jittered_updated = od_visiting_jittered %>% 
+    rename(length_euclidean_unjittered = distance_euclidean) %>% 
+    mutate(
+      length_euclidean_unjittered = length_euclidean_unjittered/1000,
+      length_euclidean_jittered = units::drop_units(st_length(od_visiting_jittered))/1000
+    ) %>%
+    filter(
+      length_euclidean_jittered > (min_distance_meters/1000),
+      length_euclidean_jittered < max_length_euclidean_km
+    )
+  n_short_lines_removed = nrow(od_visiting_jittered) - nrow(od_visiting_jittered_updated)
+  message(n_short_lines_removed, " short or long desire lines removed")
+  
+  saveRDS(od_visiting_jittered_updated, "../inputdata/od_visiting_jittered.Rds")
+}),
+
+
+# Leisure OD --------------------------------------------------------------
+tar_target(od_leisure, {
+  disag_threshold = 100 # increasing this reduces the number of od pairs
+  min_distance_meters = 500 # does this mean that any destinations closer than 500m away are essentially ignored? 
+  # It would be better to route to these, then exclude them afterwards as too close for the trip to be worth cycling
+  
+  # Add OA centroids for scotland
+  # osm_highways = readRDS("../inputdata/osm_highways_2023-08-09.Rds")
+  oas = readRDS("../inputdata/oas.Rds")
+  
+  # Get leisure destinations from secure OS data
+  path_teams = Sys.getenv("NPT_TEAMS_PATH")
+  os_pois = readRDS(file.path(path_teams, "secure_data/OS/os_poi.Rds"))
+  os_leisure = os_pois %>% 
+    filter(groupname == "Sport and Entertainment") # 20524 points
+  
+  # unique(os_leisure$categoryname)
+  # mapview::mapview(os_leisure)
+  
+  os_leisure = os_leisure %>% 
+    st_transform(27700)
+  
+  # create 500m grid covering whole of scotland
+  # Geographic data downloaded from https://hub.arcgis.com/datasets/ons::scottish-parliamentary-constituencies-december-2022-boundaries-sc-bgc-2/
+  scot_zones = st_read("./data-raw/Scottish_Parliamentary_Constituencies_December_2022_Boundaries_SC_BGC_-9179620948196964406.gpkg")
+  grid = st_make_grid(scot_zones, cellsize = 500, what = "centers")
+  # tm_shape(grid) + tm_dots() # to check (looks solid black)
+  grid_df = data.frame(grid)
+  grid_df = tibble::rowid_to_column(grid_df, "grid_id")
+  
+  leisure = os_leisure %>% 
+    mutate(grid_id = st_nearest_feature(os_leisure, grid))
+  
+  # calculate weighting of each grid point
+  leisure_grid = leisure %>% 
+    st_drop_geometry() %>% 
+    group_by(grid_id) %>% 
+    summarise(size = n())
+  
+  # assign grid geometry
+  leisure_join = inner_join(grid_df, leisure_grid)
+  leisure_sf = st_as_sf(leisure_join)
+  leisure_sf = st_transform(leisure_sf, 4326)
+  # tm_shape(leisure_sf) + tm_dots("size") # check points look right
+  
+  saveRDS(leisure_sf, "../inputdata/leisure_grid.Rds")
+  
+  
+  leisure_grid = readRDS("../inputdata/leisure_grid.Rds")
+  
+  # Estimate number of leisure trips from each origin zone
+  # Calculate number of trips / number of cyclists
+  trip_purposes = read.csv("./data-raw/scottish-household-survey-2012-19.csv")
+  go_home = trip_purposes$Mean[trip_purposes$Purpose == "Go Home"]
+  trip_purposes = trip_purposes %>% 
+    filter(Purpose != "Sample size (=100%)") %>% 
+    mutate(adjusted_mean = Mean/(sum(Mean)-go_home)*sum(Mean)
+    )
+  leisure_percent = trip_purposes %>% 
+    filter(Purpose =="Sport/Entertainment") %>% 
+    select(adjusted_mean)
+  leisure_percent = leisure_percent[[1]]/100
+  
+  # need to improve on this figure:
+  # from NTS 2019 (England) average 953 trips/person/year divided by 365 = 2.61 trips/day
+  zones = readRDS("inputdata/DataZones.Rds")
+  zones_leisure = zones %>%
+    mutate(leisure_trips = ResPop2011 * 2.61 * leisure_percent) # resident population (should use 18+ only) * trips per person (from NTS 2019 England) * percent of trips that are for leisure
+  
+  zones_leisure = zones_leisure %>% 
+    filter(DataZone != "S01010206")
+  
+  # Spatial interaction model of journeys
+  # We could validate this SIM using the Scottish data on mean km travelled 
+  max_length_euclidean_km = 5
+  od_leisure = si_to_od(zones_leisure, leisure_grid, max_dist = max_length_euclidean_km * 1000)
+  od_interaction = od_leisure %>% 
+    si_calculate(fun = gravity_model, 
+                 m = origin_leisure_trips,
+                 n = destination_size,
+                 d = distance_euclidean,
+                 beta = 0.5,
+                 constraint_production = origin_leisure_trips)
+  od_interaction = od_interaction %>% 
+    filter(quantile(interaction, 0.9) < interaction)
+  
+  saveRDS(od_interaction, "../inputdata/leisure_interaction.Rds")
+  od_interaction = readRDS("../inputdata/leisure_interaction.Rds")
+  
+  # Need to correct the number of trips, in accordance with origin_leisure_trips
+  od_adjusted = od_interaction %>% 
+    group_by(O) %>% 
+    mutate(
+      proportion = interaction / sum(interaction),
+      leisure_all_modes = origin_leisure_trips * proportion
+    ) %>% 
+    ungroup()
+  
+  # Jittering
+  leisure_polygons = sf::st_buffer(leisure_grid, dist = 0.0001)
+  
+  # why does distance_euclidean drop so dramatically when we go from od_interaction to od_adjusted_jittered? 
+  od_adjusted_jittered = odjitter::jitter(
+    od = od_adjusted,
+    zones = zones_leisure,
+    zones_d = leisure_polygons,
+    subpoints_origins = oas,
+    subpoints_destinations = leisure_grid,
+    disaggregation_key = "leisure_all_modes",
+    disaggregation_threshold = disag_threshold,
+    min_distance_meters = min_distance_meters,
+    deduplicate_pairs = FALSE
+  )
+  
+  saveRDS(od_adjusted_jittered, "../inputdata/leisure_interaction_jittered.Rds")
+  od_adjusted_jittered = readRDS("../inputdata/leisure_interaction_jittered.Rds")
+
+  # Get cycle mode shares
+  cycle_mode_share = 0.012 
+  
+  od_leisure_jittered = od_adjusted_jittered %>% 
+    rename(
+      geo_code1 = O,
+      geo_code2 = D
+    ) %>% 
+    mutate(leisure_cycle = leisure_all_modes * cycle_mode_share)
+  
+  od_leisure_jittered_updated = od_leisure_jittered %>% 
+    rename(length_euclidean_unjittered = distance_euclidean) %>% 
+    mutate(
+      length_euclidean_unjittered = length_euclidean_unjittered/1000,
+      length_euclidean_jittered = units::drop_units(st_length(od_leisure_jittered))/1000
+    ) %>%
+    filter(
+      length_euclidean_jittered > (min_distance_meters/1000),
+      length_euclidean_jittered < max_length_euclidean_km
+    )
+  n_short_lines_removed = nrow(od_leisure_jittered) - nrow(od_leisure_jittered_updated)
+  message(n_short_lines_removed, " short or long desire lines removed")
+  
+  saveRDS(od_leisure_jittered_updated, "../inputdata/od_leisure_jittered.Rds")
+}),
 
 # Data Zone Maps ----------------------------------------------------------
 tar_target(zones_contextual, {
