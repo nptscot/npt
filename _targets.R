@@ -1,10 +1,11 @@
 # Instructions
-# 1) library(targets)
-# 2) Optional - to see real-time updates of progress
+# 1) Optional - install the latest packages using lines 12-15 below
+# 2) library(targets)
+# 3) Optional - to see real-time updates of progress
 # tar_watch(seconds = 60, targets_only = TRUE)
 # See the current status of the targets:
 # tar_visnetwork(TRUE)
-# 3) To run the build
+# 4) To run the build
 # tar_make_future(workers = 4)
 # If your RAM limited use tar_make() to run one job at a time
 
@@ -13,7 +14,6 @@ pkgs_installed = "zonebuilder" %in% installed.packages() &&
   "odjitter" %in% installed.packages()
 if (!pkgs_installed) {
   source("code/install.R")
-}
 
 library(tidyverse)
 library(targets)
@@ -1076,7 +1076,7 @@ tar_target(pmtiles_rnet, {
     # Using WSL
     dir = getwd()
     command_start = 'bash -c '
-    command_cd = paste0('cd /mnt/',tolower(substr(dir,1,1)),substr(dir,3,nchar(dir)),'/outputs')
+    command_cd = paste0('cd /mnt/',tolower(substr(dir,1,1)),substr(dir,3,nchar(dir)),'/outputdata')
     
     command_all = paste(c(command_cd, command_tippecanoe), collapse = "; ")
     command_all = paste0(command_start,'"',command_all,'"')
@@ -1089,6 +1089,9 @@ tar_target(pmtiles_rnet, {
     check = length(pmtiles_buildings)
     check = length(rnet_commute_balanced)
     check = length(zones_dasymetric_tile)
+    check = length(pmtiles_rnet)
+    check = length(pmtiles_buildings)
+    
     message("Saving outputs for ", parameters$date_routing)
     
     saveRDS(od_commute_subset, "outputdata/od_commute_subset.Rds")

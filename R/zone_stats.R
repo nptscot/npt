@@ -147,9 +147,10 @@ make_school_stats_from <- function(schl, nm){
                                 orig_route_hilliness = mean(route_hilliness, na.rm = TRUE)
   )
   
+  schl_from <- schl_from[!schl_from$schooltype == "unknown",]
   schl_from <- tidyr::pivot_wider(schl_from, 
-                                  id_cols = c("DataZone",),
-                                  names_from = c("schooltype"),
+                                  id_cols = "DataZone",
+                                  names_from = "schooltype",
                                   values_from = c("orig_bicycle_go_dutch",
                                                   "orig_car_go_dutch",
                                                   "orig_public_transport_go_dutch",
@@ -163,7 +164,8 @@ make_school_stats_from <- function(schl, nm){
                                                   "orig_other_ebike",
                                                   
                                                   "orig_quietness",
-                                                  "orig_route_hilliness")
+                                                  "orig_route_hilliness"),
+                                  names_glue = "{schooltype}_{.value}" 
   )
   
   names(schl_from)[2:ncol(schl_from)] = paste0("schl_", names(schl_from)[2:ncol(schl_from)])
