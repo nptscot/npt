@@ -1,13 +1,14 @@
 # Instructions
-# 1) library(targets)
-# 2) Optional - to see real-time updates of progress
+# 1) Optional - install the latest packages using lines 12-15 below
+# 2) library(targets)
+# 3) Optional - to see real-time updates of progress
 # tar_watch(seconds = 60, targets_only = TRUE)
-# 3) To run the build
+# 4) To run the build
 # tar_make_future(workers = 4)
 # If your RAM limited use tar_make() to run one job at a time
 
 # Load packages required to define the pipeline:
-if(FALSE){ # Repeated builds can it GitHub API limit, set to TRUE to check for package updates
+if(FALSE){ # Repeated builds can hit GitHub API limit, set to TRUE to check for package updates
   remotes::install_dev("cyclestreets")
   remotes::install_github("dabreegster/odjitter", subdir = "r")
   remotes::install_github("ropensci/stplanr")# Improved overline
