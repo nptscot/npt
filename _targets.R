@@ -140,7 +140,8 @@ list(
       filter(geo_code2 %in% z$DataZone)
     set.seed(2023)
     # Test if cargo is available to system:
-    if (system("cargo --version", intern = TRUE) != 0) {
+    source("R/is_bin_on_path.R")
+    if (is_bin_on_path("odjitter")) {
       old_path = Sys.getenv("PATH")
       Sys.setenv(PATH = paste(old_path, "/root/.cargo/bin", sep = ":"))
     }
@@ -1330,6 +1331,7 @@ tar_target(pmtiles_rnet, {
   }),
 
   tar_target(rnet_simple, {
+    check = length(simplify_network)
     sf::st_read("tmp/simplified_network.gpkg")
   })      
   # tar_target(rnet_simple, {
