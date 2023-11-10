@@ -1218,17 +1218,6 @@ tar_target(pmtiles_rnet, {
     }
     
     rnet_y = combined_network
-    # remotes::install_dev("stplanr")
-    # packageVersion("stplanr")
-    # sf::sf_use_s2(TRUE)
-    # library(stplanr)
-    # library(dplyr)
-    # library(sf)
-    # library(mapview)
-    # library(tmap)
-    # library(tidyr)
-    # rnet_x = sf::read_sf("https://github.com/nptscot/networkmerge/releases/download/v0.1/OS_large_route_network_example_edingurgh.geojson")
-    # rnet_y = sf::read_sf("https://github.com/nptscot/networkmerge/releases/download/v0.1/combined_network_tile.geojson")
 
     # Transform the spatial data to a different coordinate reference system (EPSG:27700)
     # TODO: uncomment:
@@ -1276,61 +1265,49 @@ tar_target(pmtiles_rnet, {
       cat("Z or M dimensions have been removed from rnet_merged_all.\n")
     }
 
-    # Set the precision of the geometries in the 'rnet_merged_all' spatial object to 1e3 (0.001)
+    # Set the precision of geometries in 'rnet_merged_all' to 1e3 (0.001)
     rnet_merged_all$geometry = st_set_precision(rnet_merged_all$geometry, 1e3)
 
-    # The next line is using a combination of dplyr and sf (simple features) functions to mutate the data.
+    # Round all numeric columns in 'rnet_merged_all' to 0 decimal places
     rnet_merged_all = rnet_merged_all %>%
       mutate(across(where(is.numeric), ~ round(.x, 0)))      
 
-    # # Define columns to check for NA values
-    # Convert the column names of rnet_y to a list
+    # Prepare a list of columns to check for NA, excluding 'geometry'
     rnet_yp_list = as.list(names(rnet_yp))
-
-    # Remove the "geometry" entry from the list
     columns_to_check = unlist(rnet_yp_list[rnet_yp_list != "geometry"])
 
-    # Remove rows where all specified columns are NA using dplyr's select and filter functions
+    # Filter out rows in 'rnet_merged_all' where all specified columns are NA
     rnet_merged_all <- rnet_merged_all %>%
       filter(rowSums(is.na(select(., all_of(columns_to_check)))) != length(columns_to_check))
-    
-    # # Buffering
-    # rnet_merged_all_buffer <- st_buffer(rnet_merged_all, dist = dist, endCapStyle = "FLAT")
-
-    # # Unary Union and conversion to GeoDataFrame
-    # single_rnet_merged_all_buffer <- st_union(rnet_merged_all_buffer)
-    # single_rnet_merged_all_buffer_gdf <- st_sf(geometry = single_rnet_merged_all_buffer)
-
-    # single_rnet_merged_all_buffer_gdf <- st_make_valid(single_rnet_merged_all_buffer_gdf)
-    # st_write(single_rnet_merged_all_buffer_gdf, "tmp/OS_large_route_network_example_edingurgh_buffer.geojson",delete_dsn = TRUE)
-    
-    # Spatial Join
+        
+    # Perform a spatial join to find geometries within 'rnet_x_buffer'
     within_join <- st_join(rnet_yp, rnet_x_buffer, join = st_within)
 
-    # Filtering geometries not within the buffer
+    # Filter 'rnet_yp' to exclude geometries within 'within_join'
     rnet_yp_rest <- rnet_yp[!rnet_yp$geometry %in% within_join$geometry, ]
-    
+        
+    # Combine 'rnet_yp_rest' and 'rnet_merged_all' into a single dataset
     combined_data <- bind_rows(rnet_yp_rest, rnet_merged_all)
 
-    # Set CRS
+    # Transform the coordinate reference system of 'combined_data' to EPSG:4326
     combined_data <- st_transform(combined_data, 4326)
 
+    # Remove specified columns and replace NA values with 0 in the remaining columns
     items_to_remove = c('geometry', 'length_x_original', 'length_x_cropped')
-    col_names = names(combined_data)
-    # Remove the "geometry" entry from the list
-    cols_to_convert = col_names[!col_names %in% items_to_remove]
-
-    # Apply the replacement operation to each column separately
+    cols_to_convert = names(combined_data)[!names(combined_data) %in% items_to_remove]
     for (col in cols_to_convert) {
       combined_data[[col]][is.na(combined_data[[col]])] <- 0
     }
 
-    # Write the spatial object to a GeoJSON file 
-    # st_write(rnet_merged_all, "tmp/rnet_merged_all.gpkg")
+    # Output column names of 'rnet_y' for reference
+    names(rnet_y)
+
+    # Write 'rnet_merged_all' to a GeoJSON file, ensuring the directory exists
     if (!dir.exists("tmp")) {
       dir.create("tmp")
     }
-    st_write(rnet_merged_all, "tmp/simplified_network.gpkg",delete_dsn = TRUE)
+    st_write(rnet_merged_all, "tmp/simplified_network.gpkg", delete_dsn = TRUE)
+
   }),
 
   tar_target(rnet_simple, {
