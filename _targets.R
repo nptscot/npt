@@ -150,7 +150,9 @@ list(
       zones = z,
       subpoints_origins = subpoints_origins,
       subpoints_destinations = subpoints_destinations,
-      disaggregation_threshold = 30
+      disaggregation_threshold = 30,
+      deduplicate_pairs = FALSE,
+      odjitter_location = "/root/.cargo/bin/odjitter"
     )
     odj$dist_euclidean_jittered = as.numeric(sf::st_length(odj))
     odj = odj %>%
@@ -1324,7 +1326,7 @@ tar_target(pmtiles_rnet, {
       dir.create("tmp")
     }
     st_write(rnet_merged_all, "tmp/simplified_network.gpkg", delete_dsn = TRUE)
-    # sf::st_read("tmp/simplified_network.gpkg")
+    sf::st_read("tmp/simplified_network.gpkg")
   })
 
   # tar_target(rnet_simple, {
