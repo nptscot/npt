@@ -151,8 +151,7 @@ list(
       subpoints_origins = subpoints_origins,
       subpoints_destinations = subpoints_destinations,
       disaggregation_threshold = 30,
-      deduplicate_pairs = FALSE,
-      odjitter_location = "/root/.cargo/bin/odjitter"
+      deduplicate_pairs = FALSE
     )
     odj$dist_euclidean_jittered = as.numeric(sf::st_length(odj))
     odj = odj %>%
@@ -1213,8 +1212,29 @@ tar_target(pmtiles_rnet, {
       rnet_x_buffer <- st_sf(geometry = single_rnet_x_buffer)
       rnet_x_buffer <- st_make_valid(rnet_x_buffer)
     } else {
-      rnet_x = sf::read_sf("https://github.com/nptscot/networkmerge/releases/download/v0.1/OS_large_route_network_example_edingurgh.geojson")
-      rnet_x_buffer = sf::read_sf("https://github.com/nptscot/networkmerge/releases/download/v0.1/OS_large_route_network_example_edingurgh_buffer.geojson")
+      # URL for the original route network
+      url_rnet_x = "https://github.com/nptscot/networkmerge/releases/download/v0.1/OS_large_route_network_example_edingurgh.geojson"
+      f_rnet_x = basename(url_rnet_x)
+      if (!file.exists(f_rnet_x)) { 
+          download.file(url_rnet_x, f_rnet_x, method = "libcurl")
+      }
+      if (file.size(f_rnet_x) > 0) {
+          rnet_x = sf::read_sf(f_rnet_x)
+      } else {
+          stop("File download failed or file is empty for rnet_x")
+      }
+
+      # URL for the buffer
+      url_buffer = "https://github.com/nptscot/networkmerge/releases/download/v0.1/OS_large_route_network_example_edingurgh_buffer.geojson"
+      f_buffer = basename(url_buffer)
+      if (!file.exists(f_buffer)) { 
+          download.file(url_buffer, f_buffer, method = "libcurl")
+      }
+      if (file.size(f_buffer) > 0) {
+          rnet_x_buffer = sf::read_sf(f_buffer)
+      } else {
+          stop("File download failed or file is empty for rnet_x_buffer")
+      }
     }
     
     rnet_y = combined_network
@@ -1304,13 +1324,9 @@ tar_target(pmtiles_rnet, {
       dir.create("tmp")
     }
     st_write(rnet_merged_all, "tmp/simplified_network.gpkg", delete_dsn = TRUE)
-
-  }),
-
-  tar_target(rnet_simple, {
-    check = length(simplify_network)
     sf::st_read("tmp/simplified_network.gpkg")
-  })      
+  })
+
   # tar_target(rnet_simple, {
   #     # Run this target only after the 'simplify_network' target has been run:
   #     simplify_network
