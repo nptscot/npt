@@ -1299,9 +1299,6 @@ tar_target(pmtiles_rnet, {
       combined_data[[col]][is.na(combined_data[[col]])] <- 0
     }
 
-    # Output column names of 'rnet_y' for reference
-    names(rnet_y)
-
     # Write 'rnet_merged_all' to a GeoJSON file, ensuring the directory exists
     if (!dir.exists("tmp")) {
       dir.create("tmp")
