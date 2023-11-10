@@ -1225,18 +1225,19 @@ tar_target(pmtiles_rnet, {
           stop("File download failed or file is empty for rnet_x")
       }
 
-      # URL for the buffer
-      url_buffer = "https://github.com/nptscot/networkmerge/releases/download/v0.1/OS_large_route_network_example_edingurgh_buffer.geojson"
-      f_buffer = basename(url_buffer)
-      if (!file.exists(f_buffer)) { 
-          download.file(url_buffer, f_buffer, method = "libcurl")
-      }
-      # Check if the file exists and is non-empty
-      if (file.exists(f_buffer) && file.size(f_buffer) > 0) {
-          rnet_x_buffer = sf::read_sf(f_buffer)
-      } else {
-          stop("File download failed, the file does not exist, or is empty for rnet_x_buffer")
-      }
+      # # Create buffer:
+      # # With sf:
+      # sf::st_is_longlat(rnet_x)
+      # rnet_x_union = sf::st_union(rnet_x)
+      # rnet_x_buffer = sf::st_buffer(rnet_x_union)
+
+      # With geos
+      rnet_x_projected = sf::st_transform(rnet_x, "EPSG:27700")
+      remotes::install_cran("geos")
+      rnet_x_geos = geos::as_geos_geometry(rnet_x_projected)
+      rnet_x_geos_buffer = geos::geos_buffer(rnet_x_geos, distance = 20)
+      rnet_x_projected_buffer = sf::st_as_sf(rnet_x_geos_buffer)
+      rnet_x_buffer = sf::st_transform(rnet_x_projected_buffer, "EPSG:4326")
     }
     
     rnet_y = combined_network
