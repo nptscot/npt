@@ -1214,7 +1214,7 @@ tar_target(pmtiles_rnet, {
       rnet_x_buffer <- st_make_valid(rnet_x_buffer)
     } else {
       # URL for the original route network
-      url_rnet_x = "https://github.com/nptscot/networkmerge/releases/download/v0.1/OS_large_route_network_example_edingurgh.geojson"
+      url_rnet_x = "https://github.com/nptscot/networkmerge/releases/download/v0.1/OS_Scotland_Network.geojson"
       f_rnet_x = basename(url_rnet_x)
       if (!file.exists(f_rnet_x)) { 
           download.file(url_rnet_x, f_rnet_x, method = "libcurl")
@@ -1232,9 +1232,13 @@ tar_target(pmtiles_rnet, {
       # rnet_x_buffer = sf::st_buffer(rnet_x_union)
 
       # With geos
-      rnet_x_projected = sf::st_transform(rnet_x, "EPSG:27700")
+
+      rnet_x_union = sf::st_union(rnet_x)
+      rnet_x_projected = sf::st_transform(rnet_x_union, "EPSG:27700")
+      
       remotes::install_cran("geos")
       rnet_x_geos = geos::as_geos_geometry(rnet_x_projected)
+      
       rnet_x_geos_buffer = geos::geos_buffer(rnet_x_geos, distance = 20)
       rnet_x_projected_buffer = sf::st_as_sf(rnet_x_geos_buffer)
       rnet_x_buffer = sf::st_transform(rnet_x_projected_buffer, "EPSG:4326")
@@ -1304,7 +1308,8 @@ tar_target(pmtiles_rnet, {
       filter(rowSums(is.na(select(., all_of(columns_to_check)))) != length(columns_to_check))
         
     # Perform a spatial join to find geometries within 'rnet_x_buffer'
-    within_join <- st_join(rnet_yp, rnet_x_buffer, join = st_within)
+    rnet_yp_subset = rnet_yp[rnet_x_buffer, , op = sf::st_within]
+    
 
     # Filter 'rnet_yp' to exclude geometries within 'within_join'
     rnet_yp_rest <- rnet_yp[!rnet_yp$geometry %in% within_join$geometry, ]
