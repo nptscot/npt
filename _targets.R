@@ -23,6 +23,7 @@ library(sf)
 library(future) # Needed for multi-core running
 library(future.callr)
 library(stplanr)
+library(geos)
 
 tar_option_set(
   memory = "transient", 
@@ -751,7 +752,7 @@ tar_target(zones_contextual, {
   dir.create(file.path(tempdir(),"SIMD"))
   unzip("inputdata/SIMD/simd2020_withgeog.zip",
         exdir = file.path(tempdir(),"SIMD"))
-  files <- list.files(file.path(tempdir(),"SIMD/simd2020_withgeog"), full.names = TRUE)
+  files = list.files(file.path(tempdir(),"SIMD/simd2020_withgeog"), full.names = TRUE)
   
   zones <- sf::read_sf(file.path(tempdir(),"SIMD/simd2020_withgeog/sc_dz_11.shp"))
   simd <- read_csv(file.path(tempdir(),"SIMD/simd2020_withgeog/simd2020_withinds.csv"))
@@ -1208,10 +1209,10 @@ tar_target(pmtiles_rnet, {
     # TODO: use small dataset if open data build is TRUE
     if (parameters$open_data_build) {
       rnet_x = sf::read_sf("https://github.com/ropensci/stplanr/releases/download/v1.0.2/rnet_x_ed.geojson")
-      rnet_x_buffers <- st_buffer(rnet_x, dist = 20, endCapStyle = "FLAT")
-      single_rnet_x_buffer <- st_union(rnet_x_buffers)
-      rnet_x_buffer <- st_sf(geometry = single_rnet_x_buffer)
-      rnet_x_buffer <- st_make_valid(rnet_x_buffer)
+      rnet_x_buffers = st_buffer(rnet_x, dist = 20, endCapStyle = "FLAT")
+      single_rnet_x_buffer = st_union(rnet_x_buffers)
+      rnet_x_buffer = st_sf(geometry = single_rnet_x_buffer)
+      rnet_x_buffer = st_make_valid(rnet_x_buffer)
     } else {
       # URL for the original route network
       url_rnet_x = "https://github.com/nptscot/networkmerge/releases/download/v0.1/OS_Scotland_Network.geojson"
@@ -1225,25 +1226,9 @@ tar_target(pmtiles_rnet, {
           stop("File download failed or file is empty for rnet_x")
       }
 
-      # # Create buffer:
-      # # With sf:
-      # sf::st_is_longlat(rnet_x)
-      # rnet_x_union = sf::st_union(rnet_x)
-      # rnet_x_buffer = sf::st_buffer(rnet_x_union)
-
-      # With geos
-
-      rnet_x_union = sf::st_union(rnet_x)
-      rnet_x_projected = sf::st_transform(rnet_x_union, "EPSG:27700")
-      
-      remotes::install_cran("geos")
-      rnet_x_geos = geos::as_geos_geometry(rnet_x_projected)
-      
-      rnet_x_geos_buffer = geos::geos_buffer(rnet_x_geos, distance = 20)
-      rnet_x_projected_buffer = sf::st_as_sf(rnet_x_geos_buffer)
-      rnet_x_buffer = sf::st_transform(rnet_x_projected_buffer, "EPSG:4326")
     }
     
+    # Assign rnet_y from combined_network
     rnet_y = combined_network
 
     # Transform the spatial data to a different coordinate reference system (EPSG:27700)
@@ -1277,18 +1262,17 @@ tar_target(pmtiles_rnet, {
     # Merge the spatial objects rnet_xp and rnet_yp based on specified parameters
     dist = 20
     angle = 10
-
     rnet_merged_all = rnet_merge(rnet_xp, rnet_yp, dist = dist, funs = funs, max_angle_diff = 20)  # segment_length = 1
 
     # Remove specific columns from the merged spatial object
     rnet_merged_all = rnet_merged_all[ , !(names(rnet_merged_all) %in% c('identifier','length_x'))]
 
     # Remove Z and M dimensions (if they exist) and set geometry precision
-    has_Z_or_M <- any(st_dimension(rnet_merged_all) %in% c("XYZ", "XYM", "XYZM"))
+    has_Z_or_M = any(st_dimension(rnet_merged_all) %in% c("XYZ", "XYM", "XYZM"))
 
     # If Z or M dimensions exist, remove them and print a message
     if (has_Z_or_M) {
-      rnet_merged_all <- st_zm(rnet_merged_all, what = "ZM")
+      rnet_merged_all = st_zm(rnet_merged_all, what = "ZM")
       cat("Z or M dimensions have been removed from rnet_merged_all.\n")
     }
 
@@ -1304,27 +1288,48 @@ tar_target(pmtiles_rnet, {
     columns_to_check = unlist(rnet_yp_list[rnet_yp_list != "geometry"])
 
     # Filter out rows in 'rnet_merged_all' where all specified columns are NA
-    rnet_merged_all <- rnet_merged_all %>%
+    rnet_merged_all = rnet_merged_all %>%
       filter(rowSums(is.na(select(., all_of(columns_to_check)))) != length(columns_to_check))
-        
-    # Perform a spatial join to find geometries within 'rnet_x_buffer'
-    rnet_yp_subset = rnet_yp[rnet_x_buffer, , op = sf::st_within]
-    
+
+    # Selecting only the geometry column from the 'rnet_merged_all' dataset.
+    rnet_merged_all_only_geometry = rnet_merged_all %>% select(geometry)
+
+    # Merging all geometries into a single geometry using st_union from the sf package.
+    rnet_merged_all_union = sf::st_union(rnet_merged_all_only_geometry)
+
+    # Transforming the merged geometry to a specific coordinate reference system (CRS), EPSG:27700.
+    rnet_merged_all_projected = sf::st_transform(rnet_merged_all_union, "EPSG:27700")
+
+    # Converting the projected geometry into a GEOS geometry. GEOS is a library used for spatial operations.
+    rnet_merged_all_geos = geos::as_geos_geometry(rnet_merged_all_projected)
+
+    # Creating a buffer around the GEOS geometry. This expands the geometry by a specified distance (16 units in this case).
+    rnet_merged_all_geos_buffer = geos::geos_buffer(rnet_merged_all_geos, distance = 16)
+
+    # Converting the buffered GEOS geometry back to an sf object.
+    rnet_merged_all_projected_buffer = sf::st_as_sf(rnet_merged_all_geos_buffer)
+
+    # Transforming the buffered geometry back to another CRS, EPSG:4326, commonly used for global latitude and longitude.
+    rnet_merged_all_buffer = sf::st_transform(rnet_merged_all_projected_buffer, "EPSG:4326")
+
+    # Subsetting another dataset 'rnet_yp' based on the spatial relation with 'rnet_merged_all_buffer'.
+    # It selects features from 'rnet_yp' that are within the boundaries of 'rnet_merged_all_buffer'.
+    rnet_yp_subset = rnet_yp[rnet_merged_all_buffer, , op = sf::st_within]
 
     # Filter 'rnet_yp' to exclude geometries within 'within_join'
-    rnet_yp_rest <- rnet_yp[!rnet_yp$geometry %in% within_join$geometry, ]
+    rnet_yp_rest = rnet_yp[!rnet_yp$geometry %in% rnet_yp_subset$geometry, ]
         
     # Combine 'rnet_yp_rest' and 'rnet_merged_all' into a single dataset
-    combined_data <- bind_rows(rnet_yp_rest, rnet_merged_all)
+    combined_data = bind_rows(rnet_yp_rest, rnet_merged_all)
 
     # Transform the coordinate reference system of 'combined_data' to EPSG:4326
-    combined_data <- st_transform(combined_data, 4326)
+    combined_data = st_transform(combined_data, 4326)
 
     # Remove specified columns and replace NA values with 0 in the remaining columns
     items_to_remove = c('geometry', 'length_x_original', 'length_x_cropped')
     cols_to_convert = names(combined_data)[!names(combined_data) %in% items_to_remove]
     for (col in cols_to_convert) {
-      combined_data[[col]][is.na(combined_data[[col]])] <- 0
+      combined_data[[col]][is.na(combined_data[[col]])] = 0
     }
 
     # Write 'rnet_merged_all' to a GeoJSON file, ensuring the directory exists
@@ -1332,26 +1337,26 @@ tar_target(pmtiles_rnet, {
       dir.create("tmp")
     }
     st_write(rnet_merged_all, "tmp/simplified_network.gpkg", delete_dsn = TRUE)
-    sf::st_read("tmp/simplified_network.gpkg")
+    simplified_network = sf::st_read("tmp/simplified_network.gpkg")
   })
 
   # tar_target(rnet_simple, {
   #     # Run this target only after the 'simplify_network' target has been run:
   #     simplify_network
   #     # Get the path to the Python executable using 'where python'
-  #     python_path <- system("where python", intern = TRUE)[1]
+  #     python_path = system("where python", intern = TRUE)[1]
 
   #     # Get the current working directory
-  #     current_wd <- getwd()
+  #     current_wd = getwd()
 
   #     # Define the relative path to the directory containing the Python script
-  #     relative_script_path <- "code/sjoin_rnet.py"
+  #     relative_script_path = "code/sjoin_rnet.py"
 
   #     # Construct the full path to the Python script using the current working directory
-  #     full_script_path <- file.path(current_wd, relative_script_path)
+  #     full_script_path = file.path(current_wd, relative_script_path)
 
   #     # Construct the command to run the Python script
-  #     cmd <- paste(python_path, full_script_path)
+  #     cmd = paste(python_path, full_script_path)
 
   #     # Run the Python script using the system function
   #     system(cmd)
