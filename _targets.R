@@ -1136,8 +1136,8 @@ tar_target(rs_shopping_fastest, {
   rs
 }),
 
-tar_target(done_commute_fastest, {
-  length(rs_commute_fastest) #Hack for scheduling
+tar_target(done_shopping_fastest, {
+  length(rs_shopping_fastest) #Hack for scheduling
 }),
 
 
