@@ -36,3 +36,5 @@ outputs/dasymetric_high.geojson
 outputs/dasymetric_low.geojson
 outputs/dasymetric_verylow.geojson
 outputs/school_locations.geojson
+data-raw/SG_IntermediateZone_Bdry_2011.*
+data-raw/Scottish_Parliamentary_Constituencies_December_2022_Boundaries_SC_BGC_-9179620948196964406.gpkg

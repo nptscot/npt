@@ -797,6 +797,9 @@ tar_target(zones_contextual, {
 }),
 
 tar_target(zones_tile, {
+  if (is.null(zones_contextual)) {
+    return(NULL)
+  }
   z = zones
   z = z[,"DataZone"]
   z = dplyr::left_join(z, zones_contextual, by = "DataZone")
@@ -1270,7 +1273,7 @@ tar_target(pmtiles_rnet, {
     # Merge the spatial objects rnet_xp and rnet_yp based on specified parameters
     dist = 20
     angle = 10
-    rnet_merged_all = rnet_merge(rnet_xp, rnet_yp, dist = dist, funs = funs, max_angle_diff = 20)  # segment_length = 1
+    rnet_merged_all = stplanr::rnet_merge(rnet_xp, rnet_yp, dist = dist, funs = funs, max_angle_diff = 20)  # segment_length = 1
 
     # Remove specific columns from the merged spatial object
     rnet_merged_all = rnet_merged_all[ , !(names(rnet_merged_all) %in% c('identifier','length_x'))]
