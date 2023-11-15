@@ -35,7 +35,7 @@ tar_option_set(
   format = "rds" # default storage format
 )
 
-plan(callr)
+# plan(callr)
 tar_source()
 
 # Targets -----------------------------------------------------------------
