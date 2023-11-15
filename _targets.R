@@ -749,9 +749,14 @@ tar_target(school_stats_json, {
 
 # Data Zone Maps ----------------------------------------------------------
 tar_target(zones_contextual, {
+  # Test that the SIMD data exists:
+  f_simd = "inputdata/SIMD/simd2020_withgeog.zip"
+  if (!file.exists(f_simd)) {
+    message("SIMD data not found, skipping this target")
+    return(NULL)
+  }
   dir.create(file.path(tempdir(),"SIMD"))
-  unzip("inputdata/SIMD/simd2020_withgeog.zip",
-        exdir = file.path(tempdir(),"SIMD"))
+  unzip(f_simd, exdir = file.path(tempdir(),"SIMD"))
   files = list.files(file.path(tempdir(),"SIMD/simd2020_withgeog"), full.names = TRUE)
   
   zones <- sf::read_sf(file.path(tempdir(),"SIMD/simd2020_withgeog/sc_dz_11.shp"))
