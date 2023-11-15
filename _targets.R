@@ -142,9 +142,12 @@ list(
     set.seed(2023)
     # Test if cargo is available to system:
     source("R/is_bin_on_path.R")
-    if (is_bin_on_path("odjitter")) {
+    if (!is_bin_on_path("odjitter")) {
       old_path = Sys.getenv("PATH")
       Sys.setenv(PATH = paste(old_path, "/root/.cargo/bin", sep = ":"))
+      odjitter_location = "/root/.cargo/bin/odjitter"
+    } else {
+      odjitter_location = "odjitter"
     }
     odj = odjitter::jitter(
       od = od,
@@ -153,7 +156,7 @@ list(
       subpoints_destinations = subpoints_destinations,
       disaggregation_threshold = 30,
       deduplicate_pairs = FALSE,
-      odjitter_location = "/root/.cargo/bin/odjitter"
+      odjitter_location = odjitter_location
     )
     odj$dist_euclidean_jittered = as.numeric(sf::st_length(odj))
     odj = odj %>%
