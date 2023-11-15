@@ -850,7 +850,7 @@ tar_target(od_shopping, {
     subpoints_origins = oas,
     subpoints_destinations = shopping_grid,
     disaggregation_key = "shopping_all_modes",
-    disaggregation_threshold = disag_threshold,
+    disaggregation_threshold = parameters$disag_threshold,
     deduplicate_pairs = FALSE
   )
   
@@ -874,7 +874,7 @@ tar_target(od_shopping, {
       length_euclidean_jittered = units::drop_units(st_length(od_shopping_jittered))/1000
     ) %>%
     filter(
-      length_euclidean_jittered > (min_distance_meters/1000),
+      length_euclidean_jittered > (parameters$min_distance_meters/1000),
       length_euclidean_jittered < max_length_euclidean_km
     )
   n_short_lines_removed = nrow(od_shopping_jittered) - nrow(od_shopping_jittered_updated)
@@ -949,7 +949,7 @@ tar_target(od_visiting, {
     zones = zones_visiting,
     subpoints = oas,
     disaggregation_key = "visiting_all_modes",
-    disaggregation_threshold = disag_threshold,
+    disaggregation_threshold = parameters$disag_threshold,
     deduplicate_pairs = FALSE
   )
   
@@ -972,7 +972,7 @@ tar_target(od_visiting, {
       length_euclidean_jittered = units::drop_units(st_length(od_visiting_jittered))/1000
     ) %>%
     filter(
-      length_euclidean_jittered > (min_distance_meters/1000),
+      length_euclidean_jittered > (parameters$min_distance_meters/1000),
       length_euclidean_jittered < max_length_euclidean_km
     )
   n_short_lines_removed = nrow(od_visiting_jittered) - nrow(od_visiting_jittered_updated)
@@ -1087,7 +1087,7 @@ tar_target(od_leisure, {
     subpoints_origins = oas,
     subpoints_destinations = leisure_grid,
     disaggregation_key = "leisure_all_modes",
-    disaggregation_threshold = disag_threshold,
+    disaggregation_threshold = parameters$disag_threshold,
     deduplicate_pairs = FALSE
   )
   
@@ -1111,7 +1111,7 @@ tar_target(od_leisure, {
       length_euclidean_jittered = units::drop_units(st_length(od_leisure_jittered))/1000
     ) %>%
     filter(
-      length_euclidean_jittered > (min_distance_meters/1000),
+      length_euclidean_jittered > (parameters$min_distance_meters/1000),
       length_euclidean_jittered < max_length_euclidean_km
     )
   n_short_lines_removed = nrow(od_leisure_jittered) - nrow(od_leisure_jittered_updated)
