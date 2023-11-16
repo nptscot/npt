@@ -815,7 +815,8 @@ tar_target(od_shopping, {
     select(InterZone, ResPop2011)
   # from NTS 2019 (England) average 953 trips/person/year divided by 365 = 2.61 trips/day
   zones_shopping = zones_shopping %>% 
-    mutate(shopping_trips = ResPop2011 * 2.61 * shop_percent)
+    mutate(shopping_trips = ResPop2011 * 2.61 * shop_percent) %>% 
+    select(-ResPop2011)
   zones_shopping = st_transform(zones_shopping, 4326)
   zones_shopping = st_make_valid(zones_shopping)
   
@@ -884,6 +885,13 @@ tar_target(od_shopping, {
   n_short_lines_removed = nrow(od_shopping_jittered) - nrow(od_shopping_subset)
   message(n_short_lines_removed, " short or long desire lines removed")
   
+  od_shopping_subset = od_shopping_subset %>% 
+    rename(
+      origin_trips = origin_shopping_trips, 
+      trips_cycle = shopping_cycle,
+      trips_all_modes = shopping_all_modes
+    ) %>% 
+    mutate(purpose = "shopping")
   saveRDS(od_shopping_subset, "./inputdata/od_shopping_jittered.Rds")
   od_shopping_subset
 }),
@@ -909,7 +917,8 @@ tar_target(od_visiting, {
   zones_visiting = intermediate_zones %>% 
     select(InterZone, ResPop2011)
   zones_visiting = zones_visiting %>% 
-    mutate(visiting_trips = ResPop2011 * 2.61 * visiting_percent)
+    mutate(visiting_trips = ResPop2011 * 2.61 * visiting_percent) %>% 
+    select(-ResPop2011)
   zones_visiting = st_transform(zones_visiting, 4326)
   zones_visiting = st_make_valid(zones_visiting)
   
@@ -931,7 +940,7 @@ tar_target(od_visiting, {
   od_interaction = od_visiting_initial %>% 
     si_calculate(fun = gravity_model, 
                  m = origin_visiting_trips,
-                 n = destination_ResPop2011,
+                 n = destination_visiting_trips,
                  d = distance_euclidean,
                  beta = 0.5,
                  constraint_production = origin_visiting_trips)
@@ -983,6 +992,14 @@ tar_target(od_visiting, {
   n_short_lines_removed = nrow(od_visiting_jittered) - nrow(od_visiting_subset)
   message(n_short_lines_removed, " short or long desire lines removed")
   
+  od_visiting_subset = od_visiting_subset %>% 
+    rename(
+      origin_trips = origin_visiting_trips, 
+      trips_cycle = visiting_cycle,
+      trips_all_modes = visiting_all_modes,
+      destination_size = destination_visiting_trips
+    ) %>% 
+    mutate(purpose = "visiting")
   saveRDS(od_visiting_subset, "./inputdata/od_visiting_jittered.Rds")
   od_visiting_subset
 }),
@@ -1054,7 +1071,8 @@ tar_target(od_leisure, {
   zones_leisure = intermediate_zones %>% 
     select(InterZone, ResPop2011)
   zones_leisure = zones_leisure %>% 
-    mutate(leisure_trips = ResPop2011 * 2.61 * leisure_percent)
+    mutate(leisure_trips = ResPop2011 * 2.61 * leisure_percent) %>% 
+    select(-ResPop2011)
   zones_leisure = st_transform(zones_leisure, 4326)
   zones_leisure = st_make_valid(zones_leisure)
   
@@ -1123,6 +1141,13 @@ tar_target(od_leisure, {
   n_short_lines_removed = nrow(od_leisure_jittered) - nrow(od_leisure_subset)
   message(n_short_lines_removed, " short or long desire lines removed")
   
+  od_leisure_subset = od_leisure_subset %>% 
+    rename(
+      origin_trips = origin_leisure_trips, 
+      trips_cycle = leisure_cycle,
+      trips_all_modes = leisure_all_modes
+           ) %>% 
+    mutate(purpose = "leisure")
   saveRDS(od_leisure_subset, "./inputdata/od_leisure_jittered.Rds")
   od_leisure_subset
 }),
@@ -1137,15 +1162,15 @@ tar_target(od_other_combined, {
   od_other_combined = rbind(od_shopping, od_visiting, od_leisure)
 }),
 
-tar_target(rs_shopping_fastest, {
+tar_target(rs_other_fastest, {
   length(done_commute_ebike) # Do school routing first
-  f = paste0("outputdata/", parameters$date_routing, "routes_max_dist_shopping_fastest.Rds")
+  f = paste0("outputdata/", parameters$date_routing, "routes_max_dist_other_fastest.Rds")
   if (file.exists(f)) {
     rs = readRDS(f)
   } else {
-    rs = get_routes(od = od_shopping,
+    rs = get_routes(od = od_other_combined,
                     plans = "fastest", 
-                    purpose = "shopping",
+                    purpose = "other",
                     folder = paste0("outputdata/", parameters$date_routing),
                     date = parameters$date_routing,
                     segments = "both")
@@ -1153,8 +1178,8 @@ tar_target(rs_shopping_fastest, {
   rs
 }),
 
-tar_target(done_shopping_fastest, {
-  length(rs_shopping_fastest) #Hack for scheduling
+tar_target(done_other_fastest, {
+  length(rs_other_fastest) #Hack for scheduling
 }),
 
 
