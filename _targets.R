@@ -1160,6 +1160,7 @@ tar_target(od_other_combined, {
   check = length(od_leisure)
   check = length(od_visiting)
   od_other_combined = rbind(od_shopping, od_visiting, od_leisure)
+  od_other_combined
 }),
 
 tar_target(rs_other_fastest, {
@@ -1181,6 +1182,151 @@ tar_target(rs_other_fastest, {
 tar_target(done_other_fastest, {
   length(rs_other_fastest) #Hack for scheduling
 }),
+
+
+tar_target(rs_other_quietest, {
+  length(done_other_fastest)
+  f = paste0("outputdata/", parameters$date_routing, "routes_max_dist_other_quietest.Rds")
+  if (file.exists(f)) {
+    rs = readRDS(f)
+  } else {
+    rs = get_routes(od = od_other_combined,
+                    plans = "quietest", 
+                    purpose = "other",
+                    folder = paste0("outputdata/", parameters$date_routing),
+                    date = parameters$date_routing,
+                    segments = "both")
+  }
+  rs
+}),
+
+tar_target(done_other_quietest, {
+  length(rs_other_quietest) #Hack for scheduling
+}),
+
+tar_target(rs_other_ebike, {
+  length(done_other_quietest)
+  f = paste0("outputdata/", parameters$date_routing, "routes_max_dist_other_ebike.Rds")
+  if (file.exists(f)) {
+    rs = readRDS(f)
+  } else {
+    rs = get_routes(od = od_other_combined,
+                    plans = "ebike", 
+                    purpose = "other",
+                    folder = paste0("outputdata/", parameters$date_routing),
+                    date = parameters$date_routing,
+                    segments = "both")
+  }
+  rs
+}),
+
+tar_target(done_other_ebike, {
+  length(rs_other_ebike) #Hack for scheduling
+}),
+
+tar_target(rs_other_balanced, {
+  length(done_commute_balanced)
+  f = paste0("outputdata/", parameters$date_routing, "routes_max_dist_other_balanced.Rds")
+  if (file.exists(f)) {
+    rs = readRDS(f)
+  } else {
+    rs = get_routes(od = od_other_combined,
+                    plans = "balanced", 
+                    purpose = "other",
+                    folder = paste0("outputdata/", parameters$date_routing),
+                    date = parameters$date_routing,
+                    segments = "both")
+  }
+  rs
+}),
+
+tar_target(done_other_balanced, {
+  length(rs_other_balanced) #Hack for scheduling
+}),
+
+
+# other routing post-processing -----------------------------------------
+
+tar_target(r_other_fastest, {
+  rs_other_fastest[[1]]$routes
+}),
+
+tar_target(r_other_quietest, {
+  rs_other_quietest[[1]]$routes
+}),
+
+tar_target(r_other_ebike, {
+  rs_other_ebike[[1]]$routes
+}),
+
+tar_target(r_other_balanced, {
+  rs_other_balanced[[1]]$routes
+}),
+
+tar_target(rnet_gq_other_fastest, {
+  segments2rnet(rs_other_fastest[[1]]$segments)
+}),
+
+tar_target(rnet_gq_other_quietest, {
+  segments2rnet(rs_other_quietest[[1]]$segments)
+}),
+
+tar_target(rnet_gq_other_ebike, {
+  segments2rnet(rs_other_ebike[[1]]$segments)
+}),
+
+tar_target(rnet_gq_other_balanced, {
+  segments2rnet(rs_other_balanced[[1]]$segments)
+}),
+
+# other Uptake ----------------------------------------------------------
+
+tar_target(uptake_other_fastest, {
+  routes = r_other_fastest %>%
+    get_scenario_go_dutch()
+  saveRDS(routes, "outputdata/routes_other_fastest.Rds")
+  routes
+}),
+
+tar_target(uptake_other_quietest, {
+  routes = r_other_quietest %>%
+    get_scenario_go_dutch()
+  saveRDS(routes, "outputdata/routes_other_quietest.Rds")
+  routes
+}),
+
+tar_target(uptake_other_ebike, {
+  routes = r_other_ebike %>%
+    get_scenario_go_dutch()
+  saveRDS(routes, "outputdata/routes_other_ebike.Rds")
+  routes
+}),
+
+tar_target(uptake_other_balanced, {
+  routes = r_other_balanced %>%
+    get_scenario_go_dutch()
+  saveRDS(routes, "outputdata/routes_other_balanced.Rds")
+  routes
+}),
+
+# other RNets -----------------------------------------------------------
+
+tar_target(rnet_other_fastest, {
+  stplanr::overline2(uptake_other_fastest, c("bicycle","bicycle_go_dutch","bicycle_ebike"))
+}),
+
+tar_target(rnet_other_quietest, {
+  stplanr::overline2(uptake_other_quietest, c("bicycle","bicycle_go_dutch","bicycle_ebike"))
+}),
+
+tar_target(rnet_other_ebike, {
+  stplanr::overline2(uptake_other_ebike, c("bicycle","bicycle_go_dutch","bicycle_ebike"))
+}),
+
+tar_target(rnet_other_balanced, {
+  stplanr::overline2(uptake_other_balanced, c("bicycle","bicycle_go_dutch","bicycle_ebike"))
+}),
+
 
 
 # Data Zone Maps ----------------------------------------------------------
