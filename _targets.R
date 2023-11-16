@@ -1111,12 +1111,13 @@ tar_target(pmtiles_rnet, {
     check = length(zones_dasymetric_tile)
     check = length(pmtiles_rnet)
     check = length(pmtiles_buildings)
-    
+
     message("Saving outputs for ", parameters$date_routing)
     
     saveRDS(od_commute_subset, "outputdata/od_commute_subset.Rds")
     saveRDS(zones_stats, "outputdata/zones_stats.Rds")
     saveRDS(school_stats, "outputdata/school_stats.Rds")
+    sf::write_sf(simplify_network, "outputdata/simplified_network.geojson")
     
     file.copy("outputs/daysmetric.pmtiles","outputdata/daysmetric.pmtiles")
     file.copy("outputs/data_zones.pmtiles","outputdata/data_zones.pmtiles")
@@ -1347,8 +1348,7 @@ tar_target(pmtiles_rnet, {
     if (!dir.exists("tmp")) {
       dir.create("tmp")
     }
-    st_write(rnet_merged_all, "tmp/simplified_network.gpkg", delete_dsn = TRUE)
-    simplified_network = sf::st_read("tmp/simplified_network.gpkg")
+    combined_data
   })
 
   # tar_target(rnet_simple, {
