@@ -4,7 +4,7 @@ library(dplyr)
 
 
 dir.create(file.path(tempdir(),"SIMD"))
-unzip("../inputdata/SIMD/simd2020_withgeog.zip",
+unzip("./inputdata/SIMD/simd2020_withgeog.zip",
       exdir = file.path(tempdir(),"SIMD"))
 files <- list.files(file.path(tempdir(),"SIMD/simd2020_withgeog"), full.names = TRUE)
 

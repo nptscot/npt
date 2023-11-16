@@ -35,7 +35,7 @@ flow_wide = pivot_wider(flow_short, names_from = "mode", values_from = "count",
 
 
 # Get Centroids
-datazone_cent <- st_read("../inputdata/data_zone_centroids.geojson")
+datazone_cent <- st_read("./inputdata/data_zone_centroids.geojson")
 
 summary(flow_wide$geo_code1 %in% datazone_cent$DataZone)
 summary(flow_wide$geo_code2 %in% datazone_cent$DataZone) # 18358, all home/ofshore etc
@@ -51,7 +51,7 @@ summary(flow_wide$all)
 
 # Data Zones
 dir.create(file.path(tempdir(),"SIMD"))
-unzip("../inputdata/SIMD/simd2020_withgeog.zip",
+unzip("./inputdata/SIMD/simd2020_withgeog.zip",
       exdir = file.path(tempdir(),"SIMD"))
 zones <- read_sf(file.path(tempdir(),"SIMD/simd2020_withgeog/sc_dz_11.shp"))
 unlink(file.path(tempdir(),"SIMD"), recursive = TRUE)

@@ -759,7 +759,7 @@ tar_target(od_shopping, {
   check = length(school_stats_json)
 
   # Add OD centroids for scotland
-  oas = readRDS("../inputdata/oas.Rds")
+  oas = readRDS("./inputdata/oas.Rds")
   
   # Get shopping destinations from secure OS data
   path_teams = Sys.getenv("NPT_TEAMS_PATH")
@@ -794,8 +794,8 @@ tar_target(od_shopping, {
   shopping_sf = st_transform(shopping_sf, 4326)
   # tm_shape(shopping_sf) + tm_dots("size") # check points look right
   
-  saveRDS(shopping_sf, "../inputdata/shopping_grid.Rds")
-  shopping_grid = readRDS("../inputdata/shopping_grid.Rds")
+  saveRDS(shopping_sf, "./inputdata/shopping_grid.Rds")
+  shopping_grid = readRDS("./inputdata/shopping_grid.Rds")
   
   # Estimate number of shopping trips from each origin zone
   # Calculate number of trips / number of cyclists
@@ -822,8 +822,8 @@ tar_target(od_shopping, {
   # Spatial interaction model of journeys
   # We could validate this SIM using the Scottish data on mean km travelled 
   max_length_euclidean_km = 5
-  od_shopping = si_to_od(zones_shopping, shopping_grid, max_dist = max_length_euclidean_km * 1000)
-  od_interaction = od_shopping %>% 
+  od_shopping_initial = si_to_od(zones_shopping, shopping_grid, max_dist = max_length_euclidean_km * 1000)
+  od_interaction = od_shopping_initial %>% 
     si_calculate(fun = gravity_model, 
                  m = origin_shopping_trips,
                  n = destination_size,
@@ -831,8 +831,8 @@ tar_target(od_shopping, {
                  beta = 0.5,
                  constraint_production = origin_shopping_trips)
   
-  saveRDS(od_interaction, "../inputdata/shopping_interaction.Rds")
-  od_interaction = readRDS("../inputdata/shopping_interaction.Rds")
+  saveRDS(od_interaction, "./inputdata/shopping_interaction.Rds")
+  od_interaction = readRDS("./inputdata/shopping_interaction.Rds")
 
   # Need to correct the number of trips, in accordance with origin_shopping_trips
   od_adjusted = od_interaction %>% 
@@ -858,8 +858,8 @@ tar_target(od_shopping, {
     deduplicate_pairs = FALSE
   )
   
-  saveRDS(od_adjusted_jittered, "../inputdata/shopping_interaction_jittered.Rds")
-  od_adjusted_jittered = readRDS("../inputdata/shopping_interaction_jittered.Rds")
+  saveRDS(od_adjusted_jittered, "./inputdata/shopping_interaction_jittered.Rds")
+  od_adjusted_jittered = readRDS("./inputdata/shopping_interaction_jittered.Rds")
 
   # Get cycle mode shares
   cycle_mode_share = 0.012 
@@ -871,7 +871,7 @@ tar_target(od_shopping, {
     ) %>% 
     mutate(shopping_cycle = shopping_all_modes * cycle_mode_share)
   
-  od_shopping_jittered_updated = od_shopping_jittered %>% 
+  od_shopping_subset = od_shopping_jittered %>% 
     rename(length_euclidean_unjittered = distance_euclidean) %>% 
     mutate(
       length_euclidean_unjittered = length_euclidean_unjittered/1000,
@@ -881,17 +881,18 @@ tar_target(od_shopping, {
       length_euclidean_jittered > (parameters$min_distance_meters/1000),
       length_euclidean_jittered < max_length_euclidean_km
     )
-  n_short_lines_removed = nrow(od_shopping_jittered) - nrow(od_shopping_jittered_updated)
+  n_short_lines_removed = nrow(od_shopping_jittered) - nrow(od_shopping_subset)
   message(n_short_lines_removed, " short or long desire lines removed")
   
-  saveRDS(od_shopping_jittered_updated, "../inputdata/od_shopping_jittered.Rds")
+  saveRDS(od_shopping_subset, "./inputdata/od_shopping_jittered.Rds")
+  od_shopping_subset
 }),
 
 
 # Visiting OD -------------------------------------------------------------
 tar_target(od_visiting, {
   
-  oas = readRDS("../inputdata/oas.Rds")
+  oas = readRDS("./inputdata/oas.Rds")
   
   trip_purposes = read.csv("./data-raw/scottish-household-survey-2012-19.csv")
   go_home = trip_purposes$Mean[trip_purposes$Purpose == "Go Home"]
@@ -926,8 +927,8 @@ tar_target(od_visiting, {
   
   # Spatial interaction model of journeys
   max_length_euclidean_km = 5
-  od_visiting = si_to_od(zones_visiting, zones_visiting, max_dist = max_length_euclidean_km * 1000)
-  od_interaction = od_visiting %>% 
+  od_visiting_initial = si_to_od(zones_visiting, zones_visiting, max_dist = max_length_euclidean_km * 1000)
+  od_interaction = od_visiting_initial %>% 
     si_calculate(fun = gravity_model, 
                  m = origin_visiting_trips,
                  n = destination_ResPop2011,
@@ -935,8 +936,8 @@ tar_target(od_visiting, {
                  beta = 0.5,
                  constraint_production = origin_visiting_trips)
   
-  saveRDS(od_interaction, "../inputdata/visiting_interaction.Rds")
-  od_interaction = readRDS("../inputdata/visiting_interaction.Rds")
+  saveRDS(od_interaction, "./inputdata/visiting_interaction.Rds")
+  od_interaction = readRDS("./inputdata/visiting_interaction.Rds")
   
   # Need to correct the number of trips, in accordance with origin_visiting_trips
   od_adjusted = od_interaction %>% 
@@ -957,8 +958,8 @@ tar_target(od_visiting, {
     deduplicate_pairs = FALSE
   )
   
-  saveRDS(od_adjusted_jittered, "../inputdata/visiting_interaction_jittered.Rds")
-  od_adjusted_jittered = readRDS("../inputdata/visiting_interaction_jittered.Rds")
+  saveRDS(od_adjusted_jittered, "./inputdata/visiting_interaction_jittered.Rds")
+  od_adjusted_jittered = readRDS("./inputdata/visiting_interaction_jittered.Rds")
   
   # Get cycle mode shares
   cycle_mode_share = 0.012 
@@ -969,7 +970,7 @@ tar_target(od_visiting, {
     ) %>% 
     mutate(visiting_cycle = visiting_all_modes * cycle_mode_share)
   
-  od_visiting_jittered_updated = od_visiting_jittered %>% 
+  od_visiting_subset = od_visiting_jittered %>% 
     rename(length_euclidean_unjittered = distance_euclidean) %>% 
     mutate(
       length_euclidean_unjittered = length_euclidean_unjittered/1000,
@@ -979,10 +980,11 @@ tar_target(od_visiting, {
       length_euclidean_jittered > (parameters$min_distance_meters/1000),
       length_euclidean_jittered < max_length_euclidean_km
     )
-  n_short_lines_removed = nrow(od_visiting_jittered) - nrow(od_visiting_jittered_updated)
+  n_short_lines_removed = nrow(od_visiting_jittered) - nrow(od_visiting_subset)
   message(n_short_lines_removed, " short or long desire lines removed")
   
-  saveRDS(od_visiting_jittered_updated, "../inputdata/od_visiting_jittered.Rds")
+  saveRDS(od_visiting_subset, "./inputdata/od_visiting_jittered.Rds")
+  od_visiting_subset
 }),
 
 
@@ -990,8 +992,8 @@ tar_target(od_visiting, {
 tar_target(od_leisure, {
   
   # Add OA centroids for scotland
-  # osm_highways = readRDS("../inputdata/osm_highways_2023-08-09.Rds")
-  oas = readRDS("../inputdata/oas.Rds")
+  # osm_highways = readRDS("./inputdata/osm_highways_2023-08-09.Rds")
+  oas = readRDS("./inputdata/oas.Rds")
   
   # Get leisure destinations from secure OS data
   path_teams = Sys.getenv("NPT_TEAMS_PATH")
@@ -1030,10 +1032,10 @@ tar_target(od_leisure, {
   leisure_sf = st_transform(leisure_sf, 4326)
   # tm_shape(leisure_sf) + tm_dots("size") # check points look right
   
-  saveRDS(leisure_sf, "../inputdata/leisure_grid.Rds")
+  saveRDS(leisure_sf, "./inputdata/leisure_grid.Rds")
   
   
-  leisure_grid = readRDS("../inputdata/leisure_grid.Rds")
+  leisure_grid = readRDS("./inputdata/leisure_grid.Rds")
   
   # Estimate number of leisure trips from each origin zone
   # Calculate number of trips / number of cyclists
@@ -1059,8 +1061,8 @@ tar_target(od_leisure, {
   # Spatial interaction model of journeys
   # We could validate this SIM using the Scottish data on mean km travelled 
   max_length_euclidean_km = 5
-  od_leisure = si_to_od(zones_leisure, leisure_grid, max_dist = max_length_euclidean_km * 1000)
-  od_interaction = od_leisure %>% 
+  od_leisure_initial = si_to_od(zones_leisure, leisure_grid, max_dist = max_length_euclidean_km * 1000)
+  od_interaction = od_leisure_initial %>% 
     si_calculate(fun = gravity_model, 
                  m = origin_leisure_trips,
                  n = destination_size,
@@ -1068,8 +1070,8 @@ tar_target(od_leisure, {
                  beta = 0.5,
                  constraint_production = origin_leisure_trips)
   
-  saveRDS(od_interaction, "../inputdata/leisure_interaction.Rds")
-  od_interaction = readRDS("../inputdata/leisure_interaction.Rds")
+  saveRDS(od_interaction, "./inputdata/leisure_interaction.Rds")
+  od_interaction = readRDS("./inputdata/leisure_interaction.Rds")
   
   # Need to correct the number of trips, in accordance with origin_leisure_trips
   od_adjusted = od_interaction %>% 
@@ -1095,8 +1097,8 @@ tar_target(od_leisure, {
     deduplicate_pairs = FALSE
   )
   
-  saveRDS(od_adjusted_jittered, "../inputdata/leisure_interaction_jittered.Rds")
-  od_adjusted_jittered = readRDS("../inputdata/leisure_interaction_jittered.Rds")
+  saveRDS(od_adjusted_jittered, "./inputdata/leisure_interaction_jittered.Rds")
+  od_adjusted_jittered = readRDS("./inputdata/leisure_interaction_jittered.Rds")
 
   # Get cycle mode shares
   cycle_mode_share = 0.012 
@@ -1108,7 +1110,7 @@ tar_target(od_leisure, {
     ) %>% 
     mutate(leisure_cycle = leisure_all_modes * cycle_mode_share)
   
-  od_leisure_jittered_updated = od_leisure_jittered %>% 
+  od_leisure_subset = od_leisure_jittered %>% 
     rename(length_euclidean_unjittered = distance_euclidean) %>% 
     mutate(
       length_euclidean_unjittered = length_euclidean_unjittered/1000,
@@ -1118,10 +1120,21 @@ tar_target(od_leisure, {
       length_euclidean_jittered > (parameters$min_distance_meters/1000),
       length_euclidean_jittered < max_length_euclidean_km
     )
-  n_short_lines_removed = nrow(od_leisure_jittered) - nrow(od_leisure_jittered_updated)
+  n_short_lines_removed = nrow(od_leisure_jittered) - nrow(od_leisure_subset)
   message(n_short_lines_removed, " short or long desire lines removed")
   
-  saveRDS(od_leisure_jittered_updated, "../inputdata/od_leisure_jittered.Rds")
+  saveRDS(od_leisure_subset, "./inputdata/od_leisure_jittered.Rds")
+  od_leisure_subset
+}),
+
+
+# Combined other trip purposes --------------------------------------------
+
+tar_target(od_other_combined, {
+  check = length(od_shopping)
+  check = length(od_leisure)
+  check = length(od_visiting)
+  od_other_combined = rbind(od_shopping, od_visiting, od_leisure)
 }),
 
 tar_target(rs_shopping_fastest, {
@@ -1130,7 +1143,7 @@ tar_target(rs_shopping_fastest, {
   if (file.exists(f)) {
     rs = readRDS(f)
   } else {
-    rs = get_routes(od = od_shopping_subset,
+    rs = get_routes(od = od_shopping,
                     plans = "fastest", 
                     purpose = "shopping",
                     folder = paste0("outputdata/", parameters$date_routing),

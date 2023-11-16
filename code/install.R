@@ -12,4 +12,6 @@ if(TRUE){ # Repeated builds can it GitHub API limit, set to TRUE to check for pa
   remotes::install_dev("cyclestreets")
   remotes::install_github("dabreegster/odjitter", subdir = "r")
   remotes::install_github("ropensci/stplanr")# Improved overline
+  remotes::install_github("robinlovelace/ukboundaries")
+  remotes::install_github("robinlovelace/simodels")
 }

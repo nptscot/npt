@@ -11,7 +11,7 @@ min_distance_meters = 500 # does this mean that any destinations closer than 500
 # It would be better to route to these, then exclude them afterwards as too close for the trip to be worth cycling
 
 # Add osm highways for scotland
-osm_highways = readRDS("../inputdata/osm_highways_2023-08-09.Rds")
+osm_highways = readRDS("./inputdata/osm_highways_2023-08-09.Rds")
 
 # Get leisure destinations from secure OS data
 path_teams = Sys.getenv("NPT_TEAMS_PATH")
@@ -48,10 +48,10 @@ leisure_sf = st_as_sf(leisure_join)
 leisure_sf = st_transform(leisure_sf, 4326)
 # tm_shape(leisure_sf) + tm_dots("size") # check points look right
 
-saveRDS(leisure_sf, "../inputdata/leisure_grid.Rds")
+saveRDS(leisure_sf, "./inputdata/leisure_grid.Rds")
 
 
-leisure_grid = readRDS("../inputdata/leisure_grid.Rds")
+leisure_grid = readRDS("./inputdata/leisure_grid.Rds")
 
 # Estimate number of leisure trips from each origin zone
 # Calculate number of trips / number of cyclists
@@ -93,8 +93,8 @@ od_interaction = od_leisure %>%
 od_interaction = od_interaction %>% 
   filter(quantile(interaction, 0.9) < interaction)
 
-saveRDS(od_interaction, "../inputdata/leisure_interaction.Rds")
-od_interaction = readRDS("../inputdata/leisure_interaction.Rds")
+saveRDS(od_interaction, "./inputdata/leisure_interaction.Rds")
+od_interaction = readRDS("./inputdata/leisure_interaction.Rds")
 
 # Need to correct the number of trips, in accordance with origin_leisure_trips
 od_adjusted = od_interaction %>% 
@@ -121,9 +121,9 @@ od_adjusted_jittered = odjitter::jitter(
   deduplicate_pairs = FALSE
 )
 
-saveRDS(od_adjusted_jittered, "../inputdata/leisure_interaction_jittered.Rds")
+saveRDS(od_adjusted_jittered, "./inputdata/leisure_interaction_jittered.Rds")
 
-od_adjusted_jittered = readRDS("../inputdata/leisure_interaction_jittered.Rds")
+od_adjusted_jittered = readRDS("./inputdata/leisure_interaction_jittered.Rds")
 
 # Trip numbers - find which % of these journeys are by bicycle
 
@@ -153,4 +153,4 @@ od_leisure_jittered_updated = od_leisure_jittered %>%
 n_short_lines_removed = nrow(od_leisure_jittered) - nrow(od_leisure_jittered_updated)
 message(n_short_lines_removed, " short or long desire lines removed")
 
-saveRDS(od_leisure_jittered_updated, "../inputdata/od_leisure_jittered.Rds")
+saveRDS(od_leisure_jittered_updated, "./inputdata/od_leisure_jittered.Rds")

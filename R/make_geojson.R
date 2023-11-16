@@ -3,7 +3,7 @@
 #' @param path folder to save results
 #' @example 
 # z_stats <- routes_to_zone_stats(r_fast, "fastest", "commute")
-# zones <- readRDS("../inputdata/iz_scotlands_uk.Rds")
+# zones <- readRDS("./inputdata/iz_scotlands_uk.Rds")
 # zones <- zones[,c("InterZone","TotPop2011","geometry")]
 # names(zones)[1] <- "geo_code"
 # z <- dplyr::left_join(zones, z_stats, "geo_code")
