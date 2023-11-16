@@ -1329,31 +1329,31 @@ tar_target(rnet_other_balanced, {
 
 # Other Zone stats ---------------------------------------------------------
 
-tar_target(other_stats_baseline, {
-  stats = sf::st_drop_geometry(od_other_subset)
-  stats_from = dplyr::group_by(stats, geo_code1) %>%
-    dplyr::summarise(all = sum(all, na.rm = TRUE),
-                     bicycle = sum(bicycle, na.rm = TRUE),
-                     car = sum(car, na.rm = TRUE),
-                     foot = sum(foot, na.rm = TRUE),
-                     public_transport = sum(public_transport, na.rm = TRUE),
-                     taxi = sum(taxi, na.rm = TRUE))
-  stats_to = dplyr::group_by(stats, geo_code2) %>%
-    dplyr::summarise(all = sum(all, na.rm = TRUE),
-                     bicycle = sum(bicycle, na.rm = TRUE),
-                     car = sum(car, na.rm = TRUE),
-                     foot = sum(foot, na.rm = TRUE),
-                     public_transport = sum(public_transport, na.rm = TRUE),
-                     taxi = sum(taxi, na.rm = TRUE))
-  
-  names(stats_from)[1] = "DataZone"
-  names(stats_to)[1] = "DataZone"
-  
-  names(stats_from)[2:ncol(stats_from)] = paste0("comm_orig_",names(stats_from)[2:ncol(stats_from)])
-  names(stats_to)[2:ncol(stats_to)] = paste0("comm_dest_",names(stats_to)[2:ncol(stats_to)])
-  stats = dplyr::full_join(stats_from, stats_to, by = "DataZone")
-  stats
-}),
+# tar_target(other_stats_baseline, {
+#   stats = sf::st_drop_geometry(od_other_combined)
+#   stats_from = dplyr::group_by(stats, geo_code1) %>%
+#     dplyr::summarise(all = sum(all, na.rm = TRUE),
+#                      bicycle = sum(bicycle, na.rm = TRUE),
+#                      car = sum(car, na.rm = TRUE),
+#                      foot = sum(foot, na.rm = TRUE),
+#                      public_transport = sum(public_transport, na.rm = TRUE),
+#                      taxi = sum(taxi, na.rm = TRUE))
+#   stats_to = dplyr::group_by(stats, geo_code2) %>%
+#     dplyr::summarise(all = sum(all, na.rm = TRUE),
+#                      bicycle = sum(bicycle, na.rm = TRUE),
+#                      car = sum(car, na.rm = TRUE),
+#                      foot = sum(foot, na.rm = TRUE),
+#                      public_transport = sum(public_transport, na.rm = TRUE),
+#                      taxi = sum(taxi, na.rm = TRUE))
+#   
+#   names(stats_from)[1] = "DataZone"
+#   names(stats_to)[1] = "DataZone"
+#   
+#   names(stats_from)[2:ncol(stats_from)] = paste0("comm_orig_",names(stats_from)[2:ncol(stats_from)])
+#   names(stats_to)[2:ncol(stats_to)] = paste0("comm_dest_",names(stats_to)[2:ncol(stats_to)])
+#   stats = dplyr::full_join(stats_from, stats_to, by = "DataZone")
+#   stats
+# }),
 
 tar_target(other_stats_fastest, {
   make_other_stats(uptake_other_fastest, "fastest")
@@ -1496,17 +1496,25 @@ tar_target(combined_network, {
                      quietest = rnet_secondary_quietest,
                      ebike = rnet_secondary_ebike)
     
+    rnet_ol = list(fastest = rnet_other_fastest,
+                   quietest = rnet_other_quietest,
+                   ebike - rnet_other_ebike)
+    
     rnet_quietness = list(rnet_gq_school_fastest,
                           rnet_gq_school_quietest,
                           rnet_gq_school_ebike,
                           rnet_gq_commute_fastest,
                           rnet_gq_commute_quietest,
-                          rnet_gq_commute_ebike)
+                          rnet_gq_commute_ebike,
+                          rnet_gq_other_fastest,
+                          rnet_gq_other_quietest,
+                          rnet_gq_other_ebike)
     names(rnet_cl) = paste0("commute_", names(rnet_cl))
     names(rnet_sl_p) = paste0("primary_", names(rnet_sl_p))
     names(rnet_sl_s) = paste0("secondary_", names(rnet_sl_s))
+    names(rnet_ol) = paste0("other_", names(rnet_ol))
     
-    rnl = c(rnet_cl, rnet_sl_p, rnet_sl_s, list(rnet_quietness))
+    rnl = c(rnet_cl, rnet_sl_p, rnet_sl_s, rnet_ol, list(rnet_quietness))
     
     rnet_combined = combine_rnets(rnl = rnl,
                                   ncores = 1, 
