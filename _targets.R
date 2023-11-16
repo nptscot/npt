@@ -3,20 +3,22 @@
 # 2) library(targets)
 # 3) Optional - to see real-time updates of progress
 # tar_watch(seconds = 60, targets_only = TRUE)
+# See the current status of the targets:
+# tar_visnetwork(TRUE)
 # 4) To run the build
 # tar_make_future(workers = 4)
 # If your RAM limited use tar_make() to run one job at a time
 
-# Load packages required to define the pipeline:
-if(FALSE){ # Repeated builds can hit GitHub API limit, set to TRUE to check for package updates
-  remotes::install_dev("cyclestreets")
-  remotes::install_github("dabreegster/odjitter", subdir = "r")
-  remotes::install_github("ropensci/stplanr")# Improved overline
-  remotes::install_github("robinlovelace/ukboundaries")
-  remotes::install_github("robinlovelace/simodels")
-  remotes::install_cran("targets")
+
+# Install packages required to define the if zonebuilder not installed:
+pkgs_installed = "zonebuilder" %in% installed.packages() && 
+  "odjitter" %in% installed.packages()
+if (!pkgs_installed) {
+  source("code/install.R")
+
 }
 
+library(tidyverse)
 library(targets)
 library(magrittr) # Light load of %>%
 library(sf)
@@ -26,28 +28,19 @@ library(osmextract)
 library(ukboundaries)
 library(simodels)
 library(stplanr)
-library(dplyr)
+library(geos)
 
-# Set target options:
-pkgs = packages = c(
-  "tibble","zonebuilder","dplyr","lubridate",
-  "stringr","sf","tidyr","data.table", "targets",
-  "glue","zip","jsonlite","remotes","gert","collapse","pct",
-  "readr", "future", "future.callr", "future.batchtools",
-  "bs4Dash", "DT", "gt", "pingr", "shinybusy", "shinyWidgets"
-)
-remotes::install_cran(pkgs)
 tar_option_set(
   memory = "transient", 
   garbage_collection = TRUE,
   storage = "worker", 
   retrieval = "worker",
-  # packages that your targets need to run
-  packages = pkgs,
+  # # packages that your targets need to run
+  # packages = pkgs,
   format = "rds" # default storage format
 )
 
-plan(callr)
+# plan(callr)
 tar_source()
 
 # Targets -----------------------------------------------------------------
@@ -152,13 +145,23 @@ list(
       filter(geo_code1 %in% z$DataZone) |>
       filter(geo_code2 %in% z$DataZone)
     set.seed(2023)
+    # Test if cargo is available to system:
+    source("R/is_bin_on_path.R")
+    if (!is_bin_on_path("odjitter")) {
+      old_path = Sys.getenv("PATH")
+      Sys.setenv(PATH = paste(old_path, "/root/.cargo/bin", sep = ":"))
+      odjitter_location = "/root/.cargo/bin/odjitter"
+    } else {
+      odjitter_location = "odjitter"
+    }
     odj = odjitter::jitter(
       od = od,
       zones = z,
       subpoints_origins = subpoints_origins,
       subpoints_destinations = subpoints_destinations,
       disaggregation_threshold = 30,
-      deduplicate_pairs = FALSE
+      deduplicate_pairs = FALSE,
+      odjitter_location = odjitter_location
     )
     odj$dist_euclidean_jittered = as.numeric(sf::st_length(odj))
     odj = odj %>%
@@ -167,6 +170,7 @@ list(
     # Read in test OD dataset for package development:
     # sf::read_sf("https://github.com/nptscot/npt/releases/download/v1/od_jittered_demo.geojson")
   }),
+
   tar_target(od_commute_subset, {
     odcs = od_commute_jittered %>%
       filter(dist_euclidean_jittered < 16000) %>%
@@ -1143,10 +1147,15 @@ tar_target(done_shopping_fastest, {
 
 # Data Zone Maps ----------------------------------------------------------
 tar_target(zones_contextual, {
+  # Test that the SIMD data exists:
+  f_simd = "inputdata/SIMD/simd2020_withgeog.zip"
+  if (!file.exists(f_simd)) {
+    message("SIMD data not found, skipping this target")
+    return(NULL)
+  }
   dir.create(file.path(tempdir(),"SIMD"))
-  unzip("../inputdata/SIMD/simd2020_withgeog.zip",
-        exdir = file.path(tempdir(),"SIMD"))
-  files <- list.files(file.path(tempdir(),"SIMD/simd2020_withgeog"), full.names = TRUE)
+  unzip(f_simd, exdir = file.path(tempdir(),"SIMD"))
+  files = list.files(file.path(tempdir(),"SIMD/simd2020_withgeog"), full.names = TRUE)
   
   zones <- sf::read_sf(file.path(tempdir(),"SIMD/simd2020_withgeog/sc_dz_11.shp"))
   simd <- read_csv(file.path(tempdir(),"SIMD/simd2020_withgeog/simd2020_withinds.csv"))
@@ -1183,6 +1192,9 @@ tar_target(zones_contextual, {
 }),
 
 tar_target(zones_tile, {
+  if (is.null(zones_contextual)) {
+    return(NULL)
+  }
   z = zones
   z = z[,"DataZone"]
   z = dplyr::left_join(z, zones_contextual, by = "DataZone")
@@ -1234,7 +1246,7 @@ tar_target(zones_dasymetric_tile, {
 
 
 tar_target(school_points, {
-  schools = sf::read_sf("../inputdata/Schools/school_locations.geojson")
+  schools = sf::read_sf("inputdata/Schools/school_locations.geojson")
   make_geojson_zones(schools, "outputs/school_locations.geojson")
   schools
 }),
@@ -1342,7 +1354,7 @@ tar_target(pmtiles_school, {
 
 
 tar_target(pmtiles_zones, {
-  check = length(zones_dasymetric_tile)
+  check = length(pmtiles_rnet)
   command_tippecanoe = paste('tippecanoe -o data_zones.pmtiles',
                              '--name=data_zones',
                              '--layer=data_zones',
@@ -1373,8 +1385,8 @@ tar_target(pmtiles_zones, {
 }),
 
 tar_target(pmtiles_buildings, {
-  check = length(pmtiles_zones)
-  
+    check = length(pmtiles_rnet)
+ 
   tippecanoe_verylow = paste('tippecanoe -o dasymetric_verylow.pmtiles',
                              '--name=dasymetric',
                              '--layer=dasymetric',
@@ -1488,17 +1500,19 @@ tar_target(pmtiles_rnet, {
   responce
 }),
   
-  
-  
-  
   tar_target(save_outputs, {
-    length(pmtiles_rnet)
-    length(pmtiles_buildings)
+    check = length(pmtiles_buildings)
+    check = length(rnet_commute_balanced)
+    check = length(zones_dasymetric_tile)
+    check = length(pmtiles_rnet)
+    check = length(pmtiles_buildings)
+
     message("Saving outputs for ", parameters$date_routing)
     
     saveRDS(od_commute_subset, "outputdata/od_commute_subset.Rds")
     saveRDS(zones_stats, "outputdata/zones_stats.Rds")
     saveRDS(school_stats, "outputdata/school_stats.Rds")
+    sf::write_sf(simplify_network, "outputdata/simplified_network.geojson")
     
     file.copy("outputs/daysmetric.pmtiles","outputdata/daysmetric.pmtiles")
     file.copy("outputs/data_zones.pmtiles","outputdata/data_zones.pmtiles")
@@ -1525,12 +1539,8 @@ tar_target(pmtiles_rnet, {
   tar_target(upload_data, {
     
     # Ensure the target runs after
-    length(school_stats_json)
-    length(rnet_commute_balanced)
-    length(zones_dasymetric_tile)
-    length(pmtiles_school)
-    length(pmtiles_buildings)
-    length(pmtiles_rnet)
+    check = length(save_outputs)
+
     commit = gert::git_log(max = 1)
     message("Commit: ", commit)
     full_build = 
@@ -1606,11 +1616,28 @@ tar_target(pmtiles_rnet, {
     # TODO: use small dataset if open data build is TRUE
     if (parameters$open_data_build) {
       rnet_x = sf::read_sf("https://github.com/ropensci/stplanr/releases/download/v1.0.2/rnet_x_ed.geojson")
+      rnet_x_buffers = st_buffer(rnet_x, dist = 20, endCapStyle = "FLAT")
+      single_rnet_x_buffer = st_union(rnet_x_buffers)
+      rnet_x_buffer = st_sf(geometry = single_rnet_x_buffer)
+      rnet_x_buffer = st_make_valid(rnet_x_buffer)
     } else {
-      rnet_x = sf::read_sf("https://github.com/nptscot/networkmerge/releases/download/v0.1/OS_large_route_network_example_edingurgh.geojson")
+      # URL for the original route network
+      url_rnet_x = "https://github.com/nptscot/networkmerge/releases/download/v0.1/OS_Scotland_Network.geojson"
+      f_rnet_x = basename(url_rnet_x)
+      if (!file.exists(f_rnet_x)) { 
+          download.file(url_rnet_x, f_rnet_x, method = "libcurl")
+      }
+      if (file.exists(f_rnet_x) && file.size(f_rnet_x) > 0) {
+          rnet_x = sf::read_sf(f_rnet_x)
+      } else {
+          stop("File download failed or file is empty for rnet_x")
+      }
+
     }
-    rnet_y = combined_network
     
+    # Assign rnet_y from combined_network
+    rnet_y = combined_network
+
     # Transform the spatial data to a different coordinate reference system (EPSG:27700)
     # TODO: uncomment:
     # rnet_xp = st_transform(rnet_x, "EPSG:27700")
@@ -1621,8 +1648,6 @@ tar_target(pmtiles_rnet, {
 
     # Extract column names from the rnet_yp
     name_list = names(rnet_yp)
-    # check names
-    name_list
 
     # Initialize an empty list
     funs = list()
@@ -1644,62 +1669,107 @@ tar_target(pmtiles_rnet, {
     # Merge the spatial objects rnet_xp and rnet_yp based on specified parameters
     dist = 20
     angle = 10
-
-    rnet_merged_all = rnet_merge(rnet_xp, rnet_yp, dist = dist, funs = funs, max_angle_diff = 20)  # segment_length = 1
+    rnet_merged_all = stplanr::rnet_merge(rnet_xp, rnet_yp, dist = dist, funs = funs, max_angle_diff = 20)  # segment_length = 1
 
     # Remove specific columns from the merged spatial object
     rnet_merged_all = rnet_merged_all[ , !(names(rnet_merged_all) %in% c('identifier','length_x'))]
 
     # Remove Z and M dimensions (if they exist) and set geometry precision
-    # rnet_merged_all = st_zm(rnet_merged_all, what = "ZM")
+    has_Z_or_M = any(st_dimension(rnet_merged_all) %in% c("XYZ", "XYM", "XYZM"))
 
-    # Set the precision of the geometries in the 'rnet_merged_all' spatial object to 1e3 (0.001)
+    # If Z or M dimensions exist, remove them and print a message
+    if (has_Z_or_M) {
+      rnet_merged_all = st_zm(rnet_merged_all, what = "ZM")
+      cat("Z or M dimensions have been removed from rnet_merged_all.\n")
+    }
+
+    # Set the precision of geometries in 'rnet_merged_all' to 1e3 (0.001)
     rnet_merged_all$geometry = st_set_precision(rnet_merged_all$geometry, 1e3)
 
-    # The next line is using a combination of dplyr and sf (simple features) functions to mutate the data.
+    # Round all numeric columns in 'rnet_merged_all' to 0 decimal places
     rnet_merged_all = rnet_merged_all %>%
       mutate(across(where(is.numeric), ~ round(.x, 0)))      
 
-    # # Define columns to check for NA values
-    # Convert the column names of rnet_y to a list
+    # Prepare a list of columns to check for NA, excluding 'geometry'
     rnet_yp_list = as.list(names(rnet_yp))
-
-    # Remove the "geometry" entry from the list
     columns_to_check = unlist(rnet_yp_list[rnet_yp_list != "geometry"])
 
-    # Remove rows where all specified columns are NA using dplyr's select and filter functions
-    rnet_merged_all <- rnet_merged_all %>%
+    # Filter out rows in 'rnet_merged_all' where all specified columns are NA
+    rnet_merged_all = rnet_merged_all %>%
       filter(rowSums(is.na(select(., all_of(columns_to_check)))) != length(columns_to_check))
-    
-    # Write the spatial object to a GeoJSON file 
-    # st_write(rnet_merged_all, "tmp/rnet_merged_all.gpkg")
-    st_write(rnet_merged_all, "tmp/rnet_merged_all.geojson",delete_dsn = TRUE)
-  }),
 
-  tar_target(rnet_simple, {
-      # Run this target only after the 'simplify_network' target has been run:
-      simplify_network
-      # Get the path to the Python executable using 'where python'
-      python_path <- system("where python", intern = TRUE)[1]
+    # Selecting only the geometry column from the 'rnet_merged_all' dataset.
+    rnet_merged_all_only_geometry = rnet_merged_all %>% select(geometry)
 
-      # Get the current working directory
-      current_wd <- getwd()
+    # Merging all geometries into a single geometry using st_union from the sf package.
+    rnet_merged_all_union = sf::st_union(rnet_merged_all_only_geometry)
 
-      # Define the relative path to the directory containing the Python script
-      relative_script_path <- "code/sjoin_rnet.py"
+    # Transforming the merged geometry to a specific coordinate reference system (CRS), EPSG:27700.
+    rnet_merged_all_projected = sf::st_transform(rnet_merged_all_union, "EPSG:27700")
 
-      # Construct the full path to the Python script using the current working directory
-      full_script_path <- file.path(current_wd, relative_script_path)
+    # Converting the projected geometry into a GEOS geometry. GEOS is a library used for spatial operations.
+    rnet_merged_all_geos = geos::as_geos_geometry(rnet_merged_all_projected)
 
-      # Construct the command to run the Python script
-      cmd <- paste(python_path, full_script_path)
+    # Creating a buffer around the GEOS geometry. This expands the geometry by a specified distance (16 units in this case).
+    rnet_merged_all_geos_buffer = geos::geos_buffer(rnet_merged_all_geos, distance = 16)
 
-      # Run the Python script using the system function
-      system(cmd)
-      
-      # Read the output from the Python script
-      sf::st_read("tmp/simplified_network.gpkg")
+    # Converting the buffered GEOS geometry back to an sf object.
+    rnet_merged_all_projected_buffer = sf::st_as_sf(rnet_merged_all_geos_buffer)
+
+    # Transforming the buffered geometry back to another CRS, EPSG:4326, commonly used for global latitude and longitude.
+    rnet_merged_all_buffer = sf::st_transform(rnet_merged_all_projected_buffer, "EPSG:4326")
+
+    # Subsetting another dataset 'rnet_yp' based on the spatial relation with 'rnet_merged_all_buffer'.
+    # It selects features from 'rnet_yp' that are within the boundaries of 'rnet_merged_all_buffer'.
+    rnet_yp_subset = rnet_yp[rnet_merged_all_buffer, , op = sf::st_within]
+
+    # Filter 'rnet_yp' to exclude geometries within 'within_join'
+    rnet_yp_rest = rnet_yp[!rnet_yp$geometry %in% rnet_yp_subset$geometry, ]
+        
+    # Combine 'rnet_yp_rest' and 'rnet_merged_all' into a single dataset
+    combined_data = bind_rows(rnet_yp_rest, rnet_merged_all)
+
+    # Transform the coordinate reference system of 'combined_data' to EPSG:4326
+    combined_data = st_transform(combined_data, 4326)
+
+    # Remove specified columns and replace NA values with 0 in the remaining columns
+    items_to_remove = c('geometry', 'length_x_original', 'length_x_cropped')
+    cols_to_convert = names(combined_data)[!names(combined_data) %in% items_to_remove]
+    for (col in cols_to_convert) {
+      combined_data[[col]][is.na(combined_data[[col]])] = 0
+    }
+
+    # Write 'rnet_merged_all' to a GeoJSON file, ensuring the directory exists
+    if (!dir.exists("tmp")) {
+      dir.create("tmp")
+    }
+    combined_data
   })
+
+  # tar_target(rnet_simple, {
+  #     # Run this target only after the 'simplify_network' target has been run:
+  #     simplify_network
+  #     # Get the path to the Python executable using 'where python'
+  #     python_path = system("where python", intern = TRUE)[1]
+
+  #     # Get the current working directory
+  #     current_wd = getwd()
+
+  #     # Define the relative path to the directory containing the Python script
+  #     relative_script_path = "code/sjoin_rnet.py"
+
+  #     # Construct the full path to the Python script using the current working directory
+  #     full_script_path = file.path(current_wd, relative_script_path)
+
+  #     # Construct the command to run the Python script
+  #     cmd = paste(python_path, full_script_path)
+
+  #     # Run the Python script using the system function
+  #     system(cmd)
+      
+  #     # Read the output from the Python script
+  #     sf::st_read("tmp/simplified_network.gpkg")
+  # })
 )
 # # Download a snapshot of the data:
 # setwd("outputdata")
