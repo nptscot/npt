@@ -1245,11 +1245,8 @@ tar_target(pmtiles_rnet, {
 
     # Transform the spatial data to a different coordinate reference system (EPSG:27700)
     # TODO: uncomment:
-    # rnet_xp = st_transform(rnet_x, "EPSG:27700")
-    # rnet_yp = st_transform(rnet_y, "EPSG:27700")
-
-    rnet_xp = rnet_x
-    rnet_yp = rnet_y
+    rnet_xp = st_transform(rnet_x, "EPSG:27700")
+    rnet_yp = st_transform(rnet_y, "EPSG:27700")
 
     # Extract column names from the rnet_yp
     name_list = names(rnet_yp)
@@ -1268,13 +1265,10 @@ tar_target(pmtiles_rnet, {
       }
     }
 
-    # Define breaks for categorizing data
-    brks = c(0, 50, 100, 200, 500,1000, 2000, 5000,10000,150000)
-
     # Merge the spatial objects rnet_xp and rnet_yp based on specified parameters
     dist = 20
     angle = 10
-    rnet_merged_all = stplanr::rnet_merge(rnet_xp, rnet_yp, dist = dist, funs = funs, max_angle_diff = 20)  # segment_length = 1
+    rnet_merged_all = stplanr::rnet_merge(rnet_xp, rnet_yp, dist = dist, segment_length = 10, funs = funs, max_angle_diff = 20)  # 
 
     # Remove specific columns from the merged spatial object
     rnet_merged_all = rnet_merged_all[ , !(names(rnet_merged_all) %in% c('identifier','length_x'))]
@@ -1315,14 +1309,14 @@ tar_target(pmtiles_rnet, {
     # Converting the projected geometry into a GEOS geometry. GEOS is a library used for spatial operations.
     rnet_merged_all_geos = geos::as_geos_geometry(rnet_merged_all_projected)
 
-    # Creating a buffer around the GEOS geometry. This expands the geometry by a specified distance (16 units in this case).
-    rnet_merged_all_geos_buffer = geos::geos_buffer(rnet_merged_all_geos, distance = 16)
+    # Creating a buffer around the GEOS geometry. This expands the geometry by a specified distance (in meters).
+    rnet_merged_all_geos_buffer = geos::geos_buffer(rnet_merged_all_geos, distance = 30)
 
     # Converting the buffered GEOS geometry back to an sf object.
     rnet_merged_all_projected_buffer = sf::st_as_sf(rnet_merged_all_geos_buffer)
 
-    # Transforming the buffered geometry back to another CRS, EPSG:4326, commonly used for global latitude and longitude.
-    rnet_merged_all_buffer = sf::st_transform(rnet_merged_all_projected_buffer, "EPSG:4326")
+    # Confirming buffered geometry CRS as EPSG:27700.
+    rnet_merged_all_buffer = sf::st_transform(rnet_merged_all_projected_buffer, "EPSG:27700")
 
     # Subsetting another dataset 'rnet_yp' based on the spatial relation with 'rnet_merged_all_buffer'.
     # It selects features from 'rnet_yp' that are within the boundaries of 'rnet_merged_all_buffer'.
@@ -1331,26 +1325,23 @@ tar_target(pmtiles_rnet, {
     # Filter 'rnet_yp' to exclude geometries within 'within_join'
     rnet_yp_rest = rnet_yp[!rnet_yp$geometry %in% rnet_yp_subset$geometry, ]
         
-    # Combine 'rnet_yp_rest' and 'rnet_merged_all' into a single dataset
-    combined_data = bind_rows(rnet_yp_rest, rnet_merged_all)
+    # Combine 'rnet_y_rest' and 'rnet_merged_all' into a single dataset
+    simplified_network = bind_rows(rnet_yp_rest, rnet_merged_all)
 
-    # Transform the coordinate reference system of 'combined_data' to EPSG:4326
-    combined_data = st_transform(combined_data, 4326)
+    # Transform the coordinate reference system of 'simplified_network' to EPSG:4326
+    simplified_network = st_transform(simplified_network, 4326)
 
     # Remove specified columns and replace NA values with 0 in the remaining columns
     items_to_remove = c('geometry', 'length_x_original', 'length_x_cropped')
-    cols_to_convert = names(combined_data)[!names(combined_data) %in% items_to_remove]
+    cols_to_convert = names(simplified_network)[!names(simplified_network) %in% items_to_remove]
     for (col in cols_to_convert) {
-      combined_data[[col]][is.na(combined_data[[col]])] = 0
+      simplified_network[[col]][is.na(simplified_network[[col]])] = 0
     }
 
-    # Write 'rnet_merged_all' to a GeoJSON file, ensuring the directory exists
-    if (!dir.exists("tmp")) {
-      dir.create("tmp")
-    }
-    combined_data
+    simplified_network
   })
 
+  # The code below is using python script to acheive the same funtion as the R code (lines 1303 - 1344) above
   # tar_target(rnet_simple, {
   #     # Run this target only after the 'simplify_network' target has been run:
   #     simplify_network
