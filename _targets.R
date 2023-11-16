@@ -1325,7 +1325,7 @@ tar_target(pmtiles_rnet, {
     # Filter 'rnet_yp' to exclude geometries within 'within_join'
     rnet_yp_rest = rnet_yp[!rnet_yp$geometry %in% rnet_yp_subset$geometry, ]
         
-    # Combine 'rnet_y_rest' and 'rnet_merged_all' into a single dataset
+    # Combine 'rnet_yp_rest' and 'rnet_merged_all' into a single dataset
     simplified_network = bind_rows(rnet_yp_rest, rnet_merged_all)
 
     # Transform the coordinate reference system of 'simplified_network' to EPSG:4326
