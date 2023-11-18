@@ -1316,17 +1316,17 @@ tar_target(pmtiles_rnet, {
     rnet_merged_all_projected_buffer = sf::st_as_sf(rnet_merged_all_geos_buffer)
 
     # Confirming buffered geometry CRS as EPSG:27700.
-    rnet_merged_all_buffer = sf::st_transform(rnet_merged_all_projected_buffer, "EPSG:27700")
+    rnet_merged_all_buffer = sf::st_transform(rnet_merged_all_projected_buffer, "EPSG:4326")
 
-    # Subsetting another dataset 'rnet_yp' based on the spatial relation with 'rnet_merged_all_buffer'.
-    # It selects features from 'rnet_yp' that are within the boundaries of 'rnet_merged_all_buffer'.
-    rnet_yp_subset = rnet_yp[rnet_merged_all_buffer, , op = sf::st_within]
+    # Subsetting another dataset 'rnet_y' based on the spatial relation with 'rnet_merged_all_buffer'.
+    # It selects features from 'rnet_y' that are within the boundaries of 'rnet_merged_all_buffer'.
+    rnet_y_subset = rnet_y[rnet_merged_all_buffer, , op = sf::st_within]
 
-    # Filter 'rnet_yp' to exclude geometries within 'within_join'
-    rnet_yp_rest = rnet_yp[!rnet_yp$geometry %in% rnet_yp_subset$geometry, ]
+    # Filter 'rnet_y' to exclude geometries within 'within_join'
+    rnet_y_rest = rnet_y[!rnet_y$geometry %in% rnet_y_subset$geometry, ]
         
-    # Combine 'rnet_yp_rest' and 'rnet_merged_all' into a single dataset
-    simplified_network = bind_rows(rnet_yp_rest, rnet_merged_all)
+    # Combine 'rnet_y_rest' and 'rnet_merged_all' into a single dataset
+    simplified_network = bind_rows(rnet_y_rest, rnet_merged_all)
 
     # Transform the coordinate reference system of 'simplified_network' to EPSG:4326
     simplified_network = st_transform(simplified_network, 4326)
