@@ -1324,15 +1324,16 @@ tar_target(pmtiles_rnet, {
 
     # Filter 'rnet_y' to exclude geometries within 'within_join'
     rnet_y_rest = rnet_y[!rnet_y$geometry %in% rnet_y_subset$geometry, ]
-        
+
+    # Transform the CRS of the 'rnet_merged_all' object to WGS 84 (EPSG:4326)  
+    rnet_merged_all = sf::st_transform(rnet_merged_all, "EPSG:4326")
+
     # Combine 'rnet_y_rest' and 'rnet_merged_all' into a single dataset
     simplified_network = bind_rows(rnet_y_rest, rnet_merged_all)
 
-    # Transform the coordinate reference system of 'simplified_network' to EPSG:4326
-    simplified_network = st_transform(simplified_network, 4326)
-
     # Remove specified columns and replace NA values with 0 in the remaining columns
     items_to_remove = c('geometry', 'length_x_original', 'length_x_cropped')
+
     cols_to_convert = names(simplified_network)[!names(simplified_network) %in% items_to_remove]
     for (col in cols_to_convert) {
       simplified_network[[col]][is.na(simplified_network[[col]])] = 0
