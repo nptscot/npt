@@ -689,70 +689,6 @@ tar_target(school_stats_from_balanced, {
   make_school_stats_from(uptake_school_balanced, "balanced")
 }),
 
-# Combine stats  ---------------------------------------------------------
-
-tar_target(school_stats, {
-  # Ebike routes for ebike scenario
-  ebike = school_stats_ebike
-  fastest = school_stats_fastest
-  ebike = ebike[,!grepl("go_dutch",names(ebike))]
-  # Can't use quietness/hilliness for ebike
-  ebike = ebike[,!grepl("(quietness|hilliness)",names(ebike))] 
-  fastest = fastest[,!grepl("ebike",names(fastest))]
-  names(ebike) = gsub("_ebike$","_fastest",names(ebike))
-  
-  stats = dplyr::left_join(school_stats_baseline, fastest, by = "SeedCode")
-  stats = dplyr::left_join(stats, ebike, by = "SeedCode")
-  stats = dplyr::left_join(stats, school_stats_quietest, by = "SeedCode")
-  stats
-}),
-
-tar_target(school_stats_from, {
-  # Ebike routes for ebike scenario
-  ebike = school_stats_from_ebike
-  fastest = school_stats_from_fastest
-  ebike = ebike[,!grepl("go_dutch",names(ebike))]
-  # Can't use quietness/hilliness for ebike
-  ebike = ebike[,!grepl("(quietness|hilliness)",names(ebike))] 
-  fastest = fastest[,!grepl("ebike",names(fastest))]
-  names(ebike) = gsub("_ebike$","_fastest",names(ebike))
-  
-  stats = dplyr::left_join(school_stats_from_baseline, fastest, by = "DataZone")
-  stats = dplyr::left_join(stats, ebike, by = "DataZone")
-  stats = dplyr::left_join(stats, school_stats_from_quietest, by = "DataZone")
-  stats
-}),
-
-
-tar_target(commute_stats, {
-  # Ebike routes for ebike scenario
-  ebike = commute_stats_ebike
-  fastest = commute_stats_fastest
-  ebike = ebike[,!grepl("go_dutch",names(ebike))]
-  # Can't use quietness/hilliness for ebike
-  ebike = ebike[,!grepl("(quietness|hilliness)",names(ebike))] 
-  fastest = fastest[,!grepl("ebike",names(fastest))]
-  names(ebike) = gsub("_ebike$","_fastest",names(ebike))
-  
-  stats = dplyr::left_join(commute_stats_baseline, fastest, by = "DataZone")
-  stats = dplyr::left_join(stats, ebike, by = "DataZone")
-  stats = dplyr::left_join(stats, commute_stats_quietest, by = "DataZone")
-  stats
-}),
-
-tar_target(zones_stats, {
-  dplyr::full_join(commute_stats, school_stats_from, by = "DataZone")
-}),
-
-
-tar_target(zones_stats_json, {
-  export_zone_json(zones_stats, "DataZone", path = "outputdata")
-}),
-
-tar_target(school_stats_json, {
-  export_zone_json(school_stats, "SeedCode", path = "outputdata")
-}),
-
 
 # Shopping OD ---------------------------------------------------------
 tar_target(od_shopping, {
@@ -1309,7 +1245,7 @@ tar_target(uptake_other_balanced, {
   routes
 }),
 
-# Other RNets -----------------------------------------------------------
+# Other Rnets -----------------------------------------------------------
 
 tar_target(rnet_other_fastest, {
   stplanr::overline2(uptake_other_fastest, c("bicycle","bicycle_go_dutch","bicycle_ebike"))
@@ -1369,6 +1305,87 @@ tar_target(other_stats_ebike, {
 
 tar_target(other_stats_balanced, {
   make_other_stats(uptake_other_balanced, "balanced")
+}),
+
+# Combine stats  ---------------------------------------------------------
+
+tar_target(school_stats, {
+  # Ebike routes for ebike scenario
+  ebike = school_stats_ebike
+  fastest = school_stats_fastest
+  ebike = ebike[,!grepl("go_dutch",names(ebike))]
+  # Can't use quietness/hilliness for ebike
+  ebike = ebike[,!grepl("(quietness|hilliness)",names(ebike))] 
+  fastest = fastest[,!grepl("ebike",names(fastest))]
+  names(ebike) = gsub("_ebike$","_fastest",names(ebike))
+  
+  stats = dplyr::left_join(school_stats_baseline, fastest, by = "SeedCode")
+  stats = dplyr::left_join(stats, ebike, by = "SeedCode")
+  stats = dplyr::left_join(stats, school_stats_quietest, by = "SeedCode")
+  stats
+}),
+
+tar_target(school_stats_from, {
+  # Ebike routes for ebike scenario
+  ebike = school_stats_from_ebike
+  fastest = school_stats_from_fastest
+  ebike = ebike[,!grepl("go_dutch",names(ebike))]
+  # Can't use quietness/hilliness for ebike
+  ebike = ebike[,!grepl("(quietness|hilliness)",names(ebike))] 
+  fastest = fastest[,!grepl("ebike",names(fastest))]
+  names(ebike) = gsub("_ebike$","_fastest",names(ebike))
+  
+  stats = dplyr::left_join(school_stats_from_baseline, fastest, by = "DataZone")
+  stats = dplyr::left_join(stats, ebike, by = "DataZone")
+  stats = dplyr::left_join(stats, school_stats_from_quietest, by = "DataZone")
+  stats
+}),
+
+
+tar_target(commute_stats, {
+  # Ebike routes for ebike scenario
+  ebike = commute_stats_ebike
+  fastest = commute_stats_fastest
+  ebike = ebike[,!grepl("go_dutch",names(ebike))]
+  # Can't use quietness/hilliness for ebike
+  ebike = ebike[,!grepl("(quietness|hilliness)",names(ebike))] 
+  fastest = fastest[,!grepl("ebike",names(fastest))]
+  names(ebike) = gsub("_ebike$","_fastest",names(ebike))
+  
+  stats = dplyr::left_join(commute_stats_baseline, fastest, by = "DataZone")
+  stats = dplyr::left_join(stats, ebike, by = "DataZone")
+  stats = dplyr::left_join(stats, commute_stats_quietest, by = "DataZone")
+  stats
+}),
+
+tar_target(other_stats, {
+  # Ebike routes for ebike scenario
+  ebike = other_stats_ebike
+  fastest = other_stats_fastest
+  ebike = ebike[,!grepl("go_dutch",names(ebike))]
+  # Can't use quietness/hilliness for ebike
+  ebike = ebike[,!grepl("(quietness|hilliness)",names(ebike))] 
+  fastest = fastest[,!grepl("ebike",names(fastest))]
+  names(ebike) = gsub("_ebike$","_fastest",names(ebike))
+  
+  stats = dplyr::left_join(other_stats_baseline, fastest, by = "DataZone")
+  stats = dplyr::left_join(stats, ebike, by = "DataZone")
+  stats = dplyr::left_join(stats, other_stats_quietest, by = "DataZone")
+  stats
+}),
+
+
+tar_target(zones_stats, {
+  dplyr::full_join(commute_stats, school_stats_from, other_stats, by = "DataZone")
+}),
+
+
+tar_target(zones_stats_json, {
+  export_zone_json(zones_stats, "DataZone", path = "outputdata")
+}),
+
+tar_target(school_stats_json, {
+  export_zone_json(school_stats, "SeedCode", path = "outputdata")
 }),
 
 
