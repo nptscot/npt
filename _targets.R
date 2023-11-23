@@ -792,7 +792,6 @@ tar_target(zones_contextual, {
   zones$PT_post <- round(zones$PT_post, 1)
   zones$PT_retail <- round(zones$PT_retail, 1)
   zones$broadband <- as.integer(gsub("%","",zones$broadband))
-  
   zones
 }),
 
@@ -826,26 +825,25 @@ tar_target(zones_tile, {
 tar_target(zones_dasymetric_tile, {
   
   if (parameters$open_data_build){
-    return(NULL)
+    NULL
+  } else {
+    b_verylow = read_TEAMS("open_data/os_buildings/buildings_low_nat_lsoa_split.Rds")
+    b_low = read_TEAMS("open_data/os_buildings/buildings_low_reg_lsoa_split.Rds")
+    b_med = read_TEAMS("open_data/os_buildings/buildings_med_lsoa_split.Rds")
+    b_high = read_TEAMS("open_data/os_buildings/buildings_high_lsoa_split.Rds")
+    
+    zones = sf::st_drop_geometry(zones_tile)
+    
+    b_verylow = dplyr::left_join(b_verylow, zones, by = c("geo_code" = "DataZone"))
+    b_low = dplyr::left_join(b_low, zones, by = c("geo_code" = "DataZone"))
+    b_med = dplyr::left_join(b_med, zones, by = c("geo_code" = "DataZone"))
+    b_high = dplyr::left_join(b_high, zones, by = c("geo_code" = "DataZone"))
+    
+    make_geojson_zones(b_verylow, "outputs/dasymetric_verylow.geojson")
+    make_geojson_zones(b_low, "outputs/dasymetric_low.geojson")
+    make_geojson_zones(b_med, "outputs/dasymetric_med.geojson")
+    make_geojson_zones(b_high, "outputs/dasymetric_high.geojson")
   }
-  
-  b_verylow = read_TEAMS("open_data/os_buildings/buildings_low_nat_lsoa_split.Rds")
-  b_low = read_TEAMS("open_data/os_buildings/buildings_low_reg_lsoa_split.Rds")
-  b_med = read_TEAMS("open_data/os_buildings/buildings_med_lsoa_split.Rds")
-  b_high = read_TEAMS("open_data/os_buildings/buildings_high_lsoa_split.Rds")
-  
-  zones = sf::st_drop_geometry(zones_tile)
-  
-  b_verylow = dplyr::left_join(b_verylow, zones, by = c("geo_code" = "DataZone"))
-  b_low = dplyr::left_join(b_low, zones, by = c("geo_code" = "DataZone"))
-  b_med = dplyr::left_join(b_med, zones, by = c("geo_code" = "DataZone"))
-  b_high = dplyr::left_join(b_high, zones, by = c("geo_code" = "DataZone"))
-  
-  make_geojson_zones(b_verylow, "outputs/dasymetric_verylow.geojson")
-  make_geojson_zones(b_low, "outputs/dasymetric_low.geojson")
-  make_geojson_zones(b_med, "outputs/dasymetric_med.geojson")
-  make_geojson_zones(b_high, "outputs/dasymetric_high.geojson")
-  
   TRUE
 }),
 
@@ -1117,7 +1115,7 @@ tar_target(pmtiles_rnet, {
     saveRDS(od_commute_subset, "outputdata/od_commute_subset.Rds")
     saveRDS(zones_stats, "outputdata/zones_stats.Rds")
     saveRDS(school_stats, "outputdata/school_stats.Rds")
-    sf::write_sf(simplify_network, "outputdata/simplified_network.geojson")
+    sf::write_sf(simplify_network, "outputdata/simplified_network.geojson", delete_dsn = TRUE)
     
     file.copy("outputs/daysmetric.pmtiles","outputdata/daysmetric.pmtiles")
     file.copy("outputs/data_zones.pmtiles","outputdata/data_zones.pmtiles")
