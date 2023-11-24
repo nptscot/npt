@@ -689,6 +689,71 @@ tar_target(school_stats_from_balanced, {
   make_school_stats_from(uptake_school_balanced, "balanced")
 }),
 
+# Combine stats  ---------------------------------------------------------
+
+tar_target(school_stats, {
+  # Ebike routes for ebike scenario
+  ebike = school_stats_ebike
+  fastest = school_stats_fastest
+  ebike = ebike[,!grepl("go_dutch",names(ebike))]
+  # Can't use quietness/hilliness for ebike
+  ebike = ebike[,!grepl("(quietness|hilliness)",names(ebike))] 
+  fastest = fastest[,!grepl("ebike",names(fastest))]
+  names(ebike) = gsub("_ebike$","_fastest",names(ebike))
+  
+  stats = dplyr::left_join(school_stats_baseline, fastest, by = "SeedCode")
+  stats = dplyr::left_join(stats, ebike, by = "SeedCode")
+  stats = dplyr::left_join(stats, school_stats_quietest, by = "SeedCode")
+  stats
+}),
+
+tar_target(school_stats_from, {
+  # Ebike routes for ebike scenario
+  ebike = school_stats_from_ebike
+  fastest = school_stats_from_fastest
+  ebike = ebike[,!grepl("go_dutch",names(ebike))]
+  # Can't use quietness/hilliness for ebike
+  ebike = ebike[,!grepl("(quietness|hilliness)",names(ebike))] 
+  fastest = fastest[,!grepl("ebike",names(fastest))]
+  names(ebike) = gsub("_ebike$","_fastest",names(ebike))
+  
+  stats = dplyr::left_join(school_stats_from_baseline, fastest, by = "DataZone")
+  stats = dplyr::left_join(stats, ebike, by = "DataZone")
+  stats = dplyr::left_join(stats, school_stats_from_quietest, by = "DataZone")
+  stats
+}),
+
+
+tar_target(commute_stats, {
+  # Ebike routes for ebike scenario
+  ebike = commute_stats_ebike
+  fastest = commute_stats_fastest
+  ebike = ebike[,!grepl("go_dutch",names(ebike))]
+  # Can't use quietness/hilliness for ebike
+  ebike = ebike[,!grepl("(quietness|hilliness)",names(ebike))] 
+  fastest = fastest[,!grepl("ebike",names(fastest))]
+  names(ebike) = gsub("_ebike$","_fastest",names(ebike))
+  
+  stats = dplyr::left_join(commute_stats_baseline, fastest, by = "DataZone")
+  stats = dplyr::left_join(stats, ebike, by = "DataZone")
+  stats = dplyr::left_join(stats, commute_stats_quietest, by = "DataZone")
+  stats
+}),
+
+tar_target(zones_stats, {
+  dplyr::full_join(commute_stats, school_stats_from, by = "DataZone")
+}),
+
+
+tar_target(zones_stats_json, {
+  export_zone_json(zones_stats, "DataZone", path = "outputdata")
+}),
+
+tar_target(school_stats_json, {
+  export_zone_json(school_stats, "SeedCode", path = "outputdata")
+}),
+
+
 
 # Shopping OD ---------------------------------------------------------
 tar_target(od_shopping, {
@@ -755,6 +820,18 @@ tar_target(od_shopping, {
     select(-ResPop2011)
   zones_shopping = st_transform(zones_shopping, 4326)
   zones_shopping = st_make_valid(zones_shopping)
+  
+  if(parameters$open_data_build) {
+    zones_shopping = zones_shopping[study_area, op = sf::st_within]
+  }
+  
+  
+  # z = zones
+  # z = z[subpoints_destinations, ]
+  # od = od_data |>
+  #   filter(geo_code1 %in% z$DataZone) |>
+  #   filter(geo_code2 %in% z$DataZone)
+  # set.seed(2023)
   
   # Spatial interaction model of journeys
   # We could validate this SIM using the Scottish data on mean km travelled 
@@ -835,21 +912,13 @@ tar_target(od_shopping, {
 
 # Visiting OD -------------------------------------------------------------
 tar_target(od_visiting, {
+  check = length(od_shopping)
   
-  oas = readRDS("./inputdata/oas.Rds")
-  
-  trip_purposes = read.csv("./data-raw/scottish-household-survey-2012-19.csv")
-  go_home = trip_purposes$Mean[trip_purposes$Purpose == "Go Home"]
-  trip_purposes = trip_purposes %>% 
-    filter(Purpose != "Sample size (=100%)") %>% 
-    mutate(adjusted_mean = Mean/(sum(Mean)-go_home)*sum(Mean)
-    )
   visiting_percent = trip_purposes %>% 
     filter(Purpose == "Visiting friends or relatives") %>% 
     select(adjusted_mean)
   visiting_percent = visiting_percent[[1]]/100
   
-  intermediate_zones = st_read("./data-raw/SG_IntermediateZone_Bdry_2011.shp")
   zones_visiting = intermediate_zones %>% 
     select(InterZone, ResPop2011)
   zones_visiting = zones_visiting %>% 
@@ -858,17 +927,9 @@ tar_target(od_visiting, {
   zones_visiting = st_transform(zones_visiting, 4326)
   zones_visiting = st_make_valid(zones_visiting)
   
-  # # Edinburgh sample
-  # scot_zones = sf::st_read("./data-raw/Scottish_Parliamentary_Constituencies_December_2022_Boundaries_SC_BGC_-9179620948196964406.gpkg")
-  # edinburgh_zones = scot_zones %>% 
-  #   mutate(city = substr(SPC22NM, 1, 9)) %>% 
-  #   filter(city %in% "Edinburgh")
-  # edinburgh_zones = sf::st_transform(edinburgh_zones, 4326)
-  # library(tmap)
-  # tmap::tm_shape(edinburgh_zones) + tm_polygons()
-  
-  # zones_sample = zones_visiting[edinburgh_zones,]
-  # tmap::tm_shape(zones_sample) + tm_polygons()
+  if(parameters$open_data_build) {
+    zones_visiting = zones_visiting[study_area, op = sf::st_within]
+  }
   
   # Spatial interaction model of journeys
   max_length_euclidean_km = 5
@@ -943,33 +1004,12 @@ tar_target(od_visiting, {
 
 # Leisure OD --------------------------------------------------------------
 tar_target(od_leisure, {
-  
-  # Add OA centroids for scotland
-  # osm_highways = readRDS("./inputdata/osm_highways_2023-08-09.Rds")
-  oas = readRDS("./inputdata/oas.Rds")
-  
-  # Get leisure destinations from secure OS data
-  path_teams = Sys.getenv("NPT_TEAMS_PATH")
-  os_pois = readRDS(file.path(path_teams, "secure_data/OS/os_poi.Rds"))
-  os_pois = os_pois %>% 
-    mutate(groupname = as.character(groupname))
+  check = length(od_shopping)
+
   os_leisure = os_pois %>% 
     filter(groupname == "Sport and Entertainment") # 20524 points
-  
-  # unique(os_leisure$categoryname)
-  # mapview::mapview(os_leisure)
-  
   os_leisure = os_leisure %>% 
     st_transform(27700)
-  
-  # create 500m grid covering whole of scotland
-  # Geographic data downloaded from https://hub.arcgis.com/datasets/ons::scottish-parliamentary-constituencies-december-2022-boundaries-sc-bgc-2/
-  scot_zones = st_read("./data-raw/Scottish_Parliamentary_Constituencies_December_2022_Boundaries_SC_BGC_-9179620948196964406.gpkg")
-  grid = st_make_grid(scot_zones, cellsize = 500, what = "centers")
-  # tm_shape(grid) + tm_dots() # to check (looks solid black)
-  grid_df = data.frame(grid)
-  grid_df = tibble::rowid_to_column(grid_df, "grid_id")
-  
   leisure = os_leisure %>% 
     mutate(grid_id = st_nearest_feature(os_leisure, grid))
   
@@ -990,20 +1030,11 @@ tar_target(od_leisure, {
   
   leisure_grid = readRDS("./inputdata/leisure_grid.Rds")
   
-  # Estimate number of leisure trips from each origin zone
-  # Calculate number of trips / number of cyclists
-  trip_purposes = read.csv("./data-raw/scottish-household-survey-2012-19.csv")
-  go_home = trip_purposes$Mean[trip_purposes$Purpose == "Go Home"]
-  trip_purposes = trip_purposes %>% 
-    filter(Purpose != "Sample size (=100%)") %>% 
-    mutate(adjusted_mean = Mean/(sum(Mean)-go_home)*sum(Mean)
-    )
   leisure_percent = trip_purposes %>% 
     filter(Purpose =="Sport/Entertainment") %>% 
     select(adjusted_mean)
   leisure_percent = leisure_percent[[1]]/100
   
-  intermediate_zones = st_read("./data-raw/SG_IntermediateZone_Bdry_2011.shp")
   zones_leisure = intermediate_zones %>% 
     select(InterZone, ResPop2011)
   zones_leisure = zones_leisure %>% 
@@ -1011,6 +1042,10 @@ tar_target(od_leisure, {
     select(-ResPop2011)
   zones_leisure = st_transform(zones_leisure, 4326)
   zones_leisure = st_make_valid(zones_leisure)
+  
+  if(parameters$open_data_build) {
+    zones_leisure = zones_leisure[study_area, op = sf::st_within]
+  }
   
   # Spatial interaction model of journeys
   # We could validate this SIM using the Scottish data on mean km travelled 
@@ -1095,7 +1130,8 @@ tar_target(od_other_combined, {
   check = length(od_shopping)
   check = length(od_leisure)
   check = length(od_visiting)
-  od_other_combined = rbind(od_shopping, od_visiting, od_leisure)
+  od_other_combined = rbind(od_shopping, od_visiting, od_leisure) %>%
+    slice_max(n = parameters$max_to_route, order_by = trips_all_modes, with_ties = FALSE)
   od_other_combined
 }),
 
@@ -1305,87 +1341,6 @@ tar_target(other_stats_ebike, {
 
 tar_target(other_stats_balanced, {
   make_other_stats(uptake_other_balanced, "balanced")
-}),
-
-# Combine stats  ---------------------------------------------------------
-
-tar_target(school_stats, {
-  # Ebike routes for ebike scenario
-  ebike = school_stats_ebike
-  fastest = school_stats_fastest
-  ebike = ebike[,!grepl("go_dutch",names(ebike))]
-  # Can't use quietness/hilliness for ebike
-  ebike = ebike[,!grepl("(quietness|hilliness)",names(ebike))] 
-  fastest = fastest[,!grepl("ebike",names(fastest))]
-  names(ebike) = gsub("_ebike$","_fastest",names(ebike))
-  
-  stats = dplyr::left_join(school_stats_baseline, fastest, by = "SeedCode")
-  stats = dplyr::left_join(stats, ebike, by = "SeedCode")
-  stats = dplyr::left_join(stats, school_stats_quietest, by = "SeedCode")
-  stats
-}),
-
-tar_target(school_stats_from, {
-  # Ebike routes for ebike scenario
-  ebike = school_stats_from_ebike
-  fastest = school_stats_from_fastest
-  ebike = ebike[,!grepl("go_dutch",names(ebike))]
-  # Can't use quietness/hilliness for ebike
-  ebike = ebike[,!grepl("(quietness|hilliness)",names(ebike))] 
-  fastest = fastest[,!grepl("ebike",names(fastest))]
-  names(ebike) = gsub("_ebike$","_fastest",names(ebike))
-  
-  stats = dplyr::left_join(school_stats_from_baseline, fastest, by = "DataZone")
-  stats = dplyr::left_join(stats, ebike, by = "DataZone")
-  stats = dplyr::left_join(stats, school_stats_from_quietest, by = "DataZone")
-  stats
-}),
-
-
-tar_target(commute_stats, {
-  # Ebike routes for ebike scenario
-  ebike = commute_stats_ebike
-  fastest = commute_stats_fastest
-  ebike = ebike[,!grepl("go_dutch",names(ebike))]
-  # Can't use quietness/hilliness for ebike
-  ebike = ebike[,!grepl("(quietness|hilliness)",names(ebike))] 
-  fastest = fastest[,!grepl("ebike",names(fastest))]
-  names(ebike) = gsub("_ebike$","_fastest",names(ebike))
-  
-  stats = dplyr::left_join(commute_stats_baseline, fastest, by = "DataZone")
-  stats = dplyr::left_join(stats, ebike, by = "DataZone")
-  stats = dplyr::left_join(stats, commute_stats_quietest, by = "DataZone")
-  stats
-}),
-
-tar_target(other_stats, {
-  # Ebike routes for ebike scenario
-  ebike = other_stats_ebike
-  fastest = other_stats_fastest
-  ebike = ebike[,!grepl("go_dutch",names(ebike))]
-  # Can't use quietness/hilliness for ebike
-  ebike = ebike[,!grepl("(quietness|hilliness)",names(ebike))] 
-  fastest = fastest[,!grepl("ebike",names(fastest))]
-  names(ebike) = gsub("_ebike$","_fastest",names(ebike))
-  
-  stats = dplyr::left_join(other_stats_baseline, fastest, by = "DataZone")
-  stats = dplyr::left_join(stats, ebike, by = "DataZone")
-  stats = dplyr::left_join(stats, other_stats_quietest, by = "DataZone")
-  stats
-}),
-
-
-tar_target(zones_stats, {
-  dplyr::full_join(commute_stats, school_stats_from, other_stats, by = "DataZone")
-}),
-
-
-tar_target(zones_stats_json, {
-  export_zone_json(zones_stats, "DataZone", path = "outputdata")
-}),
-
-tar_target(school_stats_json, {
-  export_zone_json(school_stats, "SeedCode", path = "outputdata")
 }),
 
 
