@@ -864,7 +864,7 @@ tar_target(od_shopping, {
       proportion = interaction / sum(interaction),
       shopping_all_modes = origin_shopping_trips * proportion
     ) %>% 
-    ungroup()
+    ungroup()    
   
   # Jittering
   shopping_polygons = sf::st_buffer(shopping_grid, dist = 0.0001)
@@ -892,7 +892,8 @@ tar_target(od_shopping, {
       geo_code1 = O,
       geo_code2 = D
     ) %>% 
-    mutate(shopping_cycle = shopping_all_modes * cycle_mode_share)
+    mutate(shopping_cycle = shopping_all_modes * cycle_mode_share,
+           route_id = paste0(geo_code1, "_", geo_code2, "_", seq(nrow(odj))))
   
   od_shopping_subset = od_shopping_jittered %>% 
     rename(length_euclidean_unjittered = distance_euclidean) %>% 
@@ -985,7 +986,8 @@ tar_target(od_visiting, {
       geo_code1 = O,
       geo_code2 = D
     ) %>% 
-    mutate(visiting_cycle = visiting_all_modes * cycle_mode_share)
+    mutate(visiting_cycle = visiting_all_modes * cycle_mode_share,
+           route_id = paste0(geo_code1, "_", geo_code2, "_", seq(nrow(odj))))
   
   od_visiting_subset = od_visiting_jittered %>% 
     rename(length_euclidean_unjittered = distance_euclidean) %>% 
@@ -1111,7 +1113,8 @@ tar_target(od_leisure, {
       geo_code1 = O,
       geo_code2 = D
     ) %>% 
-    mutate(leisure_cycle = leisure_all_modes * cycle_mode_share)
+    mutate(leisure_cycle = leisure_all_modes * cycle_mode_share,
+           route_id = paste0(geo_code1, "_", geo_code2, "_", seq(nrow(odj))))
   
   od_leisure_subset = od_leisure_jittered %>% 
     rename(length_euclidean_unjittered = distance_euclidean) %>% 
