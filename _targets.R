@@ -756,29 +756,42 @@ tar_target(school_stats_json, {
 
 
 # Shopping OD ---------------------------------------------------------
-tar_target(od_shopping, {
-  check = length(school_stats_json)
 
-  # Add OD centroids for scotland
-  oas = readRDS("./inputdata/oas.Rds")
-  
+tar_target(trip_purposes, {
+  trip_purposes = read.csv("./data-raw/scottish-household-survey-2012-19.csv")
+  go_home = trip_purposes$Mean[trip_purposes$Purpose == "Go Home"]
+  trip_purposes = trip_purposes %>% 
+    filter(Purpose != "Sample size (=100%)") %>% 
+    mutate(adjusted_mean = Mean/(sum(Mean)-go_home)*sum(Mean)
+    )
+  trip_purposes
+}),
+
+tar_target(os_pois, {
   # Get shopping destinations from secure OS data
   path_teams = Sys.getenv("NPT_TEAMS_PATH")
   os_pois = readRDS(file.path(path_teams, "secure_data/OS/os_poi.Rds"))
   os_pois = os_pois %>% 
     mutate(groupname = as.character(groupname))
-  os_retail = os_pois %>% 
-    filter(groupname == "Retail") # 26279 points
-  os_retail = os_retail %>% 
-    st_transform(27700)
+}),
 
+tar_target(grid, {
   # create 500m grid covering whole of scotland
   # Geographic data downloaded from https://hub.arcgis.com/datasets/ons::scottish-parliamentary-constituencies-december-2022-boundaries-sc-bgc-2/
   scot_zones = st_read("./data-raw/Scottish_Parliamentary_Constituencies_December_2022_Boundaries_SC_BGC_-9179620948196964406.gpkg")
   grid = st_make_grid(scot_zones, cellsize = 500, what = "centers")
-  # tm_shape(grid) + tm_dots() # to check (looks solid black)
-  grid_df = data.frame(grid)
-  grid_df = tibble::rowid_to_column(grid_df, "grid_id")
+}),
+
+tar_target(od_shopping, {
+  check = length(school_stats_json)
+
+  # Add OD centroids for scotland
+  oas = readRDS("./inputdata/oas.Rds")
+
+  os_retail = os_pois %>% 
+    filter(groupname == "Retail") # 26279 points
+  os_retail = os_retail %>% 
+    st_transform(27700)
 
   shopping = os_retail %>% 
     mutate(grid_id = st_nearest_feature(os_retail, grid))
@@ -790,6 +803,8 @@ tar_target(od_shopping, {
     summarise(size = n())
   
   # assign grid geometry
+  grid_df = data.frame(grid)
+  grid_df = tibble::rowid_to_column(grid_df, "grid_id")
   shopping_join = inner_join(grid_df, shopping_grid)
   shopping_sf = st_as_sf(shopping_join)
   shopping_sf = st_transform(shopping_sf, 4326)
@@ -800,12 +815,6 @@ tar_target(od_shopping, {
   
   # Estimate number of shopping trips from each origin zone
   # Calculate number of trips / number of cyclists
-  trip_purposes = read.csv("./data-raw/scottish-household-survey-2012-19.csv")
-  go_home = trip_purposes$Mean[trip_purposes$Purpose == "Go Home"]
-  trip_purposes = trip_purposes %>% 
-    filter(Purpose != "Sample size (=100%)") %>% 
-    mutate(adjusted_mean = Mean/(sum(Mean)-go_home)*sum(Mean)
-    )
   shop_percent = trip_purposes %>% 
     filter(Purpose =="Shopping") %>% 
     select(adjusted_mean)
@@ -914,11 +923,13 @@ tar_target(od_shopping, {
 tar_target(od_visiting, {
   check = length(od_shopping)
   
+  oas = readRDS("./inputdata/oas.Rds")
   visiting_percent = trip_purposes %>% 
     filter(Purpose == "Visiting friends or relatives") %>% 
     select(adjusted_mean)
   visiting_percent = visiting_percent[[1]]/100
   
+  intermediate_zones = st_read("./data-raw/SG_IntermediateZone_Bdry_2011.shp")
   zones_visiting = intermediate_zones %>% 
     select(InterZone, ResPop2011)
   zones_visiting = zones_visiting %>% 
@@ -1006,6 +1017,7 @@ tar_target(od_visiting, {
 tar_target(od_leisure, {
   check = length(od_shopping)
 
+  oas = readRDS("./inputdata/oas.Rds")
   os_leisure = os_pois %>% 
     filter(groupname == "Sport and Entertainment") # 20524 points
   os_leisure = os_leisure %>% 
@@ -1020,10 +1032,11 @@ tar_target(od_leisure, {
     summarise(size = n())
   
   # assign grid geometry
+  grid_df = data.frame(grid)
+  grid_df = tibble::rowid_to_column(grid_df, "grid_id")
   leisure_join = inner_join(grid_df, leisure_grid)
   leisure_sf = st_as_sf(leisure_join)
   leisure_sf = st_transform(leisure_sf, 4326)
-  # tm_shape(leisure_sf) + tm_dots("size") # check points look right
   
   saveRDS(leisure_sf, "./inputdata/leisure_grid.Rds")
   
@@ -1035,6 +1048,7 @@ tar_target(od_leisure, {
     select(adjusted_mean)
   leisure_percent = leisure_percent[[1]]/100
   
+  intermediate_zones = st_read("./data-raw/SG_IntermediateZone_Bdry_2011.shp")
   zones_leisure = intermediate_zones %>% 
     select(InterZone, ResPop2011)
   zones_leisure = zones_leisure %>% 
