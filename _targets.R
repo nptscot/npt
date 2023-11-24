@@ -893,7 +893,7 @@ tar_target(od_shopping, {
       geo_code2 = D
     ) %>% 
     mutate(shopping_cycle = shopping_all_modes * cycle_mode_share,
-           route_id = paste0(geo_code1, "_", geo_code2, "_", seq(nrow(odj))))
+           route_id = paste0(geo_code1, "_", geo_code2, "_", seq(nrow(od_adjusted_jittered))))
   
   od_shopping_subset = od_shopping_jittered %>% 
     rename(length_euclidean_unjittered = distance_euclidean) %>% 
@@ -911,8 +911,8 @@ tar_target(od_shopping, {
   od_shopping_subset = od_shopping_subset %>% 
     rename(
       origin_trips = origin_shopping_trips, 
-      trips_cycle = shopping_cycle,
-      trips_all_modes = shopping_all_modes
+      bicycle = shopping_cycle,
+      all = shopping_all_modes
     ) %>% 
     mutate(purpose = "shopping")
   saveRDS(od_shopping_subset, "./inputdata/od_shopping_jittered.Rds")
@@ -987,7 +987,7 @@ tar_target(od_visiting, {
       geo_code2 = D
     ) %>% 
     mutate(visiting_cycle = visiting_all_modes * cycle_mode_share,
-           route_id = paste0(geo_code1, "_", geo_code2, "_", seq(nrow(odj))))
+           route_id = paste0(geo_code1, "_", geo_code2, "_", seq(nrow(od_adjusted_jittered))))
   
   od_visiting_subset = od_visiting_jittered %>% 
     rename(length_euclidean_unjittered = distance_euclidean) %>% 
@@ -1005,8 +1005,8 @@ tar_target(od_visiting, {
   od_visiting_subset = od_visiting_subset %>% 
     rename(
       origin_trips = origin_visiting_trips, 
-      trips_cycle = visiting_cycle,
-      trips_all_modes = visiting_all_modes,
+      bicycle = visiting_cycle,
+      all = visiting_all_modes,
       destination_size = destination_visiting_trips
     ) %>% 
     mutate(purpose = "visiting")
@@ -1114,7 +1114,7 @@ tar_target(od_leisure, {
       geo_code2 = D
     ) %>% 
     mutate(leisure_cycle = leisure_all_modes * cycle_mode_share,
-           route_id = paste0(geo_code1, "_", geo_code2, "_", seq(nrow(odj))))
+           route_id = paste0(geo_code1, "_", geo_code2, "_", seq(nrow(od_adjusted_jittered))))
   
   od_leisure_subset = od_leisure_jittered %>% 
     rename(length_euclidean_unjittered = distance_euclidean) %>% 
@@ -1132,8 +1132,8 @@ tar_target(od_leisure, {
   od_leisure_subset = od_leisure_subset %>% 
     rename(
       origin_trips = origin_leisure_trips, 
-      trips_cycle = leisure_cycle,
-      trips_all_modes = leisure_all_modes
+      bicycle = leisure_cycle,
+      all = leisure_all_modes
            ) %>% 
     mutate(purpose = "leisure")
   saveRDS(od_leisure_subset, "./inputdata/od_leisure_jittered.Rds")
@@ -1148,7 +1148,7 @@ tar_target(od_other_combined, {
   check = length(od_leisure)
   check = length(od_visiting)
   od_other_combined = rbind(od_shopping, od_visiting, od_leisure) %>%
-    slice_max(n = parameters$max_to_route, order_by = trips_all_modes, with_ties = FALSE)
+    slice_max(n = parameters$max_to_route, order_by = all, with_ties = FALSE)
   od_other_combined
 }),
 
