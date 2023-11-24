@@ -204,7 +204,7 @@ tar_target(od_school, {
 # School routing ----------------------------------------------------------
 
 tar_target(rs_school_fastest, {
-  f = paste0("outputdata/", parameters$date_routing, "routes_max_dist_school_fastest.Rds")
+  f = paste0("outputdata/", parameters$date_routing, "/routes_max_dist_school_fastest.Rds")
   if (file.exists(f)) {
     rs = readRDS(f)
   } else {
@@ -224,7 +224,7 @@ tar_target(done_school_fastest, {
 
 tar_target(rs_school_quietest, {
   length(done_school_fastest)
-  f = paste0("outputdata/", parameters$date_routing, "routes_max_dist_school_quietest.Rds")
+  f = paste0("outputdata/", parameters$date_routing, "/routes_max_dist_school_quietest.Rds")
   if (file.exists(f)) {
     rs = readRDS(f)
   } else {
@@ -244,7 +244,7 @@ tar_target(done_school_quietest, {
 
 tar_target(rs_school_ebike, {
   length(done_school_quietest)
-  f = paste0("outputdata/", parameters$date_routing, "routes_max_dist_school_ebike.Rds")
+  f = paste0("outputdata/", parameters$date_routing, "/routes_max_dist_school_ebike.Rds")
   if (file.exists(f)) {
     rs = readRDS(f)
   } else {
@@ -264,7 +264,7 @@ tar_target(done_school_ebike, {
 
 tar_target(rs_school_balanced, {
   length(done_commute_ebike)
-  f = paste0("outputdata/", parameters$date_routing, "routes_max_dist_school_balanced.Rds")
+  f = paste0("outputdata/", parameters$date_routing, "/routes_max_dist_school_balanced.Rds")
   if (file.exists(f)) {
     rs = readRDS(f)
   } else {
@@ -286,7 +286,7 @@ tar_target(done_school_balanced, {
 
 tar_target(rs_commute_fastest, {
   length(done_school_ebike) # Do school routing first
-  f = paste0("outputdata/", parameters$date_routing, "routes_max_dist_commute_fastest.Rds")
+  f = paste0("outputdata/", parameters$date_routing, "/routes_max_dist_commute_fastest.Rds")
   if (file.exists(f)) {
     rs = readRDS(f)
   } else {
@@ -306,7 +306,7 @@ tar_target(done_commute_fastest, {
 
 tar_target(rs_commute_quietest, {
   length(done_commute_fastest)
-  f = paste0("outputdata/", parameters$date_routing, "routes_max_dist_commute_quietest.Rds")
+  f = paste0("outputdata/", parameters$date_routing, "/routes_max_dist_commute_quietest.Rds")
   if (file.exists(f)) {
     rs = readRDS(f)
   } else {
@@ -326,7 +326,7 @@ tar_target(done_commute_quietest, {
 
 tar_target(rs_commute_ebike, {
   length(done_commute_quietest)
-  f = paste0("outputdata/", parameters$date_routing, "routes_max_dist_commute_ebike.Rds")
+  f = paste0("outputdata/", parameters$date_routing, "/routes_max_dist_commute_ebike.Rds")
   if (file.exists(f)) {
     rs = readRDS(f)
   } else {
@@ -346,7 +346,7 @@ tar_target(done_commute_ebike, {
 
 tar_target(rs_commute_balanced, {
   length(done_school_balanced)
-  f = paste0("outputdata/", parameters$date_routing, "routes_max_dist_commute_balanced.Rds")
+  f = paste0("outputdata/", parameters$date_routing, "/routes_max_dist_commute_balanced.Rds")
   if (file.exists(f)) {
     rs = readRDS(f)
   } else {
@@ -1154,7 +1154,7 @@ tar_target(od_other_combined, {
 
 tar_target(rs_other_fastest, {
   length(done_commute_ebike) # Do school routing first
-  f = paste0("outputdata/", parameters$date_routing, "routes_max_dist_other_fastest.Rds")
+  f = paste0("outputdata/", parameters$date_routing, "/routes_max_dist_other_fastest.Rds")
   if (file.exists(f)) {
     rs = readRDS(f)
   } else {
@@ -1175,7 +1175,7 @@ tar_target(done_other_fastest, {
 
 tar_target(rs_other_quietest, {
   length(done_other_fastest)
-  f = paste0("outputdata/", parameters$date_routing, "routes_max_dist_other_quietest.Rds")
+  f = paste0("outputdata/", parameters$date_routing, "/routes_max_dist_other_quietest.Rds")
   if (file.exists(f)) {
     rs = readRDS(f)
   } else {
@@ -1195,7 +1195,7 @@ tar_target(done_other_quietest, {
 
 tar_target(rs_other_ebike, {
   length(done_other_quietest)
-  f = paste0("outputdata/", parameters$date_routing, "routes_max_dist_other_ebike.Rds")
+  f = paste0("outputdata/", parameters$date_routing, "/routes_max_dist_other_ebike.Rds")
   if (file.exists(f)) {
     rs = readRDS(f)
   } else {
@@ -1215,7 +1215,7 @@ tar_target(done_other_ebike, {
 
 tar_target(rs_other_balanced, {
   length(done_commute_balanced)
-  f = paste0("outputdata/", parameters$date_routing, "routes_max_dist_other_balanced.Rds")
+  f = paste0("outputdata/", parameters$date_routing, "/routes_max_dist_other_balanced.Rds")
   if (file.exists(f)) {
     rs = readRDS(f)
   } else {
