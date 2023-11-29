@@ -1532,7 +1532,7 @@ tar_target(combined_network, {
     
     rnet_ol = list(fastest = rnet_other_fastest,
                    quietest = rnet_other_quietest,
-                   ebike - rnet_other_ebike)
+                   ebike = rnet_other_ebike)
     
     rnet_quietness = list(rnet_gq_school_fastest,
                           rnet_gq_school_quietest,
