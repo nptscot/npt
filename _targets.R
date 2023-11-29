@@ -204,7 +204,7 @@ tar_target(od_school, {
 # School routing ----------------------------------------------------------
 
 tar_target(rs_school_fastest, {
-  f = paste0("outputdata/", parameters$date_routing, "/routes_max_dist_school_fastest.Rds")
+  f = paste0("outputdata/", parameters$date_routing, "routes_max_dist_school_fastest.Rds")
   if (file.exists(f)) {
     rs = readRDS(f)
   } else {
@@ -224,7 +224,7 @@ tar_target(done_school_fastest, {
 
 tar_target(rs_school_quietest, {
   length(done_school_fastest)
-  f = paste0("outputdata/", parameters$date_routing, "/routes_max_dist_school_quietest.Rds")
+  f = paste0("outputdata/", parameters$date_routing, "routes_max_dist_school_quietest.Rds")
   if (file.exists(f)) {
     rs = readRDS(f)
   } else {
@@ -244,7 +244,7 @@ tar_target(done_school_quietest, {
 
 tar_target(rs_school_ebike, {
   length(done_school_quietest)
-  f = paste0("outputdata/", parameters$date_routing, "/routes_max_dist_school_ebike.Rds")
+  f = paste0("outputdata/", parameters$date_routing, "routes_max_dist_school_ebike.Rds")
   if (file.exists(f)) {
     rs = readRDS(f)
   } else {
@@ -264,7 +264,7 @@ tar_target(done_school_ebike, {
 
 tar_target(rs_school_balanced, {
   length(done_commute_ebike)
-  f = paste0("outputdata/", parameters$date_routing, "/routes_max_dist_school_balanced.Rds")
+  f = paste0("outputdata/", parameters$date_routing, "routes_max_dist_school_balanced.Rds")
   if (file.exists(f)) {
     rs = readRDS(f)
   } else {
@@ -286,7 +286,7 @@ tar_target(done_school_balanced, {
 
 tar_target(rs_commute_fastest, {
   length(done_school_ebike) # Do school routing first
-  f = paste0("outputdata/", parameters$date_routing, "/routes_max_dist_commute_fastest.Rds")
+  f = paste0("outputdata/", parameters$date_routing, "routes_max_dist_commute_fastest.Rds")
   if (file.exists(f)) {
     rs = readRDS(f)
   } else {
@@ -306,7 +306,7 @@ tar_target(done_commute_fastest, {
 
 tar_target(rs_commute_quietest, {
   length(done_commute_fastest)
-  f = paste0("outputdata/", parameters$date_routing, "/routes_max_dist_commute_quietest.Rds")
+  f = paste0("outputdata/", parameters$date_routing, "routes_max_dist_commute_quietest.Rds")
   if (file.exists(f)) {
     rs = readRDS(f)
   } else {
@@ -326,7 +326,7 @@ tar_target(done_commute_quietest, {
 
 tar_target(rs_commute_ebike, {
   length(done_commute_quietest)
-  f = paste0("outputdata/", parameters$date_routing, "/routes_max_dist_commute_ebike.Rds")
+  f = paste0("outputdata/", parameters$date_routing, "routes_max_dist_commute_ebike.Rds")
   if (file.exists(f)) {
     rs = readRDS(f)
   } else {
@@ -346,7 +346,7 @@ tar_target(done_commute_ebike, {
 
 tar_target(rs_commute_balanced, {
   length(done_school_balanced)
-  f = paste0("outputdata/", parameters$date_routing, "/routes_max_dist_commute_balanced.Rds")
+  f = paste0("outputdata/", parameters$date_routing, "routes_max_dist_commute_balanced.Rds")
   if (file.exists(f)) {
     rs = readRDS(f)
   } else {
@@ -782,6 +782,14 @@ tar_target(grid, {
   grid = st_make_grid(scot_zones, cellsize = 500, what = "centers")
 }),
 
+# tar_target(mode_shares, {
+#   mode_shares = list(
+#     mode = c("bicycle", "foot", "car", "public_transport", "taxi"),
+#     share = c(0.012, 0.221, 0.652, 0.093, 0.022)
+#   )
+#   mode_shares
+# }),
+
 tar_target(od_shopping, {
   check = length(school_stats_json)
 
@@ -884,16 +892,33 @@ tar_target(od_shopping, {
   saveRDS(od_adjusted_jittered, "./inputdata/shopping_interaction_jittered.Rds")
   od_adjusted_jittered = readRDS("./inputdata/shopping_interaction_jittered.Rds")
 
-  # Get cycle mode shares
-  cycle_mode_share = 0.012 
+  # Get mode shares
+  
+  # These are the overall means from the SHS Travel Diaries in table 16 of 
+  # transport-and-travel-in-scotland-2019-local-authority-tables.xlsx
+  # car = driver + passenger
+  # public_transport = bus + rail
+  # taxi = taxi + other
+  mode_shares = data_frame(
+      bicycle = 0.012,
+      foot = 0.221,
+      car = 0.652,
+      public_transport = 0.093,
+      taxi = 0.022
+    )
 
   od_shopping_jittered = od_adjusted_jittered %>% 
     rename(
       geo_code1 = O,
       geo_code2 = D
     ) %>% 
-    mutate(shopping_cycle = shopping_all_modes * cycle_mode_share,
-           route_id = paste0(geo_code1, "_", geo_code2, "_", seq(nrow(od_adjusted_jittered))))
+    mutate(bicycle = shopping_all_modes * mode_shares$bicycle,
+           foot = shopping_all_modes * mode_shares$foot,
+           car = shopping_all_modes * mode_shares$car,
+           public_transport = shopping_all_modes * mode_shares$public_transport,
+           taxi = shopping_all_modes * mode_shares$taxi,
+           route_id = paste0(geo_code1, "_", geo_code2, "_", seq(nrow(od_adjusted_jittered)))
+           )
   
   od_shopping_subset = od_shopping_jittered %>% 
     rename(length_euclidean_unjittered = distance_euclidean) %>% 
@@ -911,7 +936,6 @@ tar_target(od_shopping, {
   od_shopping_subset = od_shopping_subset %>% 
     rename(
       origin_trips = origin_shopping_trips, 
-      bicycle = shopping_cycle,
       all = shopping_all_modes
     ) %>% 
     mutate(purpose = "shopping")
@@ -980,14 +1004,26 @@ tar_target(od_visiting, {
   od_adjusted_jittered = readRDS("./inputdata/visiting_interaction_jittered.Rds")
   
   # Get cycle mode shares
-  cycle_mode_share = 0.012 
+  mode_shares = data_frame(
+    bicycle = 0.012,
+    foot = 0.221,
+    car = 0.652,
+    public_transport = 0.093,
+    taxi = 0.022
+  )
+  
   od_visiting_jittered = od_adjusted_jittered %>% 
     rename(
       geo_code1 = O,
       geo_code2 = D
     ) %>% 
-    mutate(visiting_cycle = visiting_all_modes * cycle_mode_share,
-           route_id = paste0(geo_code1, "_", geo_code2, "_", seq(nrow(od_adjusted_jittered))))
+    mutate(bicycle = visiting_all_modes * mode_shares$bicycle,
+           foot = visiting_all_modes * mode_shares$foot,
+           car = visiting_all_modes * mode_shares$car,
+           public_transport = visiting_all_modes * mode_shares$public_transport,
+           taxi = visiting_all_modes * mode_shares$taxi,
+           route_id = paste0(geo_code1, "_", geo_code2, "_", seq(nrow(od_adjusted_jittered)))
+    )
   
   od_visiting_subset = od_visiting_jittered %>% 
     rename(length_euclidean_unjittered = distance_euclidean) %>% 
@@ -1005,7 +1041,6 @@ tar_target(od_visiting, {
   od_visiting_subset = od_visiting_subset %>% 
     rename(
       origin_trips = origin_visiting_trips, 
-      bicycle = visiting_cycle,
       all = visiting_all_modes,
       destination_size = destination_visiting_trips
     ) %>% 
@@ -1105,16 +1140,27 @@ tar_target(od_leisure, {
   saveRDS(od_adjusted_jittered, "./inputdata/leisure_interaction_jittered.Rds")
   od_adjusted_jittered = readRDS("./inputdata/leisure_interaction_jittered.Rds")
 
-  # Get cycle mode shares
-  cycle_mode_share = 0.012 
+  # Get mode shares
+  mode_shares = data_frame(
+    bicycle = 0.012,
+    foot = 0.221,
+    car = 0.652,
+    public_transport = 0.093,
+    taxi = 0.022
+  )
   
   od_leisure_jittered = od_adjusted_jittered %>% 
     rename(
       geo_code1 = O,
       geo_code2 = D
     ) %>% 
-    mutate(leisure_cycle = leisure_all_modes * cycle_mode_share,
-           route_id = paste0(geo_code1, "_", geo_code2, "_", seq(nrow(od_adjusted_jittered))))
+    mutate(bicycle = leisure_all_modes * mode_shares$bicycle,
+           foot = leisure_all_modes * mode_shares$foot,
+           car = leisure_all_modes * mode_shares$car,
+           public_transport = leisure_all_modes * mode_shares$public_transport,
+           taxi = leisure_all_modes * mode_shares$taxi,
+           route_id = paste0(geo_code1, "_", geo_code2, "_", seq(nrow(od_adjusted_jittered)))
+    )
   
   od_leisure_subset = od_leisure_jittered %>% 
     rename(length_euclidean_unjittered = distance_euclidean) %>% 
@@ -1131,8 +1177,7 @@ tar_target(od_leisure, {
   
   od_leisure_subset = od_leisure_subset %>% 
     rename(
-      origin_trips = origin_leisure_trips, 
-      bicycle = leisure_cycle,
+      origin_trips = origin_leisure_trips,
       all = leisure_all_modes
            ) %>% 
     mutate(purpose = "leisure")
@@ -1154,7 +1199,7 @@ tar_target(od_other_combined, {
 
 tar_target(rs_other_fastest, {
   length(done_commute_ebike) # Do school routing first
-  f = paste0("outputdata/", parameters$date_routing, "/routes_max_dist_other_fastest.Rds")
+  f = paste0("outputdata/", parameters$date_routing, "routes_max_dist_other_fastest.Rds")
   if (file.exists(f)) {
     rs = readRDS(f)
   } else {
@@ -1175,7 +1220,7 @@ tar_target(done_other_fastest, {
 
 tar_target(rs_other_quietest, {
   length(done_other_fastest)
-  f = paste0("outputdata/", parameters$date_routing, "/routes_max_dist_other_quietest.Rds")
+  f = paste0("outputdata/", parameters$date_routing, "routes_max_dist_other_quietest.Rds")
   if (file.exists(f)) {
     rs = readRDS(f)
   } else {
@@ -1195,7 +1240,7 @@ tar_target(done_other_quietest, {
 
 tar_target(rs_other_ebike, {
   length(done_other_quietest)
-  f = paste0("outputdata/", parameters$date_routing, "/routes_max_dist_other_ebike.Rds")
+  f = paste0("outputdata/", parameters$date_routing, "routes_max_dist_other_ebike.Rds")
   if (file.exists(f)) {
     rs = readRDS(f)
   } else {
@@ -1215,7 +1260,7 @@ tar_target(done_other_ebike, {
 
 tar_target(rs_other_balanced, {
   length(done_commute_balanced)
-  f = paste0("outputdata/", parameters$date_routing, "/routes_max_dist_other_balanced.Rds")
+  f = paste0("outputdata/", parameters$date_routing, "routes_max_dist_other_balanced.Rds")
   if (file.exists(f)) {
     rs = readRDS(f)
   } else {
