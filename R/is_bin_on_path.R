@@ -7,6 +7,7 @@ find_odjitter_location = function() {
   # Find odjitter location
   odjitter_location = NULL
   if (!is_bin_on_path("odjitter")) {
+      old_path = Sys.getenv("PATH")
       Sys.setenv(PATH = paste(old_path, "/root/.cargo/bin", sep = ":"))
       odjitter_location = "/root/.cargo/bin/odjitter"
   } else {
