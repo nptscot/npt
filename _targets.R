@@ -828,6 +828,14 @@ tar_target(od_shopping, {
     select(adjusted_mean)
   shop_percent = shop_percent[[1]]/100
   
+  if (!file.exists("./data-raw/SG_IntermediateZone_Bdry_2011.shp")) {
+    u = "https://maps.gov.scot/ATOM/shapefiles/SG_IntermediateZoneBdry_2011.zip"
+    f = basename(u)
+    download.file(u, f)
+    unzip(f, exdir = "./data-raw")
+    # # Upload to v0.02 the .zip file:
+    # system("gh release upload v0.02 SG_IntermediateZoneBdry_2011.zip")
+  }
   intermediate_zones = st_read("./data-raw/SG_IntermediateZone_Bdry_2011.shp")
   zones_shopping = intermediate_zones %>% 
     select(InterZone, ResPop2011)
