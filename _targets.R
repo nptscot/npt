@@ -154,6 +154,7 @@ list(
     } else {
       odjitter_location = "odjitter"
     }
+
     odj = odjitter::jitter(
       od = od,
       zones = z,
@@ -161,7 +162,7 @@ list(
       subpoints_destinations = subpoints_destinations,
       disaggregation_threshold = 30,
       deduplicate_pairs = FALSE,
-      odjitter_location = odjitter_location
+      odjitter_location = find_odjitter_location()
     )
     odj$dist_euclidean_jittered = as.numeric(sf::st_length(odj))
     odj = odj %>%
