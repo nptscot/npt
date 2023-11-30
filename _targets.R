@@ -881,7 +881,7 @@ tar_target(od_shopping, {
   od_adjusted_jittered = odjitter::jitter(
     od = od_adjusted,
     zones = zones_shopping,
-    zones_d = shopping_polygons,
+    zones_d = shopping_polygons, # each polygon is a single grid point, so destinations are kept the same
     subpoints_origins = oas,
     subpoints_destinations = shopping_grid,
     disaggregation_key = "shopping_all_modes",
@@ -1129,7 +1129,7 @@ tar_target(od_leisure, {
   od_adjusted_jittered = odjitter::jitter(
     od = od_adjusted,
     zones = zones_leisure,
-    zones_d = leisure_polygons,
+    zones_d = leisure_polygons, # each polygon is a single grid point, so destinations are kept the same
     subpoints_origins = oas,
     subpoints_destinations = leisure_grid,
     disaggregation_key = "leisure_all_modes",
@@ -1194,6 +1194,14 @@ tar_target(od_other_combined, {
   check = length(od_visiting)
   od_other_combined = rbind(od_shopping, od_visiting, od_leisure) %>%
     slice_max(n = parameters$max_to_route, order_by = all, with_ties = FALSE)
+  
+  od_other_combined = od_other_combined %>% 
+    mutate(dist_euclidean = length_euclidean_unjittered * 1000,
+           dist_euclidean_jittered = length_euclidean_jittered * 1000) %>% 
+    select(geo_code1, geo_code2, car, foot, bicycle, all, 
+           dist_euclidean, public_transport, taxi, geometry,
+           dist_euclidean_jittered, route_id)
+  
   od_other_combined
 }),
 
