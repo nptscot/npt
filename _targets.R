@@ -1186,36 +1186,36 @@ tar_target(od_leisure, {
 }),
 
 
-# Combined other trip purposes --------------------------------------------
+# Combined utility trip purposes --------------------------------------------
 
-tar_target(od_other_combined, {
+tar_target(od_utility_combined, {
   check = length(od_shopping)
   check = length(od_leisure)
   check = length(od_visiting)
-  od_other_combined = rbind(od_shopping, od_visiting, od_leisure) %>%
+  od_utility_combined = rbind(od_shopping, od_visiting, od_leisure) %>%
     slice_max(n = parameters$max_to_route, order_by = all, with_ties = FALSE)
   
   # Ensure the columns and distance units are identical to the other routing types 
   # (apart from the additional trip purpose column)
-  od_other_combined = od_other_combined %>% 
+  od_utility_combined = od_utility_combined %>% 
     mutate(dist_euclidean = length_euclidean_unjittered * 1000,
            dist_euclidean_jittered = length_euclidean_jittered * 1000) %>% 
     select(geo_code1, geo_code2, car, foot, bicycle, all, 
            dist_euclidean, public_transport, taxi, geometry,
            dist_euclidean_jittered, route_id, purpose)
   
-  od_other_combined
+  od_utility_combined
 }),
 
-tar_target(rs_other_fastest, {
+tar_target(rs_utility_fastest, {
   length(done_commute_ebike) # Do school routing first
-  f = paste0("outputdata/", parameters$date_routing, "routes_max_dist_other_fastest.Rds")
+  f = paste0("outputdata/", parameters$date_routing, "routes_max_dist_utility_fastest.Rds")
   if (file.exists(f)) {
     rs = readRDS(f)
   } else {
-    rs = get_routes(od = od_other_combined,
+    rs = get_routes(od = od_utility_combined,
                     plans = "fastest", 
-                    purpose = "other",
+                    purpose = "utility",
                     folder = paste0("outputdata/", parameters$date_routing),
                     date = parameters$date_routing,
                     segments = "both")
@@ -1223,20 +1223,20 @@ tar_target(rs_other_fastest, {
   rs
 }),
 
-tar_target(done_other_fastest, {
-  length(rs_other_fastest) #Hack for scheduling
+tar_target(done_utility_fastest, {
+  length(rs_utility_fastest) #Hack for scheduling
 }),
 
 
-tar_target(rs_other_quietest, {
-  length(done_other_fastest)
-  f = paste0("outputdata/", parameters$date_routing, "routes_max_dist_other_quietest.Rds")
+tar_target(rs_utility_quietest, {
+  length(done_utility_fastest)
+  f = paste0("outputdata/", parameters$date_routing, "routes_max_dist_utility_quietest.Rds")
   if (file.exists(f)) {
     rs = readRDS(f)
   } else {
-    rs = get_routes(od = od_other_combined,
+    rs = get_routes(od = od_utility_combined,
                     plans = "quietest", 
-                    purpose = "other",
+                    purpose = "utility",
                     folder = paste0("outputdata/", parameters$date_routing),
                     date = parameters$date_routing,
                     segments = "both")
@@ -1244,19 +1244,19 @@ tar_target(rs_other_quietest, {
   rs
 }),
 
-tar_target(done_other_quietest, {
-  length(rs_other_quietest) #Hack for scheduling
+tar_target(done_utility_quietest, {
+  length(rs_utility_quietest) #Hack for scheduling
 }),
 
-tar_target(rs_other_ebike, {
-  length(done_other_quietest)
-  f = paste0("outputdata/", parameters$date_routing, "routes_max_dist_other_ebike.Rds")
+tar_target(rs_utility_ebike, {
+  length(done_utility_quietest)
+  f = paste0("outputdata/", parameters$date_routing, "routes_max_dist_utility_ebike.Rds")
   if (file.exists(f)) {
     rs = readRDS(f)
   } else {
-    rs = get_routes(od = od_other_combined,
+    rs = get_routes(od = od_utility_combined,
                     plans = "ebike", 
-                    purpose = "other",
+                    purpose = "utility",
                     folder = paste0("outputdata/", parameters$date_routing),
                     date = parameters$date_routing,
                     segments = "both")
@@ -1264,19 +1264,19 @@ tar_target(rs_other_ebike, {
   rs
 }),
 
-tar_target(done_other_ebike, {
-  length(rs_other_ebike) #Hack for scheduling
+tar_target(done_utility_ebike, {
+  length(rs_utility_ebike) #Hack for scheduling
 }),
 
-tar_target(rs_other_balanced, {
+tar_target(rs_utility_balanced, {
   length(done_commute_balanced)
-  f = paste0("outputdata/", parameters$date_routing, "routes_max_dist_other_balanced.Rds")
+  f = paste0("outputdata/", parameters$date_routing, "routes_max_dist_utility_balanced.Rds")
   if (file.exists(f)) {
     rs = readRDS(f)
   } else {
-    rs = get_routes(od = od_other_combined,
+    rs = get_routes(od = od_utility_combined,
                     plans = "balanced", 
-                    purpose = "other",
+                    purpose = "utility",
                     folder = paste0("outputdata/", parameters$date_routing),
                     date = parameters$date_routing,
                     segments = "both")
@@ -1284,97 +1284,97 @@ tar_target(rs_other_balanced, {
   rs
 }),
 
-tar_target(done_other_balanced, {
-  length(rs_other_balanced) #Hack for scheduling
+tar_target(done_utility_balanced, {
+  length(rs_utility_balanced) #Hack for scheduling
 }),
 
 
-# Other routing post-processing -----------------------------------------
+# Utility routing post-processing -----------------------------------------
 
-tar_target(r_other_fastest, {
-  rs_other_fastest[[1]]$routes
+tar_target(r_utility_fastest, {
+  rs_utility_fastest[[1]]$routes
 }),
 
-tar_target(r_other_quietest, {
-  rs_other_quietest[[1]]$routes
+tar_target(r_utility_quietest, {
+  rs_utility_quietest[[1]]$routes
 }),
 
-tar_target(r_other_ebike, {
-  rs_other_ebike[[1]]$routes
+tar_target(r_utility_ebike, {
+  rs_utility_ebike[[1]]$routes
 }),
 
-tar_target(r_other_balanced, {
-  rs_other_balanced[[1]]$routes
+tar_target(r_utility_balanced, {
+  rs_utility_balanced[[1]]$routes
 }),
 
-tar_target(rnet_gq_other_fastest, {
-  segments2rnet(rs_other_fastest[[1]]$segments)
+tar_target(rnet_gq_utility_fastest, {
+  segments2rnet(rs_utility_fastest[[1]]$segments)
 }),
 
-tar_target(rnet_gq_other_quietest, {
-  segments2rnet(rs_other_quietest[[1]]$segments)
+tar_target(rnet_gq_utility_quietest, {
+  segments2rnet(rs_utility_quietest[[1]]$segments)
 }),
 
-tar_target(rnet_gq_other_ebike, {
-  segments2rnet(rs_other_ebike[[1]]$segments)
+tar_target(rnet_gq_utility_ebike, {
+  segments2rnet(rs_utility_ebike[[1]]$segments)
 }),
 
-tar_target(rnet_gq_other_balanced, {
-  segments2rnet(rs_other_balanced[[1]]$segments)
+tar_target(rnet_gq_utility_balanced, {
+  segments2rnet(rs_utility_balanced[[1]]$segments)
 }),
 
-# Other Uptake ----------------------------------------------------------
+# Utility Uptake ----------------------------------------------------------
 
-tar_target(uptake_other_fastest, {
-  routes = r_other_fastest %>%
+tar_target(uptake_utility_fastest, {
+  routes = r_utility_fastest %>%
     get_scenario_go_dutch()
-  saveRDS(routes, "outputdata/routes_other_fastest.Rds")
+  saveRDS(routes, "outputdata/routes_utility_fastest.Rds")
   routes
 }),
 
-tar_target(uptake_other_quietest, {
-  routes = r_other_quietest %>%
+tar_target(uptake_utility_quietest, {
+  routes = r_utility_quietest %>%
     get_scenario_go_dutch()
-  saveRDS(routes, "outputdata/routes_other_quietest.Rds")
+  saveRDS(routes, "outputdata/routes_utility_quietest.Rds")
   routes
 }),
 
-tar_target(uptake_other_ebike, {
-  routes = r_other_ebike %>%
+tar_target(uptake_utility_ebike, {
+  routes = r_utility_ebike %>%
     get_scenario_go_dutch()
-  saveRDS(routes, "outputdata/routes_other_ebike.Rds")
+  saveRDS(routes, "outputdata/routes_utility_ebike.Rds")
   routes
 }),
 
-tar_target(uptake_other_balanced, {
-  routes = r_other_balanced %>%
+tar_target(uptake_utility_balanced, {
+  routes = r_utility_balanced %>%
     get_scenario_go_dutch()
-  saveRDS(routes, "outputdata/routes_other_balanced.Rds")
+  saveRDS(routes, "outputdata/routes_utility_balanced.Rds")
   routes
 }),
 
-# Other Rnets -----------------------------------------------------------
+# Utility Rnets -----------------------------------------------------------
 
-tar_target(rnet_other_fastest, {
-  stplanr::overline2(uptake_other_fastest, c("bicycle","bicycle_go_dutch","bicycle_ebike"))
+tar_target(rnet_utility_fastest, {
+  stplanr::overline2(uptake_utility_fastest, c("bicycle","bicycle_go_dutch","bicycle_ebike"))
 }),
 
-tar_target(rnet_other_quietest, {
-  stplanr::overline2(uptake_other_quietest, c("bicycle","bicycle_go_dutch","bicycle_ebike"))
+tar_target(rnet_utility_quietest, {
+  stplanr::overline2(uptake_utility_quietest, c("bicycle","bicycle_go_dutch","bicycle_ebike"))
 }),
 
-tar_target(rnet_other_ebike, {
-  stplanr::overline2(uptake_other_ebike, c("bicycle","bicycle_go_dutch","bicycle_ebike"))
+tar_target(rnet_utility_ebike, {
+  stplanr::overline2(uptake_utility_ebike, c("bicycle","bicycle_go_dutch","bicycle_ebike"))
 }),
 
-tar_target(rnet_other_balanced, {
-  stplanr::overline2(uptake_other_balanced, c("bicycle","bicycle_go_dutch","bicycle_ebike"))
+tar_target(rnet_utility_balanced, {
+  stplanr::overline2(uptake_utility_balanced, c("bicycle","bicycle_go_dutch","bicycle_ebike"))
 }),
 
-# Other Zone stats ---------------------------------------------------------
+# Utility Zone stats ---------------------------------------------------------
 
-tar_target(other_stats_baseline, {
-  stats = sf::st_drop_geometry(od_other_combined)
+tar_target(utility_stats_baseline, {
+  stats = sf::st_drop_geometry(od_utility_combined)
   stats_from = dplyr::group_by(stats, geo_code1) %>%
     dplyr::summarise(all = sum(all, na.rm = TRUE),
                      bicycle = sum(bicycle, na.rm = TRUE),
@@ -1399,20 +1399,20 @@ tar_target(other_stats_baseline, {
   stats
 }),
 
-tar_target(other_stats_fastest, {
-  make_commute_stats(uptake_other_fastest, "fastest")
+tar_target(utility_stats_fastest, {
+  make_commute_stats(uptake_utility_fastest, "fastest")
 }),
 
-tar_target(other_stats_quietest, {
-  make_commute_stats(uptake_other_quietest, "quietest")
+tar_target(utility_stats_quietest, {
+  make_commute_stats(uptake_utility_quietest, "quietest")
 }),
 
-tar_target(other_stats_ebike, {
-  make_commute_stats(uptake_other_ebike, "ebike")
+tar_target(utility_stats_ebike, {
+  make_commute_stats(uptake_utility_ebike, "ebike")
 }),
 
-tar_target(other_stats_balanced, {
-  make_commute_stats(uptake_other_balanced, "balanced")
+tar_target(utility_stats_balanced, {
+  make_commute_stats(uptake_utility_balanced, "balanced")
 }),
 
 
@@ -1540,9 +1540,9 @@ tar_target(combined_network, {
                      quietest = rnet_secondary_quietest,
                      ebike = rnet_secondary_ebike)
     
-    rnet_ol = list(fastest = rnet_other_fastest,
-                   quietest = rnet_other_quietest,
-                   ebike = rnet_other_ebike)
+    rnet_ol = list(fastest = rnet_utility_fastest,
+                   quietest = rnet_utility_quietest,
+                   ebike = rnet_utility_ebike)
     
     rnet_quietness = list(rnet_gq_school_fastest,
                           rnet_gq_school_quietest,
@@ -1550,13 +1550,13 @@ tar_target(combined_network, {
                           rnet_gq_commute_fastest,
                           rnet_gq_commute_quietest,
                           rnet_gq_commute_ebike,
-                          rnet_gq_other_fastest,
-                          rnet_gq_other_quietest,
-                          rnet_gq_other_ebike)
+                          rnet_gq_utility_fastest,
+                          rnet_gq_utility_quietest,
+                          rnet_gq_utility_ebike)
     names(rnet_cl) = paste0("commute_", names(rnet_cl))
     names(rnet_sl_p) = paste0("primary_", names(rnet_sl_p))
     names(rnet_sl_s) = paste0("secondary_", names(rnet_sl_s))
-    names(rnet_ol) = paste0("other_", names(rnet_ol))
+    names(rnet_ol) = paste0("utility_", names(rnet_ol))
     
     rnl = c(rnet_cl, rnet_sl_p, rnet_sl_s, rnet_ol, list(rnet_quietness))
     
