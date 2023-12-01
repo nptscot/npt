@@ -12,7 +12,7 @@ disag_threshold = 100 # increasing this reduces the number of od pairs
 min_distance_meters = 500 # does this mean that any shops closer than 500m away are essentially ignored? 
 # It would be better to route to these, then exclude them afterwards as too close for the trip to be worth cycling
 
-osm_highways = readRDS("../inputdata/osm_highways_2023-08-09.Rds")
+osm_highways = readRDS("./inputdata/osm_highways_2023-08-09.Rds")
 
 trip_purposes = read.csv("./data-raw/scottish-household-survey-2012-19.csv")
 go_home = trip_purposes$Mean[trip_purposes$Purpose == "Go Home"]
@@ -75,8 +75,8 @@ od_interaction = od_visiting %>%
 # od_interaction = od_interaction %>% 
 #   filter(quantile(interaction, 0.9) < interaction)
 
-saveRDS(od_interaction, "../inputdata/visiting_interaction.Rds")
-od_interaction = readRDS("../inputdata/visiting_interaction.Rds")
+saveRDS(od_interaction, "./inputdata/visiting_interaction.Rds")
+od_interaction = readRDS("./inputdata/visiting_interaction.Rds")
 
 
 # Need to correct the number of trips, in accordance with origin_visiting_trips
@@ -99,8 +99,8 @@ od_adjusted_jittered = odjitter::jitter(
   deduplicate_pairs = FALSE
 )
 
-saveRDS(od_adjusted_jittered, "../inputdata/visiting_interaction_jittered.Rds")
-od_adjusted_jittered = readRDS("../inputdata/visiting_interaction_jittered.Rds")
+saveRDS(od_adjusted_jittered, "./inputdata/visiting_interaction_jittered.Rds")
+od_adjusted_jittered = readRDS("./inputdata/visiting_interaction_jittered.Rds")
 
 # Trip numbers - find which % of these journeys are by bicycle
 
@@ -130,4 +130,4 @@ od_visiting_jittered_updated = od_visiting_jittered %>%
 n_short_lines_removed = nrow(od_visiting_jittered) - nrow(od_visiting_jittered_updated)
 message(n_short_lines_removed, " short or long desire lines removed")
 
-saveRDS(od_visiting_jittered_updated, "../inputdata/od_visiting_jittered.Rds")
+saveRDS(od_visiting_jittered_updated, "./inputdata/od_visiting_jittered.Rds")

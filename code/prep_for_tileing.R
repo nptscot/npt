@@ -1,9 +1,9 @@
 library(sf)
 library(dplyr)
 
-rnet <- readRDS("../inputdata/rnet_commute.Rds")
+rnet <- readRDS("./inputdata/rnet_commute.Rds")
 routes <- readRDS("outputs/uptake_commute.Rds")
-zones <- readRDS("../inputdata/iz_scotlands_uk.Rds")
+zones <- readRDS("./inputdata/iz_scotlands_uk.Rds")
 
 # Clean RNET
 if(class(rnet) == "list"){
