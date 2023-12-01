@@ -1903,10 +1903,10 @@ tar_target(pmtiles_rnet, {
     # TODO: use small dataset if open data build is TRUE
     if (parameters$open_data_build) {
       rnet_x = sf::read_sf("https://github.com/ropensci/stplanr/releases/download/v1.0.2/rnet_x_ed.geojson")
-      rnet_x_buffers = st_buffer(rnet_x, dist = 20, endCapStyle = "FLAT")
-      single_rnet_x_buffer = st_union(rnet_x_buffers)
-      rnet_x_buffer = st_sf(geometry = single_rnet_x_buffer)
-      rnet_x_buffer = st_make_valid(rnet_x_buffer)
+      rnet_x_buffers = sf::st_buffer(rnet_x, dist = 20, endCapStyle = "FLAT")
+      single_rnet_x_buffer = sf::st_union(rnet_x_buffers)
+      rnet_x_buffer = sf::st_sf(geometry = single_rnet_x_buffer)
+      rnet_x_buffer = sf::st_make_valid(rnet_x_buffer)
     } else {
       # URL for the original route network
       url_rnet_x = "https://github.com/nptscot/networkmerge/releases/download/v0.1/OS_Scotland_Network.geojson"
@@ -1927,8 +1927,8 @@ tar_target(pmtiles_rnet, {
 
     # Transform the spatial data to a different coordinate reference system (EPSG:27700)
     # TODO: uncomment:
-    rnet_xp = st_transform(rnet_x, "EPSG:27700")
-    rnet_yp = st_transform(rnet_y, "EPSG:27700")
+    rnet_xp = sf::st_transform(rnet_x, "EPSG:27700")
+    rnet_yp = sf::st_transform(rnet_y, "EPSG:27700")
 
     # Extract column names from the rnet_yp
     name_list = names(rnet_yp)
@@ -1956,16 +1956,16 @@ tar_target(pmtiles_rnet, {
     rnet_merged_all = rnet_merged_all[ , !(names(rnet_merged_all) %in% c('identifier','length_x'))]
 
     # Remove Z and M dimensions (if they exist) and set geometry precision
-    has_Z_or_M = any(st_dimension(rnet_merged_all) %in% c("XYZ", "XYM", "XYZM"))
+    has_Z_or_M = any(sf::st_dimension(rnet_merged_all) %in% c("XYZ", "XYM", "XYZM"))
 
     # If Z or M dimensions exist, remove them and print a message
     if (has_Z_or_M) {
-      rnet_merged_all = st_zm(rnet_merged_all, what = "ZM")
+      rnet_merged_all = sf::st_zm(rnet_merged_all, what = "ZM")
       cat("Z or M dimensions have been removed from rnet_merged_all.\n")
     }
 
     # Set the precision of geometries in 'rnet_merged_all' to 1e3 (0.001)
-    rnet_merged_all$geometry = st_set_precision(rnet_merged_all$geometry, 1e3)
+    rnet_merged_all$geometry = sf::st_set_precision(rnet_merged_all$geometry, 1e3)
 
     # Round all numeric columns in 'rnet_merged_all' to 0 decimal places
     rnet_merged_all = rnet_merged_all %>%
@@ -2011,7 +2011,7 @@ tar_target(pmtiles_rnet, {
     rnet_merged_all = sf::st_transform(rnet_merged_all, "EPSG:4326")
 
     # Combine 'rnet_y_rest' and 'rnet_merged_all' into a single dataset
-    simplified_network = bind_rows(rnet_y_rest, rnet_merged_all)
+    simplified_network = dplyr::bind_rows(rnet_y_rest, rnet_merged_all)
 
     # Remove specified columns and replace NA values with 0 in the remaining columns
     items_to_remove = c('geometry', 'length_x_original', 'length_x_cropped')
