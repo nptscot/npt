@@ -1222,7 +1222,7 @@ tar_target(rs_utility_fastest, {
   if (file.exists(f)) {
     rs = readRDS(f)
   } else {
-    rs = get_routes(od = od_utility_combined,
+    rs = get_routes(od = od_utility_combined |> slice_max(n = parameters$max_to_route, order_by = all, with_ties = FALSE),
                     plans = "fastest", 
                     purpose = "utility",
                     folder = paste0("outputdata/", parameters$date_routing),
