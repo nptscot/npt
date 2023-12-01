@@ -1468,7 +1468,6 @@ tar_target(zones_contextual, {
   zones$PT_post <- round(zones$PT_post, 1)
   zones$PT_retail <- round(zones$PT_retail, 1)
   zones$broadband <- as.integer(gsub("%","",zones$broadband))
-  
   zones
 }),
 
@@ -1502,26 +1501,25 @@ tar_target(zones_tile, {
 tar_target(zones_dasymetric_tile, {
   
   if (parameters$open_data_build){
-    return(NULL)
+    NULL
+  } else {
+    b_verylow = read_TEAMS("open_data/os_buildings/buildings_low_nat_lsoa_split.Rds")
+    b_low = read_TEAMS("open_data/os_buildings/buildings_low_reg_lsoa_split.Rds")
+    b_med = read_TEAMS("open_data/os_buildings/buildings_med_lsoa_split.Rds")
+    b_high = read_TEAMS("open_data/os_buildings/buildings_high_lsoa_split.Rds")
+    
+    zones = sf::st_drop_geometry(zones_tile)
+    
+    b_verylow = dplyr::left_join(b_verylow, zones, by = c("geo_code" = "DataZone"))
+    b_low = dplyr::left_join(b_low, zones, by = c("geo_code" = "DataZone"))
+    b_med = dplyr::left_join(b_med, zones, by = c("geo_code" = "DataZone"))
+    b_high = dplyr::left_join(b_high, zones, by = c("geo_code" = "DataZone"))
+    
+    make_geojson_zones(b_verylow, "outputs/dasymetric_verylow.geojson")
+    make_geojson_zones(b_low, "outputs/dasymetric_low.geojson")
+    make_geojson_zones(b_med, "outputs/dasymetric_med.geojson")
+    make_geojson_zones(b_high, "outputs/dasymetric_high.geojson")
   }
-  
-  b_verylow = read_TEAMS("open_data/os_buildings/buildings_low_nat_lsoa_split.Rds")
-  b_low = read_TEAMS("open_data/os_buildings/buildings_low_reg_lsoa_split.Rds")
-  b_med = read_TEAMS("open_data/os_buildings/buildings_med_lsoa_split.Rds")
-  b_high = read_TEAMS("open_data/os_buildings/buildings_high_lsoa_split.Rds")
-  
-  zones = sf::st_drop_geometry(zones_tile)
-  
-  b_verylow = dplyr::left_join(b_verylow, zones, by = c("geo_code" = "DataZone"))
-  b_low = dplyr::left_join(b_low, zones, by = c("geo_code" = "DataZone"))
-  b_med = dplyr::left_join(b_med, zones, by = c("geo_code" = "DataZone"))
-  b_high = dplyr::left_join(b_high, zones, by = c("geo_code" = "DataZone"))
-  
-  make_geojson_zones(b_verylow, "outputs/dasymetric_verylow.geojson")
-  make_geojson_zones(b_low, "outputs/dasymetric_low.geojson")
-  make_geojson_zones(b_med, "outputs/dasymetric_med.geojson")
-  make_geojson_zones(b_high, "outputs/dasymetric_high.geojson")
-  
   TRUE
 }),
 
@@ -1801,7 +1799,7 @@ tar_target(pmtiles_rnet, {
     saveRDS(od_commute_subset, "outputdata/od_commute_subset.Rds")
     saveRDS(zones_stats, "outputdata/zones_stats.Rds")
     saveRDS(school_stats, "outputdata/school_stats.Rds")
-    sf::write_sf(simplify_network, "outputdata/simplified_network.geojson")
+    sf::write_sf(simplify_network, "outputdata/simplified_network.geojson", delete_dsn = TRUE)
     
     file.copy("outputs/daysmetric.pmtiles","outputdata/daysmetric.pmtiles")
     file.copy("outputs/data_zones.pmtiles","outputdata/data_zones.pmtiles")
@@ -1929,11 +1927,8 @@ tar_target(pmtiles_rnet, {
 
     # Transform the spatial data to a different coordinate reference system (EPSG:27700)
     # TODO: uncomment:
-    # rnet_xp = st_transform(rnet_x, "EPSG:27700")
-    # rnet_yp = st_transform(rnet_y, "EPSG:27700")
-
-    rnet_xp = rnet_x
-    rnet_yp = rnet_y
+    rnet_xp = st_transform(rnet_x, "EPSG:27700")
+    rnet_yp = st_transform(rnet_y, "EPSG:27700")
 
     # Extract column names from the rnet_yp
     name_list = names(rnet_yp)
@@ -1952,13 +1947,10 @@ tar_target(pmtiles_rnet, {
       }
     }
 
-    # Define breaks for categorizing data
-    brks = c(0, 50, 100, 200, 500,1000, 2000, 5000,10000,150000)
-
     # Merge the spatial objects rnet_xp and rnet_yp based on specified parameters
     dist = 20
     angle = 10
-    rnet_merged_all = stplanr::rnet_merge(rnet_xp, rnet_yp, dist = dist, funs = funs, max_angle_diff = 20)  # segment_length = 1
+    rnet_merged_all = stplanr::rnet_merge(rnet_xp, rnet_yp, dist = dist, segment_length = 10, funs = funs, max_angle_diff = 20)  # 
 
     # Remove specific columns from the merged spatial object
     rnet_merged_all = rnet_merged_all[ , !(names(rnet_merged_all) %in% c('identifier','length_x'))]
@@ -1999,42 +1991,40 @@ tar_target(pmtiles_rnet, {
     # Converting the projected geometry into a GEOS geometry. GEOS is a library used for spatial operations.
     rnet_merged_all_geos = geos::as_geos_geometry(rnet_merged_all_projected)
 
-    # Creating a buffer around the GEOS geometry. This expands the geometry by a specified distance (16 units in this case).
-    rnet_merged_all_geos_buffer = geos::geos_buffer(rnet_merged_all_geos, distance = 16)
+    # Creating a buffer around the GEOS geometry. This expands the geometry by a specified distance (in meters).
+    rnet_merged_all_geos_buffer = geos::geos_buffer(rnet_merged_all_geos, distance = 30)
 
     # Converting the buffered GEOS geometry back to an sf object.
     rnet_merged_all_projected_buffer = sf::st_as_sf(rnet_merged_all_geos_buffer)
 
-    # Transforming the buffered geometry back to another CRS, EPSG:4326, commonly used for global latitude and longitude.
+    # Confirming buffered geometry CRS as EPSG:27700.
     rnet_merged_all_buffer = sf::st_transform(rnet_merged_all_projected_buffer, "EPSG:4326")
 
-    # Subsetting another dataset 'rnet_yp' based on the spatial relation with 'rnet_merged_all_buffer'.
-    # It selects features from 'rnet_yp' that are within the boundaries of 'rnet_merged_all_buffer'.
-    rnet_yp_subset = rnet_yp[rnet_merged_all_buffer, , op = sf::st_within]
+    # Subsetting another dataset 'rnet_y' based on the spatial relation with 'rnet_merged_all_buffer'.
+    # It selects features from 'rnet_y' that are within the boundaries of 'rnet_merged_all_buffer'.
+    rnet_y_subset = rnet_y[rnet_merged_all_buffer, , op = sf::st_within]
 
-    # Filter 'rnet_yp' to exclude geometries within 'within_join'
-    rnet_yp_rest = rnet_yp[!rnet_yp$geometry %in% rnet_yp_subset$geometry, ]
-        
-    # Combine 'rnet_yp_rest' and 'rnet_merged_all' into a single dataset
-    combined_data = bind_rows(rnet_yp_rest, rnet_merged_all)
+    # Filter 'rnet_y' to exclude geometries within 'within_join'
+    rnet_y_rest = rnet_y[!rnet_y$geometry %in% rnet_y_subset$geometry, ]
 
-    # Transform the coordinate reference system of 'combined_data' to EPSG:4326
-    combined_data = st_transform(combined_data, 4326)
+    # Transform the CRS of the 'rnet_merged_all' object to WGS 84 (EPSG:4326)  
+    rnet_merged_all = sf::st_transform(rnet_merged_all, "EPSG:4326")
+
+    # Combine 'rnet_y_rest' and 'rnet_merged_all' into a single dataset
+    simplified_network = bind_rows(rnet_y_rest, rnet_merged_all)
 
     # Remove specified columns and replace NA values with 0 in the remaining columns
     items_to_remove = c('geometry', 'length_x_original', 'length_x_cropped')
-    cols_to_convert = names(combined_data)[!names(combined_data) %in% items_to_remove]
+
+    cols_to_convert = names(simplified_network)[!names(simplified_network) %in% items_to_remove]
     for (col in cols_to_convert) {
-      combined_data[[col]][is.na(combined_data[[col]])] = 0
+      simplified_network[[col]][is.na(simplified_network[[col]])] = 0
     }
 
-    # Write 'rnet_merged_all' to a GeoJSON file, ensuring the directory exists
-    if (!dir.exists("tmp")) {
-      dir.create("tmp")
-    }
-    combined_data
+    simplified_network
   })
 
+  # The code below is using python script to acheive the same funtion as the R code (lines 1303 - 1344) above
   # tar_target(rnet_simple, {
   #     # Run this target only after the 'simplify_network' target has been run:
   #     simplify_network
