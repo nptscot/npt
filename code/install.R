@@ -14,4 +14,5 @@ if(TRUE){ # Repeated builds can it GitHub API limit, set to TRUE to check for pa
   remotes::install_github("ropensci/stplanr")# Improved overline
   remotes::install_github("robinlovelace/ukboundaries")
   remotes::install_github("robinlovelace/simodels")
+  remotes::install_dev("rsgeo")
 }

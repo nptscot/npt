@@ -32,7 +32,12 @@ visiting_percent = visiting_percent[[1]]/100
 #   filter(DataZone != "S01010206")
 # zones_visiting = zones_visiting %>% 
 #   select(-TotPop2011, -HHCnt2011)
-
+if (!file.exists("./data-raw/SG_IntermediateZone_Bdry_2011.shp")) {
+  u = "https://maps.gov.scot/ATOM/shapefiles/SG_IntermediateZoneBdry_2011.zip"
+  f = basename(u)
+  download.file(u, f)
+  unzip(f, exdir = "./data-raw")
+}
 intermediate_zones = st_read("./data-raw/SG_IntermediateZone_Bdry_2011.shp")
 zones_visiting = intermediate_zones %>% 
   select(InterZone, ResPop2011)
