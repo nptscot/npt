@@ -209,9 +209,7 @@ tar_target(rs_school_fastest, {
   if (file.exists(f)) {
     rs = readRDS(f)
   } else {
-    od = od_school %>%
-      slice_max(n = parameters$max_to_route, order_by = all, with_ties = FALSE)
-    rs = get_routes(od = od,
+    rs = get_routes(od = od_school %>% slice_max(n = parameters$max_to_route, order_by = all, with_ties = FALSE),
                     plans = "fastest", 
                     purpose = "school",
                     folder = paste0("outputdata/", parameters$date_routing),
@@ -231,7 +229,7 @@ tar_target(rs_school_quietest, {
   if (file.exists(f)) {
     rs = readRDS(f)
   } else {
-    rs = get_routes(od = od_school,
+    rs = get_routes(od = od_school %>% slice_max(n = parameters$max_to_route, order_by = all, with_ties = FALSE),
                     plans = "quietest", 
                     purpose = "school",
                     folder = paste0("outputdata/", parameters$date_routing),
@@ -251,7 +249,7 @@ tar_target(rs_school_ebike, {
   if (file.exists(f)) {
     rs = readRDS(f)
   } else {
-    rs = get_routes(od = od_school,
+    rs = get_routes(od = od_school %>% slice_max(n = parameters$max_to_route, order_by = all, with_ties = FALSE),
                     plans = "ebike", 
                     purpose = "school",
                     folder = paste0("outputdata/", parameters$date_routing),
@@ -271,7 +269,7 @@ tar_target(rs_school_balanced, {
   if (file.exists(f)) {
     rs = readRDS(f)
   } else {
-    rs = get_routes(od = od_school,
+    rs = get_routes(od = od_school %>% slice_max(n = parameters$max_to_route, order_by = all, with_ties = FALSE),
                     plans = "balanced", 
                     purpose = "school",
                     folder = paste0("outputdata/", parameters$date_routing),
