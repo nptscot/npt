@@ -209,7 +209,9 @@ tar_target(rs_school_fastest, {
   if (file.exists(f)) {
     rs = readRDS(f)
   } else {
-    rs = get_routes(od = od_school,
+    od = od_school %>%
+      slice_max(n = parameters$max_to_route, order_by = all, with_ties = FALSE)
+    rs = get_routes(od = od,
                     plans = "fastest", 
                     purpose = "school",
                     folder = paste0("outputdata/", parameters$date_routing),
