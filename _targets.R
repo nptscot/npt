@@ -23,11 +23,6 @@ library(magrittr) # Light load of %>%
 library(future) # Needed for multi-core running
 library(future.callr)
 library(sf) # Needed for sf support
-# library(osmextract)
-# library(ukboundaries)
-# library(simodels)
-# library(stplanr)
-# library(geos)
 
 tar_option_set(
   memory = "transient", 
@@ -1527,8 +1522,13 @@ tar_target(pmtiles_rnet, {
 
   tar_target(simplify_network, {
     cue = tar_cue(mode = "always")
-    simplified_network = simplify_network(combined_network, parameters)
-
+    
+    if(FALSE){
+      simplified_network = simplify_network(combined_network, parameters)
+    } else {
+      simplified_network = combined_network
+    }
+    
     simplified_network
   })
 
