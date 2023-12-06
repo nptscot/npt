@@ -1,5 +1,5 @@
 # Instructions
-# 1) Optional - install the latest packages using lines 12-15 below
+# 1) Optional - Set update_github_packages = TRUE, see line 15
 # 2) library(targets)
 # 3) Optional - to see real-time updates of progress
 # tar_watch(seconds = 60, targets_only = TRUE)
@@ -9,38 +9,30 @@
 # tar_make_future(workers = 4)
 # If your RAM limited use tar_make() to run one job at a time
 
+# Options
 
-# Install packages required to define the if zonebuilder not installed:
-pkgs_installed = "zonebuilder" %in% installed.packages() && 
-  "odjitter" %in% installed.packages()
-if (!pkgs_installed) {
-  source("code/install.R")
+#Do you want to reinstall github packages, set to TRUE for first run
+update_github_packages = FALSE 
 
-}
+# Run the install script
+source("code/install.R")
 
-library(tidyverse)
-library(targets)
+# Load minimum of libraries (Should use package::function in most cases)
+library(targets) # Needed to make targets work
 library(magrittr) # Light load of %>%
-library(sf)
 library(future) # Needed for multi-core running
 library(future.callr)
-library(osmextract)
-library(ukboundaries)
-library(simodels)
-library(stplanr)
-library(geos)
+library(sf) # Needed for sf support
 
 tar_option_set(
   memory = "transient", 
   garbage_collection = TRUE,
   storage = "worker", 
   retrieval = "worker",
-  # # packages that your targets need to run
-  # packages = pkgs,
+  packages = pkgs,
   format = "rds" # default storage format
 )
 
-# plan(callr)
 tar_source()
 
 # Targets -----------------------------------------------------------------
@@ -161,8 +153,7 @@ list(
       subpoints_origins = subpoints_origins,
       subpoints_destinations = subpoints_destinations,
       disaggregation_threshold = 30,
-      deduplicate_pairs = FALSE,
-      odjitter_location = find_odjitter_location()
+      deduplicate_pairs = FALSE#,odjitter_location = find_odjitter_location()
     )
     odj$dist_euclidean_jittered = as.numeric(sf::st_length(odj))
     odj = odj %>%
@@ -777,10 +768,9 @@ tar_target(os_pois, {
 }),
 
 tar_target(grid, {
-  # create 500m grid covering whole of scotland
-  # Geographic data downloaded from https://hub.arcgis.com/datasets/ons::scottish-parliamentary-constituencies-december-2022-boundaries-sc-bgc-2/
-  scot_zones = st_read("./data-raw/Scottish_Parliamentary_Constituencies_December_2022_Boundaries_SC_BGC_-9179620948196964406.gpkg")
-  grid = st_make_grid(scot_zones, cellsize = 500, what = "centers")
+  scot_zones = sf::st_transform(zones, 27700) # Use existing zones
+  grid = sf::st_make_grid(scot_zones, cellsize = 500, what = "centers")
+  grid
 }),
 
 # tar_target(mode_shares, {
@@ -790,45 +780,12 @@ tar_target(grid, {
 #   )
 #   mode_shares
 # }),
-
-tar_target(od_shopping, {
-  check = length(school_stats_json)
-
-  # Add OD centroids for scotland
+tar_target(oas,{
   oas = readRDS("./inputdata/oas.Rds")
+  oas
+}),
 
-  os_retail = os_pois %>% 
-    filter(groupname == "Retail") # 26279 points
-  os_retail = os_retail %>% 
-    st_transform(27700)
-
-  shopping = os_retail %>% 
-    mutate(grid_id = st_nearest_feature(os_retail, grid))
-  
-  # calculate weighting of each grid point
-  shopping_grid = shopping %>% 
-    st_drop_geometry() %>% 
-    group_by(grid_id) %>% 
-    summarise(size = n())
-  
-  # assign grid geometry
-  grid_df = data.frame(grid)
-  grid_df = tibble::rowid_to_column(grid_df, "grid_id")
-  shopping_join = inner_join(grid_df, shopping_grid)
-  shopping_sf = st_as_sf(shopping_join)
-  shopping_sf = st_transform(shopping_sf, 4326)
-  # tm_shape(shopping_sf) + tm_dots("size") # check points look right
-  
-  saveRDS(shopping_sf, "./inputdata/shopping_grid.Rds")
-  shopping_grid = readRDS("./inputdata/shopping_grid.Rds")
-  
-  # Estimate number of shopping trips from each origin zone
-  # Calculate number of trips / number of cyclists
-  shop_percent = trip_purposes %>% 
-    filter(Purpose =="Shopping") %>% 
-    select(adjusted_mean)
-  shop_percent = shop_percent[[1]]/100
-  
+tar_target(intermediate_zones,{
   if (!file.exists("./data-raw/SG_IntermediateZone_Bdry_2011.shp")) {
     u = "https://maps.gov.scot/ATOM/shapefiles/SG_IntermediateZoneBdry_2011.zip"
     f = basename(u)
@@ -838,360 +795,26 @@ tar_target(od_shopping, {
     # system("gh release upload v0.02 SG_IntermediateZoneBdry_2011.zip")
   }
   intermediate_zones = st_read("./data-raw/SG_IntermediateZone_Bdry_2011.shp")
-  zones_shopping = intermediate_zones %>% 
-    select(InterZone, ResPop2011)
-  # from NTS 2019 (England) average 953 trips/person/year divided by 365 = 2.61 trips/day
-  zones_shopping = zones_shopping %>% 
-    mutate(shopping_trips = ResPop2011 * 2.61 * shop_percent) %>% 
-    select(-ResPop2011)
-  zones_shopping = st_transform(zones_shopping, 4326)
-  zones_shopping = st_make_valid(zones_shopping)
-  
-  if(parameters$open_data_build) {
-    zones_shopping = zones_shopping[study_area, op = sf::st_within]
-  }
-  
-  
-  # z = zones
-  # z = z[subpoints_destinations, ]
-  # od = od_data |>
-  #   filter(geo_code1 %in% z$DataZone) |>
-  #   filter(geo_code2 %in% z$DataZone)
-  # set.seed(2023)
-  
-  # Spatial interaction model of journeys
-  # We could validate this SIM using the Scottish data on mean km travelled 
-  max_length_euclidean_km = 5
-  od_shopping_initial = si_to_od(zones_shopping, shopping_grid, max_dist = max_length_euclidean_km * 1000)
-  od_interaction = od_shopping_initial %>% 
-    si_calculate(fun = gravity_model, 
-                 m = origin_shopping_trips,
-                 n = destination_size,
-                 d = distance_euclidean,
-                 beta = 0.5,
-                 constraint_production = origin_shopping_trips)
-  
-  saveRDS(od_interaction, "./inputdata/shopping_interaction.Rds")
-  od_interaction = readRDS("./inputdata/shopping_interaction.Rds")
-
-  # Need to correct the number of trips, in accordance with origin_shopping_trips
-  od_adjusted = od_interaction %>% 
-    group_by(O) %>% 
-    mutate(
-      proportion = interaction / sum(interaction),
-      shopping_all_modes = origin_shopping_trips * proportion
-    ) %>% 
-    ungroup()    
-  
-  # Jittering
-  shopping_polygons = sf::st_buffer(shopping_grid, dist = 0.0001)
-  
-  # why does distance_euclidean drop so dramatically when we go from od_interaction to od_adjusted_jittered? 
-  od_adjusted_jittered = odjitter::jitter(
-    od = od_adjusted,
-    zones = zones_shopping,
-    zones_d = shopping_polygons, # each polygon is a single grid point, so destinations are kept the same
-    subpoints_origins = oas,
-    subpoints_destinations = shopping_grid,
-    disaggregation_key = "shopping_all_modes",
-    disaggregation_threshold = parameters$disag_threshold,
-    deduplicate_pairs = FALSE
-  )
-  
-  saveRDS(od_adjusted_jittered, "./inputdata/shopping_interaction_jittered.Rds")
-  od_adjusted_jittered = readRDS("./inputdata/shopping_interaction_jittered.Rds")
-
-  # Get mode shares
-  
-  # These are the overall means from the SHS Travel Diaries in table 16 of 
-  # transport-and-travel-in-scotland-2019-local-authority-tables.xlsx
-  # car = driver + passenger
-  # public_transport = bus + rail
-  # taxi = taxi + other
-  mode_shares = data_frame(
-      bicycle = 0.012,
-      foot = 0.221,
-      car = 0.652,
-      public_transport = 0.093,
-      taxi = 0.022
-    )
-
-  od_shopping_jittered = od_adjusted_jittered %>% 
-    rename(
-      geo_code1 = O,
-      geo_code2 = D
-    ) %>% 
-    mutate(bicycle = shopping_all_modes * mode_shares$bicycle,
-           foot = shopping_all_modes * mode_shares$foot,
-           car = shopping_all_modes * mode_shares$car,
-           public_transport = shopping_all_modes * mode_shares$public_transport,
-           taxi = shopping_all_modes * mode_shares$taxi,
-           route_id = paste0(geo_code1, "_", geo_code2, "_", seq(nrow(od_adjusted_jittered)))
-           )
-  
-  od_shopping_subset = od_shopping_jittered %>% 
-    rename(length_euclidean_unjittered = distance_euclidean) %>% 
-    mutate(
-      length_euclidean_unjittered = length_euclidean_unjittered/1000,
-      length_euclidean_jittered = units::drop_units(st_length(od_shopping_jittered))/1000
-    ) %>%
-    filter(
-      length_euclidean_jittered > (parameters$min_distance_meters/1000),
-      length_euclidean_jittered < max_length_euclidean_km
-    )
-  n_short_lines_removed = nrow(od_shopping_jittered) - nrow(od_shopping_subset)
-  message(n_short_lines_removed, " short or long desire lines removed")
-  
-  od_shopping_subset = od_shopping_subset %>% 
-    rename(
-      origin_trips = origin_shopping_trips, 
-      all = shopping_all_modes
-    ) %>% 
-    mutate(purpose = "shopping")
-  saveRDS(od_shopping_subset, "./inputdata/od_shopping_jittered.Rds")
-  od_shopping_subset
+  intermediate_zones
 }),
 
+# Utility OD -------------------------------------------------------------
+tar_target(od_shopping, {
+  od_shopping = make_od_shopping(oas, os_pois, grid, trip_purposes,
+                                intermediate_zones, parameters,study_area)
+  od_shopping
+}),
 
-# Visiting OD -------------------------------------------------------------
 tar_target(od_visiting, {
-  check = length(od_shopping)
-  
-  oas = readRDS("./inputdata/oas.Rds")
-  visiting_percent = trip_purposes %>% 
-    filter(Purpose == "Visiting friends or relatives") %>% 
-    select(adjusted_mean)
-  visiting_percent = visiting_percent[[1]]/100
-  
-  intermediate_zones = st_read("./data-raw/SG_IntermediateZone_Bdry_2011.shp")
-  zones_visiting = intermediate_zones %>% 
-    select(InterZone, ResPop2011)
-  zones_visiting = zones_visiting %>% 
-    mutate(visiting_trips = ResPop2011 * 2.61 * visiting_percent) %>% 
-    select(-ResPop2011)
-  zones_visiting = st_transform(zones_visiting, 4326)
-  zones_visiting = st_make_valid(zones_visiting)
-  
-  if(parameters$open_data_build) {
-    zones_visiting = zones_visiting[study_area, op = sf::st_within]
-  }
-  
-  # Spatial interaction model of journeys
-  max_length_euclidean_km = 5
-  od_visiting_initial = si_to_od(zones_visiting, zones_visiting, max_dist = max_length_euclidean_km * 1000)
-  od_interaction = od_visiting_initial %>% 
-    si_calculate(fun = gravity_model, 
-                 m = origin_visiting_trips,
-                 n = destination_visiting_trips,
-                 d = distance_euclidean,
-                 beta = 0.5,
-                 constraint_production = origin_visiting_trips)
-  
-  saveRDS(od_interaction, "./inputdata/visiting_interaction.Rds")
-  od_interaction = readRDS("./inputdata/visiting_interaction.Rds")
-  
-  # Need to correct the number of trips, in accordance with origin_visiting_trips
-  od_adjusted = od_interaction %>% 
-    group_by(O) %>% 
-    mutate(
-      proportion = interaction / sum(interaction),
-      visiting_all_modes = origin_visiting_trips * proportion
-    ) %>% 
-    ungroup()
-  
-  # why does distance_euclidean drop so dramatically when we go from od_interaction to od_adjusted_jittered? 
-  od_adjusted_jittered = odjitter::jitter(
-    od = od_adjusted,
-    zones = zones_visiting,
-    subpoints = oas,
-    disaggregation_key = "visiting_all_modes",
-    disaggregation_threshold = parameters$disag_threshold,
-    deduplicate_pairs = FALSE
-  )
-  
-  saveRDS(od_adjusted_jittered, "./inputdata/visiting_interaction_jittered.Rds")
-  od_adjusted_jittered = readRDS("./inputdata/visiting_interaction_jittered.Rds")
-  
-  # Get cycle mode shares
-  mode_shares = data_frame(
-    bicycle = 0.012,
-    foot = 0.221,
-    car = 0.652,
-    public_transport = 0.093,
-    taxi = 0.022
-  )
-  
-  od_visiting_jittered = od_adjusted_jittered %>% 
-    rename(
-      geo_code1 = O,
-      geo_code2 = D
-    ) %>% 
-    mutate(bicycle = visiting_all_modes * mode_shares$bicycle,
-           foot = visiting_all_modes * mode_shares$foot,
-           car = visiting_all_modes * mode_shares$car,
-           public_transport = visiting_all_modes * mode_shares$public_transport,
-           taxi = visiting_all_modes * mode_shares$taxi,
-           route_id = paste0(geo_code1, "_", geo_code2, "_", seq(nrow(od_adjusted_jittered)))
-    )
-  
-  od_visiting_subset = od_visiting_jittered %>% 
-    rename(length_euclidean_unjittered = distance_euclidean) %>% 
-    mutate(
-      length_euclidean_unjittered = length_euclidean_unjittered/1000,
-      length_euclidean_jittered = units::drop_units(st_length(od_visiting_jittered))/1000
-    ) %>%
-    filter(
-      length_euclidean_jittered > (parameters$min_distance_meters/1000),
-      length_euclidean_jittered < max_length_euclidean_km
-    )
-  n_short_lines_removed = nrow(od_visiting_jittered) - nrow(od_visiting_subset)
-  message(n_short_lines_removed, " short or long desire lines removed")
-  
-  od_visiting_subset = od_visiting_subset %>% 
-    rename(
-      origin_trips = origin_visiting_trips, 
-      all = visiting_all_modes,
-      destination_size = destination_visiting_trips
-    ) %>% 
-    mutate(purpose = "visiting")
-  saveRDS(od_visiting_subset, "./inputdata/od_visiting_jittered.Rds")
-  od_visiting_subset
+  od_visiting = make_od_visiting(oas, os_pois, grid, trip_purposes,
+                                intermediate_zones, parameters, study_area)
+  od_visiting
 }),
 
-
-# Leisure OD --------------------------------------------------------------
 tar_target(od_leisure, {
-  check = length(od_shopping)
-
-  oas = readRDS("./inputdata/oas.Rds")
-  os_leisure = os_pois %>% 
-    filter(groupname == "Sport and Entertainment") # 20524 points
-  os_leisure = os_leisure %>% 
-    st_transform(27700)
-  leisure = os_leisure %>% 
-    mutate(grid_id = st_nearest_feature(os_leisure, grid))
-  
-  # calculate weighting of each grid point
-  leisure_grid = leisure %>% 
-    st_drop_geometry() %>% 
-    group_by(grid_id) %>% 
-    summarise(size = n())
-  
-  # assign grid geometry
-  grid_df = data.frame(grid)
-  grid_df = tibble::rowid_to_column(grid_df, "grid_id")
-  leisure_join = inner_join(grid_df, leisure_grid)
-  leisure_sf = st_as_sf(leisure_join)
-  leisure_sf = st_transform(leisure_sf, 4326)
-  
-  saveRDS(leisure_sf, "./inputdata/leisure_grid.Rds")
-  
-  
-  leisure_grid = readRDS("./inputdata/leisure_grid.Rds")
-  
-  leisure_percent = trip_purposes %>% 
-    filter(Purpose =="Sport/Entertainment") %>% 
-    select(adjusted_mean)
-  leisure_percent = leisure_percent[[1]]/100
-  
-  intermediate_zones = st_read("./data-raw/SG_IntermediateZone_Bdry_2011.shp")
-  zones_leisure = intermediate_zones %>% 
-    select(InterZone, ResPop2011)
-  zones_leisure = zones_leisure %>% 
-    mutate(leisure_trips = ResPop2011 * 2.61 * leisure_percent) %>% 
-    select(-ResPop2011)
-  zones_leisure = st_transform(zones_leisure, 4326)
-  zones_leisure = st_make_valid(zones_leisure)
-  
-  if(parameters$open_data_build) {
-    zones_leisure = zones_leisure[study_area, op = sf::st_within]
-  }
-  
-  # Spatial interaction model of journeys
-  # We could validate this SIM using the Scottish data on mean km travelled 
-  max_length_euclidean_km = 5
-  od_leisure_initial = si_to_od(zones_leisure, leisure_grid, max_dist = max_length_euclidean_km * 1000)
-  od_interaction = od_leisure_initial %>% 
-    si_calculate(fun = gravity_model, 
-                 m = origin_leisure_trips,
-                 n = destination_size,
-                 d = distance_euclidean,
-                 beta = 0.5,
-                 constraint_production = origin_leisure_trips)
-  
-  saveRDS(od_interaction, "./inputdata/leisure_interaction.Rds")
-  od_interaction = readRDS("./inputdata/leisure_interaction.Rds")
-  
-  # Need to correct the number of trips, in accordance with origin_leisure_trips
-  od_adjusted = od_interaction %>% 
-    group_by(O) %>% 
-    mutate(
-      proportion = interaction / sum(interaction),
-      leisure_all_modes = origin_leisure_trips * proportion
-    ) %>% 
-    ungroup()
-  
-  # Jittering
-  leisure_polygons = sf::st_buffer(leisure_grid, dist = 0.0001)
-  
-  # why does distance_euclidean drop so dramatically when we go from od_interaction to od_adjusted_jittered? 
-  od_adjusted_jittered = odjitter::jitter(
-    od = od_adjusted,
-    zones = zones_leisure,
-    zones_d = leisure_polygons, # each polygon is a single grid point, so destinations are kept the same
-    subpoints_origins = oas,
-    subpoints_destinations = leisure_grid,
-    disaggregation_key = "leisure_all_modes",
-    disaggregation_threshold = parameters$disag_threshold,
-    deduplicate_pairs = FALSE
-  )
-  
-  saveRDS(od_adjusted_jittered, "./inputdata/leisure_interaction_jittered.Rds")
-  od_adjusted_jittered = readRDS("./inputdata/leisure_interaction_jittered.Rds")
-
-  # Get mode shares
-  mode_shares = data_frame(
-    bicycle = 0.012,
-    foot = 0.221,
-    car = 0.652,
-    public_transport = 0.093,
-    taxi = 0.022
-  )
-  
-  od_leisure_jittered = od_adjusted_jittered %>% 
-    rename(
-      geo_code1 = O,
-      geo_code2 = D
-    ) %>% 
-    mutate(bicycle = leisure_all_modes * mode_shares$bicycle,
-           foot = leisure_all_modes * mode_shares$foot,
-           car = leisure_all_modes * mode_shares$car,
-           public_transport = leisure_all_modes * mode_shares$public_transport,
-           taxi = leisure_all_modes * mode_shares$taxi,
-           route_id = paste0(geo_code1, "_", geo_code2, "_", seq(nrow(od_adjusted_jittered)))
-    )
-  
-  od_leisure_subset = od_leisure_jittered %>% 
-    rename(length_euclidean_unjittered = distance_euclidean) %>% 
-    mutate(
-      length_euclidean_unjittered = length_euclidean_unjittered/1000,
-      length_euclidean_jittered = units::drop_units(st_length(od_leisure_jittered))/1000
-    ) %>%
-    filter(
-      length_euclidean_jittered > (parameters$min_distance_meters/1000),
-      length_euclidean_jittered < max_length_euclidean_km
-    )
-  n_short_lines_removed = nrow(od_leisure_jittered) - nrow(od_leisure_subset)
-  message(n_short_lines_removed, " short or long desire lines removed")
-  
-  od_leisure_subset = od_leisure_subset %>% 
-    rename(
-      origin_trips = origin_leisure_trips,
-      all = leisure_all_modes
-           ) %>% 
-    mutate(purpose = "leisure")
-  saveRDS(od_leisure_subset, "./inputdata/od_leisure_jittered.Rds")
-  od_leisure_subset
+  od_leisure = make_od_leisure(oas, os_pois, grid, trip_purposes,
+                              intermediate_zones, parameters, study_area)
+  od_leisure
 }),
 
 
@@ -1202,14 +825,14 @@ tar_target(od_utility_combined, {
   check = length(od_leisure)
   check = length(od_visiting)
   od_utility_combined = rbind(od_shopping, od_visiting, od_leisure) %>%
-    slice_max(n = parameters$max_to_route, order_by = all, with_ties = FALSE)
+    dplyr::slice_max(n = parameters$max_to_route, order_by = all, with_ties = FALSE)
   
   # Ensure the columns and distance units are identical to the other routing types 
   # (apart from the additional trip purpose column)
   od_utility_combined = od_utility_combined %>% 
-    mutate(dist_euclidean = length_euclidean_unjittered * 1000,
+    dplyr::mutate(dist_euclidean = length_euclidean_unjittered * 1000,
            dist_euclidean_jittered = length_euclidean_jittered * 1000) %>% 
-    select(geo_code1, geo_code2, car, foot, bicycle, all, 
+    dplyr::select(geo_code1, geo_code2, car, foot, bicycle, all, 
            dist_euclidean, public_transport, taxi, geometry,
            dist_euclidean_jittered, route_id, purpose)
   
@@ -1439,7 +1062,7 @@ tar_target(zones_contextual, {
   files = list.files(file.path(tempdir(),"SIMD/simd2020_withgeog"), full.names = TRUE)
   
   zones <- sf::read_sf(file.path(tempdir(),"SIMD/simd2020_withgeog/sc_dz_11.shp"))
-  simd <- read_csv(file.path(tempdir(),"SIMD/simd2020_withgeog/simd2020_withinds.csv"))
+  simd <- readr::read_csv(file.path(tempdir(),"SIMD/simd2020_withgeog/simd2020_withinds.csv"))
   
   unlink(file.path(tempdir(),"SIMD"), recursive = TRUE)
   
@@ -1899,130 +1522,16 @@ tar_target(pmtiles_rnet, {
 
   tar_target(simplify_network, {
     cue = tar_cue(mode = "always")
-    # Read spatial data directly from URLs into sf objects
-    # TODO: use small dataset if open data build is TRUE
-    if (parameters$open_data_build) {
-      rnet_x = sf::read_sf("https://github.com/ropensci/stplanr/releases/download/v1.0.2/rnet_x_ed.geojson")
-      rnet_x_buffers = sf::st_buffer(rnet_x, dist = 20, endCapStyle = "FLAT")
-      single_rnet_x_buffer = sf::st_union(rnet_x_buffers)
-      rnet_x_buffer = sf::st_sf(geometry = single_rnet_x_buffer)
-      rnet_x_buffer = sf::st_make_valid(rnet_x_buffer)
+    
+    if(FALSE){
+      simplified_network = simplify_network(combined_network, parameters)
     } else {
-      # URL for the original route network
-      url_rnet_x = "https://github.com/nptscot/networkmerge/releases/download/v0.1/OS_Scotland_Network.geojson"
-      f_rnet_x = basename(url_rnet_x)
-      if (!file.exists(f_rnet_x)) { 
-          download.file(url_rnet_x, f_rnet_x, method = "libcurl")
-      }
-      if (file.exists(f_rnet_x) && file.size(f_rnet_x) > 0) {
-          rnet_x = sf::read_sf(f_rnet_x)
-      } else {
-          stop("File download failed or file is empty for rnet_x")
-      }
-
+      simplified_network = combined_network
     }
     
-    # Assign rnet_y from combined_network
-    rnet_y = combined_network
-
-    # Transform the spatial data to a different coordinate reference system (EPSG:27700)
-    # TODO: uncomment:
-    rnet_xp = sf::st_transform(rnet_x, "EPSG:27700")
-    rnet_yp = sf::st_transform(rnet_y, "EPSG:27700")
-
-    # Extract column names from the rnet_yp
-    name_list = names(rnet_yp)
-
-    # Initialize an empty list
-    funs = list()
-
-    # Loop through each name and assign it a function based on specific conditions
-    for (name in name_list) {
-      if (name == "geometry") {
-        next  # Skip the current iteration
-      } else if (name %in% c("Gradient", "Quietness")) {
-        funs[[name]] = mean
-      } else {
-        funs[[name]] = sum
-      }
-    }
-
-    # Merge the spatial objects rnet_xp and rnet_yp based on specified parameters
-    dist = 20
-    angle = 10
-    rnet_merged_all = stplanr::rnet_merge(rnet_xp, rnet_yp, dist = dist, segment_length = 10, funs = funs, max_angle_diff = 20)  # 
-
-    # Remove specific columns from the merged spatial object
-    rnet_merged_all = rnet_merged_all[ , !(names(rnet_merged_all) %in% c('identifier','length_x'))]
-
-    # Remove Z and M dimensions (if they exist) and set geometry precision
-    has_Z_or_M = any(sf::st_dimension(rnet_merged_all) %in% c("XYZ", "XYM", "XYZM"))
-
-    # If Z or M dimensions exist, remove them and print a message
-    if (has_Z_or_M) {
-      rnet_merged_all = sf::st_zm(rnet_merged_all, what = "ZM")
-      cat("Z or M dimensions have been removed from rnet_merged_all.\n")
-    }
-
-    # Set the precision of geometries in 'rnet_merged_all' to 1e3 (0.001)
-    rnet_merged_all$geometry = sf::st_set_precision(rnet_merged_all$geometry, 1e3)
-
-    # Round all numeric columns in 'rnet_merged_all' to 0 decimal places
-    rnet_merged_all = rnet_merged_all %>%
-      mutate(across(where(is.numeric), ~ round(.x, 0)))      
-
-    # Prepare a list of columns to check for NA, excluding 'geometry'
-    rnet_yp_list = as.list(names(rnet_yp))
-    columns_to_check = unlist(rnet_yp_list[rnet_yp_list != "geometry"])
-
-    # Filter out rows in 'rnet_merged_all' where all specified columns are NA
-    rnet_merged_all = rnet_merged_all %>%
-      filter(rowSums(is.na(select(., all_of(columns_to_check)))) != length(columns_to_check))
-
-    # Selecting only the geometry column from the 'rnet_merged_all' dataset.
-    rnet_merged_all_only_geometry = rnet_merged_all %>% select(geometry)
-
-    # Merging all geometries into a single geometry using st_union from the sf package.
-    rnet_merged_all_union = sf::st_union(rnet_merged_all_only_geometry)
-
-    # Transforming the merged geometry to a specific coordinate reference system (CRS), EPSG:27700.
-    rnet_merged_all_projected = sf::st_transform(rnet_merged_all_union, "EPSG:27700")
-
-    # Converting the projected geometry into a GEOS geometry. GEOS is a library used for spatial operations.
-    rnet_merged_all_geos = geos::as_geos_geometry(rnet_merged_all_projected)
-
-    # Creating a buffer around the GEOS geometry. This expands the geometry by a specified distance (in meters).
-    rnet_merged_all_geos_buffer = geos::geos_buffer(rnet_merged_all_geos, distance = 30)
-
-    # Converting the buffered GEOS geometry back to an sf object.
-    rnet_merged_all_projected_buffer = sf::st_as_sf(rnet_merged_all_geos_buffer)
-
-    # Confirming buffered geometry CRS as EPSG:27700.
-    rnet_merged_all_buffer = sf::st_transform(rnet_merged_all_projected_buffer, "EPSG:4326")
-
-    # Subsetting another dataset 'rnet_y' based on the spatial relation with 'rnet_merged_all_buffer'.
-    # It selects features from 'rnet_y' that are within the boundaries of 'rnet_merged_all_buffer'.
-    rnet_y_subset = rnet_y[rnet_merged_all_buffer, , op = sf::st_within]
-
-    # Filter 'rnet_y' to exclude geometries within 'within_join'
-    rnet_y_rest = rnet_y[!rnet_y$geometry %in% rnet_y_subset$geometry, ]
-
-    # Transform the CRS of the 'rnet_merged_all' object to WGS 84 (EPSG:4326)  
-    rnet_merged_all = sf::st_transform(rnet_merged_all, "EPSG:4326")
-
-    # Combine 'rnet_y_rest' and 'rnet_merged_all' into a single dataset
-    simplified_network = dplyr::bind_rows(rnet_y_rest, rnet_merged_all)
-
-    # Remove specified columns and replace NA values with 0 in the remaining columns
-    items_to_remove = c('geometry', 'length_x_original', 'length_x_cropped')
-
-    cols_to_convert = names(simplified_network)[!names(simplified_network) %in% items_to_remove]
-    for (col in cols_to_convert) {
-      simplified_network[[col]][is.na(simplified_network[[col]])] = 0
-    }
-
     simplified_network
   })
+
 
   # The code below is using python script to acheive the same funtion as the R code (lines 1303 - 1344) above
   # tar_target(rnet_simple, {
