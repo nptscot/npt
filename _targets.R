@@ -255,7 +255,7 @@ tar_target(done_school_ebike, {
 }),
 
 tar_target(rs_school_balanced, {
-  length(done_commute_ebike)
+  length(done_utility_ebike)
   f = paste0("outputdata/", parameters$date_routing, "routes_max_dist_school_balanced.Rds")
   if (file.exists(f)) {
     rs = readRDS(f)
