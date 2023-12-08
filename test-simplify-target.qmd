@@ -117,7 +117,7 @@ if (parameters$open_data_build) {
   rnet_merged_all_geos = geos::as_geos_geometry(rnet_merged_all_projected)
   
   # Creating a buffer around the GEOS geometry. This expands the geometry by a specified distance (in meters).
-  rnet_merged_all_geos_buffer = geos::geos_buffer(rnet_merged_all_geos, distance = 30, )
+  rnet_merged_all_geos_buffer = geos::geos_buffer(rnet_merged_all_geos, distance = 30, params = geos::geos_buffer_params(quad_segs = 4))
   
   # Converting the buffered GEOS geometry back to an sf object.
   rnet_merged_all_projected_buffer = sf::st_as_sf(rnet_merged_all_geos_buffer)
