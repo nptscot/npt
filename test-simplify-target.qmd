@@ -102,7 +102,9 @@ if (parameters$open_data_build) {
   
   # Filter out rows in 'rnet_merged_all' where all columns are NA
   rnet_merged_all = rnet_merged_all %>%
-    dplyr::filter_at(columns_to_check, any_vars(!is.na(.)))
+    dplyr::filter_at(columns_to_check, any_vars(!is.na(.))) %>%
+    # Additional step to sample top 10000 rows for testing:
+    slice_max(order_by = all_fastest_bicommute_fastest_bicycle_go_dutch, n = 10000)
   
   # Selecting only the geometry column from the 'rnet_merged_all' dataset.
   rnet_merged_all_only_geometry = rnet_merged_all %>% dplyr::select(geometry)
