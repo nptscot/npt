@@ -1422,7 +1422,7 @@ tar_target(pmtiles_rnet, {
     saveRDS(od_commute_subset, "outputdata/od_commute_subset.Rds")
     saveRDS(zones_stats, "outputdata/zones_stats.Rds")
     saveRDS(school_stats, "outputdata/school_stats.Rds")
-    sf::write_sf(simplify_network, "outputdata/simplified_network.geojson", delete_dsn = TRUE)
+    sf::write_sf(simplified_network, "outputdata/simplified_network.geojson", delete_dsn = TRUE)
     
     file.copy("outputs/daysmetric.pmtiles","outputdata/daysmetric.pmtiles")
     file.copy("outputs/data_zones.pmtiles","outputdata/data_zones.pmtiles")
@@ -1520,44 +1520,12 @@ tar_target(pmtiles_rnet, {
     write_csv(build_summary, "outputs/build_summary.csv")
   }),
 
-  tar_target(simplify_network, {
+  tar_target(simplified_network, {
     cue = tar_cue(mode = "always")
-    
-    if(FALSE){
-      simplified_network = simplify_network(combined_network, parameters)
-    } else {
-      simplified_network = combined_network
-    }
-    
-    simplified_network
+    rnet_simple = simplify_network(combined_network, parameters)
+    rnet_simple
   })
 
-
-  # The code below is using python script to acheive the same funtion as the R code (lines 1303 - 1344) above
-  # tar_target(rnet_simple, {
-  #     # Run this target only after the 'simplify_network' target has been run:
-  #     simplify_network
-  #     # Get the path to the Python executable using 'where python'
-  #     python_path = system("where python", intern = TRUE)[1]
-
-  #     # Get the current working directory
-  #     current_wd = getwd()
-
-  #     # Define the relative path to the directory containing the Python script
-  #     relative_script_path = "code/sjoin_rnet.py"
-
-  #     # Construct the full path to the Python script using the current working directory
-  #     full_script_path = file.path(current_wd, relative_script_path)
-
-  #     # Construct the command to run the Python script
-  #     cmd = paste(python_path, full_script_path)
-
-  #     # Run the Python script using the system function
-  #     system(cmd)
-      
-  #     # Read the output from the Python script
-  #     sf::st_read("tmp/simplified_network.gpkg")
-  # })
 )
 # # Download a snapshot of the data:
 # setwd("outputdata")

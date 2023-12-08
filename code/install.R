@@ -5,7 +5,8 @@ pkgs  = c(
   "glue","zip","jsonlite","remotes","gert","collapse","pct",
   "readr", "future", "future.callr", "future.batchtools",
   "bs4Dash", "DT", "gt", "pingr", "shinybusy", "shinyWidgets","geos",
-  "odjitter", "cyclestreets" ,"stplanr", "ukboundaries", "simodels"
+  "odjitter", "cyclestreets" ,"stplanr", "ukboundaries", "simodels",
+  "geojsonsf"
   #,"rsgeo"
 )
 
