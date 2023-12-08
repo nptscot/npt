@@ -17,13 +17,15 @@ gh release download v2023-12-06 --pattern combined_network_tile.zip --repo nptsc
 Unzip the file with R as follows:
 
 ```{r}
-unzip("combined_network_tile.zip")
-list.files("outputdata", pattern = "geojson")
+if (! file.exists("outputdata/combined_network_tile.geojson")) {
+  unzip("combined_network_tile.zip")
+  list.files("outputdata", pattern = "geojson")
+}
 ```
 
 ```{r}
 parameters = jsonlite::read_json("parameters.json", simplifyVector = T)
-rnet_y = sf::read_sf("outputdata/combined_network_tile.geojson")
+rnet_y = geojsonsf::geojson_sf("outputdata/combined_network_tile.geojson")
 ```
 
 ```{r}
@@ -115,7 +117,7 @@ if (parameters$open_data_build) {
   rnet_merged_all_geos = geos::as_geos_geometry(rnet_merged_all_projected)
   
   # Creating a buffer around the GEOS geometry. This expands the geometry by a specified distance (in meters).
-  rnet_merged_all_geos_buffer = geos::geos_buffer(rnet_merged_all_geos, distance = 30)
+  rnet_merged_all_geos_buffer = geos::geos_buffer(rnet_merged_all_geos, distance = 30, )
   
   # Converting the buffered GEOS geometry back to an sf object.
   rnet_merged_all_projected_buffer = sf::st_as_sf(rnet_merged_all_geos_buffer)
