@@ -2,6 +2,10 @@
 format: gfm
 ---
 
+```{r setup, include=FALSE}
+library(tidyverse)
+```
+
 The first stage is to download the combined_network_tile data, from the https://github.com/nptscot/outputdata/releases/tag/v2023-12-06 release.
 
 We can do this with the `gh` CLI tool, by downloading everything matching the `combined_network_tile` pattern in the nptscot/outputdata repository:
@@ -94,9 +98,9 @@ if (parameters$open_data_build) {
   rnet_yp_list = as.list(names(rnet_yp))
   columns_to_check = unlist(rnet_yp_list[rnet_yp_list != "geometry"])
   
-  # Filter out rows in 'rnet_merged_all' where all specified columns are NA
+  # Filter out rows in 'rnet_merged_all' where all columns are NA
   rnet_merged_all = rnet_merged_all %>%
-    filter(rowSums(is.na(select(., all_of(columns_to_check)))) != length(columns_to_check))
+    dplyr::filter_at(columns_to_check, any_vars(!is.na(.)))
   
   # Selecting only the geometry column from the 'rnet_merged_all' dataset.
   rnet_merged_all_only_geometry = rnet_merged_all %>% dplyr::select(geometry)
