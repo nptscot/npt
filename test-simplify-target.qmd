@@ -4,6 +4,7 @@ format: gfm
 
 ```{r setup, include=FALSE}
 library(tidyverse)
+library(sf)
 ```
 
 The first stage is to download the combined_network_tile data, from the https://github.com/nptscot/outputdata/releases/tag/v2023-12-06 release.
@@ -26,6 +27,9 @@ if (! file.exists("outputdata/combined_network_tile.geojson")) {
 ```{r}
 parameters = jsonlite::read_json("parameters.json", simplifyVector = T)
 rnet_y = geojsonsf::geojson_sf("outputdata/combined_network_tile.geojson")
+names(rnet_y)
+rnet_y = rnet_y |>
+  slice_max(order_by = commute_fastest_bicycle_go_dutch, n = 10000)
 ```
 
 ```{r}
@@ -76,6 +80,7 @@ if (parameters$open_data_build) {
   dist = 20
   angle = 10
   rnet_merged_all = stplanr::rnet_merge(rnet_xp, rnet_yp, dist = dist, segment_length = 10, funs = funs, max_angle_diff = 20)  #
+  sum(rnet_merged_all[[3]], na.rm = TRUE)
   
   # Remove specific columns from the merged spatial object
   rnet_merged_all = rnet_merged_all[ , !(names(rnet_merged_all) %in% c('identifier','length_x'))]
@@ -104,7 +109,7 @@ if (parameters$open_data_build) {
   rnet_merged_all = rnet_merged_all %>%
     dplyr::filter_at(columns_to_check, any_vars(!is.na(.))) %>%
     # Additional step to sample top 10000 rows for testing:
-    slice_max(order_by = all_fastest_bicommute_fastest_bicycle_go_dutch, n = 10000)
+    slice_max(order_by = commute_fastest_bicycle_go_dutch, n = 10000)
   
   # Selecting only the geometry column from the 'rnet_merged_all' dataset.
   rnet_merged_all_only_geometry = rnet_merged_all %>% dplyr::select(geometry)
