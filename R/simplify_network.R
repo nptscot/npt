@@ -2,7 +2,7 @@
 #' @param combined_network combined_network
 #' @param parameters parameters
 
-simplify_network = function(combined_network, parameters){
+simplify_network = function(rnet_y, parameters){
   # Read spatial data directly from URLs into sf objects
   # TODO: use small dataset if open data build is TRUE
   if (parameters$open_data_build) {
@@ -25,9 +25,6 @@ simplify_network = function(combined_network, parameters){
     }
     
   }
-  
-  # Assign rnet_y from combined_network
-  rnet_y = combined_network
   
   # Transform the spatial data to a different coordinate reference system (EPSG:27700)
   # TODO: uncomment:
