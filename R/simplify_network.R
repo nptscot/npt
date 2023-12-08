@@ -6,7 +6,7 @@ simplify_network = function(rnet_y, parameters){
   # Read spatial data directly from URLs into sf objects
   # TODO: use small dataset if open data build is TRUE
   if (parameters$open_data_build) {
-    rnet_x = sf::read_sf("https://github.com/ropensci/stplanr/releases/download/v1.0.2/rnet_x_ed.geojson")
+    rnet_x = geojsonsf::geojson_sf("https://github.com/ropensci/stplanr/releases/download/v1.0.2/rnet_x_ed.geojson")
     rnet_x_buffers = sf::st_buffer(rnet_x, dist = 20, endCapStyle = "FLAT")
     single_rnet_x_buffer = sf::st_union(rnet_x_buffers)
     rnet_x_buffer = sf::st_sf(geometry = single_rnet_x_buffer)
@@ -19,7 +19,7 @@ simplify_network = function(rnet_y, parameters){
       download.file(url_rnet_x, f_rnet_x, method = "libcurl")
     }
     if (file.exists(f_rnet_x) && file.size(f_rnet_x) > 0) {
-      rnet_x = sf::read_sf(f_rnet_x)
+      rnet_x = geojsonsf::geojson_sf(f_rnet_x)
     } else {
       stop("File download failed or file is empty for rnet_x")
     }
@@ -76,10 +76,10 @@ simplify_network = function(rnet_y, parameters){
   rnet_yp_list = as.list(names(rnet_yp))
   columns_to_check = unlist(rnet_yp_list[rnet_yp_list != "geometry"])
   
-  # Filter out rows in 'rnet_merged_all' where all specified columns are NA
+  # Filter out rows in 'rnet_merged_all' where all specified are NA
   rnet_merged_all = rnet_merged_all %>%
-    filter(rowSums(is.na(select(., all_of(columns_to_check)))) != length(columns_to_check))
-  
+    dplyr::filter_at(columns_to_check, any_vars(!is.na(.)))
+      
   # Selecting only the geometry column from the 'rnet_merged_all' dataset.
   rnet_merged_all_only_geometry = rnet_merged_all %>% dplyr::select(geometry)
   
@@ -93,7 +93,7 @@ simplify_network = function(rnet_y, parameters){
   rnet_merged_all_geos = geos::as_geos_geometry(rnet_merged_all_projected)
   
   # Creating a buffer around the GEOS geometry. This expands the geometry by a specified distance (in meters).
-  rnet_merged_all_geos_buffer = geos::geos_buffer(rnet_merged_all_geos, distance = 30)
+  rnet_merged_all_geos_buffer = geos::geos_buffer(rnet_merged_all_geos, distance = 30, params = geos::geos_buffer_params(quad_segs = 4))
   
   # Converting the buffered GEOS geometry back to an sf object.
   rnet_merged_all_projected_buffer = sf::st_as_sf(rnet_merged_all_geos_buffer)

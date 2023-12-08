@@ -1522,13 +1522,7 @@ tar_target(pmtiles_rnet, {
 
   tar_target(simplified_network, {
     cue = tar_cue(mode = "always")
-    
-    if(FALSE){
-      rnet_simple = simplify_network(combined_network, parameters)
-    } else {
-      rnet_simple = combined_network
-    }
-    
+    rnet_simple = simplify_network(combined_network, parameters)
     rnet_simple
   })
 
