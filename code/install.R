@@ -6,7 +6,7 @@ pkgs  = c(
   "readr", "future", "future.callr", "future.batchtools",
   "bs4Dash", "DT", "gt", "pingr", "shinybusy", "shinyWidgets","geos",
   "odjitter", "cyclestreets" ,"stplanr", "ukboundaries", "simodels",
-  "geojsonsf"
+  "geojsonsf","lwgeom"
   #,"rsgeo"
 )
 

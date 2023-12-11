@@ -235,6 +235,92 @@ export_zone_json <- function(x,  idcol = "DataZone", path = "outputdata/json", z
 }
 
 
+#' Function to summarise uptake data into zone
+#' @param comm uptake_utility_fastest df
+#' @param nm name to append to columns
+#' 
+#' the names are appended to column names 
+make_utility_stats <- function(comm, nm, zones){
+  
+  # Get start and end data zones
+  end_point = lwgeom::st_endpoint(comm)
+  end_point = sf::st_join(sf::st_as_sf(end_point), zones)
+  comm$endDZ = end_point$DataZone
+  
+  start_point = lwgeom::st_startpoint(comm)
+  start_point = sf::st_join(sf::st_as_sf(start_point), zones)
+  comm$startDZ = start_point$DataZone
+  
+  
+  # Drop Geometry
+  comm <- sf::st_drop_geometry(comm)
+  comm$quietness <- as.numeric(comm$quietness)
+  
+  # Utility Origin Stats
+  comm_from <- dplyr::group_by(comm, startDZ, purpose)
+  comm_from <- dplyr::summarise(comm_from, 
+                                orig_bicycle_go_dutch = sum(bicycle_go_dutch, na.rm = TRUE),
+                                orig_car_go_dutch = sum(car_go_dutch, na.rm = TRUE),
+                                orig_public_transport_go_dutch = sum(public_transport_go_dutch, na.rm = TRUE),
+                                orig_foot_go_dutch = sum(foot_go_dutch, na.rm = TRUE),
+                                orig_taxi_go_dutch = sum(taxi_go_dutch, na.rm = TRUE),
+                                
+                                orig_bicycle_ebike = sum(bicycle_ebike, na.rm = TRUE),
+                                orig_car_ebike = sum(car_ebike, na.rm = TRUE),
+                                orig_public_transport_ebike = sum(public_transport_ebike, na.rm = TRUE),
+                                orig_foot_ebike = sum(foot_ebike, na.rm = TRUE),
+                                orig_taxi_ebike = sum(taxi_ebike, na.rm = TRUE),
+                                
+                                orig_quietness = mean(quietness, na.rm = TRUE),
+                                orig_route_hilliness = mean(route_hilliness, na.rm = TRUE)
+  )
+  
+  
+  comm_to <- dplyr::group_by(comm, endDZ, purpose)
+  comm_to <- dplyr::summarise(comm_to, 
+                              dest_bicycle_go_dutch = sum(bicycle_go_dutch, na.rm = TRUE),
+                              dest_car_go_dutch = sum(car_go_dutch, na.rm = TRUE),
+                              dest_public_transport_go_dutch = sum(public_transport_go_dutch, na.rm = TRUE),
+                              dest_foot_go_dutch = sum(foot_go_dutch, na.rm = TRUE),
+                              dest_taxi_go_dutch = sum(foot_go_dutch, na.rm = TRUE),
+                              
+                              dest_bicycle_ebike = sum(bicycle_ebike, na.rm = TRUE),
+                              dest_car_ebike = sum(car_ebike, na.rm = TRUE),
+                              dest_public_transport_ebike = sum(public_transport_ebike, na.rm = TRUE),
+                              dest_foot_ebike = sum(foot_ebike, na.rm = TRUE),
+                              dest_taxi_ebike = sum(foot_ebike, na.rm = TRUE),
+                              
+                              dest_quietness = mean(quietness, na.rm = TRUE),
+                              dest_route_hilliness = mean(route_hilliness, na.rm = TRUE)
+  )
+  
+  # Pivot Wider
+  comm_from = tidyr::pivot_wider(comm_from,
+                                  id_cols = startDZ,
+                                  names_from = "purpose",
+                                  values_from = orig_bicycle_go_dutch:orig_route_hilliness,
+                                  names_glue = "{purpose}_{.value}")
+  
+  comm_to = tidyr::pivot_wider(comm_to,
+                                 id_cols = endDZ,
+                                 names_from = "purpose",
+                                 values_from = dest_bicycle_go_dutch:dest_route_hilliness,
+                                 names_glue = "{purpose}_{.value}")
+  
+  
+  names(comm_from)[1] = "DataZone"
+  names(comm_to)[1] = "DataZone"
+  
+  comm = dplyr::full_join(comm_from, comm_to, by = "DataZone")
+  
+  names(comm)[2:ncol(comm)] = paste0(names(comm)[2:ncol(comm)],"_",nm)
+  
+  return(comm)
+  
+}
+
+
+
 
 #' Function to summarise routes into zone statistics
 #' @param r sf data frame of routes returned by cyclestreets
