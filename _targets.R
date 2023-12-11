@@ -1229,6 +1229,13 @@ tar_target(combined_network, {
     
     rnet_tile
   }),
+
+tar_target(simplified_network, {
+  cue = tar_cue(mode = "always")
+  rnet_simple = simplify_network(combined_network_tile, parameters)
+  make_geojson_zones(rnet_simple, "outputdata/simplified_network.geojson")
+  rnet_simple
+}),
   
 
 # Make PMTiles for website ------------------------------------------------
@@ -1409,6 +1416,37 @@ tar_target(pmtiles_rnet, {
   responce = system(command_all, intern = TRUE)
   responce
 }),
+
+tar_target(pmtiles_rnet_simplified, {
+  check = length(simplified_network)
+  command_tippecanoe = paste('tippecanoe -o rnet_simplified.pmtiles',
+                             '--name=rnet',
+                             '--layer=rnet',
+                             '--attribution=UniverstyofLeeds',
+                             '--minimum-zoom=6',
+                             '--maximum-zoom=13',
+                             '--drop-smallest-as-needed',
+                             '--maximum-tile-bytes=5000000',
+                             '--simplification=10',
+                             '--buffer=5',
+                             '--force  simplified_network.geojson', collapse = " ")
+  
+  if(.Platform$OS.type == "unix") {
+    command_cd = 'cd outputdata'
+    command_all = paste(c(command_cd, command_tippecanoe), collapse = "; ")
+  } else {
+    # Using WSL
+    dir = getwd()
+    command_start = 'bash -c '
+    command_cd = paste0('cd /mnt/',tolower(substr(dir,1,1)),substr(dir,3,nchar(dir)),'/outputdata')
+    
+    command_all = paste(c(command_cd, command_tippecanoe), collapse = "; ")
+    command_all = paste0(command_start,'"',command_all,'"')
+  }
+  responce = system(command_all, intern = TRUE)
+  responce
+}),
+
   
   tar_target(save_outputs, {
     check = length(pmtiles_buildings)
@@ -1416,6 +1454,7 @@ tar_target(pmtiles_rnet, {
     check = length(zones_dasymetric_tile)
     check = length(pmtiles_rnet)
     check = length(pmtiles_buildings)
+    check = length(pmtiles_rnet_simplified)
 
     message("Saving outputs for ", parameters$date_routing)
     
@@ -1427,6 +1466,7 @@ tar_target(pmtiles_rnet, {
     file.copy("outputs/daysmetric.pmtiles","outputdata/daysmetric.pmtiles")
     file.copy("outputs/data_zones.pmtiles","outputdata/data_zones.pmtiles")
     file.copy("outputs/rnet.pmtiles","outputdata/rnet.pmtiles")
+    file.copy("outputs/rnet_simplified.pmtiles","outputdata/rnet_simplified.pmtiles")
     file.copy("outputs/schools.pmtiles","outputdata/schools.pmtiles")
 
     sys_time = Sys.time()
@@ -1518,12 +1558,6 @@ tar_target(pmtiles_rnet, {
     # Combine previous and current build datasets
     build_summary = data.table::rbindlist(list(build_summary, build_summary_previous), fill = TRUE)
     write_csv(build_summary, "outputs/build_summary.csv")
-  }),
-
-  tar_target(simplified_network, {
-    cue = tar_cue(mode = "always")
-    rnet_simple = simplify_network(combined_network, parameters)
-    rnet_simple
   })
 
 )
