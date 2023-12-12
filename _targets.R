@@ -626,9 +626,12 @@ tar_target(school_stats_baseline, {
                      foot = sum(foot, na.rm = TRUE),
                      public_transport = sum(public_transport, na.rm = TRUE),
                      other = sum(other, na.rm = TRUE))
+  stats$schooltype = paste0("schl_",stats$schooltype)
+  
   stats = tidyr::pivot_wider(stats, 
                              id_cols = c("SeedCode"),
                              names_from = c("schooltype"),
+                             names_glue = "{schooltype}_{.value}", 
                              values_from = names(stats)[3:ncol(stats)])
   stats
 }),
@@ -642,9 +645,11 @@ tar_target(school_stats_from_baseline, {
                      foot = sum(foot, na.rm = TRUE),
                      public_transport = sum(public_transport, na.rm = TRUE),
                      other = sum(other, na.rm = TRUE))
+  stats$schooltype = paste0("schl_",stats$schooltype)
   stats = tidyr::pivot_wider(stats, 
                              id_cols = c("DataZone"),
                              names_from = c("schooltype"),
+                             names_glue = "{schooltype}_{.value}",
                              values_from = names(stats)[3:ncol(stats)])
   stats
 }),
@@ -1304,7 +1309,7 @@ tar_target(pmtiles_school, {
 
 
 tar_target(pmtiles_zones, {
-  check = length(pmtiles_rnet)
+  check = length(zones_tile)
   command_tippecanoe = paste('tippecanoe -o data_zones.pmtiles',
                              '--name=data_zones',
                              '--layer=data_zones',
@@ -1335,7 +1340,7 @@ tar_target(pmtiles_zones, {
 }),
 
 tar_target(pmtiles_buildings, {
-    check = length(pmtiles_rnet)
+  check = length(zones_dasymetric_tile)
  
   tippecanoe_verylow = paste('tippecanoe -o dasymetric_verylow.pmtiles',
                              '--name=dasymetric',
@@ -1483,14 +1488,13 @@ tar_target(pmtiles_rnet_simplified, {
   
   tar_target(save_outputs, {
     check = length(pmtiles_buildings)
-    check = length(rnet_commute_balanced)
-    check = length(zones_dasymetric_tile)
     check = length(pmtiles_rnet)
-    check = length(pmtiles_buildings)
+    check = length(pmtiles_zones)
+    check = length(pmtiles_school)
     check = length(pmtiles_rnet_simplified)
+    check = length(rnet_utility_balanced)
     check = length(zones_stats_json)
     check = length(school_stats_json)
-    check = length(rnet_utility_balanced)
     check = length(utility_stats_balanced)
 
     message("Saving outputs for ", parameters$date_routing)
