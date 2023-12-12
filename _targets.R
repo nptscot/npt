@@ -1099,36 +1099,36 @@ tar_target(zones_contextual, {
   unzip(f_simd, exdir = file.path(tempdir(),"SIMD"))
   files = list.files(file.path(tempdir(),"SIMD/simd2020_withgeog"), full.names = TRUE)
   
-  zones <- sf::read_sf(file.path(tempdir(),"SIMD/simd2020_withgeog/sc_dz_11.shp"))
-  simd <- readr::read_csv(file.path(tempdir(),"SIMD/simd2020_withgeog/simd2020_withinds.csv"))
+  zones = sf::read_sf(file.path(tempdir(),"SIMD/simd2020_withgeog/sc_dz_11.shp"))
+  simd = readr::read_csv(file.path(tempdir(),"SIMD/simd2020_withgeog/simd2020_withinds.csv"))
   
   unlink(file.path(tempdir(),"SIMD"), recursive = TRUE)
   
-  zones <- zones[,c("DataZone","Name","TotPop2011","ResPop2011","HHCnt2011")]
-  simd$Intermediate_Zone <- NULL
-  simd$Council_area  <- NULL
+  zones = zones[,c("DataZone","Name","TotPop2011","ResPop2011","HHCnt2011")]
+  simd$Intermediate_Zone = NULL
+  simd$Council_area  = NULL
   
-  zones <- dplyr::left_join(zones, simd, by = c("DataZone" = "Data_Zone"))
-  zones <- sf::st_make_valid(zones)
+  zones = dplyr::left_join(zones, simd, by = c("DataZone" = "Data_Zone"))
+  zones = sf::st_make_valid(zones)
   
   # Split into map
-  zones <- zones[,c("DataZone","Total_population","SIMD2020v2_Decile",
+  zones = zones[,c("DataZone","Total_population","SIMD2020v2_Decile",
                         "drive_petrol","drive_GP",
                         "drive_post","drive_primary","drive_retail",
                         "drive_secondary","PT_GP","PT_post",
                         "PT_retail","broadband")]
-  zones <- sf::st_drop_geometry(zones)
+  zones = sf::st_drop_geometry(zones)
   
-  zones$drive_petrol <- round(zones$drive_petrol, 1)
-  zones$drive_GP <- round(zones$drive_GP, 1)
-  zones$drive_post <- round(zones$drive_post, 1)
-  zones$drive_primary <- round(zones$drive_primary, 1)
-  zones$drive_retail <- round(zones$drive_retail, 1)
-  zones$drive_secondary <- round(zones$drive_secondary, 1)
-  zones$PT_GP <- round(zones$PT_GP, 1)
-  zones$PT_post <- round(zones$PT_post, 1)
-  zones$PT_retail <- round(zones$PT_retail, 1)
-  zones$broadband <- as.integer(gsub("%","",zones$broadband))
+  zones$drive_petrol = round(zones$drive_petrol, 1)
+  zones$drive_GP = round(zones$drive_GP, 1)
+  zones$drive_post = round(zones$drive_post, 1)
+  zones$drive_primary = round(zones$drive_primary, 1)
+  zones$drive_retail = round(zones$drive_retail, 1)
+  zones$drive_secondary = round(zones$drive_secondary, 1)
+  zones$PT_GP = round(zones$PT_GP, 1)
+  zones$PT_post = round(zones$PT_post, 1)
+  zones$PT_retail = round(zones$PT_retail, 1)
+  zones$broadband = as.integer(gsub("%","",zones$broadband))
   zones
 }),
 
