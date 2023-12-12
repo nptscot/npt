@@ -846,6 +846,16 @@ tar_target(od_utility_combined, {
            dist_euclidean, public_transport, taxi, geometry,
            dist_euclidean_jittered, route_id, purpose)
   
+  # Add Start and End DataZones for stats
+  # geo_code1 and 2 refere to non-Data Zone ids
+  end_point = lwgeom::st_endpoint(od_utility_combined)
+  end_point = sf::st_join(sf::st_as_sf(end_point), zones)
+  od_utility_combined$endDZ = end_point$DataZone
+  
+  start_point = lwgeom::st_startpoint(od_utility_combined)
+  start_point = sf::st_join(sf::st_as_sf(start_point), zones)
+  od_utility_combined$startDZ = start_point$DataZone
+  
   od_utility_combined
 }),
 
@@ -855,7 +865,7 @@ tar_target(rs_utility_fastest, {
   if (file.exists(f)) {
     rs = readRDS(f)
   } else {
-    rs = get_routes(od = od_utility_combined |> slice_max(n = parameters$max_to_route, order_by = all, with_ties = FALSE),
+    rs = get_routes(od = od_utility_combined |> dplyr::slice_max(n = parameters$max_to_route, order_by = all, with_ties = FALSE),
                     plans = "fastest", 
                     purpose = "utility",
                     folder = paste0("outputdata/", parameters$date_routing),
@@ -1017,13 +1027,13 @@ tar_target(rnet_utility_balanced, {
 
 tar_target(utility_stats_baseline, {
   stats = sf::st_drop_geometry(od_utility_combined)
-  end_point = lwgeom::st_endpoint(od_utility_combined)
-  end_point = sf::st_join(sf::st_as_sf(end_point), zones)
-  stats$endDZ = end_point$DataZone
+  #end_point = lwgeom::st_endpoint(od_utility_combined)
+  #end_point = sf::st_join(sf::st_as_sf(end_point), zones)
+  #stats$endDZ = end_point$DataZone
   
-  start_point = lwgeom::st_startpoint(od_utility_combined)
-  start_point = sf::st_join(sf::st_as_sf(start_point), zones)
-  stats$startDZ = start_point$DataZone
+  #start_point = lwgeom::st_startpoint(od_utility_combined)
+  #start_point = sf::st_join(sf::st_as_sf(start_point), zones)
+  #stats$startDZ = start_point$DataZone
   
   
   stats = stats[,c("startDZ","endDZ","purpose","all","car",

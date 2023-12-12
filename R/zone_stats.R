@@ -249,13 +249,13 @@ export_zone_json <- function(x,  idcol = "DataZone", path = "outputdata/json", z
 make_utility_stats <- function(comm, nm, zones){
   
   # Get start and end data zones
-  end_point = lwgeom::st_endpoint(comm)
-  end_point = sf::st_join(sf::st_as_sf(end_point), zones)
-  comm$endDZ = end_point$DataZone
+  #end_point = lwgeom::st_endpoint(comm)
+  #end_point = sf::st_join(sf::st_as_sf(end_point), zones)
+  #comm$endDZ = end_point$DataZone
   
-  start_point = lwgeom::st_startpoint(comm)
-  start_point = sf::st_join(sf::st_as_sf(start_point), zones)
-  comm$startDZ = start_point$DataZone
+  #start_point = lwgeom::st_startpoint(comm)
+  #start_point = sf::st_join(sf::st_as_sf(start_point), zones)
+  #comm$startDZ = start_point$DataZone
   
   
   # Drop Geometry
