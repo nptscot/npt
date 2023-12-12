@@ -626,9 +626,12 @@ tar_target(school_stats_baseline, {
                      foot = sum(foot, na.rm = TRUE),
                      public_transport = sum(public_transport, na.rm = TRUE),
                      other = sum(other, na.rm = TRUE))
+  stats$schooltype = paste0("schl_",stats$schooltype)
+  
   stats = tidyr::pivot_wider(stats, 
                              id_cols = c("SeedCode"),
                              names_from = c("schooltype"),
+                             names_glue = "{schooltype}_{.value}", 
                              values_from = names(stats)[3:ncol(stats)])
   stats
 }),
@@ -642,9 +645,11 @@ tar_target(school_stats_from_baseline, {
                      foot = sum(foot, na.rm = TRUE),
                      public_transport = sum(public_transport, na.rm = TRUE),
                      other = sum(other, na.rm = TRUE))
+  stats$schooltype = paste0("schl_",stats$schooltype)
   stats = tidyr::pivot_wider(stats, 
                              id_cols = c("DataZone"),
                              names_from = c("schooltype"),
+                             names_glue = "{schooltype}_{.value}",
                              values_from = names(stats)[3:ncol(stats)])
   stats
 }),
@@ -733,7 +738,8 @@ tar_target(commute_stats, {
 }),
 
 tar_target(zones_stats, {
-  dplyr::full_join(commute_stats, school_stats_from, by = "DataZone")
+  stats = dplyr::full_join(commute_stats, school_stats_from, by = "DataZone")
+  stats = dplyr::full_join(stats, utility_stats, by = "DataZone")
 }),
 
 
@@ -1007,47 +1013,79 @@ tar_target(rnet_utility_balanced, {
 
 tar_target(utility_stats_baseline, {
   stats = sf::st_drop_geometry(od_utility_combined)
-  stats_from = dplyr::group_by(stats, geo_code1) %>%
-    dplyr::summarise(all = sum(all, na.rm = TRUE),
-                     bicycle = sum(bicycle, na.rm = TRUE),
-                     car = sum(car, na.rm = TRUE),
-                     foot = sum(foot, na.rm = TRUE),
-                     public_transport = sum(public_transport, na.rm = TRUE),
-                     taxi = sum(taxi, na.rm = TRUE))
-  stats_to = dplyr::group_by(stats, geo_code2) %>%
-    dplyr::summarise(all = sum(all, na.rm = TRUE),
-                     bicycle = sum(bicycle, na.rm = TRUE),
-                     car = sum(car, na.rm = TRUE),
-                     foot = sum(foot, na.rm = TRUE),
-                     public_transport = sum(public_transport, na.rm = TRUE),
-                     taxi = sum(taxi, na.rm = TRUE))
-
-  names(stats_from)[1] = "DataZone"
-  names(stats_to)[1] = "DataZone"
-
-  names(stats_from)[2:ncol(stats_from)] = paste0("comm_orig_",names(stats_from)[2:ncol(stats_from)])
-  names(stats_to)[2:ncol(stats_to)] = paste0("comm_dest_",names(stats_to)[2:ncol(stats_to)])
-  stats = dplyr::full_join(stats_from, stats_to, by = "DataZone")
-  stats
+  end_point = lwgeom::st_endpoint(od_utility_combined)
+  end_point = sf::st_join(sf::st_as_sf(end_point), zones)
+  stats$endDZ = end_point$DataZone
+  
+  start_point = lwgeom::st_startpoint(od_utility_combined)
+  start_point = sf::st_join(sf::st_as_sf(start_point), zones)
+  stats$startDZ = start_point$DataZone
+  
+  
+  stats = stats[,c("startDZ","endDZ","purpose","all","car",
+                   "foot","bicycle","public_transport","taxi")]
+  stats_orig = stats %>%
+    dplyr::select(!endDZ) %>%
+    dplyr::group_by(startDZ, purpose) %>%
+    dplyr::summarise_all(sum, na.rm = TRUE)
+  
+  stats_dest = stats %>%
+    dplyr::select(!startDZ) %>%
+    dplyr::group_by(endDZ, purpose) %>%
+    dplyr::summarise_all(sum, na.rm = TRUE)
+  
+  stats_orig$purpose = paste0(stats_orig$purpose,"_orig")
+  stats_dest$purpose = paste0(stats_dest$purpose,"_dest")
+  
+  stats_orig = tidyr::pivot_wider(stats_orig,
+                       id_cols = startDZ,
+                       names_from = "purpose",
+                       values_from = all:taxi,
+                       names_glue = "{purpose}_{.value}")
+  
+  stats_dest = tidyr::pivot_wider(stats_dest,
+                                  id_cols = endDZ,
+                                  names_from = "purpose",
+                                  values_from = all:taxi,
+                                  names_glue = "{purpose}_{.value}")
+  names(stats_orig)[1] = "DataZone"
+  names(stats_dest)[1] = "DataZone"
+  
+  stats_all = dplyr::full_join(stats_orig, stats_dest, by = "DataZone")
+  stats_all
 }),
 
 tar_target(utility_stats_fastest, {
-  make_commute_stats(uptake_utility_fastest, "fastest")
+  make_utility_stats(uptake_utility_fastest, "fastest", zones)
 }),
 
 tar_target(utility_stats_quietest, {
-  make_commute_stats(uptake_utility_quietest, "quietest")
+  make_utility_stats(uptake_utility_quietest, "quietest", zones)
 }),
 
 tar_target(utility_stats_ebike, {
-  make_commute_stats(uptake_utility_ebike, "ebike")
+  make_utility_stats(uptake_utility_ebike, "ebike", zones)
 }),
 
 tar_target(utility_stats_balanced, {
-  make_commute_stats(uptake_utility_balanced, "balanced")
+  make_utility_stats(uptake_utility_balanced, "balanced", zones)
 }),
 
-
+tar_target(utility_stats, {
+  # Ebike routes for ebike scenario
+  ebike = utility_stats_ebike
+  fastest = utility_stats_fastest
+  ebike = ebike[,!grepl("go_dutch",names(ebike))]
+  # Can't use quietness/hilliness for ebike
+  ebike = ebike[,!grepl("(quietness|hilliness)",names(ebike))] 
+  fastest = fastest[,!grepl("ebike",names(fastest))]
+  names(ebike) = gsub("_ebike$","_fastest",names(ebike))
+  
+  stats = dplyr::left_join(utility_stats_baseline, fastest, by = "DataZone")
+  stats = dplyr::left_join(stats, ebike, by = "DataZone")
+  stats = dplyr::left_join(stats, utility_stats_quietest, by = "DataZone")
+  stats
+}),
 
 # Data Zone Maps ----------------------------------------------------------
 tar_target(zones_contextual, {
@@ -1061,36 +1099,36 @@ tar_target(zones_contextual, {
   unzip(f_simd, exdir = file.path(tempdir(),"SIMD"))
   files = list.files(file.path(tempdir(),"SIMD/simd2020_withgeog"), full.names = TRUE)
   
-  zones <- sf::read_sf(file.path(tempdir(),"SIMD/simd2020_withgeog/sc_dz_11.shp"))
-  simd <- readr::read_csv(file.path(tempdir(),"SIMD/simd2020_withgeog/simd2020_withinds.csv"))
+  zones = sf::read_sf(file.path(tempdir(),"SIMD/simd2020_withgeog/sc_dz_11.shp"))
+  simd = readr::read_csv(file.path(tempdir(),"SIMD/simd2020_withgeog/simd2020_withinds.csv"))
   
   unlink(file.path(tempdir(),"SIMD"), recursive = TRUE)
   
-  zones <- zones[,c("DataZone","Name","TotPop2011","ResPop2011","HHCnt2011")]
-  simd$Intermediate_Zone <- NULL
-  simd$Council_area  <- NULL
+  zones = zones[,c("DataZone","Name","TotPop2011","ResPop2011","HHCnt2011")]
+  simd$Intermediate_Zone = NULL
+  simd$Council_area  = NULL
   
-  zones <- dplyr::left_join(zones, simd, by = c("DataZone" = "Data_Zone"))
-  zones <- sf::st_make_valid(zones)
+  zones = dplyr::left_join(zones, simd, by = c("DataZone" = "Data_Zone"))
+  zones = sf::st_make_valid(zones)
   
   # Split into map
-  zones <- zones[,c("DataZone","Total_population","SIMD2020v2_Decile",
+  zones = zones[,c("DataZone","Total_population","SIMD2020v2_Decile",
                         "drive_petrol","drive_GP",
                         "drive_post","drive_primary","drive_retail",
                         "drive_secondary","PT_GP","PT_post",
                         "PT_retail","broadband")]
-  zones <- sf::st_drop_geometry(zones)
+  zones = sf::st_drop_geometry(zones)
   
-  zones$drive_petrol <- round(zones$drive_petrol, 1)
-  zones$drive_GP <- round(zones$drive_GP, 1)
-  zones$drive_post <- round(zones$drive_post, 1)
-  zones$drive_primary <- round(zones$drive_primary, 1)
-  zones$drive_retail <- round(zones$drive_retail, 1)
-  zones$drive_secondary <- round(zones$drive_secondary, 1)
-  zones$PT_GP <- round(zones$PT_GP, 1)
-  zones$PT_post <- round(zones$PT_post, 1)
-  zones$PT_retail <- round(zones$PT_retail, 1)
-  zones$broadband <- as.integer(gsub("%","",zones$broadband))
+  zones$drive_petrol = round(zones$drive_petrol, 1)
+  zones$drive_GP = round(zones$drive_GP, 1)
+  zones$drive_post = round(zones$drive_post, 1)
+  zones$drive_primary = round(zones$drive_primary, 1)
+  zones$drive_retail = round(zones$drive_retail, 1)
+  zones$drive_secondary = round(zones$drive_secondary, 1)
+  zones$PT_GP = round(zones$PT_GP, 1)
+  zones$PT_post = round(zones$PT_post, 1)
+  zones$PT_retail = round(zones$PT_retail, 1)
+  zones$broadband = as.integer(gsub("%","",zones$broadband))
   zones
 }),
 
@@ -1271,7 +1309,7 @@ tar_target(pmtiles_school, {
 
 
 tar_target(pmtiles_zones, {
-  check = length(pmtiles_rnet)
+  check = length(zones_tile)
   command_tippecanoe = paste('tippecanoe -o data_zones.pmtiles',
                              '--name=data_zones',
                              '--layer=data_zones',
@@ -1302,7 +1340,7 @@ tar_target(pmtiles_zones, {
 }),
 
 tar_target(pmtiles_buildings, {
-    check = length(pmtiles_rnet)
+  check = length(zones_dasymetric_tile)
  
   tippecanoe_verylow = paste('tippecanoe -o dasymetric_verylow.pmtiles',
                              '--name=dasymetric',
@@ -1450,11 +1488,14 @@ tar_target(pmtiles_rnet_simplified, {
   
   tar_target(save_outputs, {
     check = length(pmtiles_buildings)
-    check = length(rnet_commute_balanced)
-    check = length(zones_dasymetric_tile)
     check = length(pmtiles_rnet)
-    check = length(pmtiles_buildings)
+    check = length(pmtiles_zones)
+    check = length(pmtiles_school)
     check = length(pmtiles_rnet_simplified)
+    check = length(rnet_utility_balanced)
+    check = length(zones_stats_json)
+    check = length(school_stats_json)
+    check = length(utility_stats_balanced)
 
     message("Saving outputs for ", parameters$date_routing)
     
