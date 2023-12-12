@@ -626,7 +626,7 @@ tar_target(school_stats_baseline, {
                      foot = sum(foot, na.rm = TRUE),
                      public_transport = sum(public_transport, na.rm = TRUE),
                      other = sum(other, na.rm = TRUE))
-  stats$schooltype = paste0("schl_",stats$schooltype)
+  stats$schooltype = paste0("schl_",stats$schooltype,"_dest")
   
   stats = tidyr::pivot_wider(stats, 
                              id_cols = c("SeedCode"),
@@ -645,7 +645,7 @@ tar_target(school_stats_from_baseline, {
                      foot = sum(foot, na.rm = TRUE),
                      public_transport = sum(public_transport, na.rm = TRUE),
                      other = sum(other, na.rm = TRUE))
-  stats$schooltype = paste0("schl_",stats$schooltype)
+  stats$schooltype = paste0("schl_",stats$schooltype,"_orig")
   stats = tidyr::pivot_wider(stats, 
                              id_cols = c("DataZone"),
                              names_from = c("schooltype"),
