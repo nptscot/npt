@@ -196,17 +196,12 @@ tar_target(od_school, {
 # School routing ----------------------------------------------------------
 
 tar_target(rs_school_fastest, {
-  f = paste0("outputdata/", parameters$date_routing, "routes_max_dist_school_fastest.Rds")
-  if (file.exists(f)) {
-    rs = readRDS(f)
-  } else {
-    rs = get_routes(od = od_school %>% slice_max(n = parameters$max_to_route, order_by = all, with_ties = FALSE),
-                    plans = "fastest", 
-                    purpose = "school",
-                    folder = paste0("outputdata/", parameters$date_routing),
-                    date = parameters$date_routing,
-                    segments = "both")
-  }
+  rs = get_routes(od = od_school %>% slice_max(n = parameters$max_to_route, order_by = all, with_ties = FALSE),
+                  plans = "fastest", 
+                  purpose = "school",
+                  folder = paste0("outputdata/", parameters$date_routing),
+                  date = parameters$date_routing,
+                  segments = "both")
   rs
 }),
 
@@ -216,17 +211,12 @@ tar_target(done_school_fastest, {
 
 tar_target(rs_school_quietest, {
   length(done_school_fastest)
-  f = paste0("outputdata/", parameters$date_routing, "routes_max_dist_school_quietest.Rds")
-  if (file.exists(f)) {
-    rs = readRDS(f)
-  } else {
-    rs = get_routes(od = od_school %>% slice_max(n = parameters$max_to_route, order_by = all, with_ties = FALSE),
-                    plans = "quietest", 
-                    purpose = "school",
-                    folder = paste0("outputdata/", parameters$date_routing),
-                    date = parameters$date_routing,
-                    segments = "both")
-  }
+  rs = get_routes(od = od_school %>% slice_max(n = parameters$max_to_route, order_by = all, with_ties = FALSE),
+                  plans = "quietest", 
+                  purpose = "school",
+                  folder = paste0("outputdata/", parameters$date_routing),
+                  date = parameters$date_routing,
+                  segments = "both")
   rs
 }),
 
@@ -236,17 +226,12 @@ tar_target(done_school_quietest, {
 
 tar_target(rs_school_ebike, {
   length(done_school_quietest)
-  f = paste0("outputdata/", parameters$date_routing, "routes_max_dist_school_ebike.Rds")
-  if (file.exists(f)) {
-    rs = readRDS(f)
-  } else {
-    rs = get_routes(od = od_school %>% slice_max(n = parameters$max_to_route, order_by = all, with_ties = FALSE),
-                    plans = "ebike", 
-                    purpose = "school",
-                    folder = paste0("outputdata/", parameters$date_routing),
-                    date = parameters$date_routing,
-                    segments = "both")
-  }
+  rs = get_routes(od = od_school %>% slice_max(n = parameters$max_to_route, order_by = all, with_ties = FALSE),
+                  plans = "ebike", 
+                  purpose = "school",
+                  folder = paste0("outputdata/", parameters$date_routing),
+                  date = parameters$date_routing,
+                  segments = "both")
   rs
 }),
 
@@ -256,17 +241,12 @@ tar_target(done_school_ebike, {
 
 tar_target(rs_school_balanced, {
   length(done_utility_ebike)
-  f = paste0("outputdata/", parameters$date_routing, "routes_max_dist_school_balanced.Rds")
-  if (file.exists(f)) {
-    rs = readRDS(f)
-  } else {
-    rs = get_routes(od = od_school %>% slice_max(n = parameters$max_to_route, order_by = all, with_ties = FALSE),
-                    plans = "balanced", 
-                    purpose = "school",
-                    folder = paste0("outputdata/", parameters$date_routing),
-                    date = parameters$date_routing,
-                    segments = "both")
-  }
+  rs = get_routes(od = od_school %>% slice_max(n = parameters$max_to_route, order_by = all, with_ties = FALSE),
+                  plans = "balanced", 
+                  purpose = "school",
+                  folder = paste0("outputdata/", parameters$date_routing),
+                  date = parameters$date_routing,
+                  segments = "both")
   rs
 }),
 
@@ -278,17 +258,12 @@ tar_target(done_school_balanced, {
 
 tar_target(rs_commute_fastest, {
   length(done_school_ebike) # Do school routing first
-  f = paste0("outputdata/", parameters$date_routing, "routes_max_dist_commute_fastest.Rds")
-  if (file.exists(f)) {
-    rs = readRDS(f)
-  } else {
-    rs = get_routes(od = od_commute_subset,
-                    plans = "fastest", 
-                    purpose = "commute",
-                    folder = paste0("outputdata/", parameters$date_routing),
-                    date = parameters$date_routing,
-                    segments = "both")
-  }
+  rs = get_routes(od = od_commute_subset,
+                  plans = "fastest", 
+                  purpose = "commute",
+                  folder = paste0("outputdata/", parameters$date_routing),
+                  date = parameters$date_routing,
+                  segments = "both")
   rs
 }),
 
@@ -298,17 +273,12 @@ tar_target(done_commute_fastest, {
 
 tar_target(rs_commute_quietest, {
   length(done_commute_fastest)
-  f = paste0("outputdata/", parameters$date_routing, "routes_max_dist_commute_quietest.Rds")
-  if (file.exists(f)) {
-    rs = readRDS(f)
-  } else {
-    rs = get_routes(od = od_commute_subset,
-                    plans = "quietest", 
-                    purpose = "commute",
-                    folder = paste0("outputdata/", parameters$date_routing),
-                    date = parameters$date_routing,
-                    segments = "both")
-  }
+  rs = get_routes(od = od_commute_subset,
+                  plans = "quietest", 
+                  purpose = "commute",
+                  folder = paste0("outputdata/", parameters$date_routing),
+                  date = parameters$date_routing,
+                  segments = "both")
   rs
 }),
 
@@ -318,17 +288,12 @@ tar_target(done_commute_quietest, {
 
 tar_target(rs_commute_ebike, {
   length(done_commute_quietest)
-  f = paste0("outputdata/", parameters$date_routing, "routes_max_dist_commute_ebike.Rds")
-  if (file.exists(f)) {
-    rs = readRDS(f)
-  } else {
-    rs = get_routes(od = od_commute_subset,
-                    plans = "ebike", 
-                    purpose = "commute",
-                    folder = paste0("outputdata/", parameters$date_routing),
-                    date = parameters$date_routing,
-                    segments = "both")
-  }
+  rs = get_routes(od = od_commute_subset,
+                  plans = "ebike", 
+                  purpose = "commute",
+                  folder = paste0("outputdata/", parameters$date_routing),
+                  date = parameters$date_routing,
+                  segments = "both")
   rs
 }),
 
@@ -338,17 +303,12 @@ tar_target(done_commute_ebike, {
 
 tar_target(rs_commute_balanced, {
   length(done_school_balanced)
-  f = paste0("outputdata/", parameters$date_routing, "routes_max_dist_commute_balanced.Rds")
-  if (file.exists(f)) {
-    rs = readRDS(f)
-  } else {
-    rs = get_routes(od = od_commute_subset,
-                    plans = "balanced", 
-                    purpose = "commute",
-                    folder = paste0("outputdata/", parameters$date_routing),
-                    date = parameters$date_routing,
-                    segments = "both")
-  }
+  rs = get_routes(od = od_commute_subset,
+                  plans = "balanced", 
+                  purpose = "commute",
+                  folder = paste0("outputdata/", parameters$date_routing),
+                  date = parameters$date_routing,
+                  segments = "both")
   rs
 }),
 
@@ -861,17 +821,12 @@ tar_target(od_utility_combined, {
 
 tar_target(rs_utility_fastest, {
   length(done_commute_ebike) # Do school routing first
-  f = paste0("outputdata/", parameters$date_routing, "routes_max_dist_utility_fastest.Rds")
-  if (file.exists(f)) {
-    rs = readRDS(f)
-  } else {
-    rs = get_routes(od = od_utility_combined |> dplyr::slice_max(n = parameters$max_to_route, order_by = all, with_ties = FALSE),
-                    plans = "fastest", 
-                    purpose = "utility",
-                    folder = paste0("outputdata/", parameters$date_routing),
-                    date = parameters$date_routing,
-                    segments = "both")
-  }
+  rs = get_routes(od = od_utility_combined |> dplyr::slice_max(n = parameters$max_to_route, order_by = all, with_ties = FALSE),
+                  plans = "fastest", 
+                  purpose = "utility",
+                  folder = paste0("outputdata/", parameters$date_routing),
+                  date = parameters$date_routing,
+                  segments = "both")
   rs
 }),
 
@@ -882,17 +837,12 @@ tar_target(done_utility_fastest, {
 
 tar_target(rs_utility_quietest, {
   length(done_utility_fastest)
-  f = paste0("outputdata/", parameters$date_routing, "routes_max_dist_utility_quietest.Rds")
-  if (file.exists(f)) {
-    rs = readRDS(f)
-  } else {
-    rs = get_routes(od = od_utility_combined,
-                    plans = "quietest", 
-                    purpose = "utility",
-                    folder = paste0("outputdata/", parameters$date_routing),
-                    date = parameters$date_routing,
-                    segments = "both")
-  }
+  rs = get_routes(od = od_utility_combined,
+                  plans = "quietest", 
+                  purpose = "utility",
+                  folder = paste0("outputdata/", parameters$date_routing),
+                  date = parameters$date_routing,
+                  segments = "both")
   rs
 }),
 
@@ -902,17 +852,12 @@ tar_target(done_utility_quietest, {
 
 tar_target(rs_utility_ebike, {
   length(done_utility_quietest)
-  f = paste0("outputdata/", parameters$date_routing, "routes_max_dist_utility_ebike.Rds")
-  if (file.exists(f)) {
-    rs = readRDS(f)
-  } else {
-    rs = get_routes(od = od_utility_combined,
-                    plans = "ebike", 
-                    purpose = "utility",
-                    folder = paste0("outputdata/", parameters$date_routing),
-                    date = parameters$date_routing,
-                    segments = "both")
-  }
+  rs = get_routes(od = od_utility_combined,
+                  plans = "ebike", 
+                  purpose = "utility",
+                  folder = paste0("outputdata/", parameters$date_routing),
+                  date = parameters$date_routing,
+                  segments = "both")
   rs
 }),
 
@@ -922,17 +867,12 @@ tar_target(done_utility_ebike, {
 
 tar_target(rs_utility_balanced, {
   length(done_commute_balanced)
-  f = paste0("outputdata/", parameters$date_routing, "routes_max_dist_utility_balanced.Rds")
-  if (file.exists(f)) {
-    rs = readRDS(f)
-  } else {
-    rs = get_routes(od = od_utility_combined,
-                    plans = "balanced", 
-                    purpose = "utility",
-                    folder = paste0("outputdata/", parameters$date_routing),
-                    date = parameters$date_routing,
-                    segments = "both")
-  }
+  rs = get_routes(od = od_utility_combined,
+                  plans = "balanced", 
+                  purpose = "utility",
+                  folder = paste0("outputdata/", parameters$date_routing),
+                  date = parameters$date_routing,
+                  segments = "both")
   rs
 }),
 
