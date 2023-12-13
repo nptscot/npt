@@ -9,6 +9,8 @@ make_commute_stats <- function(comm, nm){
   # Drop Geometry
   comm <- sf::st_drop_geometry(comm)
   
+  comm$quietness <- as.numeric(comm$quietness)
+  
   # Commute Origin Stats
   comm_from <- dplyr::group_by(comm, geo_code1)
   comm_from <- dplyr::summarise(comm_from, 
@@ -76,6 +78,8 @@ make_school_stats <- function(schl, nm){
   schl <- sf::st_drop_geometry(schl)
   schl <- dplyr::group_by(schl, route_id, schooltype)
   
+  schl$quietness <- as.numeric(schl$quietness)
+  
   schl_to <- dplyr::group_by(schl, SeedCode, schooltype)
   schl_to <- dplyr::summarise(schl_to,
                               bicycle_go_dutch = sum(bicycle_go_dutch, na.rm = TRUE),
@@ -95,6 +99,7 @@ make_school_stats <- function(schl, nm){
   )
   
   schl_to <- dplyr::ungroup(schl_to)
+  schl_to$schooltype <- paste0("schl_",schl_to$schooltype,"_dest")
   
   schl_to <- tidyr::pivot_wider(schl_to, 
                                 id_cols = c("SeedCode"),
@@ -110,7 +115,8 @@ make_school_stats <- function(schl, nm){
                                                 "foot_ebike",
                                                 "other_ebike",
                                                 "quietness",
-                                                "route_hilliness")
+                                                "route_hilliness"),
+                                names_glue = "{schooltype}_{.value}"
   )
   names(schl_to)[2:ncol(schl_to)] = paste0(names(schl_to)[2:ncol(schl_to)],"_",nm)
   return(schl_to)
@@ -243,13 +249,13 @@ export_zone_json <- function(x,  idcol = "DataZone", path = "outputdata/json", z
 make_utility_stats <- function(comm, nm, zones){
   
   # Get start and end data zones
-  end_point = lwgeom::st_endpoint(comm)
-  end_point = sf::st_join(sf::st_as_sf(end_point), zones)
-  comm$endDZ = end_point$DataZone
+  #end_point = lwgeom::st_endpoint(comm)
+  #end_point = sf::st_join(sf::st_as_sf(end_point), zones)
+  #comm$endDZ = end_point$DataZone
   
-  start_point = lwgeom::st_startpoint(comm)
-  start_point = sf::st_join(sf::st_as_sf(start_point), zones)
-  comm$startDZ = start_point$DataZone
+  #start_point = lwgeom::st_startpoint(comm)
+  #start_point = sf::st_join(sf::st_as_sf(start_point), zones)
+  #comm$startDZ = start_point$DataZone
   
   
   # Drop Geometry
