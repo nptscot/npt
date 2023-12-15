@@ -394,8 +394,8 @@ tar_target(rnet_gq_school_balanced, {
 
   tar_target(uptake_commute_fastest, {
     routes = r_commute_fastest %>%
+      aadt_adjust(purpose = "commute", aadt_parameters = aadt_parameters) %>%
       get_scenario_go_dutch()
-    routes = aadt_adjust(routes, aadt_factors = aadt_parameters$commutes)
     saveRDS(routes, "outputdata/routes_commute_fastest.Rds")
     routes
   }),
