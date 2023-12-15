@@ -2,7 +2,7 @@ aadt_adjust = function(
     routes,
     aadt_parameters,
     purpose = "commute",
-    modes_to_adjust = c("car", "taxi", "foot", "bicycle", "public_transport", "all")
+    modes_to_adjust = c("car", "other", "taxi", "foot", "bicycle", "public_transport", "all")
     # , bicycle_mode = "bicycle"
   ) {
     which_purpose = which(grepl(purpose, aadt_parameters$NPT_purpose, ignore.case = TRUE))
