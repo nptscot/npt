@@ -402,6 +402,7 @@ tar_target(rnet_gq_school_balanced, {
   
   tar_target(uptake_commute_quietest, {
     routes = r_commute_quietest %>%
+      aadt_adjust(purpose = "commute", aadt_parameters = aadt_parameters) %>%
       get_scenario_go_dutch()
     saveRDS(routes, "outputdata/routes_commute_quietest.Rds")
     routes
@@ -409,6 +410,7 @@ tar_target(rnet_gq_school_balanced, {
   
   tar_target(uptake_commute_ebike, {
     routes = r_commute_ebike %>%
+      aadt_adjust(purpose = "commute", aadt_parameters = aadt_parameters) %>%
       get_scenario_go_dutch()
     saveRDS(routes, "outputdata/routes_commute_ebike.Rds")
     routes
@@ -416,6 +418,7 @@ tar_target(rnet_gq_school_balanced, {
   
   tar_target(uptake_commute_balanced, {
     routes = r_commute_balanced %>%
+      aadt_adjust(purpose = "commute", aadt_parameters = aadt_parameters) %>%
       get_scenario_go_dutch()
     saveRDS(routes, "outputdata/routes_commute_balanced.Rds")
     routes
@@ -425,6 +428,7 @@ tar_target(rnet_gq_school_balanced, {
 
 tar_target(uptake_school_fastest, {
   routes = r_school_fastest %>%
+      aadt_adjust(purpose = "school", aadt_parameters = aadt_parameters) %>%
     get_scenario_go_dutch(purpose = "school")
   routes
 }),

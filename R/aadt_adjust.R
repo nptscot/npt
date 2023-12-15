@@ -7,8 +7,8 @@ aadt_adjust = function(
   ) {
     which_purpose = which(grepl(purpose, aadt_parameters$NPT_purpose, ignore.case = TRUE))
     aadt_parameters = aadt_parameters[which_purpose, ]
-    # For testing
-    tar_load(r_commute_fastest)
+    # For testing:
+    # tar_load(r_commute_fastest)
     for (i in modes_to_adjust) {
         routes[[i]] = routes[[i]] * aadt_parameters$AADT_all
     }
