@@ -12,7 +12,7 @@ aadt_adjust = function(
     for (i in modes_to_adjust) {
         # Only run for names that exist in the data:
         if (!i %in% names(routes)) next
-        routes[[i]] = routes[[i]] * aadt_parameters$AADT_all
+        routes[[i]] = routes[[i]] * aadt_parameters$AADT_multiplier
     }
   routes
 }
