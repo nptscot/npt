@@ -1,9 +1,11 @@
 ---
 title: AADT multipliers
 format: gfm
+message: false
 ---
 
 ```{r}
+#| message: false
 library(tidyverse)
 ```
 
