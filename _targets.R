@@ -56,6 +56,10 @@ list(
     }
     p 
   }),
+  tar_target(aadt_file, command = "data-raw/AADT_factors.csv", format = "file"),
+  tar_target(aadt_parameters, {
+    readr::read_csv(aadt_file)
+  }),
   # Case study area:
   tar_target(study_area, {
     if(parameters$geo_subset) {
