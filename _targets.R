@@ -391,6 +391,7 @@ tar_target(rnet_gq_school_balanced, {
   tar_target(uptake_commute_fastest, {
     routes = r_commute_fastest %>%
       get_scenario_go_dutch()
+    routes = aadt_adjust(routes, aadt_factors = aadt_parameters$commutes)
     saveRDS(routes, "outputdata/routes_commute_fastest.Rds")
     routes
   }),
@@ -974,7 +975,6 @@ tar_target(utility_stats_baseline, {
   #start_point = lwgeom::st_startpoint(od_utility_combined)
   #start_point = sf::st_join(sf::st_as_sf(start_point), zones)
   #stats$startDZ = start_point$DataZone
-  
   
   stats = stats[,c("startDZ","endDZ","purpose","all","car",
                    "foot","bicycle","public_transport","taxi")]
