@@ -22,11 +22,11 @@ survey were as follows:
 aadt_original = read_csv("../../data-raw/AADT_factors.csv")
 ```
 
-    Rows: 7 Columns: 5
+    Rows: 6 Columns: 6
     ── Column specification ────────────────────────────────────────────────────────
     Delimiter: ","
     chr (1): NPT_purpose
-    dbl (4): AADT_all, AADT_bike, Weekly_all_total, Weekly_bike_total
+    dbl (5): AADT_all, AADT_bike, Weekly_all_total, Weekly_bike_total, AADT_mult...
 
     ℹ Use `spec()` to retrieve the full column specification for this data.
     ℹ Specify the column types or set `show_col_types = FALSE` to quiet this message.
@@ -142,3 +142,13 @@ aadt_updated |>
 ``` r
 write_csv(aadt_updated, "../../data-raw/AADT_factors.csv")
 ```
+
+## Definitions of leisure, recreational cycling, and visiting friends and family
+
+For these other everyday trip purposes we use the definitions from the
+Scottish Household Survey. See
+https://www.gov.scot/publications/scottish-household-survey-2021-methodology-fieldwork-outcomes/pages/7/
+for details.
+
+Leisure includes sports and entertainment (e.g. cinema, theatre,
+concerts, museums, galleries).
