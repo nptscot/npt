@@ -435,18 +435,21 @@ tar_target(uptake_school_fastest, {
 
 tar_target(uptake_school_quietest, {
   routes = r_school_quietest %>%
+    aadt_adjust(purpose = "school", aadt_parameters = aadt_parameters) %>%
     get_scenario_go_dutch(purpose = "school")
   routes
 }),
 
 tar_target(uptake_school_ebike, {
   routes = r_school_ebike %>%
+    aadt_adjust(purpose = "school", aadt_parameters = aadt_parameters) %>%
     get_scenario_go_dutch(purpose = "school")
   routes
 }),
 
 tar_target(uptake_school_balanced, {
   routes = r_school_balanced %>%
+    aadt_adjust(purpose = "school", aadt_parameters = aadt_parameters) %>%
     get_scenario_go_dutch(purpose = "school")
   routes
 }),
