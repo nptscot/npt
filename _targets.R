@@ -20,7 +20,7 @@ library(magrittr) # Light load of %>%
 library(sf) # Needed for sf support
 
 tar_option_set(
-  #controller = crew_controller_local(workers = 4),
+  #controller = crew::crew_controller_local(workers = 4),
   memory = "transient", 
   garbage_collection = TRUE,
   storage = "worker", 
