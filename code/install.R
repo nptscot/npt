@@ -3,7 +3,7 @@ pkgs  = c(
   "tibble","zonebuilder","dplyr","lubridate",
   "stringr","sf","tidyr","data.table", "targets",
   "glue","zip","jsonlite","remotes","gert","collapse","pct",
-  "readr", "future", "future.callr", "future.batchtools",
+  "readr",
   "bs4Dash", "DT", "gt", "pingr", "shinybusy", "shinyWidgets","geos",
   "odjitter", "cyclestreets" ,"stplanr", "ukboundaries", "simodels",
   "geojsonsf","lwgeom"
