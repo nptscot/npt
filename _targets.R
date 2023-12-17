@@ -1,13 +1,10 @@
 # Instructions
-# 1) Optional - Set update_github_packages = TRUE, see line 15
-# 2) library(targets)
-# 3) Optional - to see real-time updates of progress
-# tar_watch(seconds = 60, targets_only = TRUE)
-# See the current status of the targets:
-# tar_visnetwork(TRUE)
-# 4) To run the build
-# tar_make_future(workers = 4)
-# If your RAM limited use tar_make() to run one job at a time
+# 1) library(targets)
+# 2) Optional: tar_visnetwork(TRUE) - See the current status of the targets
+# 3) Optional: update_github_packages = TRUE, see line 12
+# 4) Optional: uncomment controller = crew_controller_local(workers = 4) for multicore running, line 23
+# 5) Optional: tar_watch(seconds = 60, targets_only = TRUE, supervise = FALSE, poll_connection = FALSE)
+# 6) tar_make()
 
 # Options
 
@@ -20,11 +17,10 @@ source("code/install.R")
 # Load minimum of libraries (Should use package::function in most cases)
 library(targets) # Needed to make targets work
 library(magrittr) # Light load of %>%
-library(future) # Needed for multi-core running
-library(future.callr)
 library(sf) # Needed for sf support
 
 tar_option_set(
+  #controller = crew_controller_local(workers = 4),
   memory = "transient", 
   garbage_collection = TRUE,
   storage = "worker", 
