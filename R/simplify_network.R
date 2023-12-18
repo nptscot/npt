@@ -30,7 +30,17 @@ simplify_network = function(rnet_y, parameters){
   # TODO: uncomment:
   rnet_xp = sf::st_transform(rnet_x, "EPSG:27700")
   rnet_yp = sf::st_transform(rnet_y, "EPSG:27700")
-  
+
+  # Removing lines that not exist in combined_network_tile
+  # Creating a buffer around the GEOS geometry 'rnet_yp'. This expands the geometry by a specified distance (15 meters in this case).
+  rnet_yp_buffer = geos::geos_buffer(rnet_yp, distance = 15, params = geos::geos_buffer_params(quad_segs = 4))
+
+  # Converting the buffer created above into an 'sf' (simple features) object. This is necessary because the buffer created by 'geos_buffer'
+  rnet_yp_buffer = sf::st_as_sf(rnet_yp_buffer)
+
+  # Subsetting 'rnet_xp' to include only those features that are within the buffer created around 'rnet_yp'.
+  rnet_xp = rnet_xp[rnet_yp_buffer, , op = sf::st_within]
+
   # Extract column names from the rnet_yp
   name_list = names(rnet_yp)
   
@@ -50,10 +60,10 @@ simplify_network = function(rnet_y, parameters){
   
   # Merge the spatial objects rnet_xp and rnet_yp based on specified parameters
   dist = 20
-  angle = 10
-  rnet_merged_all = stplanr::rnet_merge(rnet_xp, rnet_yp, dist = dist, segment_length = 10, funs = funs, max_angle_diff = 20)  #
+  angle = 15
+  rnet_merged_all = stplanr::rnet_merge(rnet_xp, rnet_yp, dist = dist, segment_length = 10, funs = funs, max_angle_diff = angle)  #
   
-  # Remove specific columns from the merged spatial object
+  # Remove unnecessary columns from the merged spatial object
   rnet_merged_all = rnet_merged_all[ , !(names(rnet_merged_all) %in% c('identifier','length_x'))]
   
   # Remove Z and M dimensions (if they exist) and set geometry precision
@@ -98,7 +108,7 @@ simplify_network = function(rnet_y, parameters){
   # Converting the buffered GEOS geometry back to an sf object.
   rnet_merged_all_projected_buffer = sf::st_as_sf(rnet_merged_all_geos_buffer)
   
-  # Confirming buffered geometry CRS as EPSG:27700.
+  # Transform the coordinate reference system of 'rnet_merged_all' to WGS 84 (EPSG:4326).
   rnet_merged_all_buffer = sf::st_transform(rnet_merged_all_projected_buffer, "EPSG:4326")
   
   # Subsetting another dataset 'rnet_y' based on the spatial relation with 'rnet_merged_all_buffer'.
