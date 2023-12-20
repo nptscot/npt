@@ -20,7 +20,7 @@ library(magrittr) # Light load of %>%
 library(sf) # Needed for sf support
 
 tar_option_set(
-  #controller = crew::crew_controller_local(workers = 4),
+  controller = crew::crew_controller_local(workers = 4),
   memory = "transient", 
   garbage_collection = TRUE,
   storage = "worker", 
@@ -542,6 +542,7 @@ tar_target(rnet_secondary_balanced, {
 
 tar_target(commute_stats_baseline, {
   stats = sf::st_drop_geometry(od_commute_subset)
+  stats = aadt_adjust(stats, purpose = "commute", aadt_parameters = aadt_parameters)
   stats_from = dplyr::group_by(stats, geo_code1) %>%
     dplyr::summarise(all = sum(all, na.rm = TRUE),
                      bicycle = sum(bicycle, na.rm = TRUE),
@@ -587,6 +588,7 @@ tar_target(commute_stats_balanced, {
 
 tar_target(school_stats_baseline, {
   stats = sf::st_drop_geometry(od_school)
+  stats = aadt_adjust(stats, purpose = "school", aadt_parameters = aadt_parameters)
   stats = dplyr::group_by(stats, SeedCode, schooltype) %>%
     dplyr::summarise(all = sum(all, na.rm = TRUE),
                      bicycle = sum(bicycle, na.rm = TRUE),
@@ -608,6 +610,7 @@ tar_target(school_stats_baseline, {
 
 tar_target(school_stats_from_baseline, {
   stats = sf::st_drop_geometry(od_school)
+  stats = aadt_adjust(stats, purpose = "school", aadt_parameters = aadt_parameters)
   stats = dplyr::group_by(stats, DataZone, schooltype) %>%
     dplyr::summarise(all = sum(all, na.rm = TRUE),
                      bicycle = sum(bicycle, na.rm = TRUE),
@@ -1041,6 +1044,19 @@ tar_target(utility_stats_baseline, {
   
   stats = stats[,c("startDZ","endDZ","purpose","all","car",
                    "foot","bicycle","public_transport","taxi")]
+  
+  stats_shopping = aadt_adjust(stats[stats$purpose == "shopping", ], 
+                               purpose = "shopping", 
+                               aadt_parameters = aadt_parameters)
+  stats_leisure = aadt_adjust(stats[stats$purpose == "leisure", ], 
+                               purpose = "leisure", 
+                               aadt_parameters = aadt_parameters)
+  stats_visiting = aadt_adjust(stats[stats$purpose == "visiting", ], 
+                               purpose = "visiting", 
+                               aadt_parameters = aadt_parameters)
+  
+  stats = rbind(stats_shopping, stats_leisure, stats_visiting)
+  
   stats_orig = stats %>%
     dplyr::select(!endDZ) %>%
     dplyr::group_by(startDZ, purpose) %>%
