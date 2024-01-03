@@ -37,13 +37,13 @@ make_commute_stats <- function(comm, nm){
                               dest_car_go_dutch = sum(car_go_dutch, na.rm = TRUE),
                               dest_public_transport_go_dutch = sum(public_transport_go_dutch, na.rm = TRUE),
                               dest_foot_go_dutch = sum(foot_go_dutch, na.rm = TRUE),
-                              dest_taxi_go_dutch = sum(foot_go_dutch, na.rm = TRUE),
+                              dest_taxi_go_dutch = sum(taxi_go_dutch, na.rm = TRUE),
                               
                               dest_bicycle_ebike = sum(bicycle_ebike, na.rm = TRUE),
                               dest_car_ebike = sum(car_ebike, na.rm = TRUE),
                               dest_public_transport_ebike = sum(public_transport_ebike, na.rm = TRUE),
                               dest_foot_ebike = sum(foot_ebike, na.rm = TRUE),
-                              dest_taxi_ebike = sum(foot_ebike, na.rm = TRUE),
+                              dest_taxi_ebike = sum(taxi_ebike, na.rm = TRUE),
                               
                               dest_quietness = mean(quietness),
                               dest_route_hilliness = mean(route_hilliness, na.rm = TRUE)
@@ -288,13 +288,13 @@ make_utility_stats <- function(comm, nm, zones){
                               dest_car_go_dutch = sum(car_go_dutch, na.rm = TRUE),
                               dest_public_transport_go_dutch = sum(public_transport_go_dutch, na.rm = TRUE),
                               dest_foot_go_dutch = sum(foot_go_dutch, na.rm = TRUE),
-                              dest_taxi_go_dutch = sum(foot_go_dutch, na.rm = TRUE),
+                              dest_taxi_go_dutch = sum(taxi_go_dutch, na.rm = TRUE),
                               
                               dest_bicycle_ebike = sum(bicycle_ebike, na.rm = TRUE),
                               dest_car_ebike = sum(car_ebike, na.rm = TRUE),
                               dest_public_transport_ebike = sum(public_transport_ebike, na.rm = TRUE),
                               dest_foot_ebike = sum(foot_ebike, na.rm = TRUE),
-                              dest_taxi_ebike = sum(foot_ebike, na.rm = TRUE),
+                              dest_taxi_ebike = sum(taxi_ebike, na.rm = TRUE),
                               
                               dest_quietness = mean(quietness, na.rm = TRUE),
                               dest_route_hilliness = mean(route_hilliness, na.rm = TRUE)

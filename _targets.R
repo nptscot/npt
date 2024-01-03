@@ -1,13 +1,10 @@
 # Instructions
-# 1) Optional - Set update_github_packages = TRUE, see line 15
-# 2) library(targets)
-# 3) Optional - to see real-time updates of progress
-# tar_watch(seconds = 60, targets_only = TRUE)
-# See the current status of the targets:
-# tar_visnetwork(TRUE)
-# 4) To run the build
-# tar_make_future(workers = 4)
-# If your RAM limited use tar_make() to run one job at a time
+# 1) library(targets)
+# 2) Optional: tar_visnetwork(TRUE) - See the current status of the targets
+# 3) Optional: update_github_packages = TRUE, see line 12
+# 4) Optional: uncomment controller = crew_controller_local(workers = 4) for multicore running, line 23
+# 5) Optional: tar_watch(seconds = 60, targets_only = TRUE, supervise = FALSE, poll_connection = FALSE)
+# 6) tar_make()
 
 # Options
 
@@ -20,11 +17,10 @@ source("code/install.R")
 # Load minimum of libraries (Should use package::function in most cases)
 library(targets) # Needed to make targets work
 library(magrittr) # Light load of %>%
-library(future) # Needed for multi-core running
-library(future.callr)
 library(sf) # Needed for sf support
 
 tar_option_set(
+  controller = crew::crew_controller_local(workers = 4),
   memory = "transient", 
   garbage_collection = TRUE,
   storage = "worker", 
@@ -546,6 +542,7 @@ tar_target(rnet_secondary_balanced, {
 
 tar_target(commute_stats_baseline, {
   stats = sf::st_drop_geometry(od_commute_subset)
+  stats = aadt_adjust(stats, purpose = "commute", aadt_parameters = aadt_parameters)
   stats_from = dplyr::group_by(stats, geo_code1) %>%
     dplyr::summarise(all = sum(all, na.rm = TRUE),
                      bicycle = sum(bicycle, na.rm = TRUE),
@@ -591,6 +588,7 @@ tar_target(commute_stats_balanced, {
 
 tar_target(school_stats_baseline, {
   stats = sf::st_drop_geometry(od_school)
+  stats = aadt_adjust(stats, purpose = "school", aadt_parameters = aadt_parameters)
   stats = dplyr::group_by(stats, SeedCode, schooltype) %>%
     dplyr::summarise(all = sum(all, na.rm = TRUE),
                      bicycle = sum(bicycle, na.rm = TRUE),
@@ -612,6 +610,7 @@ tar_target(school_stats_baseline, {
 
 tar_target(school_stats_from_baseline, {
   stats = sf::st_drop_geometry(od_school)
+  stats = aadt_adjust(stats, purpose = "school", aadt_parameters = aadt_parameters)
   stats = dplyr::group_by(stats, DataZone, schooltype) %>%
     dplyr::summarise(all = sum(all, na.rm = TRUE),
                      bicycle = sum(bicycle, na.rm = TRUE),
@@ -1045,6 +1044,19 @@ tar_target(utility_stats_baseline, {
   
   stats = stats[,c("startDZ","endDZ","purpose","all","car",
                    "foot","bicycle","public_transport","taxi")]
+  
+  stats_shopping = aadt_adjust(stats[stats$purpose == "shopping", ], 
+                               purpose = "shopping", 
+                               aadt_parameters = aadt_parameters)
+  stats_leisure = aadt_adjust(stats[stats$purpose == "leisure", ], 
+                               purpose = "leisure", 
+                               aadt_parameters = aadt_parameters)
+  stats_visiting = aadt_adjust(stats[stats$purpose == "visiting", ], 
+                               purpose = "visiting", 
+                               aadt_parameters = aadt_parameters)
+  
+  stats = rbind(stats_shopping, stats_leisure, stats_visiting)
+  
   stats_orig = stats %>%
     dplyr::select(!endDZ) %>%
     dplyr::group_by(startDZ, purpose) %>%
