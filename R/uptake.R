@@ -1,4 +1,4 @@
-get_scenario_go_dutch = function(routes, purpose = "work") {
+get_uptake_scenarios = function(routes, purpose = "work") {
   routes = routes %>% dplyr::group_by(route_number)
   if(purpose == "work") {
     routes = routes %>%

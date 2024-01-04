@@ -126,4 +126,4 @@ saveRDS(rnet_combined, "D:/University of Leeds/TEAM - Network Planning Tool - Ge
 # 
 # source("R/uptake.R")
 # 
-# foo = get_scenario_go_dutch(flow_fast)
+# foo = get_uptake_scenarios(flow_fast)
