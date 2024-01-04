@@ -928,7 +928,7 @@ tar_target(rnet_gq_utility_balanced, {
 
 tar_target(uptake_utility_fastest, {
   routes = r_utility_fastest %>%
-    get_scenario_go_dutch() %>%
+    get_scenario_go_dutch(purpose = "utility") %>%
     dplyr::mutate(
       bicycle = case_when(
         purpose == "shopping" ~ bicycle * 0.5,
