@@ -10,7 +10,7 @@ plans = c("quietest", "ebike")
 
 uptake_list = sapply(plans, function(x) NULL)
 for(p in plans) {
-  uptake_list[[p]] = get_scenario_go_dutch(routes[[p]])
+  uptake_list[[p]] = get_uptake_scenarios(routes[[p]])
 }
 uptake_list
 

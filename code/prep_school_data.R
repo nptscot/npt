@@ -114,7 +114,7 @@ summary(flow_jitter$length_km)
 #TODO: excluding long trips distorts overal mode share (edge case but should be considered)
 flow_jitter <- flow_jitter[flow_jitter$length_km < 30,]
 flow_jitter <- flow_jitter[,c("DataZone","SeedCode","schooltype","count")]
-flow_jitter$route_id <- 1:nrow(flow_jitter)
+flow_jitter$route_number <- 1:nrow(flow_jitter)
 flow_jitter$count <- round(flow_jitter$count)
 
 # Add on mode shares

@@ -5,7 +5,7 @@ tar_load(od_commute_subset)
 
 routes = r_commute$fastest
 
-od_missing = od_commute_subset[!od_commute_subset$route_id %in% routes$route_id,]
+od_missing = od_commute_subset[!od_commute_subset$route_number %in% routes$route_number,]
 
 library(tmap)
 tmap_mode("view")

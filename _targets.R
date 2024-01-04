@@ -156,11 +156,10 @@ list(
       deduplicate_pairs = FALSE#,odjitter_location = find_odjitter_location()
     )
     odj$dist_euclidean_jittered = as.numeric(sf::st_length(odj))
-    odj = odj %>%
-      mutate(route_id = paste0(geo_code1, "_", geo_code2, "_", seq(nrow(odj))))
     # saveRDS(odj, "inputdata/od_commute_jittered.Rds")
     # Read in test OD dataset for package development:
     # sf::read_sf("https://github.com/nptscot/npt/releases/download/v1/od_jittered_demo.geojson")
+    odj
   }),
 
   tar_target(od_commute_subset, {
@@ -391,7 +390,7 @@ tar_target(rnet_gq_school_balanced, {
   tar_target(uptake_commute_fastest, {
     routes = r_commute_fastest %>%
       aadt_adjust(purpose = "commute", aadt_parameters = aadt_parameters) %>%
-      get_scenario_go_dutch()
+      get_uptake_scenarios()
     saveRDS(routes, "outputdata/routes_commute_fastest.Rds")
     routes
   }),
@@ -399,7 +398,7 @@ tar_target(rnet_gq_school_balanced, {
   tar_target(uptake_commute_quietest, {
     routes = r_commute_quietest %>%
       aadt_adjust(purpose = "commute", aadt_parameters = aadt_parameters) %>%
-      get_scenario_go_dutch()
+      get_uptake_scenarios()
     saveRDS(routes, "outputdata/routes_commute_quietest.Rds")
     routes
   }),
@@ -407,7 +406,7 @@ tar_target(rnet_gq_school_balanced, {
   tar_target(uptake_commute_ebike, {
     routes = r_commute_ebike %>%
       aadt_adjust(purpose = "commute", aadt_parameters = aadt_parameters) %>%
-      get_scenario_go_dutch()
+      get_uptake_scenarios()
     saveRDS(routes, "outputdata/routes_commute_ebike.Rds")
     routes
   }),
@@ -415,7 +414,7 @@ tar_target(rnet_gq_school_balanced, {
   tar_target(uptake_commute_balanced, {
     routes = r_commute_balanced %>%
       aadt_adjust(purpose = "commute", aadt_parameters = aadt_parameters) %>%
-      get_scenario_go_dutch()
+      get_uptake_scenarios()
     saveRDS(routes, "outputdata/routes_commute_balanced.Rds")
     routes
   }),
@@ -425,28 +424,28 @@ tar_target(rnet_gq_school_balanced, {
 tar_target(uptake_school_fastest, {
   routes = r_school_fastest %>%
       aadt_adjust(purpose = "school", aadt_parameters = aadt_parameters) %>%
-    get_scenario_go_dutch(purpose = "school")
+    get_uptake_scenarios(purpose = "school")
   routes
 }),
 
 tar_target(uptake_school_quietest, {
   routes = r_school_quietest %>%
     aadt_adjust(purpose = "school", aadt_parameters = aadt_parameters) %>%
-    get_scenario_go_dutch(purpose = "school")
+    get_uptake_scenarios(purpose = "school")
   routes
 }),
 
 tar_target(uptake_school_ebike, {
   routes = r_school_ebike %>%
     aadt_adjust(purpose = "school", aadt_parameters = aadt_parameters) %>%
-    get_scenario_go_dutch(purpose = "school")
+    get_uptake_scenarios(purpose = "school")
   routes
 }),
 
 tar_target(uptake_school_balanced, {
   routes = r_school_balanced %>%
     aadt_adjust(purpose = "school", aadt_parameters = aadt_parameters) %>%
-    get_scenario_go_dutch(purpose = "school")
+    get_uptake_scenarios(purpose = "school")
   routes
 }),
 
@@ -815,7 +814,7 @@ tar_target(od_utility_combined, {
            dist_euclidean_jittered = length_euclidean_jittered * 1000) %>% 
     dplyr::select(geo_code1, geo_code2, car, foot, bicycle, all, 
            dist_euclidean, public_transport, taxi, geometry,
-           dist_euclidean_jittered, route_id, purpose)
+           dist_euclidean_jittered, purpose)
   
   # Add Start and End DataZones for stats
   # geo_code1 and 2 refere to non-Data Zone ids
@@ -930,7 +929,7 @@ tar_target(rnet_gq_utility_balanced, {
 
 tar_target(uptake_utility_fastest, {
   routes = r_utility_fastest %>%
-    get_scenario_go_dutch() %>%
+    get_uptake_scenarios(purpose = "utility") %>%
     dplyr::mutate(
       bicycle = case_when(
         purpose == "shopping" ~ bicycle * 0.5,
@@ -951,7 +950,7 @@ tar_target(uptake_utility_fastest, {
 
 tar_target(uptake_utility_quietest, {
   routes = r_utility_quietest %>%
-    get_scenario_go_dutch() %>%
+    get_uptake_scenarios() %>%
     dplyr::mutate(
       bicycle = case_when(
         purpose == "shopping" ~ bicycle * 0.5,
@@ -972,7 +971,7 @@ tar_target(uptake_utility_quietest, {
 
 tar_target(uptake_utility_ebike, {
   routes = r_utility_ebike %>%
-    get_scenario_go_dutch() %>%
+    get_uptake_scenarios() %>%
     dplyr::mutate(
       bicycle = case_when(
         purpose == "shopping" ~ bicycle * 0.5,
@@ -993,7 +992,7 @@ tar_target(uptake_utility_ebike, {
 
 tar_target(uptake_utility_balanced, {
   routes = r_utility_balanced %>%
-    get_scenario_go_dutch() %>%
+    get_uptake_scenarios() %>%
     dplyr::mutate(
       bicycle = case_when(
         purpose == "shopping" ~ bicycle * 0.5,

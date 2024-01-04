@@ -60,12 +60,12 @@ if(class(rnet) == "list"){
 # Clean Routes
 routes <- routes[,c("geo_code1","geo_code2",
                     "all","train","bus","car_driver","car_passenger","bicycle","foot",
-                    "other","bicycle_go_dutch","dist_euclidean","route_id",
+                    "other","bicycle_go_dutch","dist_euclidean","route_number",
                     "plan","length_route","grammesCO2saved","calories",
                     "geometry")]
 
 routes_single <- routes %>%
-  group_by(geo_code1,geo_code2,route_id) %>%
+  group_by(geo_code1,geo_code2,route_number) %>%
   summarise(all = round(all[1],1),
             train = round(train[1],1),
             bus = round(bus[1],1),
@@ -81,7 +81,7 @@ routes_single <- routes %>%
             grammesCO2saved = grammesCO2saved[1],
             calories = calories[1])
 
-routes_single$route_id <- NULL
+routes_single$route_number <- NULL
 
 # Clean Zones
 zones <- zones[,c("InterZone","TotPop2011","geometry")]

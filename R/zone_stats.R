@@ -76,7 +76,7 @@ make_school_stats <- function(schl, nm){
   
   # School
   schl <- sf::st_drop_geometry(schl)
-  schl <- dplyr::group_by(schl, route_id, schooltype)
+  schl <- dplyr::group_by(schl, route_number, schooltype)
   
   schl$quietness <- as.numeric(schl$quietness)
   
@@ -338,7 +338,7 @@ make_utility_stats <- function(comm, nm, zones){
 #   
 #   # Drop unneeded data
 #   r <- sf::st_drop_geometry(r)
-#   r <- r[,c("route_id","geo_code1","geo_code2",
+#   r <- r[,c("route_number","geo_code1","geo_code2",
 #             "all","car","car_passenger",
 #             "bicycle","foot","other",
 #             "bicycle_go_dutch",
@@ -347,7 +347,7 @@ make_utility_stats <- function(comm, nm, zones){
 #             "quietness","distances","route_hilliness")]
 #   
 #   # One row per route
-#   r <- dplyr::group_by(r, route_id)
+#   r <- dplyr::group_by(r, route_number)
 #   r <- dplyr::summarise(r, 
 #                         geo_code1 = geo_code1[1],
 #                         geo_code2 = geo_code2[1],

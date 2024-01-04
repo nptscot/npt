@@ -55,13 +55,12 @@ get_routes = function(od, plans, purpose = "work", folder = ".", batch = TRUE, b
             ),
             pat = Sys.getenv("CYCLESTREETS_BATCH")
           )
-        routes_raw$route_id = routes_raw$route_number
         }
       }
       
       if(is.character(segments) && !is(routes_raw, "sf")){
         r_filtered = routes_raw$routes %>% 
-          group_by(route_id) %>% 
+          group_by(route_number) %>% 
           mutate(route_hilliness = mean(gradient_smooth)) %>% 
           mutate(length_route = sum(distances)) %>% 
           ungroup()
@@ -69,7 +68,7 @@ get_routes = function(od, plans, purpose = "work", folder = ".", batch = TRUE, b
         routes_filtered = list(routes = r_filtered, segments = routes_raw$segments)
       } else {
         routes_filtered = routes_raw %>% 
-          group_by(route_id) %>% 
+          group_by(route_number) %>% 
           mutate(route_hilliness = mean(gradient_smooth)) %>% 
           mutate(length_route = sum(distances)) %>% 
           ungroup()

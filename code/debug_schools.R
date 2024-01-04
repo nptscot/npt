@@ -3,4 +3,4 @@ school_fast <- readRDS("outputdata/school_fast_sub30k.Rds")
 
 long = school_fast[school_fast$length > 40000, ]
 qtm(long)
-qtm(long) + qtm(flow_sf[flow_sf$route_id %in% long$route_id,], lines.col = "red")
+qtm(long) + qtm(flow_sf[flow_sf$route_number %in% long$route_number,], lines.col = "red")

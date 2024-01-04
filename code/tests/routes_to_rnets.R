@@ -13,7 +13,7 @@ plans = parameters$plans
 message("Getting these plans: ", paste0(plans, collapse = ", "))
 uptake_list = sapply(plans, function(x) NULL)
 for(p in parameters$plans) {
-  uptake_list[[p]] = get_scenario_go_dutch(routes[[p]])
+  uptake_list[[p]] = get_uptake_scenarios(routes[[p]])
 }
 uptake_list
 }),
