@@ -159,6 +159,7 @@ list(
     # saveRDS(odj, "inputdata/od_commute_jittered.Rds")
     # Read in test OD dataset for package development:
     # sf::read_sf("https://github.com/nptscot/npt/releases/download/v1/od_jittered_demo.geojson")
+    odj
   }),
 
   tar_target(od_commute_subset, {
@@ -813,7 +814,7 @@ tar_target(od_utility_combined, {
            dist_euclidean_jittered = length_euclidean_jittered * 1000) %>% 
     dplyr::select(geo_code1, geo_code2, car, foot, bicycle, all, 
            dist_euclidean, public_transport, taxi, geometry,
-           dist_euclidean_jittered, route_number, purpose)
+           dist_euclidean_jittered, purpose)
   
   # Add Start and End DataZones for stats
   # geo_code1 and 2 refere to non-Data Zone ids
