@@ -12,10 +12,10 @@ school_quiet <- readRDS("outputdata/school_quietest_sub30k.Rds")
 
 flow = readRDS("D:/University of Leeds/TEAM - Network Planning Tool - General/secure_data/schools/school_dl_sub30km.Rds")
 
-flow_fast = left_join(st_drop_geometry(flow), school_fast, by = c("route_id"), multiple = "all")
-flow_quiet = left_join(st_drop_geometry(flow), school_quiet, by = c("route_id"), multiple = "all")
-flow_balanced = left_join(st_drop_geometry(flow), school_balanced, by = c("route_id"), multiple = "all")
-flow_ebike = left_join(st_drop_geometry(flow), school_ebike, by = c("route_id"), multiple = "all")
+flow_fast = left_join(st_drop_geometry(flow), school_fast, by = c("route_number"), multiple = "all")
+flow_quiet = left_join(st_drop_geometry(flow), school_quiet, by = c("route_number"), multiple = "all")
+flow_balanced = left_join(st_drop_geometry(flow), school_balanced, by = c("route_number"), multiple = "all")
+flow_ebike = left_join(st_drop_geometry(flow), school_ebike, by = c("route_number"), multiple = "all")
 
 
 calc_flows = function(r){
@@ -24,7 +24,7 @@ calc_flows = function(r){
     rename(length_route = length) %>%
     rename(gradient = gradient_smooth) %>% 
     rename(all = count) %>% 
-    group_by(route_id) %>% 
+    group_by(route_number) %>% 
     mutate(route_hilliness = mean(gradient)) %>% 
     ungroup()
   
@@ -92,20 +92,20 @@ saveRDS(rnet_combined, "D:/University of Leeds/TEAM - Network Planning Tool - Ge
 
 # flow_nodup = flow[!duplicated(flow$geometry),]
 # flow_dup = flow[duplicated(flow$geometry),]
-# flow_dup$match_id <- flow_nodup$route_id[match(flow_dup$geometry, flow_nodup$geometry)]
+# flow_dup$match_id <- flow_nodup$route_number[match(flow_dup$geometry, flow_nodup$geometry)]
 # 
 # flow_nodup <- st_drop_geometry(flow_nodup)
 # flow_dup <- st_drop_geometry(flow_dup)
 # 
-# flow_nodup$route_id <- as.character(flow_nodup$route_id)
-# flow_dup$route_id <- as.character(flow_dup$route_id)
+# flow_nodup$route_number <- as.character(flow_nodup$route_number)
+# flow_dup$route_number <- as.character(flow_dup$route_number)
 # flow_dup$match_id <- as.character(flow_dup$match_id)
 # 
-# flow_fast_nodup <- left_join(school_fast, flow_nodup, by = c("id" = "route_id"))
+# flow_fast_nodup <- left_join(school_fast, flow_nodup, by = c("id" = "route_number"))
 # flow_fast_dup <- left_join(school_fast, flow_dup, by = c("id" = "match_id"), multiple = "all")
 # flow_fast_dup <- flow_fast_dup[!is.na(flow_fast_dup$count),]
-# flow_fast_dup$id = flow_fast_dup$route_id
-# flow_fast_dup$route_id = NULL
+# flow_fast_dup$id = flow_fast_dup$route_number
+# flow_fast_dup$route_number = NULL
 # 
 # flow_fast <- rbind(flow_fast_dup, flow_fast_nodup)
 # 
@@ -113,10 +113,10 @@ saveRDS(rnet_combined, "D:/University of Leeds/TEAM - Network Planning Tool - Ge
 # flow_fast$gradient_smooth <- as.numeric(flow_fast$gradient_smooth)
 # 
 # flow_fast = flow_fast %>% 
-#   rename(route_id = id) %>%
+#   rename(route_number = id) %>%
 #   rename(length_route = length) %>%
 #   rename(gradient = gradient_smooth) %>% 
-#   group_by(route_id) %>% 
+#   group_by(route_number) %>% 
 #   mutate(route_hilliness = mean(gradient)) %>% 
 #   ungroup()
 # 

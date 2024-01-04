@@ -14,7 +14,7 @@ toPlace <- st_as_sf(data.frame(geometry = toPlace))
 
 r_quiet <- journey2(fromPlace,
               toPlace,
-              id = od$route_id,
+              id = od$route_number,
               plan = "quietest", 
               host_con = 10,
               # comment-out this line to use default instance:
@@ -30,7 +30,7 @@ saveRDS(r_quiet,"../atumscot/outputdata/routes_commute_subset_quiet.Rds")
 
 r_balance <- journey2(fromPlace,
                     toPlace,
-                    id = od$route_id,
+                    id = od$route_number,
                     plan = "balanced", 
                     host_con = 10,
             # comment-out this line to use default instance:
@@ -46,7 +46,7 @@ saveRDS(r_balance,"../atumscot/outputdata/routes_commute_subset_balance.Rds")
 
 r_ebike <- journey2(fromPlace,
                       toPlace,
-                      id = od$route_id,
+                      id = od$route_number,
                       plan = "ebike", 
                       host_con = 10,       
                            # comment-out this line to use default instance:

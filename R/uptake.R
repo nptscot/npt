@@ -1,5 +1,5 @@
 get_scenario_go_dutch = function(routes, purpose = "work") {
-  routes = routes %>% dplyr::group_by(route_id)
+  routes = routes %>% dplyr::group_by(route_number)
   if(purpose == "work") {
     routes = routes %>%
       mutate(pcycle_go_dutch = pct::uptake_pct_godutch_2020(

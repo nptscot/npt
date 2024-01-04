@@ -112,8 +112,7 @@ make_od_shopping = function(oas, os_pois, grid, trip_purposes, intermediate_zone
            foot = shopping_all_modes * mode_shares$foot,
            car = shopping_all_modes * mode_shares$car,
            public_transport = shopping_all_modes * mode_shares$public_transport,
-           taxi = shopping_all_modes * mode_shares$taxi,
-           route_id = paste0(geo_code1, "_", geo_code2, "_", seq(nrow(od_adjusted_jittered)))
+           taxi = shopping_all_modes * mode_shares$taxi
     )
   
   od_shopping_subset = od_shopping_jittered %>% 
@@ -244,8 +243,7 @@ make_od_leisure = function(oas, os_pois, grid, trip_purposes, intermediate_zones
            foot = leisure_all_modes * mode_shares$foot,
            car = leisure_all_modes * mode_shares$car,
            public_transport = leisure_all_modes * mode_shares$public_transport,
-           taxi = leisure_all_modes * mode_shares$taxi,
-           route_id = paste0(geo_code1, "_", geo_code2, "_", seq(nrow(od_adjusted_jittered)))
+           taxi = leisure_all_modes * mode_shares$taxi
     )
   
   od_leisure_subset = od_leisure_jittered %>% 
@@ -350,8 +348,7 @@ make_od_visiting = function(oas, os_pois, grid, trip_purposes, intermediate_zone
            foot = visiting_all_modes * mode_shares$foot,
            car = visiting_all_modes * mode_shares$car,
            public_transport = visiting_all_modes * mode_shares$public_transport,
-           taxi = visiting_all_modes * mode_shares$taxi,
-           route_id = paste0(geo_code1, "_", geo_code2, "_", seq(nrow(od_adjusted_jittered)))
+           taxi = visiting_all_modes * mode_shares$taxi
     )
   
   od_visiting_subset = od_visiting_jittered %>% 

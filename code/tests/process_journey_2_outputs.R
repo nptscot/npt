@@ -24,7 +24,7 @@ toPlace <- st_as_sf(data.frame(geometry = toPlace))
 system.time({
   r_quiet <- journey2(fromPlace,
                       toPlace,
-                      id = od$route_id,
+                      id = od$route_number,
                       plan = "quietest", 
                       host_con = 10,
                       # comment-out this line to use default instance:
@@ -82,5 +82,5 @@ toPlace = sf::st_as_sf(lwgeom::st_endpoint(od))
 library(sf)
 bench::mark(check = FALSE, max_iterations = 1,
             journey = (r1 <<- route(l = od, route_fun = journey, plan = "quietest")),
-            journey2 = (r2 <<- journey2(fromPlace, toPlace, id = od$route_id, plan = "quietest", segments = TRUE))
+            journey2 = (r2 <<- journey2(fromPlace, toPlace, id = od$route_number, plan = "quietest", segments = TRUE))
             )
