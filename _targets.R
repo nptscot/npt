@@ -8,11 +8,25 @@
 
 # Options
 
+pkgs  = c(
+  "tibble","zonebuilder","dplyr","lubridate",
+  "stringr","sf","tidyr","data.table", "targets",
+  "glue","zip","jsonlite","remotes","gert","collapse","pct",
+  "readr",
+  "bs4Dash", "DT", "gt", "pingr", "shinybusy", "shinyWidgets","geos",
+  "cyclestreets" ,"stplanr", "simodels",
+  "geojsonsf","lwgeom","targets","tidyverse", "crew"
+  #,"rsgeo"
+)
+
 #Do you want to reinstall github packages, set to TRUE for first run
-update_github_packages = FALSE 
+update_github_packages = TRUE 
 
 # Run the install script
-source("code/install.R")
+# Run this line if zonebuilder isn't available
+if (!"zonebuilder" %in% installed.packages()) {
+  source("code/install.R")
+}
 
 # Load minimum of libraries (Should use package::function in most cases)
 library(targets) # Needed to make targets work
@@ -45,11 +59,22 @@ list(
     if(!renviron_exists) {
       warning("No .Renviron file, routing may not work")
     }
+    # Refactor this bit:
     p = jsonlite::read_json(param_file, simplifyVector = T)
     folder_name = paste0("outputdata/", p$date_routing)
     if(!dir.exists(folder_name)){
       dir.create(file.path(folder_name))
     }
+
+    if (!is_bin_on_path("odjitter")) {
+      old_path = Sys.getenv("PATH")
+      Sys.setenv(PATH = paste(old_path, "/root/.cargo/bin", sep = ":"))
+      odjitter_location = "/root/.cargo/bin/odjitter"
+    } else {
+      odjitter_location = "odjitter"
+    }
+    p$odjitter_location = odjitter_location
+
     p 
   }),
   tar_target(aadt_file, command = "data-raw/AADT_factors.csv", format = "file"),
@@ -137,29 +162,21 @@ list(
       filter(geo_code1 %in% z$DataZone) |>
       filter(geo_code2 %in% z$DataZone)
     set.seed(2023)
-    # Test if cargo is available to system:
-    source("R/is_bin_on_path.R")
-    if (!is_bin_on_path("odjitter")) {
-      old_path = Sys.getenv("PATH")
-      Sys.setenv(PATH = paste(old_path, "/root/.cargo/bin", sep = ":"))
-      odjitter_location = "/root/.cargo/bin/odjitter"
-    } else {
-      odjitter_location = "odjitter"
-    }
-
     odj = odjitter::jitter(
       od = od,
       zones = z,
       subpoints_origins = subpoints_origins,
       subpoints_destinations = subpoints_destinations,
       disaggregation_threshold = 30,
-      deduplicate_pairs = FALSE#,odjitter_location = find_odjitter_location()
+      deduplicate_pairs = FALSE,
+      odjitter_location = parameters$odjitter_location
     )
     odj$dist_euclidean_jittered = as.numeric(sf::st_length(odj))
+    odj = odj %>%
+      mutate(route_id = paste0(geo_code1, "_", geo_code2, "_", seq(nrow(odj))))
     # saveRDS(odj, "inputdata/od_commute_jittered.Rds")
     # Read in test OD dataset for package development:
     # sf::read_sf("https://github.com/nptscot/npt/releases/download/v1/od_jittered_demo.geojson")
-    odj
   }),
 
   tar_target(od_commute_subset, {
@@ -390,7 +407,7 @@ tar_target(rnet_gq_school_balanced, {
   tar_target(uptake_commute_fastest, {
     routes = r_commute_fastest %>%
       aadt_adjust(purpose = "commute", aadt_parameters = aadt_parameters) %>%
-      get_uptake_scenarios()
+      get_scenario_go_dutch()
     saveRDS(routes, "outputdata/routes_commute_fastest.Rds")
     routes
   }),
@@ -398,7 +415,7 @@ tar_target(rnet_gq_school_balanced, {
   tar_target(uptake_commute_quietest, {
     routes = r_commute_quietest %>%
       aadt_adjust(purpose = "commute", aadt_parameters = aadt_parameters) %>%
-      get_uptake_scenarios()
+      get_scenario_go_dutch()
     saveRDS(routes, "outputdata/routes_commute_quietest.Rds")
     routes
   }),
@@ -406,7 +423,7 @@ tar_target(rnet_gq_school_balanced, {
   tar_target(uptake_commute_ebike, {
     routes = r_commute_ebike %>%
       aadt_adjust(purpose = "commute", aadt_parameters = aadt_parameters) %>%
-      get_uptake_scenarios()
+      get_scenario_go_dutch()
     saveRDS(routes, "outputdata/routes_commute_ebike.Rds")
     routes
   }),
@@ -414,7 +431,7 @@ tar_target(rnet_gq_school_balanced, {
   tar_target(uptake_commute_balanced, {
     routes = r_commute_balanced %>%
       aadt_adjust(purpose = "commute", aadt_parameters = aadt_parameters) %>%
-      get_uptake_scenarios()
+      get_scenario_go_dutch()
     saveRDS(routes, "outputdata/routes_commute_balanced.Rds")
     routes
   }),
@@ -424,28 +441,28 @@ tar_target(rnet_gq_school_balanced, {
 tar_target(uptake_school_fastest, {
   routes = r_school_fastest %>%
       aadt_adjust(purpose = "school", aadt_parameters = aadt_parameters) %>%
-    get_uptake_scenarios(purpose = "school")
+    get_scenario_go_dutch(purpose = "school")
   routes
 }),
 
 tar_target(uptake_school_quietest, {
   routes = r_school_quietest %>%
     aadt_adjust(purpose = "school", aadt_parameters = aadt_parameters) %>%
-    get_uptake_scenarios(purpose = "school")
+    get_scenario_go_dutch(purpose = "school")
   routes
 }),
 
 tar_target(uptake_school_ebike, {
   routes = r_school_ebike %>%
     aadt_adjust(purpose = "school", aadt_parameters = aadt_parameters) %>%
-    get_uptake_scenarios(purpose = "school")
+    get_scenario_go_dutch(purpose = "school")
   routes
 }),
 
 tar_target(uptake_school_balanced, {
   routes = r_school_balanced %>%
     aadt_adjust(purpose = "school", aadt_parameters = aadt_parameters) %>%
-    get_uptake_scenarios(purpose = "school")
+    get_scenario_go_dutch(purpose = "school")
   routes
 }),
 
@@ -781,19 +798,19 @@ tar_target(intermediate_zones,{
 # Utility OD -------------------------------------------------------------
 tar_target(od_shopping, {
   od_shopping = make_od_shopping(oas, os_pois, grid, trip_purposes,
-                                intermediate_zones, parameters,study_area)
+                                intermediate_zones, parameters,study_area, odjitter_location = parameters$odjitter_location)
   od_shopping
 }),
 
 tar_target(od_visiting, {
   od_visiting = make_od_visiting(oas, os_pois, grid, trip_purposes,
-                                intermediate_zones, parameters, study_area)
+                                intermediate_zones, parameters, study_area, odjitter_location = parameters$odjitter_location)
   od_visiting
 }),
 
 tar_target(od_leisure, {
   od_leisure = make_od_leisure(oas, os_pois, grid, trip_purposes,
-                              intermediate_zones, parameters, study_area)
+                              intermediate_zones, parameters, study_area, odjitter_location = parameters$odjitter_location)
   od_leisure
 }),
 
@@ -814,7 +831,7 @@ tar_target(od_utility_combined, {
            dist_euclidean_jittered = length_euclidean_jittered * 1000) %>% 
     dplyr::select(geo_code1, geo_code2, car, foot, bicycle, all, 
            dist_euclidean, public_transport, taxi, geometry,
-           dist_euclidean_jittered, purpose)
+           dist_euclidean_jittered, route_id, purpose)
   
   # Add Start and End DataZones for stats
   # geo_code1 and 2 refere to non-Data Zone ids
@@ -929,7 +946,7 @@ tar_target(rnet_gq_utility_balanced, {
 
 tar_target(uptake_utility_fastest, {
   routes = r_utility_fastest %>%
-    get_uptake_scenarios(purpose = "utility") %>%
+    get_scenario_go_dutch() %>%
     dplyr::mutate(
       bicycle = case_when(
         purpose == "shopping" ~ bicycle * 0.5,
@@ -950,7 +967,7 @@ tar_target(uptake_utility_fastest, {
 
 tar_target(uptake_utility_quietest, {
   routes = r_utility_quietest %>%
-    get_uptake_scenarios() %>%
+    get_scenario_go_dutch() %>%
     dplyr::mutate(
       bicycle = case_when(
         purpose == "shopping" ~ bicycle * 0.5,
@@ -971,7 +988,7 @@ tar_target(uptake_utility_quietest, {
 
 tar_target(uptake_utility_ebike, {
   routes = r_utility_ebike %>%
-    get_uptake_scenarios() %>%
+    get_scenario_go_dutch() %>%
     dplyr::mutate(
       bicycle = case_when(
         purpose == "shopping" ~ bicycle * 0.5,
@@ -992,7 +1009,7 @@ tar_target(uptake_utility_ebike, {
 
 tar_target(uptake_utility_balanced, {
   routes = r_utility_balanced %>%
-    get_uptake_scenarios() %>%
+    get_scenario_go_dutch() %>%
     dplyr::mutate(
       bicycle = case_when(
         purpose == "shopping" ~ bicycle * 0.5,
