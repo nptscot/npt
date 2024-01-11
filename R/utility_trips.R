@@ -8,7 +8,7 @@
 #' @param parameters parameters
 #' @param study_area study_area
 
-make_od_shopping = function(oas, os_pois, grid, trip_purposes, intermediate_zones, parameters, study_area){
+make_od_shopping = function(oas, os_pois, grid, trip_purposes, intermediate_zones, parameters, study_area, odjitter_location = "odjitter"){
   
   os_retail = os_pois %>% 
     dplyr::filter(groupname == "Retail") # 26279 points
@@ -85,7 +85,8 @@ make_od_shopping = function(oas, os_pois, grid, trip_purposes, intermediate_zone
     subpoints_destinations = shopping_grid,
     disaggregation_key = "shopping_all_modes",
     disaggregation_threshold = parameters$disag_threshold,
-    deduplicate_pairs = FALSE
+    deduplicate_pairs = FALSE,
+    odjitter_location = odjitter_location
   )
   
   # Get mode shares
@@ -150,7 +151,7 @@ make_od_shopping = function(oas, os_pois, grid, trip_purposes, intermediate_zone
 #' @param parameters parameters
 #' @param study_area study_area
 
-make_od_leisure = function(oas, os_pois, grid, trip_purposes, intermediate_zones, parameters, study_area){
+make_od_leisure = function(oas, os_pois, grid, trip_purposes, intermediate_zones, parameters, study_area, odjitter_location = "odjitter"){
   
   os_leisure = os_pois %>% 
     dplyr::filter(groupname == "Sport and Entertainment") # 20524 points
@@ -281,7 +282,7 @@ make_od_leisure = function(oas, os_pois, grid, trip_purposes, intermediate_zones
 #' @param parameters parameters
 #' @param study_area study_area
 
-make_od_visiting = function(oas, os_pois, grid, trip_purposes, intermediate_zones, parameters, study_area){
+make_od_visiting = function(oas, os_pois, grid, trip_purposes, intermediate_zones, parameters, study_area, odjitter_location = "odjitter"){
   
   visiting_percent = trip_purposes %>% 
     dplyr::filter(Purpose == "Visiting friends or relatives") %>% 
@@ -327,7 +328,8 @@ make_od_visiting = function(oas, os_pois, grid, trip_purposes, intermediate_zone
     subpoints = oas,
     disaggregation_key = "visiting_all_modes",
     disaggregation_threshold = parameters$disag_threshold,
-    deduplicate_pairs = FALSE
+    deduplicate_pairs = FALSE,
+    odjitter_location = odjitter_location
   )
   
   # Get cycle mode shares
