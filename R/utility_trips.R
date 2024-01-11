@@ -223,7 +223,8 @@ make_od_leisure = function(oas, os_pois, grid, trip_purposes, intermediate_zones
     subpoints_destinations = leisure_grid,
     disaggregation_key = "leisure_all_modes",
     disaggregation_threshold = parameters$disag_threshold,
-    deduplicate_pairs = FALSE
+    deduplicate_pairs = FALSE,
+    odjitter_location = odjitter_location
   )
   
   # Get mode shares

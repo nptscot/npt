@@ -798,19 +798,19 @@ tar_target(intermediate_zones,{
 # Utility OD -------------------------------------------------------------
 tar_target(od_shopping, {
   od_shopping = make_od_shopping(oas, os_pois, grid, trip_purposes,
-                                intermediate_zones, parameters,study_area, odjitter_location = odjitter_location)
+                                intermediate_zones, parameters,study_area, odjitter_location = parameters$odjitter_location)
   od_shopping
 }),
 
 tar_target(od_visiting, {
   od_visiting = make_od_visiting(oas, os_pois, grid, trip_purposes,
-                                intermediate_zones, parameters, study_area, odjitter_location = odjitter_location)
+                                intermediate_zones, parameters, study_area, odjitter_location = parameters$odjitter_location)
   od_visiting
 }),
 
 tar_target(od_leisure, {
   od_leisure = make_od_leisure(oas, os_pois, grid, trip_purposes,
-                              intermediate_zones, parameters, study_area, odjitter_location = odjitter_location)
+                              intermediate_zones, parameters, study_area, odjitter_location = parameters$odjitter_location)
   od_leisure
 }),
 
