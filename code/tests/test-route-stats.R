@@ -1,3 +1,17 @@
+# Aim: test shopping trips are consistent
+# See https://github.com/nptscot/npt/issues/369
+# See https://github.com/nptscot/npt/issues/355
+
+# Starting point: run tar_make() in the root directory of the project, with low number of routes
+
+library(tidyverse)
+library(targets)
+library(sf)
+
+tar_load(uptake_utility_fastest)
+
+routes = uptake_utility_fastest
+
 dutch = routes %>% 
   select(grep("dutch", names(routes)), purpose)
 
@@ -19,7 +33,7 @@ shopping_orig_base = shopping_base %>%
   sf::st_drop_geometry() %>% 
   select(bicycle, car, foot, taxi, public_transport)
 sum(shopping_orig_base, na.rm = T)
-# [1] 19214.15
+# [1] 19156.51
 
 routes_shopping = routes %>% 
   filter(purpose == "shopping")
@@ -33,8 +47,7 @@ shopping_orig_dutch = shopping_dutch %>%
   sf::st_drop_geometry() %>% 
   select(bicycle_go_dutch, car_go_dutch, foot_go_dutch, taxi_go_dutch, public_transport_go_dutch)
 sum(shopping_orig_dutch, na.rm = T)
-# [1] 19214.15
-
+# [1] 17291.57
 
 shopping_ebike = ebike %>% 
   filter(purpose == "shopping")
@@ -72,7 +85,7 @@ visiting_orig_dutch = visiting_dutch %>%
   sf::st_drop_geometry() %>% 
   select(bicycle_go_dutch, car_go_dutch, foot_go_dutch, taxi_go_dutch, public_transport_go_dutch)
 sum(visiting_orig_dutch, na.rm = T)
-# [1] 5405.999
+  # [1] 5405.999
 
 
 visiting_ebike = ebike %>% 
