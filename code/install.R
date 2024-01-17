@@ -7,5 +7,6 @@ if(update_github_packages){
   remotes::install_github("ropensci/stplanr")# Improved overline
   remotes::install_github("robinlovelace/ukboundaries")
   remotes::install_github("robinlovelace/simodels")
+  remotes::install_github("nptscot/coherentnet")
   remotes::install_dev("rsgeo")
 }
