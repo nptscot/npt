@@ -762,6 +762,10 @@ tar_target(os_pois, {
   os_pois = readRDS(file.path(path_teams, "secure_data/OS/os_poi.Rds"))
   os_pois = os_pois %>% 
     mutate(groupname = as.character(groupname))
+  if(parameters$geo_subset) {
+    os_pois = os_pois[study_area, op = sf::st_within]
+  }
+  os_pois
 }),
 
 tar_target(grid, {
