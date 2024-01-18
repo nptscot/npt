@@ -55,3 +55,12 @@ ggplot(routes_visiting, aes(ResPop2011, all)) +
 ggplot(routes_leisure, aes(ResPop2011, all)) + 
   geom_point() +
   ylab("Leisure (all modes)")
+
+routes_join = routes_join %>% 
+  mutate(ratio = all / ResPop2011)
+summary(routes_join$ratio)
+
+few_trips = routes_join %>% 
+  filter(ratio < 0.75)
+
+tm_shape(routes_join) + tm_polygons("ratio") 
