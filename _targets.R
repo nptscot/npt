@@ -757,11 +757,17 @@ tar_target(trip_purposes, {
 }),
 
 tar_target(os_pois, {
+  check = length(parameters)
+  check = length(study_area)
   # Get shopping destinations from secure OS data
   path_teams = Sys.getenv("NPT_TEAMS_PATH")
   os_pois = readRDS(file.path(path_teams, "secure_data/OS/os_poi.Rds"))
   os_pois = os_pois %>% 
     mutate(groupname = as.character(groupname))
+  if(parameters$geo_subset) {
+    os_pois = os_pois[study_area, op = sf::st_within]
+  }
+  os_pois
 }),
 
 tar_target(grid, {
