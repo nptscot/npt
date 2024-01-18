@@ -757,6 +757,8 @@ tar_target(trip_purposes, {
 }),
 
 tar_target(os_pois, {
+  check = length(parameters)
+  check = length(study_area)
   # Get shopping destinations from secure OS data
   path_teams = Sys.getenv("NPT_TEAMS_PATH")
   os_pois = readRDS(file.path(path_teams, "secure_data/OS/os_poi.Rds"))
