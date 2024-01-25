@@ -778,7 +778,7 @@ tar_target(os_pois, {
 #   mode_shares
 # }),
 
-tar_target(scotland,{
+tar_target(grid,{
   scotland = readRDS("./inputdata/grid_scot.Rds")
   scotland
 }),
