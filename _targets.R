@@ -213,13 +213,13 @@ tar_target(od_school, {
 
 tar_target(rs_school_fastest, {
   rs = get_routes(od = od_school %>% slice_max(n = parameters$max_to_route, order_by = all, with_ties = FALSE),
-                  plans = "fastest", 
+                  plans = parameters$plans, 
                   purpose = "school",
                   folder = paste0("outputdata/", parameters$date_routing),
                   date = parameters$date_routing,
                   segments = "both")
-  rs
-}),
+},
+pattern = map(parameters$plans, ~ paste0("rs_school_", .x))),
 
 tar_target(done_school_fastest, {
   length(rs_school_fastest) #Hack for scheduling
