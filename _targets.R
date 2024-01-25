@@ -770,12 +770,6 @@ tar_target(os_pois, {
   os_pois
 }),
 
-tar_target(grid, {
-  scot_zones = sf::st_transform(zones, 27700) # Use existing zones
-  grid = sf::st_make_grid(scot_zones, cellsize = 500, what = "centers")
-  grid
-}),
-
 # tar_target(mode_shares, {
 #   mode_shares = list(
 #     mode = c("bicycle", "foot", "car", "public_transport", "taxi"),
@@ -783,6 +777,11 @@ tar_target(grid, {
 #   )
 #   mode_shares
 # }),
+
+tar_target(scotland,{
+  scotland = readRDS("./inputdata/grid_scot.Rds")
+  scotland
+}),
 tar_target(oas,{
   oas = readRDS("./inputdata/oas.Rds")
   oas
