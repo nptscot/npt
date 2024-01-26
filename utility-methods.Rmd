@@ -1,0 +1,67 @@
+---
+title: "Utility trips methodology"
+output: word_document
+date: "2024-01-26"
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## Trip numbers and purposes
+
+We estimated trips for three purposes - shopping, social (visiting friends and family), and leisure.
+These are combined on https://nptscot.github.io under the joint category of 'Other Everyday' trips.
+
+We used data from the England's National Travel Survey 2019 to estimate the total number of trips undertaken per person per day, as AADT. 
+This gives an average of 953 trips per person per year, which equates to 2.61 trips per person per day. 
+Equivalent data from Scotland could not be identified to do this.
+<!-- talk about scotland england comparisons -->
+
+The number of daily trips for each purpose were determined using the trip purpose percentage breakdown from the Scottish Household Survey 2012-2019 (after adjusting these percentages to remove the 'Go Home' category).
+This resulted in 25.1% of trips being assigned for shopping, 11.7% for social, and 6.3% for leisure.
+
+## Mode share
+
+The mode shares were estimated using the mean mode shares from the Scottish Household Survey travel diaries in table 16 of Transport and Travel in Scotland 2019 Local Authority Tables.
+This gives mode shares (for social and leisure trips) of 1.2% for cycling, 22.1% for walking, 65.2% for car, 9.3% for public transport, and 2.2% for taxi/other.
+
+For shopping, we assumed that the cycling mode share was half of this, with the mode share for the other modes (car, public transport, walking and taxi/other) increased accordingly. 
+<!-- This corresponds to data from xxxx that shows lower cycle mode share for shopping trips. -->
+Shopping trips can be more difficult to cycle, since they require carrying larger volumes of luggage.
+
+## Trip origins and destinations
+
+Origins and destinations were assigned based on Intermediate Zones.
+The trip origins were assumed to be people's homes.
+The number of trips originating from each zone is therefore a function of the residential population of the zone, multiplied by the AADT for the given trip purpose.
+
+For shopping and leisure trips, we used Ordnance Survey Points of Interest (POIs) to identify potential trip destinations. 
+The POIs for shopping comprised any location classed as 'Retail.' 
+For leisure, they comprised locations classed as 'Sport and Entertainment.' 
+This includes gyms, swimming pools, nightclubs, cinemas, etc. 
+These POIs were assigned to the nearest point on a 500m grid, giving a density measure.
+
+For social trips, the destinations were people's homes, so the number of trips arriving in each zone was a function of the zone's residential population. 
+
+## Spatial interaction model
+
+We used a spatial interaction model to pair trip origins and destinations and thus create desire lines.
+These are assigned according to a distance decay equation, which has been derived from distances of travel to work.
+This may introduce bias if in reality typical trip distances for these other everyday purposes are different from the trip distances for commuting.
+
+## Disaggregating and filtering desire lines
+
+The resulting desire lines are put through a jittering process.
+Where the trip origins or destinations were assigned based on Intermediate Zone populations, we disaggregate these desire lines and assign them to randomised points on the road network of the zone. 
+The disaggregation threshold is 100.
+
+We then filter the desire lines, excluding those with a Euclidean distance of <500m (below this distance people are likely to walk rather than cycle) or >5km (to reduce the computational time of the routing).
+
+## Routing
+
+Finally, the desire lines are routed on the road network, using the CycleStreets routing algorithms for fast, balanced and quiet routes.
+Individual routes are then combined into a route network.
+
+
+
