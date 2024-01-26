@@ -60,7 +60,7 @@ We then filter the desire lines, excluding those with a Euclidean distance of <5
 
 ## Routing
 
-Finally, the desire lines are routed on the road network, using the CycleStreets routing algorithms for fast, balanced and quiet routes.
+Finally, the desire lines are routed on the road network, using the CycleStreets routing algorithms for fast and quiet routes.
 Individual routes are then combined into a route network.
 
 
