@@ -778,9 +778,14 @@ tar_target(os_pois, {
 #   mode_shares
 # }),
 
-tar_target(scotland,{
-  scotland = readRDS("./inputdata/grid_scot.Rds")
-  scotland
+tar_target(grid,{
+  # # Ensure the file is on your computer, run this in shell:
+  # cd inputdata
+  # gh release list
+  # # gh release upload v1 grid_scot.Rds
+  # gh release download v1 grid_scot.Rds
+  # cd ..
+  readRDS("./inputdata/grid_scot.Rds")
 }),
 tar_target(oas,{
   oas = readRDS("./inputdata/oas.Rds")
