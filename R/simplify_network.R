@@ -61,7 +61,7 @@ simplify_network = function(rnet_y, parameters){
   # Merge the spatial objects rnet_xp and rnet_yp based on specified parameters
   dist = 20
   angle = 15
-  rnet_merged_all = stplanr::rnet_merge(rnet_xp, rnet_yp, dist = dist, segment_length = 10, funs = funs, max_angle_diff = angle)  #
+  rnet_merged_all = stplanr::rnet_merge(rnet_xp, rnet_yp, dist = dist, funs = funs, max_angle_diff = angle)  #segment_length = 20
   
   # Remove unnecessary columns from the merged spatial object
   rnet_merged_all = rnet_merged_all[ , !(names(rnet_merged_all) %in% c('identifier','length_x'))]
