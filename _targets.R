@@ -1504,6 +1504,7 @@ tar_target(pmtiles_rnet_simplified, {
     saveRDS(od_commute_subset, "outputdata/od_commute_subset.Rds")
     saveRDS(zones_stats, "outputdata/zones_stats.Rds")
     saveRDS(school_stats, "outputdata/school_stats.Rds")
+    sf::write_sf(combined_network_tile, "outputdata/combined_network_tile.geojson", delete_dsn = TRUE)    
     sf::write_sf(simplified_network, "outputdata/simplified_network.geojson", delete_dsn = TRUE)
     
     file.copy("outputs/daysmetric.pmtiles","outputdata/daysmetric.pmtiles")
@@ -1514,7 +1515,14 @@ tar_target(pmtiles_rnet_simplified, {
 
     sys_time = Sys.time()
     zip(zipfile = "outputdata/combined_network_tile.zip", "outputdata/combined_network_tile.geojson")
-    file.remove("outputdata/combined_network_tile.geojson")
+
+    combined_network_tile_file_path = "outputdata/combined_network_tile.geojson"
+
+    # Check if the file exists
+    if (file.exists(combined_network_tile_file_path)) {
+      # Delete the file
+      file.remove(combined_network_tile_file_path)
+    }
     # Upload pmtiles to release
     # cd outputdata
     # gh release upload z2023-07-28 rnet_2023-07-04.pmtiles
