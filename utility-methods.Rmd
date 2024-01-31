@@ -13,13 +13,16 @@ knitr::opts_chunk$set(echo = TRUE)
 We estimated trips for three purposes - shopping, social (visiting friends and family), and leisure.
 These are combined on https://nptscot.github.io under the joint category of 'Other Everyday' trips.
 
-We used data from the England's National Travel Survey 2019 to estimate the total number of trips undertaken per person per day, as AADT. 
+We used data from England's National Travel Survey 2019 to estimate the total number of trips undertaken per person per day, as AADT. 
 This gives an average of 953 trips per person per year, which equates to 2.61 trips per person per day. 
-Equivalent data from Scotland could not be identified to do this.
-<!-- talk about scotland england comparisons -->
+A trip is defined as a one-way course of travel from one place to another (https://www.gov.uk/government/statistics/national-travel-survey-2022-technical-report/national-travel-survey-2022-technical-report-glossary#trip).
 
-The number of daily trips for each purpose were determined using the trip purpose percentage breakdown from the Scottish Household Survey 2012-2019 (after adjusting these percentages to remove the 'Go Home' category).
-This resulted in 25.1% of trips being assigned for shopping, 11.7% for social, and 6.3% for leisure.
+Data on the number of trips per person per year has not been collected in Scotland since 2012, and the Scottish Household Survey only records travel on the day before the survey, while the National Travel Survey records travel patterns over an entire week.
+However, for the ten year period from 2002/03 to 2011/12, the National Travel Survey recorded a mean of 995 trips per person per year by Scottish residents. 
+In England, during 2002 to 2012, there were 1023 trips per person per year (https://assets.publishing.service.gov.uk/media/64e8b00063587000141dbfa6/nts0303.ods)
+
+The number of daily trips for each purpose was determined using the trip purpose percentage breakdown from the Scottish Household Survey 2012-2019 (after adjusting these percentages to remove the 'Go Home' category).
+This resulted in 25.1% of trips being assigned for shopping, 11.7% for social, and 6.3% for leisure (https://www.transport.gov.scot/media/51346/transport-and-travel-in-scotland-2019-travel-diary-tables.xlsx).
 
 ## Mode share
 
