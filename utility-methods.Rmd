@@ -30,8 +30,8 @@ The mode shares were estimated using the mean mode shares from the Scottish Hous
 (https://www.transport.gov.scot/media/51346/transport-and-travel-in-scotland-2019-travel-diary-tables.xlsx).
 This gives mode shares (for social and leisure trips) of 1.2% for cycling, 22.1% for walking, 65.2% for car, 9.3% for public transport, and 2.2% for taxi/other.
 
-For shopping, we assumed that the cycling mode share was half of this, with the mode share for the other modes (car, public transport, walking and taxi/other) increased accordingly. 
-<!-- This corresponds to data from xxxx that shows lower cycle mode share for shopping trips. -->
+For shopping, we assumed that the cycle mode share was half of this, with the mode share for the other modes (car, public transport, walking and taxi/other) increased accordingly. 
+This follows our detailed analysis of Scottish Household Survey travel diaries, which identified shopping as having a considerably lower cycle mode share than other trip purposes.
 Shopping trips can be more difficult to cycle, since they require carrying larger volumes of luggage.
 
 ## Trip origins and destinations
@@ -41,10 +41,13 @@ The trip origins were assumed to be people's homes.
 The number of trips originating from each zone is therefore a function of the residential population of the zone, multiplied by the AADT for the given trip purpose.
 
 For shopping and leisure trips, we used Ordnance Survey Points of Interest (POIs) to identify potential trip destinations. 
+All of these POIs were assigned to the nearest point on a 500m grid, giving a density index for each grid point.
+The grid was clipped to avoid any destination points falling offshore.
+
 The POIs for shopping comprised any location classed as 'Retail.' 
 For leisure, they comprised locations classed as 'Sport and Entertainment.' 
-This includes gyms, swimming pools, nightclubs, cinemas, etc. 
-These POIs were assigned to the nearest point on a 500m grid, giving a density measure.
+This includes gyms, swimming pools, sports centres, nightclubs, cinemas, theatres, casinos and similar venues.
+We chose this category because it matches the Scottish Household Survey 'Sport/Entertainment' trip purpose.  
 
 For social trips, the destinations were people's homes, so the number of trips arriving in each zone was a function of the zone's residential population. 
 
@@ -57,7 +60,7 @@ This may introduce bias if in reality typical trip distances for these other eve
 ## Disaggregating and filtering desire lines
 
 The resulting desire lines are put through a jittering process.
-Where the trip origins or destinations were assigned based on Intermediate Zone populations, we disaggregate these desire lines and assign them to randomised points on the road network of the zone. 
+In cases where the trip origins or destinations were assigned based on Intermediate Zone populations, we disaggregate these desire lines and assign them to randomised points on the road network of the zone, rather than using a single point for each zone. 
 The disaggregation threshold is 100.
 
 We then filter the desire lines, excluding those with a Euclidean distance of <500m (below this distance people are likely to walk rather than cycle) or >5km (to reduce the computational time of the routing).
