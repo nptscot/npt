@@ -38,7 +38,7 @@ names_combined = names_combined[names_combined != "geometry"]
 # Saved lots of lines of code and faster:
 rnet_long = data.table::rbindlist(rcl, fill = TRUE)
 rnet_long = rnet_long %>% 
-  mutate(across(fastest_bicycle:quietest_Quietness, function(x) tidyr::replace_na(x, 0))) %>% 
+  mutate(across(fastest_bicycle:quietest_quietness, function(x) tidyr::replace_na(x, 0))) %>% 
   as_tibble()
 
 rnet_long$geometry = sf::st_sfc(rnet_long$geometry, recompute_bbox = TRUE)
@@ -60,8 +60,8 @@ mapview::mapview(rnet_combined, zcol = "quietest_bicycle_go_dutch")
 # rnet_combined = readRDS("outputdata/rnet_combined_after_overline.Rds")
 rnet_combined = rnet_combined %>% 
   rowwise() %>% 
-  mutate(Gradient = max(fastest_Gradient, quietest_Gradient)) %>% 
-  mutate(Quietness = max(fastest_Quietness, quietest_Quietness)) 
+  mutate(gradient = max(fastest_gradient, quietest_gradient)) %>% 
+  mutate(quietness = max(fastest_quietness, quietest_quietness)) 
 
 # Values on Mercury Way still correct:
 mapview::mapview(rnet_combined, zcol = "quietest_bicycle_go_dutch")
@@ -69,9 +69,9 @@ mapview::mapview(rnet_combined, zcol = "quietest_bicycle_go_dutch")
 rnet = rnet_combined %>% 
   select(-matches("_Q|_Gr")) %>% 
   mutate(across(matches("bicycle", round))) %>% 
-  mutate(Gradient = round(Gradient, digits = 1))
+  mutate(gradient = round(gradient, digits = 1))
 # # TODO: check gradients
-# table(rnet_combined$Gradient)
+# table(rnet_combined$gradient)
 
 # Values on Mercury Way still correct:
 mapview::mapview(rnet, zcol = "quietest_bicycle_go_dutch")

@@ -51,7 +51,7 @@ simplify_network = function(rnet_y, parameters){
   for (name in name_list) {
     if (name == "geometry") {
       next  # Skip the current iteration
-    } else if (name %in% c("Gradient", "Quietness")) {
+    } else if (name %in% c("gradient", "quietness")) {
       funs[[name]] = mean
     } else {
       funs[[name]] = sum

@@ -1,6 +1,6 @@
 rnet_school = readRDS("D:/University of Leeds/TEAM - Network Planning Tool - General/secure_data/schools/school_rnet_sub30km.Rds")
-rnet_school$Gradient <- round(rnet_school$gradient * 100)
-rnet_school$Quietness <- rnet_school$quietness
+rnet_school$gradient <- round(rnet_school$gradient * 100)
+rnet_school$quietness <- rnet_school$quietness
 rnet_school$quietness <- NULL
 rnet_school$gradient <- NULL
 
@@ -21,7 +21,7 @@ rnet_combined = overline(rnet_long,
                          attrib = c("school_fastest_bicycle","school_fastest_bicycle_go_dutch","school_quietest_bicycle",
                                     "school_quietest_bicycle_go_dutch","school_balanced_bicycle","school_balanced_bicycle_go_dutch",
                                     "school_ebike_bicycle","school_ebike_bicycle_go_dutch",                 
-                                    "Gradient","Quietness","commute_fastest_bicycle",
+                                    "gradient","quietness","commute_fastest_bicycle",
                                     "commute_fastest_bicycle_go_dutch","commute_balanced_bicycle","commute_balanced_bicycle_go_dutch",
                                     "commute_quietest_bicycle","commute_quietest_bicycle_go_dutch","commute_ebike_bicycle",
                                     "commute_ebike_bicycle_go_dutch"), 
@@ -34,7 +34,7 @@ rnet_combined = rnet_combined[,c("school_fastest_bicycle_sum","school_fastest_bi
                                  "school_ebike_bicycle_sum","school_ebike_bicycle_go_dutch_sum","commute_fastest_bicycle_sum","commute_fastest_bicycle_go_dutch_sum",
                                  "commute_balanced_bicycle_sum","commute_balanced_bicycle_go_dutch_sum","commute_quietest_bicycle_sum",
                                  "commute_quietest_bicycle_go_dutch_sum","commute_ebike_bicycle_sum","commute_ebike_bicycle_go_dutch_sum",
-                               "Gradient_max","Quietness_max","geometry")]
+                               "gradient_max","quietness_max","geometry")]
 names(rnet_combined) = gsub("_sum","",names(rnet_combined))
 names(rnet_combined) = gsub("_max","",names(rnet_combined))
 

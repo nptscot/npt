@@ -34,9 +34,9 @@ for(p in plans) {
       # `Bicycle (Near Market)` = round(cyclists_near_sum),
       bicycle_go_dutch = round(bicycle_go_dutch_sum),
       # `Bicycle (Ebike)` = round(cyclists_ebike_sum),
-      Gradient = round(gradient_smooth_mean * 100),
-      Quietness = round(quietness_mean)
-      # col = cut(Quietness, quietness_breaks, labels = pal_quietness, right = FALSE)
+      gradient = round(gradient_smooth_mean * 100),
+      quietness = round(quietness_mean)
+      # col = cut(quietness, quietness_breaks, labels = pal_quietness, right = FALSE)
     ) %>% 
     dplyr::arrange(bicycle)
   rnet_commute_list[[p]] = rnet

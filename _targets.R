@@ -1262,7 +1262,7 @@ tar_target(combined_network, {
     names(rnet_tile) = gsub("_ebike_","_fastest_",names(rnet_tile))
     
     #Order Variables
-    nms_end = c("Gradient","Quietness","geometry" )
+    nms_end = c("gradient","quietness","geometry" )
     nms = names(rnet_tile)[!names(rnet_tile) %in% nms_end]
     rnet_tile = rnet_tile[c(nms[order(nms)], nms_end)]
     
