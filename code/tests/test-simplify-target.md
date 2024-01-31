@@ -40,8 +40,8 @@ names(rnet_y)
     [25] "all_quietest_bicycle_ebike"          "all_quietest_bicycle_go_dutch"      
     [27] "commute_fastest_bicycle_ebike"       "primary_fastest_bicycle"            
     [29] "secondary_fastest_bicycle"           "commute_quietest_bicycle_ebike"     
-    [31] "utility_quietest_bicycle_go_dutch"   "Gradient"                           
-    [33] "Quietness"                          
+    [31] "utility_quietest_bicycle_go_dutch"   "gradient"                           
+    [33] "quietness"                          
 
 ``` r
 rnet_y = rnet_y |>
@@ -85,7 +85,7 @@ if (parameters$open_data_build) {
   for (name in name_list) {
     if (name == "geometry") {
       next  # Skip the current iteration
-    } else if (name %in% c("Gradient", "Quietness")) {
+    } else if (name %in% c("gradient", "quietness")) {
       funs[[name]] = mean
     } else {
       funs[[name]] = sum
@@ -332,7 +332,7 @@ if (parameters$open_data_build) {
     8                        0                         7
     9                        0                         7
     10                       0                         7
-       commute_quietest_bicycle_ebike utility_quietest_bicycle_go_dutch Gradient
+       commute_quietest_bicycle_ebike utility_quietest_bicycle_go_dutch gradient
     1                            6312                              5662        3
     2                            1096                              2747        2
     3                            1093                              2747        2
@@ -343,7 +343,7 @@ if (parameters$open_data_build) {
     8                            1018                              1665        2
     9                            1016                              1665        2
     10                            962                              1338        2
-       Quietness                       geometry
+       quietness                       geometry
     1        100 LINESTRING (-4.26391 55.855...
     2         60 LINESTRING (-2.1132 57.1411...
     3         60 LINESTRING (-2.11311 57.141...

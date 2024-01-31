@@ -143,7 +143,7 @@ first = function(x){
 segments2rnet = function(segments){
   segments$gradient = round(segments$gradient_smooth * 100)
   segments$quietness = round(segments$quietness)
-  segments = stplanr::overline2(segments, c("quietness","Gradient"), fun = first)
+  segments = stplanr::overline2(segments, c("quietness","gradient"), fun = first)
   segments
 }
 
