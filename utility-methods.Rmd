@@ -21,12 +21,13 @@ Data on the number of trips per person per year has not been collected in Scotla
 However, for the ten year period from 2002/03 to 2011/12, the National Travel Survey recorded a mean of 995 trips per person per year by Scottish residents. 
 In England, during 2002 to 2012, there were 1023 trips per person per year (https://assets.publishing.service.gov.uk/media/64e8b00063587000141dbfa6/nts0303.ods)
 
-The number of daily trips for each purpose was determined using the trip purpose percentage breakdown from the Scottish Household Survey 2012-2019 (after adjusting these percentages to remove the 'Go Home' category).
+The number of daily trips for each purpose was determined using the trip purpose percentage breakdown from the Scottish Household Survey, Table TD3 of Transport and Travel in Scotland 2019 travel diary tables (after adjusting these percentages to remove the 'Go Home' category).
 This resulted in 25.1% of trips being assigned for shopping, 11.7% for social, and 6.3% for leisure (https://www.transport.gov.scot/media/51346/transport-and-travel-in-scotland-2019-travel-diary-tables.xlsx).
 
 ## Mode share
 
-The mode shares were estimated using the mean mode shares from the Scottish Household Survey travel diaries in table 16 of Transport and Travel in Scotland 2019 Local Authority Tables.
+The mode shares were estimated using the mean mode shares from the Scottish Household Survey travel diaries in Table TD2 of Transport and Travel in Scotland 2019
+(https://www.transport.gov.scot/media/51346/transport-and-travel-in-scotland-2019-travel-diary-tables.xlsx).
 This gives mode shares (for social and leisure trips) of 1.2% for cycling, 22.1% for walking, 65.2% for car, 9.3% for public transport, and 2.2% for taxi/other.
 
 For shopping, we assumed that the cycling mode share was half of this, with the mode share for the other modes (car, public transport, walking and taxi/other) increased accordingly. 
