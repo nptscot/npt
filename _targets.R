@@ -783,7 +783,6 @@ tar_target(grid,{
   # cd inputdata
   # gh release list
   # # gh release upload v1 grid_scot.Rds
-  # cd inputdata
   # gh release download v1 --pattern grid_scot.Rds
   readRDS("./inputdata/grid_scot.Rds")
 }),
