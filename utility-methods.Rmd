@@ -1,7 +1,8 @@
 ---
 title: "Utility trips methodology"
 output: word_document
-date: "2024-01-26"
+date: "Last updated: `r Sys.Date()`"
+author: "Joey Talbot"
 ---
 
 ```{r setup, include=FALSE}
