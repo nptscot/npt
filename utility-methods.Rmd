@@ -10,8 +10,13 @@ knitr::opts_chunk$set(echo = TRUE)
 
 ## Trip numbers and purposes
 
-We estimated trips for three purposes - shopping, social (visiting friends and family), and leisure.
-These are combined on https://nptscot.github.io under the joint category of 'Other Everyday' trips.
+We estimated trips for three everyday purposes (in addition to commuting and travel to school):
+
+- shopping
+- social (visiting friends and family)
+- leisure
+
+These are presented in a single network layer under the joint category of 'Other Everyday' trips.
 
 We used data from England's National Travel Survey 2019 to estimate the total number of trips undertaken per person per day, as AADT. 
 This gives an average of 953 trips per person per year, which equates to 2.61 trips per person per day. 
@@ -69,6 +74,4 @@ We then filter the desire lines, excluding those with a Euclidean distance of <5
 
 Finally, the desire lines are routed on the road network, using the CycleStreets routing algorithms for fast and quiet routes.
 Individual routes are then combined into a route network.
-
-
 
