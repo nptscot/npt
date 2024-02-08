@@ -955,6 +955,7 @@ tar_target(rnet_gq_utility_balanced, {
 
 tar_target(uptake_utility_fastest, {
   routes = r_utility_fastest %>%
+    filter(distances < 10000) %>%
     get_uptake_scenarios(purpose = "utility")
   saveRDS(routes, "outputdata/routes_utility_fastest.Rds")
   routes
@@ -962,6 +963,7 @@ tar_target(uptake_utility_fastest, {
 
 tar_target(uptake_utility_quietest, {
   routes = r_utility_quietest %>%
+    filter(distances < 10000) %>%
     get_uptake_scenarios(purpose = "utility")
   saveRDS(routes, "outputdata/routes_utility_quietest.Rds")
   routes
@@ -969,6 +971,7 @@ tar_target(uptake_utility_quietest, {
 
 tar_target(uptake_utility_ebike, {
   routes = r_utility_ebike %>%
+    filter(distances < 10000) %>%
     get_uptake_scenarios(purpose = "utility")
   saveRDS(routes, "outputdata/routes_utility_ebike.Rds")
   routes
@@ -976,6 +979,7 @@ tar_target(uptake_utility_ebike, {
 
 tar_target(uptake_utility_balanced, {
   routes = r_utility_balanced %>%
+    filter(distances < 10000) %>%
     get_uptake_scenarios(purpose = "utility")
   saveRDS(routes, "outputdata/routes_utility_balanced.Rds")
   routes
