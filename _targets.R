@@ -1124,17 +1124,10 @@ tar_target(zones_contextual, {
                         "drive_secondary","PT_GP","PT_post",
                         "PT_retail","broadband")]
   zones = sf::st_drop_geometry(zones)
-  
-  zones$drive_petrol = round(zones$drive_petrol, 1)
-  zones$drive_GP = round(zones$drive_GP, 1)
-  zones$drive_post = round(zones$drive_post, 1)
-  zones$drive_primary = round(zones$drive_primary, 1)
-  zones$drive_retail = round(zones$drive_retail, 1)
-  zones$drive_secondary = round(zones$drive_secondary, 1)
-  zones$PT_GP = round(zones$PT_GP, 1)
-  zones$PT_post = round(zones$PT_post, 1)
-  zones$PT_retail = round(zones$PT_retail, 1)
-  zones$broadband = as.integer(gsub("%","",zones$broadband))
+  zones = zones |>
+    mutate(across(drive_petrol:PT_retail, round, digits = 1))
+  # table(zones$broadband) # Check %s for NAs (see #385)
+  zones$broadband = as.integer(gsub("%", "", zones$broadband))
   zones
 }),
 
