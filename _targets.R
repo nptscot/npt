@@ -1281,6 +1281,23 @@ tar_target(simplified_network, {
   rnet_simple
 }),
   
+tar_target(coherent_network, {
+  cue = tar_cue(mode = "always")
+  combined_network_tile = sf::st_read("data-raw/combined_network_tile.geojson")
+  zones = sf::st_read("data-raw/zones.geojson")
+  MasterMap = sf::st_read("data-raw/OS_MasterMap_Edinburgh.geojson")
+
+  NPT_MM_OSM = cohesive_network_prep(combined_network_tile, MasterMAP, zones)
+
+  rnet_coherent = cohesive_network(combined_network_tile = NPT_MM_OSM, combined_grid_buffer = zones, arterial = TRUE)
+  rnet_coherent_90 = cohesive_network(combined_network_tile = NPT_MM_OSM, combined_grid_buffer = zones, arterial = FALSE, min_percentile = 0.90)
+  rnet_coherent_85 = cohesive_network(combined_network_tile = NPT_MM_OSM, combined_grid_buffer = zones, arterial = FALSE, min_percentile = 0.85)
+  rnet_coherent_80 = cohesive_network(combined_network_tile = NPT_MM_OSM, combined_grid_buffer = zones, arterial = FALSE, min_percentile = 0.80)
+
+  make_geojson_zones(rnet_coherent, "outputdata/coherent_network.geojson")
+  rnet_coherent
+}),
+
 
 # Make PMTiles for website ------------------------------------------------
 
