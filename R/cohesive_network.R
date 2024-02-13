@@ -9,20 +9,20 @@
 #' res = subset_network(example_network)
 #' plot(res)
 #' if(FALSE) {
-#' combined_network_tile = sf::read_sf("./data-raw/combined_network_tile.geojson")
-#' names(combined_network_tile)
-#' combined_network_tile$value = combined_network_tile$dutch_slc
-#' combined_network_tile_subset = subset_network(combined_network_tile)
-#' plot(combined_network_tile$geometry, col = "grey")
-#' plot(combined_network_tile_subset$geometry, col = "red", add = TRUE)
+#' network_tile = sf::read_sf("./data-raw/network_tile.geojson")
+#' names(network_tile)
+#' network_tile$value = network_tile$dutch_slc
+#' network_tile_subset = subset_network(network_tile)
+#' plot(network_tile$geometry, col = "grey")
+#' plot(network_tile_subset$geometry, col = "red", add = TRUE)
 #' }
 #' @export
-cohesive_network = function(NPT_OSM_MM, combined_grid_buffer, base_value = "commute_fastest_bicycle_go_dutch", crs = "EPSG:27700", min_percentile = 0.90 , arterial = FALSE, dist =10) {
+cohesive_network = function(network_tile, combined_grid_buffer, base_value = "commute_fastest_bicycle_go_dutch", crs = "EPSG:27700", min_percentile = 0.90 , arterial = FALSE, dist =10) {
 
     # Transform the coordinates of the spatial object
-    combined_network_tile_transformed = sf::st_transform(combined_network_tile, crs)
+    network_tile_transformed = sf::st_transform(network_tile, crs)
 
-    combined_network_tile_transformed = combined_network_tile_transformed |>
+    network_tile_transformed = network_tile_transformed |>
       dplyr::mutate(
         value = dplyr::case_when(
           roadClassification == 'A Road' ~ .data[[base_value]] * 1.5,
@@ -31,14 +31,14 @@ cohesive_network = function(NPT_OSM_MM, combined_grid_buffer, base_value = "comm
         )
       )
 
-    combined_network_tile_transformed = combined_network_tile_transformed[!is.na(combined_network_tile_transformed$value), ]
-    combined_network_tile_transformed$averageWidth[is.na(combined_network_tile_transformed$averageWidth)] = 0.1
+    network_tile_transformed = network_tile_transformed[!is.na(network_tile_transformed$value), ]
+    network_tile_transformed$averageWidth[is.na(network_tile_transformed$averageWidth)] = 0.1
 
     grid_sf = combined_grid_buffer
 
     grid_sf$grid_id = seq_len(nrow(grid_sf))
 
-    split_network = sf::st_intersection(combined_network_tile_transformed, grid_sf)
+    split_network = sf::st_intersection(network_tile_transformed, grid_sf)
 
     select_by_density = function(density) {
       if (density < 10) {
@@ -99,18 +99,18 @@ cohesive_network = function(NPT_OSM_MM, combined_grid_buffer, base_value = "comm
 
     if (arterial) {
       # Filter the dataset for arterial roads
-      combined_network_tile_linestring_percentile = dplyr::filter(combined_network_tile_transformed, arterial == 'Yes')
+      network_tile_linestring_percentile = dplyr::filter(network_tile_transformed, arterial == 'Yes')
 
     } else {
       # Calculate the minimum percentile value from the 'value' column for non-arterial roads
-      min_percentile_value = stats::quantile(combined_network_tile_transformed$value, probs = min_percentile)
+      min_percentile_value = stats::quantile(network_tile_transformed$value, probs = min_percentile)
       # Filter the dataset to include only rows where 'value' is greater than the minimum percentile value
-      combined_network_tile_linestring_percentile = dplyr::filter(combined_network_tile_transformed, value > min_percentile_value)
+      network_tile_linestring_percentile = dplyr::filter(network_tile_transformed, value > min_percentile_value)
     }
 
     # Prepare network
     print("Preparing network")
-    net_percentile = prepare_network(combined_network_tile_linestring_percentile, crs)
+    net_percentile = prepare_network(network_tile_linestring_percentile, crs)
 
     # Calculate paths for each centroid
     all_paths_sf_percentile = purrr::map_dfr(
@@ -172,7 +172,7 @@ calculate_paths_from_point = function(network, point, centroids) {
 }
 
 
-calculate_arterialness_score = function(roadClassification, averageWidth, combined_network_tile) {
+calculate_arterialness_score = function(roadClassification, averageWidth, network_tile) {
     # Base score based on road classification
     # browser()
     base_score = dplyr::case_when(
@@ -183,7 +183,7 @@ calculate_arterialness_score = function(roadClassification, averageWidth, combin
 
     # Calculate max_width only if it's not already calculated
 
-    max_width = max(combined_network_tile$averageWidth, na.rm = TRUE)
+    max_width = max(network_tile$averageWidth, na.rm = TRUE)
     print(max_width)
 
     # Normalize the width score
@@ -315,22 +315,22 @@ convert_to_numeric = function(values) {
   return(numeric_values)
 }
 
-calculate_largest_component = function(combined_network_tile) {
-  # Convert sf object (combined_network_tile) to sfnetwork
-  combined_network_tile_sfn = sfnetworks::as_sfnetwork(combined_network_tile)
+calculate_largest_component = function(network_tile) {
+  # Convert sf object (network_tile) to sfnetwork
+  network_tile_sfn = sfnetworks::as_sfnetwork(network_tile)
 
   # Convert sfnetwork to igraph
-  combined_network_tile_igraph = tidygraph::as_tbl_graph(combined_network_tile_sfn)
+  network_tile_igraph = tidygraph::as_tbl_graph(network_tile_sfn)
 
   # Find the components
-  components = igraph::components(combined_network_tile_igraph)
+  components = igraph::components(network_tile_igraph)
 
   # Identify the largest component
   largest_component = which.max(components$csize)
   largest_component_nodes = which(components$membership == largest_component)
 
   # Extract the largest component subgraph
-  largest_component_subgraph = igraph::subgraph(combined_network_tile_igraph, largest_component_nodes)
+  largest_component_subgraph = igraph::subgraph(network_tile_igraph, largest_component_nodes)
 
   # Convert the largest component subgraph back to sfnetwork
   largest_component_sfn = sfnetworks::as_sfnetwork(largest_component_subgraph)

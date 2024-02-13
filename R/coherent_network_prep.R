@@ -1,4 +1,4 @@
-cohesive_network_prep = function(combined_network_tile, MasterMAP, zones, crs = "EPSG:27700") {
+cohesive_network_prep = function(combined_network_tile, MasterMap, zones, crs = "EPSG:27700") {
     # combined_network_tile = sf::st_read("data-raw/combined_network_tile.geojson")
     combined_network_tile  = sf::st_transform(combined_network_tile, crs)
 
@@ -121,7 +121,7 @@ cohesive_network_prep = function(combined_network_tile, MasterMAP, zones, crs = 
     MasterMap_zones
     )
 
-    MasterMap_NPT_OSM_MM_zonesNPT_OSM_zones$averageWidth[is.na(NPT_OSM_MM_zones$averageWidth)] = 0.1
+    NPT_OSM_MM_zones$averageWidth[is.na(NPT_OSM_MM_zones$averageWidth)] = 0.1
 
     return(NPT_OSM_MM_zones)
 }
