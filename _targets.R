@@ -215,7 +215,7 @@ tar_target(od_school, {
 tar_target(plans, {
   parameters$plans
 }),
-tar_target(rs_school_plans, {
+tar_target(rs_school, {
   get_routes(od = od_school %>% slice_max(n = parameters$max_to_route, order_by = all, with_ties = FALSE),
                   plans = plans,
                   purpose = "school",
@@ -226,69 +226,10 @@ tar_target(rs_school_plans, {
   pattern = map(plans),
   iteration = "list"
 ),
-tar_target(rs_school_fastest, {
-  rs = get_routes(od = od_school %>% slice_max(n = parameters$max_to_route, order_by = all, with_ties = FALSE),
-                  plans = "fastest", 
-                  purpose = "school",
-                  folder = paste0("outputdata/", parameters$date_routing),
-                  date = parameters$date_routing,
-                  segments = "both")
-  rs
-}),
-
-tar_target(done_school_fastest, {
-  length(rs_school_fastest) #Hack for scheduling
-}),
-
-tar_target(rs_school_quietest, {
-  length(done_school_fastest)
-  rs = get_routes(od = od_school %>% slice_max(n = parameters$max_to_route, order_by = all, with_ties = FALSE),
-                  plans = "quietest", 
-                  purpose = "school",
-                  folder = paste0("outputdata/", parameters$date_routing),
-                  date = parameters$date_routing,
-                  segments = "both")
-  rs
-}),
-
-tar_target(done_school_quietest, {
-  length(rs_school_quietest) #Hack for scheduling
-}),
-
-tar_target(rs_school_ebike, {
-  length(done_school_quietest)
-  rs = get_routes(od = od_school %>% slice_max(n = parameters$max_to_route, order_by = all, with_ties = FALSE),
-                  plans = "ebike", 
-                  purpose = "school",
-                  folder = paste0("outputdata/", parameters$date_routing),
-                  date = parameters$date_routing,
-                  segments = "both")
-  rs
-}),
-
-tar_target(done_school_ebike, {
-  length(rs_school_ebike) #Hack for scheduling
-}),
-
-tar_target(rs_school_balanced, {
-  length(done_utility_ebike)
-  rs = get_routes(od = od_school %>% slice_max(n = parameters$max_to_route, order_by = all, with_ties = FALSE),
-                  plans = "balanced", 
-                  purpose = "school",
-                  folder = paste0("outputdata/", parameters$date_routing),
-                  date = parameters$date_routing,
-                  segments = "both")
-  rs
-}),
-
-tar_target(done_school_balanced, {
-  length(rs_school_balanced) #Hack for scheduling
-}),
 
 # Commute routing ---------------------------------------------------------
 
 tar_target(rs_commute_fastest, {
-  length(done_school_ebike) # Do school routing first
   rs = get_routes(od = od_commute_subset,
                   plans = "fastest", 
                   purpose = "commute",
@@ -333,7 +274,6 @@ tar_target(done_commute_ebike, {
 }),
 
 tar_target(rs_commute_balanced, {
-  length(done_school_balanced)
   rs = get_routes(od = od_commute_subset,
                   plans = "balanced", 
                   purpose = "commute",
@@ -386,35 +326,35 @@ tar_target(rnet_gq_commute_balanced, {
 # School routing post-processing -----------------------------------------
 
 tar_target(r_school_fastest, {
-  rs_school_fastest[[1]]$routes
+  rs_school[[1]][[1]]$routes
 }),
 
 tar_target(r_school_quietest, {
-  rs_school_quietest[[1]]$routes
+  rs_school[[1]][[1]]$routes
 }),
 
 tar_target(r_school_ebike, {
-  rs_school_ebike[[1]]$routes
+  rs_school[[1]][[1]]$routes
 }),
 
 tar_target(r_school_balanced, {
-  rs_school_balanced[[1]]$routes
+  rs_school[[1]][[1]]$routes
 }),
 
 tar_target(rnet_gq_school_fastest, {
-  segments2rnet(rs_school_fastest[[1]]$segments)
+  segments2rnet(rs_school[[1]][[1]]$segments)
 }),
 
 tar_target(rnet_gq_school_quietest, {
-  segments2rnet(rs_school_quietest[[1]]$segments)
+  segments2rnet(rs_school[[1]][[1]]$segments)
 }),
 
 tar_target(rnet_gq_school_ebike, {
-  segments2rnet(rs_school_ebike[[1]]$segments)
+  segments2rnet(rs_school[[1]][[1]]$segments)
 }),
 
 tar_target(rnet_gq_school_balanced, {
-  segments2rnet(rs_school_balanced[[1]]$segments)
+  segments2rnet(rs_school[[1]][[1]]$segments)
 }),
 
 # Commute Uptake ----------------------------------------------------------
