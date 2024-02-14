@@ -211,6 +211,18 @@ tar_target(od_school, {
 
 # School routing ----------------------------------------------------------
 
+# Iterate over each value in parameters$plans with dynamic branching in the targets package:
+tar_target(rs_school_plans, {
+  get_routes(od = od_school %>% slice_max(n = parameters$max_to_route, order_by = all, with_ties = FALSE),
+                  plans = parameters$plans,
+                  purpose = "school",
+                  folder = paste0("outputdata/", parameters$date_routing),
+                  date = parameters$date_routing,
+                  segments = "both")
+}
+  pattern = map(parameters$plans),
+  iteration = "list",
+),
 tar_target(rs_school_fastest, {
   rs = get_routes(od = od_school %>% slice_max(n = parameters$max_to_route, order_by = all, with_ties = FALSE),
                   plans = "fastest", 
