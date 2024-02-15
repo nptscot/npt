@@ -81,20 +81,6 @@ list(
   tar_target(aadt_parameters, {
     readr::read_csv(aadt_file)
   }),
-  # Case study area:
-  tar_target(study_area, {
-    if(parameters$geo_subset) {
-      if(parameters$open_data_build) {
-        s_area = sf::read_sf("data-raw/study_area.geojson")
-      } else {
-        # Change the centrepoint and distance in km for other areas
-        s_area = get_area("Forth Bridge", d = 20)
-      }
-    } else {
-      s_area = NULL
-    }
-    s_area
-  }),
 
   tar_target(zones, {
     if(parameters$open_data_build) {
@@ -106,6 +92,21 @@ list(
       z = z[study_area, op = sf::st_within]
     }
     z
+  }),
+
+    # Case study area:
+  tar_target(study_area, {
+    if(parameters$geo_subset) {
+      if(parameters$open_data_build) {
+        # s_area = sf::read_sf("data-raw/study_area.geojson")
+      } else {
+        # Change the centrepoint and distance in km for other areas
+        s_area = get_area("Forth Bridge", d = 20)
+      }
+    } else {
+      s_area = NULL
+    }
+    s_area
   }),
 
   tar_target(od_data, {
@@ -228,6 +229,18 @@ tar_target(rs_school, {
 ),
 
 # Commute routing ---------------------------------------------------------
+
+tar_target(rs_commute, {
+  get_routes(od = od_commute_subset,
+                  plans = plan,
+                  purpose = "commute",
+                  folder = paste0("outputdata/", parameters$date_routing),
+                  date = parameters$date_routing,
+                  segments = "both")
+},
+  pattern = map(plans),
+  iteration = "list"
+),
 
 tar_target(rs_commute_fastest, {
   rs = get_routes(od = od_commute_subset,

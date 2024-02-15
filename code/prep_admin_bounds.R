@@ -7,12 +7,28 @@ library(sf)
 
 
 # LA
-dir.create(file.path(tempdir(),"zones"))
-unzip(file.path(path, path_la), exdir = file.path(tempdir(),"zones"))
 
-la <- read_sf(file.path(tempdir(),"zones","LAD_DEC_2022_UK_BFC.shp"))
-la <- la[,c("LAD22CD")]
-la <- st_transform(la, 4326)
+# u = "https://nptscot.blob.core.windows.net/pmtiles/la.pmtiles"
+# la = sf::read_sf(u)
+# f = basename(u)
+# download.file(u, f)
+# la = sf::read_sf(f)
+# # with gdal from bash:
+# system("ogr2ogr la.gpkg la.pmtiles")
+# la = sf::read_sf("la.gpkg")
+# plot(la)
+
+la <- sf::read_sf("https://services1.arcgis.com/ESMARspQHYMw9BZ9/arcgis/rest/services/Local_Authority_Districts_December_2023_Boundaries_UK_BSC/FeatureServer/0/query?outFields=*&where=1%3D1&f=geojson")
+la <- la[, c("LAD23CD", "LAD23NM")]
+# LAs in Scotland, CD starts with "S":
+la_scotland <- la[grepl("^S", la$LAD23CD),]
+sf::write_sf(la_scotland, "las_scotland_2023.geojson")
+sf::write_sf(la, "las_2023.geojson")
+piggyback::pb_release_create(repo = "nptscot/npt", "boundaries")
+# With gh cli
+system("gh release create boundaries-2024")
+system("gh release upload boundaries-2024 las_scotland_2023.geojson las_2023.geojson")
+
 st_write(la,"../atumscot/outputs/la.geojson")
 
 unlink(file.path(tempdir(),"LA"), recursive = TRUE)
