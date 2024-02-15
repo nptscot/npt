@@ -19,9 +19,65 @@ library(sf)
 # plot(la)
 
 la <- sf::read_sf("https://services1.arcgis.com/ESMARspQHYMw9BZ9/arcgis/rest/services/Local_Authority_Districts_December_2023_Boundaries_UK_BSC/FeatureServer/0/query?outFields=*&where=1%3D1&f=geojson")
+
 la <- la[, c("LAD23CD", "LAD23NM")]
+
+
+
+
 # LAs in Scotland, CD starts with "S":
 la_scotland <- la[grepl("^S", la$LAD23CD),]
+
+# https://www.publiccontractsscotland.gov.uk/Maps/LocalAuthorityRegions.aspx
+
+la_to_region_lookup = tibble::tribble(
+    ~Region, ~LAD23NM,
+    "Aberdeen and North East", "Aberdeenshire",
+    "Aberdeen and North East", "Aberdeen City",
+    "Aberdeen and North East", "Moray",
+    # "Highlands and Islands",
+    # Argyll and Bute, Eilean Siar (Western Isles), Highland, Orkney, Shetland
+    "Highlands and Islands", "Argyll and Bute",
+    "Highlands and Islands", "Na h-Eileanan Siar",
+    "Highlands and Islands", "Highland",
+    "Highlands and Islands", "Orkney Islands",
+    "Highlands and Islands", "Shetland Islands",
+    # Tayside, Central and Fife	Angus, Clackmannanshire, Dundee City, Falkirk, Fife, Perth and Kinross, Stirling    
+    "Tayside, Central and Fife", "Angus",
+    "Tayside, Central and Fife", "Clackmannanshire",
+    "Tayside, Central and Fife", "Dundee City",
+    "Tayside, Central and Fife", "Falkirk",
+    "Tayside, Central and Fife", "Fife",
+    "Tayside, Central and Fife", "Perth and Kinross",
+    "Tayside, Central and Fife", "Stirling",
+    # Edinburgh and Lothians	City of Edinburgh, East Lothian, Midlothian, West Lothian
+    "Edinburgh and Lothians", "City of Edinburgh",
+    "Edinburgh and Lothians", "East Lothian",
+    "Edinburgh and Lothians", "Midlothian",
+    "Edinburgh and Lothians", "West Lothian",
+    # Glasgow and Strathclyde	East Ayrshire, East Dunbartonshire, East Renfrewshire, Glasgow City, Inverclyde, North Ayrshire, North Lanarkshire, Renfrewshire, South Ayrshire, South Lanarkshire, West Dunbartonshire
+    "Glasgow and Strathclyde", "East Ayrshire",
+    "Glasgow and Strathclyde", "East Dunbartonshire",
+    "Glasgow and Strathclyde", "East Renfrewshire",
+    "Glasgow and Strathclyde", "Glasgow City",
+    "Glasgow and Strathclyde", "Inverclyde",
+    "Glasgow and Strathclyde", "North Ayrshire",
+    "Glasgow and Strathclyde", "North Lanarkshire",
+    "Glasgow and Strathclyde", "Renfrewshire",
+    "Glasgow and Strathclyde", "South Ayrshire",
+    "Glasgow and Strathclyde", "South Lanarkshire",
+    "Glasgow and Strathclyde", "West Dunbartonshire",
+    # Scotland South	Dumfries and Galloway, Scottish Borders
+    "Scotland South", "Dumfries and Galloway",
+    "Scotland South", "Scottish Borders"
+)
+la_regions <- dplyr::left_join(la_scotland, la_to_region_lookup)
+la_regions |>
+  select(Region) |>
+  plot()
+# check for NAs: 
+la_regions[is.na(la_regions$Region),]
+
 sf::write_sf(la_scotland, "las_scotland_2023.geojson")
 sf::write_sf(la, "las_2023.geojson")
 piggyback::pb_release_create(repo = "nptscot/npt", "boundaries")
