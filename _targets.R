@@ -325,37 +325,11 @@ tar_target(rnet_gq_commute_balanced, {
 
 # School routing post-processing -----------------------------------------
 
-tar_target(r_school_fastest, {
-  rs_school[[1]][[1]]$routes
-}),
-
-tar_target(r_school_quietest, {
-  rs_school[[1]][[1]]$routes
-}),
-
-tar_target(r_school_ebike, {
-  rs_school[[1]][[1]]$routes
-}),
-
-tar_target(r_school_balanced, {
-  rs_school[[1]][[1]]$routes
-}),
-
-tar_target(rnet_gq_school_fastest, {
-  segments2rnet(rs_school[[1]][[1]]$segments)
-}),
-
-tar_target(rnet_gq_school_quietest, {
-  segments2rnet(rs_school[[1]][[1]]$segments)
-}),
-
-tar_target(rnet_gq_school_ebike, {
-  segments2rnet(rs_school[[1]][[1]]$segments)
-}),
-
-tar_target(rnet_gq_school_balanced, {
-  segments2rnet(rs_school[[1]][[1]]$segments)
-}),
+tar_target(rnet_gq_school,
+  segments2rnet(rs_school[[1]]$segments),
+  pattern = map(rs_school),
+  iteration = "list"
+),
 
 # Commute Uptake ----------------------------------------------------------
 
@@ -393,34 +367,14 @@ tar_target(rnet_gq_school_balanced, {
   
 # School Uptake ----------------------------------------------------------
 
-tar_target(uptake_school_fastest, {
-  routes = r_school_fastest %>%
+tar_target(uptake_school, {
+  rs_school[[1]]$routes %>%
       aadt_adjust(purpose = "school", aadt_parameters = aadt_parameters) %>%
     get_uptake_scenarios(purpose = "school")
-  routes
-}),
-
-tar_target(uptake_school_quietest, {
-  routes = r_school_quietest %>%
-    aadt_adjust(purpose = "school", aadt_parameters = aadt_parameters) %>%
-    get_uptake_scenarios(purpose = "school")
-  routes
-}),
-
-tar_target(uptake_school_ebike, {
-  routes = r_school_ebike %>%
-    aadt_adjust(purpose = "school", aadt_parameters = aadt_parameters) %>%
-    get_uptake_scenarios(purpose = "school")
-  routes
-}),
-
-tar_target(uptake_school_balanced, {
-  routes = r_school_balanced %>%
-    aadt_adjust(purpose = "school", aadt_parameters = aadt_parameters) %>%
-    get_uptake_scenarios(purpose = "school")
-  routes
-}),
-
+},
+  pattern = map(rs_school),
+  iteration = "list"
+  ),
 
 # Commute RNets -----------------------------------------------------------
 
@@ -443,11 +397,39 @@ tar_target(rnet_commute_balanced, {
 
 # Primary School RNets -----------------------------------------------------------
 
+tar_target(
+  uptake_school_fastest,
+  uptake_school[[1]]
+),
+
+tar_target(
+  uptake_school_balanced,
+  uptake_school[[2]]
+),
+
+tar_target(
+  uptake_school_quietest,
+  uptake_school[[3]]
+),
+
+tar_target(
+  uptake_school_ebike,
+  uptake_school[[4]]
+),
+
 tar_target(rnet_primary_fastest, {
   rnet = uptake_school_fastest
   rnet = rnet[rnet$schooltype == "primary",]
   rnet = stplanr::overline2(rnet, c("bicycle","bicycle_go_dutch","bicycle_ebike"))
   saveRDS(rnet, paste0("outputdata/rnet_primary_school_fastest.Rds"))
+  rnet
+}),
+
+tar_target(rnet_primary_balanced, {
+  rnet = uptake_school_balanced
+  rnet = rnet[rnet$schooltype == "primary",]
+  rnet = stplanr::overline2(rnet, c("bicycle","bicycle_go_dutch","bicycle_ebike"))
+  saveRDS(rnet, paste0("outputdata/rnet_primary_school_balanced.Rds"))
   rnet
 }),
 
@@ -464,14 +446,6 @@ tar_target(rnet_primary_ebike, {
   rnet = rnet[rnet$schooltype == "primary",]
   rnet = stplanr::overline2(rnet, c("bicycle","bicycle_go_dutch","bicycle_ebike"))
   saveRDS(rnet, paste0("outputdata/rnet_primary_school_ebike.Rds"))
-  rnet
-}),
-
-tar_target(rnet_primary_balanced, {
-  rnet = uptake_school_balanced
-  rnet = rnet[rnet$schooltype == "primary",]
-  rnet = stplanr::overline2(rnet, c("bicycle","bicycle_go_dutch","bicycle_ebike"))
-  saveRDS(rnet, paste0("outputdata/rnet_primary_school_balanced.Rds"))
   rnet
 }),
 
@@ -1166,9 +1140,10 @@ tar_target(combined_network, {
                    quietest = rnet_utility_quietest,
                    ebike = rnet_utility_ebike)
     
-    rnet_quietness = list(rnet_gq_school_fastest,
-                          rnet_gq_school_quietest,
-                          rnet_gq_school_ebike,
+    rnet_quietness = list(rnet_gq_school[[1]],
+                          rnet_gq_school[[2]],
+                          rnet_gq_school[[3]],
+                          rnet_gq_school[[4]],
                           rnet_gq_commute_fastest,
                           rnet_gq_commute_quietest,
                           rnet_gq_commute_ebike,
