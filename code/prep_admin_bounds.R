@@ -28,11 +28,7 @@ piggyback::pb_release_create(repo = "nptscot/npt", "boundaries")
 # With gh cli
 system("gh release create boundaries-2024")
 system("gh release upload boundaries-2024 las_scotland_2023.geojson las_2023.geojson")
-
-st_write(la,"../atumscot/outputs/la.geojson")
-
-unlink(file.path(tempdir(),"LA"), recursive = TRUE)
-
+# https://github.com/nptscot/npt/releases/download/boundaries-2024/las_2023.geojson
 
 # Westminster
 path_westminster = "Westminster_Parliamentary_Constituencies_(Dec_2021)_UK_BFC.zip"
