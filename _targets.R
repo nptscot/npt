@@ -82,6 +82,11 @@ list(
     readr::read_csv(aadt_file)
   }),
 
+  tar_target(
+    local_authorities,
+    sf::read_sf("inputdata/boundaries/la_regions_2023.geojson")
+  )
+
   tar_target(zones, {
     if(parameters$open_data_build) {
       z = sf::read_sf("data-raw/DataZones.geojson")
@@ -93,6 +98,7 @@ list(
     }
     z
   }),
+
 
     # Case study area:
   tar_target(study_area, {

@@ -21,13 +21,10 @@ library(sf)
 la = sf::read_sf("https://services1.arcgis.com/ESMARspQHYMw9BZ9/arcgis/rest/services/Local_Authority_Districts_December_2023_Boundaries_UK_BSC/FeatureServer/0/query?outFields=*&where=1%3D1&f=geojson")
 
 la = la[, c("LAD23CD", "LAD23NM")]
-
-
-
-
 # LAs in Scotland, CD starts with "S":
 la_scotland = la[grepl("^S", la$LAD23CD),]
 
+# Get the regions from the LAD23NM
 # https://www.publiccontractsscotland.gov.uk/Maps/LocalAuthorityRegions.aspx
 
 la_to_region_lookup = tibble::tribble(
@@ -78,12 +75,11 @@ la_regions |>
 # check for NAs: 
 la_regions[is.na(la_regions$Region),]
 
-sf::write_sf(la_scotland, "las_scotland_2023.geojson")
-sf::write_sf(la, "las_2023.geojson")
-piggyback::pb_release_create(repo = "nptscot/npt", "boundaries")
-# With gh cli
-system("gh release create boundaries-2024")
-system("gh release upload boundaries-2024 las_scotland_2023.geojson las_2023.geojson")
+# system("gh release upload boundaries-2024 las_scotland_2023.geojson las_2023.geojson --clobber")
+dir.create("inputdata/boundaries", showWarnings = FALSE)
+sf::write_sf(la_regions, "inputdata/boundaries/la_regions_2023.geojson", delete_dsn = TRUE)
+sf::write_sf(la, "inputdata/boundaries/las_2023.geojson", delete_dsn = TRUE)
+
 # https://github.com/nptscot/npt/releases/download/boundaries-2024/las_2023.geojson
 
 # Westminster
