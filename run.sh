@@ -2,7 +2,7 @@
 
 # Submit the pipeline as a background process with ./run.sh
 # module load R # Uncomment if R is an environment module.
-nohup nice -4 R CMD BATCH run.R &
+nohup nice -4 R CMD BATCH code/build.R &
 
 # Change the nice level above as appropriate
 # for your situation and system.
@@ -10,6 +10,6 @@ nohup nice -4 R CMD BATCH run.R &
 # Removing .RData is recommended.
 # rm -f .RData
 
-# Get data:
-gh repo clone nptscot/inputdata
-cd inputdata
+# # Get data:
+# gh repo clone nptscot/inputdata
+# cd inputdata

@@ -46,9 +46,6 @@ tar_option_set(
 tar_source()
 
 # Targets -----------------------------------------------------------------
-if(!file.exists("outputdata")){
-  dir.create("outputdata")
-}
 
 list(
   # Detect when parameter file has changed:
@@ -61,11 +58,6 @@ list(
     }
     # Refactor this bit:
     p = jsonlite::read_json(param_file, simplifyVector = T)
-    folder_name = paste0("outputdata/", p$date_routing)
-    if(!dir.exists(folder_name)){
-      dir.create(file.path(folder_name))
-    }
-
     if (!is_bin_on_path("odjitter")) {
       old_path = Sys.getenv("PATH")
       Sys.setenv(PATH = paste(old_path, "/root/.cargo/bin", sep = ":"))
@@ -74,9 +66,19 @@ list(
       odjitter_location = "odjitter"
     }
     p$odjitter_location = odjitter_location
-
     p 
   }),
+  tar_target(
+    output_folder,
+    {
+      region_name_lower = snakecase::to_snake_case(parameters$region)
+      folder_name = file.path("outputdata", parameters$date_routing, region_name_lower)
+      if(!dir.exists(folder_name)){
+        dir.create(file.path(folder_name), recursive = TRUE)
+      }
+      folder_name
+    }
+  ),
   tar_target(aadt_file, command = "data-raw/AADT_factors.csv", format = "file"),
   tar_target(aadt_parameters, {
     readr::read_csv(aadt_file)
@@ -87,33 +89,23 @@ list(
     sf::read_sf("inputdata/boundaries/la_regions_2023.geojson")
   ),
 
-  tar_target(zones, {
-    if(parameters$open_data_build) {
-      z = sf::read_sf("data-raw/DataZones.geojson")
-    } else {
-      z = readRDS("inputdata/DataZones.Rds") # 6976 zones
-    }
-    if(parameters$geo_subset) {
-      z = z[study_area, op = sf::st_within]
-    }
-    z
-  }),
+  tar_target(
+    region_names,
+    unique(local_authorities$Region)
+  ),
+  
 
-
-    # Case study area:
-  tar_target(study_area, {
-    if(parameters$geo_subset) {
-      if(parameters$open_data_build) {
-        s_area = sf::read_sf("data-raw/study_area.geojson")
-      } else {
-        # Change the centrepoint and distance in km for other areas
-        s_area = get_area("Forth Bridge", d = 20)
-      }
-    } else {
-      s_area = NULL
+  # Case study area:
+  tar_target(
+    study_area,
+    {
+      region_name = region_names
+      local_authorites_region = local_authorities |>
+        filter(Region == region_name)
+      study_area_exact = sf::st_union(local_authorites_region)
+      sf::st_buffer(study_area_exact, parameters$region_buffer_distance)
     }
-    s_area
-  }),
+  ),
 
   tar_target(zones, {
     if(parameters$open_data_build) {
@@ -122,7 +114,7 @@ list(
       z = readRDS("inputdata/DataZones.Rds") # 6976 zones
     }
     if(parameters$geo_subset) {
-      z = z[study_area, op = sf::st_within]
+      z = z[study_area[[1]], op = sf::st_within]
     }
     z
   }),
@@ -217,7 +209,7 @@ tar_target(od_school, {
     schools_dl = read_TEAMS("secure_data/schools/school_dl_sub30km.Rds")
   }
   if(parameters$geo_subset) {
-    schools_dl = schools_dl[study_area, op = sf::st_within]
+    schools_dl = schools_dl[study_area[[1]], op = sf::st_within]
   }
   schools_dl$dist_euclidean_jittered = round(as.numeric(sf::st_length(schools_dl)))
   schools_dl = schools_dl %>%
@@ -234,7 +226,7 @@ tar_target(rs_school_fastest, {
   rs = get_routes(od = od_school %>% slice_max(n = parameters$max_to_route, order_by = all, with_ties = FALSE),
                   plans = "fastest", 
                   purpose = "school",
-                  folder = paste0("outputdata/", parameters$date_routing),
+                  folder = output_folder,
                   date = parameters$date_routing,
                   segments = "both")
   rs
@@ -252,18 +244,17 @@ tar_target(rs_school_quietest, {
                   folder = paste0("outputdata/", parameters$date_routing),
                   date = parameters$date_routing,
                   segments = "both")
-  rs
-}),
+},
+  pattern = map(plans),
+  iteration = "list"
+),
 
-tar_target(done_school_quietest, {
-  length(rs_school_quietest) #Hack for scheduling
-}),
+# Commute routing ---------------------------------------------------------
 
-tar_target(rs_school_ebike, {
-  length(done_school_quietest)
-  rs = get_routes(od = od_school %>% slice_max(n = parameters$max_to_route, order_by = all, with_ties = FALSE),
-                  plans = "ebike", 
-                  purpose = "school",
+tar_target(rs_commute, {
+  get_routes(od = od_commute_subset,
+                  plans = plans,
+                  purpose = "commute",
                   folder = paste0("outputdata/", parameters$date_routing),
                   date = parameters$date_routing,
                   segments = "both")
@@ -777,14 +768,14 @@ tar_target(trip_purposes, {
 
 tar_target(os_pois, {
   check = length(parameters)
-  check = length(study_area)
+  check = length(study_area[[1]])
   # Get shopping destinations from secure OS data
   path_teams = Sys.getenv("NPT_TEAMS_PATH")
   os_pois = readRDS(file.path(path_teams, "secure_data/OS/os_poi.Rds"))
   os_pois = os_pois %>% 
     mutate(groupname = as.character(groupname))
   if(parameters$geo_subset) {
-    os_pois = os_pois[study_area, op = sf::st_within]
+    os_pois = os_pois[study_area[[1]], op = sf::st_within]
   }
   os_pois
 }),
@@ -826,19 +817,19 @@ tar_target(intermediate_zones,{
 # Utility OD -------------------------------------------------------------
 tar_target(od_shopping, {
   od_shopping = make_od_shopping(oas, os_pois, grid, trip_purposes,
-                                intermediate_zones, parameters,study_area, odjitter_location = parameters$odjitter_location)
+                                intermediate_zones, parameters,study_area[[1]], odjitter_location = parameters$odjitter_location)
   od_shopping
 }),
 
 tar_target(od_visiting, {
   od_visiting = make_od_visiting(oas, os_pois, grid, trip_purposes,
-                                intermediate_zones, parameters, study_area, odjitter_location = parameters$odjitter_location)
+                                intermediate_zones, parameters, study_area[[1]], odjitter_location = parameters$odjitter_location)
   od_visiting
 }),
 
 tar_target(od_leisure, {
   od_leisure = make_od_leisure(oas, os_pois, grid, trip_purposes,
-                              intermediate_zones, parameters, study_area, odjitter_location = parameters$odjitter_location)
+                              intermediate_zones, parameters, study_area[[1]], odjitter_location = parameters$odjitter_location)
   od_leisure
 }),
 
