@@ -6,5 +6,6 @@
   "geo_subset": [true],
   "open_data_build": [false],
   "disag_threshold": [100],
-  "min_distance_meters": [500]
+  "min_distance_meters": [500],
+  "region_buffer_distance": [5000] 
 }
