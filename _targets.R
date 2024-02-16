@@ -81,7 +81,26 @@ list(
   tar_target(aadt_parameters, {
     readr::read_csv(aadt_file)
   }),
-  # Case study area:
+
+  tar_target(
+    local_authorities,
+    sf::read_sf("inputdata/boundaries/la_regions_2023.geojson")
+  ),
+
+  tar_target(zones, {
+    if(parameters$open_data_build) {
+      z = sf::read_sf("data-raw/DataZones.geojson")
+    } else {
+      z = readRDS("inputdata/DataZones.Rds") # 6976 zones
+    }
+    if(parameters$geo_subset) {
+      z = z[study_area, op = sf::st_within]
+    }
+    z
+  }),
+
+
+    # Case study area:
   tar_target(study_area, {
     if(parameters$geo_subset) {
       if(parameters$open_data_build) {
