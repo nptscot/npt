@@ -126,10 +126,13 @@ list(
       z = readRDS("inputdata/DataZones.Rds") # 6976 zones
     }
     if(parameters$geo_subset) {
-      z = z[study_area[[1]], op = sf::st_within]
+      z = z[study_area, op = sf::st_within]
     }
     z
-  }),
+  },
+  pattern = map(study_area),
+  iteration = "list"
+  ),
 
   tar_target(od_data, {
     if(parameters$open_data_build) {
@@ -146,7 +149,10 @@ list(
       filter(all >= parameters$min_flow) %>% 
       mutate_od_commute()
     od_subset
-  }),
+  },
+  pattern = map(zones),
+  iteration = "list"
+  ),
   tar_target(subpoints_origins, {
     # source("data-raw/get_wpz.R")
     # sf::read_sf("data-raw/oas.geojson")
@@ -157,7 +163,11 @@ list(
       spo = readRDS("inputdata/oas.Rds")
     }
     spo
-  }),
+  },
+  pattern = map(zones),
+  iteration = "list"
+  ),
+
   tar_target(subpoints_destinations, {
     # source("data-raw/get_wpz.R")
     # sf::read_sf("data-raw/workplaces_simple_edinburgh.geojson")
@@ -175,6 +185,7 @@ list(
     }
     spd
   }),
+
   tar_target(od_commute_jittered, {
     # od_jittered = od_data # for no jittering
     # Install the Rust crate and the associated R package:
@@ -200,7 +211,10 @@ list(
     # Read in test OD dataset for package development:
     # sf::read_sf("https://github.com/nptscot/npt/releases/download/v1/od_jittered_demo.geojson")
     odj
-  }),
+  },
+  pattern = map(zones, subpoints_origins, od_data),
+  iteration = "list"
+  ),
 
   tar_target(od_commute_subset, {
     odcs = od_commute_jittered %>%
@@ -221,7 +235,7 @@ tar_target(od_school, {
     schools_dl = read_TEAMS("secure_data/schools/school_dl_sub30km.Rds")
   }
   if(parameters$geo_subset) {
-    schools_dl = schools_dl[study_area[[1]], op = sf::st_within]
+    schools_dl = schools_dl[study_area, op = sf::st_within]
   }
   schools_dl$dist_euclidean_jittered = round(as.numeric(sf::st_length(schools_dl)))
   schools_dl = schools_dl %>%
@@ -230,7 +244,10 @@ tar_target(od_school, {
     slice_max(order_by = all, n = parameters$max_to_route, with_ties = FALSE) %>% 
     mutate_od_school()
   schools_dl
-}),
+},
+  pattern = map(study_area),
+  iteration = "list"
+  ),
 
 # School routing ----------------------------------------------------------
 
@@ -246,7 +263,7 @@ tar_target(rs_school, {
                   date = parameters$date_routing,
                   segments = "both")
 },
-  pattern = map(plans),
+  pattern = map(cross(plans, od_school)),
   iteration = "list"
 ),
 
@@ -586,7 +603,10 @@ tar_target(school_stats_baseline, {
                              names_glue = "{schooltype}_{.value}", 
                              values_from = names(stats)[3:ncol(stats)])
   stats
-}),
+},
+  pattern = map(od_school),
+  iteration = "list"
+  ),
 
 tar_target(school_stats_from_baseline, {
   stats = sf::st_drop_geometry(od_school)
@@ -607,7 +627,10 @@ tar_target(school_stats_from_baseline, {
                              names_glue = "{schooltype}_{.value}",
                              values_from = names(stats)[3:ncol(stats)])
   stats
-}),
+},
+  pattern = map(od_school),
+  iteration = "list"
+  ),
 
 tar_target(school_stats_fastest, {
   make_school_stats(uptake_school_fastest, "fastest")
@@ -673,7 +696,10 @@ tar_target(school_stats_from, {
   stats = dplyr::left_join(stats, ebike, by = "DataZone")
   stats = dplyr::left_join(stats, school_stats_from_quietest, by = "DataZone")
   stats
-}),
+},
+pattern = map(od_school),
+iteration = "list"
+),
 
 
 tar_target(commute_stats, {
@@ -817,7 +843,10 @@ tar_target(od_utility_combined, {
   od_utility_combined$startDZ = start_point$DataZone
   
   od_utility_combined
-}),
+},
+  pattern = map(zones),
+  iteration = "list"
+),
 
 tar_target(rs_utility_fastest, {
   length(done_commute_ebike) # Do school routing first
@@ -1023,7 +1052,10 @@ tar_target(utility_stats_baseline, {
   
   stats_all = dplyr::full_join(stats_orig, stats_dest, by = "DataZone")
   stats_all
-}),
+},
+pattern = map(od_utility_combined),
+iteration = "list"
+),
 
 tar_target(utility_stats_fastest, {
   make_utility_stats(uptake_utility_fastest, "fastest", zones)
