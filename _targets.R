@@ -1282,23 +1282,48 @@ tar_target(simplified_network, {
 }),
 
   
-tar_target(coherent_network, {
-  cue = tar_cue(mode = "always")
-  # combined_network_tile = sf::st_read("data-raw/combined_network_tile.geojson")
-  zones = sf::st_read("data-raw/zones.geojson")
-  MasterMap = sf::st_read("data-raw/OS_MasterMap_Edinburgh.geojson")
-  # combined_network_tile = sf::st_read("data-raw/combined_network_tile.geojson")
-  NPT_MM_OSM = cohesive_network_prep(combined_network_tile, MasterMap, zones)
+tar_target(
+  coherent_network, {
+    cue = tar_cue(mode = "always")
+    
+    combined_network_tile = sf::st_read("data-raw/combined_network_tile.geojson")
+    parameters = jsonlite::fromJSON("parameters.json")
+    # Prepare cohesive network
+    NPT_MM_OSM = cohesive_network_prep(combined_network_tile, crs = "EPSG:27700", parameters = parameters)
+    
+    NPT_MM_OSM_CITY =  NPT_MM_OSM$cohesive_network
 
-  rnet_coherent = cohesive_network(network_tile = NPT_MM_OSM, combined_grid_buffer = zones, arterial = TRUE)
-  rnet_coherent_90 = cohesive_network(NPT_MM_OSM, combined_grid_buffer = zones, arterial = FALSE, min_percentile = 0.90)
+    NPT_MM_OSM_ZONE =  NPT_MM_OSM$cohesive_zone
 
-  # rnet_coherent_85 = cohesive_network( NPT_MM_OSM, combined_grid_buffer = zones, arterial = FALSE, min_percentile = 0.85)
-  # rnet_coherent_80 = cohesive_network(NPT_MM_OSM, combined_grid_buffer = zones, arterial = FALSE, min_percentile = 0.80)
+    all_city_coherent_networks <- list()
 
-  make_geojson_zones(rnet_coherent, "outputdata/coherent_network.geojson")
-  rnet_coherent
-}),
+    for(city in parameters$coherent_area) {
+        CITY = NPT_MM_OSM_CITY[[city]]
+        ZONE = NPT_MM_OSM_ZONE[[city]]
+
+        rnet_coherent_arterial = cohesive_network(network_tile = CITY, combined_grid_buffer = ZONE, arterial = TRUE)
+        rnet_coherent_90 = cohesive_network(CITY, combined_grid_buffer = ZONE, arterial = FALSE, min_percentile = 0.90)
+        rnet_coherent_85 = cohesive_network(CITY, combined_grid_buffer = ZONE, arterial = FALSE, min_percentile = 0.85)
+        rnet_coherent_80 = cohesive_network(CITY, combined_grid_buffer = ZONE, arterial = FALSE, min_percentile = 0.80)
+
+        # Export coherent networks to GeoJSON
+        make_geojson_zones(rnet_coherent_arterial, paste0("outputdata/", city, "_coherent_network_arterial.geojson"))
+        make_geojson_zones(rnet_coherent_90, paste0("outputdata/", city, "_coherent_network_90.geojson"))
+        make_geojson_zones(rnet_coherent_85, paste0("outputdata/", city, "_coherent_network_85.geojson"))
+        make_geojson_zones(rnet_coherent_80, paste0("outputdata/", city, "_coherent_network_80.geojson"))
+  
+    
+        # Store the networks in the list, organized by city
+        all_city_networks[[city]] <- list(
+          arterial = rnet_coherent_arterial,
+          percentile_90 = rnet_coherent_90,
+          percentile_85 = rnet_coherent_85,
+          percentile_80 = rnet_coherent_80
+        )
+    }
+    all_city_coherent_networks
+  }
+),
 
 
 # Make PMTiles for website ------------------------------------------------
