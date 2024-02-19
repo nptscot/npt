@@ -244,29 +244,16 @@ tar_target(rs_school_quietest, {
                   folder = output_folder,
                   date = parameters$date_routing,
                   segments = "both")
-},
-  pattern = map(plans),
-  iteration = "list"
-),
-
-# Commute routing ---------------------------------------------------------
-
-tar_target(rs_commute, {
-  get_routes(od = od_commute_subset,
-                  plans = plans,
-                  purpose = "commute",
-                  folder = output_folder,
-                  date = parameters$date_routing,
-                  segments = "both")
   rs
 }),
 
-tar_target(done_school_ebike, {
-  length(rs_school_ebike) #Hack for scheduling
+tar_target(done_school_quietest, {
+  length(rs_school_quietest) #Hack for scheduling
 }),
 
+# Balanced:
 tar_target(rs_school_balanced, {
-  length(done_utility_ebike)
+  length(done_school_quietest)
   rs = get_routes(od = od_school %>% slice_max(n = parameters$max_to_route, order_by = all, with_ties = FALSE),
                   plans = "balanced", 
                   purpose = "school",
@@ -278,6 +265,21 @@ tar_target(rs_school_balanced, {
 
 tar_target(done_school_balanced, {
   length(rs_school_balanced) #Hack for scheduling
+}),
+
+tar_target(rs_school_ebike, {
+  length(done_school_quietest)
+  rs = get_routes(od = od_school %>% slice_max(n = parameters$max_to_route, order_by = all, with_ties = FALSE),
+                  plans = "ebike", 
+                  purpose = "school",
+                  folder = output_folder,
+                  date = parameters$date_routing,
+                  segments = "both")
+  rs
+}),
+
+tar_target(done_school_ebike, {
+  length(rs_school_ebike) #Hack for scheduling
 }),
 
 # Commute routing ---------------------------------------------------------
