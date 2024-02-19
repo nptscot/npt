@@ -420,7 +420,7 @@ tar_target(rnet_gq_school_balanced, {
     routes = r_commute_fastest %>%
       aadt_adjust(purpose = "commute", aadt_parameters = aadt_parameters) %>%
       get_uptake_scenarios()
-    saveRDS(routes, "outputdata/routes_commute_fastest.Rds")
+    saveRDS(routes, file.path(output_folder, "routes_commute_fastest.Rds"))
     routes
   }),
   
@@ -428,7 +428,7 @@ tar_target(rnet_gq_school_balanced, {
     routes = r_commute_quietest %>%
       aadt_adjust(purpose = "commute", aadt_parameters = aadt_parameters) %>%
       get_uptake_scenarios()
-    saveRDS(routes, "outputdata/routes_commute_quietest.Rds")
+    saveRDS(routes, file.path(output_folder, "routes_commute_quietest.Rds"))
     routes
   }),
   
@@ -436,7 +436,7 @@ tar_target(rnet_gq_school_balanced, {
     routes = r_commute_ebike %>%
       aadt_adjust(purpose = "commute", aadt_parameters = aadt_parameters) %>%
       get_uptake_scenarios()
-    saveRDS(routes, "outputdata/routes_commute_ebike.Rds")
+    saveRDS(routes, paste0(output_folder, "/routes_commute_ebike.Rds"))
     routes
   }),
   
@@ -444,7 +444,7 @@ tar_target(rnet_gq_school_balanced, {
     routes = r_commute_balanced %>%
       aadt_adjust(purpose = "commute", aadt_parameters = aadt_parameters) %>%
       get_uptake_scenarios()
-    saveRDS(routes, "outputdata/routes_commute_balanced.Rds")
+    saveRDS(routes, paste0(output_folder, "/routes_commute_balanced.Rds"))
     routes
   }),
   
@@ -504,7 +504,7 @@ tar_target(rnet_primary_fastest, {
   rnet = uptake_school_fastest
   rnet = rnet[rnet$schooltype == "primary",]
   rnet = stplanr::overline2(rnet, c("bicycle","bicycle_go_dutch","bicycle_ebike"))
-  saveRDS(rnet, paste0("outputdata/rnet_primary_school_fastest.Rds"))
+  saveRDS(rnet, paste0(output_folder, "/rnet_primary_school_fastest.Rds"))
   rnet
 }),
 
@@ -512,7 +512,7 @@ tar_target(rnet_primary_quietest, {
   rnet = uptake_school_quietest
   rnet = rnet[rnet$schooltype == "primary",]
   rnet = stplanr::overline2(rnet, c("bicycle","bicycle_go_dutch","bicycle_ebike"))
-  saveRDS(rnet, paste0("outputdata/rnet_primary_school_quietest.Rds"))
+  saveRDS(rnet, paste0(output_folder, "/rnet_primary_school_quietest.Rds"))
   rnet
 }),
 
@@ -520,7 +520,7 @@ tar_target(rnet_primary_ebike, {
   rnet = uptake_school_ebike
   rnet = rnet[rnet$schooltype == "primary",]
   rnet = stplanr::overline2(rnet, c("bicycle","bicycle_go_dutch","bicycle_ebike"))
-  saveRDS(rnet, paste0("outputdata/rnet_primary_school_ebike.Rds"))
+  saveRDS(rnet, paste0(output_folder, "/rnet_primary_school_ebike.Rds"))
   rnet
 }),
 
@@ -528,7 +528,7 @@ tar_target(rnet_primary_balanced, {
   rnet = uptake_school_balanced
   rnet = rnet[rnet$schooltype == "primary",]
   rnet = stplanr::overline2(rnet, c("bicycle","bicycle_go_dutch","bicycle_ebike"))
-  saveRDS(rnet, paste0("outputdata/rnet_primary_school_balanced.Rds"))
+  saveRDS(rnet, paste0(output_folder, "/rnet_primary_school_balanced.Rds"))
   rnet
 }),
 
@@ -538,7 +538,7 @@ tar_target(rnet_secondary_fastest, {
   rnet = uptake_school_fastest
   rnet = rnet[rnet$schooltype == "secondary",]
   rnet = stplanr::overline2(rnet, c("bicycle","bicycle_go_dutch","bicycle_ebike"))
-  saveRDS(rnet, paste0("outputdata/rnet_primary_school_fastest.Rds"))
+  saveRDS(rnet, paste0(output_folder, "/rnet_primary_school_fastest.Rds"))
   rnet
 }),
 
@@ -546,7 +546,7 @@ tar_target(rnet_secondary_quietest, {
   rnet = uptake_school_quietest
   rnet = rnet[rnet$schooltype == "secondary",]
   rnet = stplanr::overline2(rnet, c("bicycle","bicycle_go_dutch","bicycle_ebike"))
-  saveRDS(rnet, paste0("outputdata/rnet_primary_school_quietest.Rds"))
+  saveRDS(rnet, paste0(output_folder, "/rnet_primary_school_quietest.Rds"))
   rnet
 }),
 
@@ -554,7 +554,7 @@ tar_target(rnet_secondary_ebike, {
   rnet = uptake_school_ebike
   rnet = rnet[rnet$schooltype == "secondary",]
   rnet = stplanr::overline2(rnet, c("bicycle","bicycle_go_dutch","bicycle_ebike"))
-  saveRDS(rnet, paste0("outputdata/rnet_primary_school_ebike.Rds"))
+  saveRDS(rnet, paste0(output_folder, "/rnet_primary_school_ebike.Rds"))
   rnet
 }),
 
@@ -562,7 +562,7 @@ tar_target(rnet_secondary_balanced, {
   rnet = uptake_school_balanced
   rnet = rnet[rnet$schooltype == "secondary",]
   rnet = stplanr::overline2(rnet, c("bicycle","bicycle_go_dutch","bicycle_ebike"))
-  saveRDS(rnet, paste0("outputdata/rnet_primary_school_balanced.Rds"))
+  saveRDS(rnet, paste0(output_folder, "/rnet_primary_school_balanced.Rds"))
   rnet
 }),
 
@@ -969,7 +969,7 @@ tar_target(uptake_utility_fastest, {
   routes = r_utility_fastest %>%
     filter(distances < 10000) %>%
     get_uptake_scenarios(purpose = "utility")
-  saveRDS(routes, "outputdata/routes_utility_fastest.Rds")
+  saveRDS(routes, paste0(output_folder, "/routes_utility_fastest.Rds"))
   routes
 }),
 
@@ -977,7 +977,7 @@ tar_target(uptake_utility_quietest, {
   routes = r_utility_quietest %>%
     filter(distances < 10000) %>%
     get_uptake_scenarios(purpose = "utility")
-  saveRDS(routes, "outputdata/routes_utility_quietest.Rds")
+  saveRDS(routes, paste0(output_folder, "/routes_utility_quietest.Rds"))
   routes
 }),
 
@@ -985,7 +985,7 @@ tar_target(uptake_utility_ebike, {
   routes = r_utility_ebike %>%
     filter(distances < 10000) %>%
     get_uptake_scenarios(purpose = "utility")
-  saveRDS(routes, "outputdata/routes_utility_ebike.Rds")
+  saveRDS(routes, paste0(output_folder, "/routes_utility_ebike.Rds"))
   routes
 }),
 
@@ -993,7 +993,7 @@ tar_target(uptake_utility_balanced, {
   routes = r_utility_balanced %>%
     filter(distances < 10000) %>%
     get_uptake_scenarios(purpose = "utility")
-  saveRDS(routes, "outputdata/routes_utility_balanced.Rds")
+  saveRDS(routes, paste0(output_folder, "/routes_utility_balanced.Rds"))
   routes
 }),
 
@@ -1165,7 +1165,7 @@ tar_target(zones_tile, {
   z$population_density = round(z$Total_population / z$area)
   z$area = NULL
   
-  make_geojson_zones(z, "outputs/data_zones.geojson")
+  make_geojson_zones(z, file.path(output_folder, "data_zones.geojson"))
   
   z
 }),
@@ -1187,10 +1187,10 @@ tar_target(zones_dasymetric_tile, {
     b_med = dplyr::left_join(b_med, zones, by = c("geo_code" = "DataZone"))
     b_high = dplyr::left_join(b_high, zones, by = c("geo_code" = "DataZone"))
     
-    make_geojson_zones(b_verylow, "outputs/dasymetric_verylow.geojson")
-    make_geojson_zones(b_low, "outputs/dasymetric_low.geojson")
-    make_geojson_zones(b_med, "outputs/dasymetric_med.geojson")
-    make_geojson_zones(b_high, "outputs/dasymetric_high.geojson")
+    make_geojson_zones(b_verylow, file.path(output_folder, "dasymetric_verylow.geojson"))
+    make_geojson_zones(b_low, file.path(output_folder, "dasymetric_low.geojson"))
+    make_geojson_zones(b_med, file.path(output_folder, "dasymetric_med.geojson"))
+    make_geojson_zones(b_high, file.path(output_folder, "dasymetric_high.geojson"))
   }
   TRUE
 }),
@@ -1198,7 +1198,7 @@ tar_target(zones_dasymetric_tile, {
 
 tar_target(school_points, {
   schools = sf::read_sf("inputdata/Schools/school_locations.geojson")
-  make_geojson_zones(schools, "outputs/school_locations.geojson")
+  make_geojson_zones(schools, file.path(output_folder, "school_locations.geojson"))
   schools
 }),
 
@@ -1274,7 +1274,7 @@ tar_target(combined_network, {
     nms = names(rnet_tile)[!names(rnet_tile) %in% nms_end]
     rnet_tile = rnet_tile[c(nms[order(nms)], nms_end)]
     
-    make_geojson_zones(rnet_tile, "outputdata/combined_network_tile.geojson")
+    make_geojson_zones(rnet_tile, paste0(output_folder, "/combined_network_tile.geojson"))
     
     rnet_tile
   }),
@@ -1282,7 +1282,7 @@ tar_target(combined_network, {
 tar_target(simplified_network, {
   cue = tar_cue(mode = "always")
   rnet_simple = simplify_network(combined_network_tile, parameters)
-  make_geojson_zones(rnet_simple, "outputdata/simplified_network.geojson")
+  make_geojson_zones(rnet_simple, paste0(output_folder, "/simplified_network.geojson"))
   rnet_simple
 }),
   
@@ -1510,32 +1510,18 @@ tar_target(pmtiles_rnet_simplified, {
 
     message("Saving outputs for ", parameters$date_routing)
     
-    saveRDS(od_commute_subset, "outputdata/od_commute_subset.Rds")
-    saveRDS(zones_stats, "outputdata/zones_stats.Rds")
-    saveRDS(school_stats, "outputdata/school_stats.Rds")
-    sf::write_sf(combined_network_tile, "outputdata/combined_network_tile.geojson", delete_dsn = TRUE)    
-    sf::write_sf(simplified_network, "outputdata/simplified_network.geojson", delete_dsn = TRUE)
+    saveRDS(od_commute_subset, paste0(output_folder, "/od_commute_subset.Rds"))
+    saveRDS(zones_stats, paste0(output_folder, "/zones_stats.Rds"))
+    saveRDS(school_stats, paste0(output_folder, "/school_stats.Rds"))
+    sf::write_sf(combined_network_tile, paste0(output_folder, "/combined_network_tile.geojson"), delete_dsn = TRUE)    
+    sf::write_sf(simplified_network, paste0(output_folder, "/simplified_network.geojson"), delete_dsn = TRUE)
     
-    file.copy("outputs/daysmetric.pmtiles","outputdata/daysmetric.pmtiles")
-    file.copy("outputs/data_zones.pmtiles","outputdata/data_zones.pmtiles")
-    file.copy("outputs/rnet.pmtiles","outputdata/rnet.pmtiles")
-    file.copy("outputs/rnet_simplified.pmtiles","outputdata/rnet_simplified.pmtiles")
-    file.copy("outputs/schools.pmtiles","outputdata/schools.pmtiles")
-
     sys_time = Sys.time()
-    zip(zipfile = "outputdata/combined_network_tile.zip", "outputdata/combined_network_tile.geojson")
-
-    combined_network_tile_file_path = "outputdata/combined_network_tile.geojson"
-
-    # Check if the file exists
-    if (file.exists(combined_network_tile_file_path)) {
-      # Delete the file
-      file.remove(combined_network_tile_file_path)
-    }
-    # Upload pmtiles to release
-    # cd outputdata
-    # gh release upload z2023-07-28 rnet_2023-07-04.pmtiles
-    # cd ..
+    zip(
+      zipfile = paste0(output_folder, "/combined_network_tile.zip"),
+      paste0(output_folder, "/combined_network_tile.geojson")
+    )
+    combined_network_tile_file_path = paste0(output_folder, "/combined_network_tile.geojson")
     sys_time
   }),
   
@@ -1594,7 +1580,7 @@ tar_target(pmtiles_rnet_simplified, {
     # metadata_all = tar_meta()
     # metadata_targets = metadata_all %>% 
     #   filter(type == "stem")
-    # readr::write_csv(metadata_targets, "outputs/metadata_targets.csv")
+    # readr::write_csv(metadata_targets, "outputdata/metadata_targets.csv")
     
     # TODO: add more columns
     build_summary = tibble::tibble(
@@ -1609,15 +1595,15 @@ tar_target(pmtiles_rnet_simplified, {
       routing_date = get_routing_date()
     )
     # # To overwrite previous build summary:
-    # write_csv(build_summary, "outputs/build_summary.csv")
-    if (file.exists("outputs/build_summary.csv")) {
-      build_summary_previous = readr::read_csv("outputs/build_summary.csv")
+    # write_csv(build_summary, "outputdata/build_summary.csv")
+    if (file.exists("outputdata/build_summary.csv")) {
+      build_summary_previous = readr::read_csv("outputdata/build_summary.csv")
     } else {
       build_summary_previous = NULL
     }
     # Combine previous and current build datasets
     build_summary = data.table::rbindlist(list(build_summary, build_summary_previous), fill = TRUE)
-    write_csv(build_summary, "outputs/build_summary.csv")
+    write_csv(build_summary, "outputdata/build_summary.csv")
   })
 
 )
