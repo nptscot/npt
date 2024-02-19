@@ -241,7 +241,7 @@ tar_target(rs_school_quietest, {
   rs = get_routes(od = od_school %>% slice_max(n = parameters$max_to_route, order_by = all, with_ties = FALSE),
                   plans = "quietest", 
                   purpose = "school",
-                  folder = paste0("outputdata/", parameters$date_routing),
+                  folder = output_folder,
                   date = parameters$date_routing,
                   segments = "both")
 },
@@ -255,7 +255,7 @@ tar_target(rs_commute, {
   get_routes(od = od_commute_subset,
                   plans = plans,
                   purpose = "commute",
-                  folder = paste0("outputdata/", parameters$date_routing),
+                  folder = output_folder,
                   date = parameters$date_routing,
                   segments = "both")
   rs
@@ -270,7 +270,7 @@ tar_target(rs_school_balanced, {
   rs = get_routes(od = od_school %>% slice_max(n = parameters$max_to_route, order_by = all, with_ties = FALSE),
                   plans = "balanced", 
                   purpose = "school",
-                  folder = paste0("outputdata/", parameters$date_routing),
+                  folder = output_folder,
                   date = parameters$date_routing,
                   segments = "both")
   rs
@@ -287,7 +287,7 @@ tar_target(rs_commute_fastest, {
   rs = get_routes(od = od_commute_subset,
                   plans = "fastest", 
                   purpose = "commute",
-                  folder = paste0("outputdata/", parameters$date_routing),
+                  folder = output_folder,
                   date = parameters$date_routing,
                   segments = "both")
   rs
@@ -302,7 +302,7 @@ tar_target(rs_commute_quietest, {
   rs = get_routes(od = od_commute_subset,
                   plans = "quietest", 
                   purpose = "commute",
-                  folder = paste0("outputdata/", parameters$date_routing),
+                  folder = output_folder,
                   date = parameters$date_routing,
                   segments = "both")
   rs
@@ -317,7 +317,7 @@ tar_target(rs_commute_ebike, {
   rs = get_routes(od = od_commute_subset,
                   plans = "ebike", 
                   purpose = "commute",
-                  folder = paste0("outputdata/", parameters$date_routing),
+                  folder = output_folder,
                   date = parameters$date_routing,
                   segments = "both")
   rs
@@ -332,7 +332,7 @@ tar_target(rs_commute_balanced, {
   rs = get_routes(od = od_commute_subset,
                   plans = "balanced", 
                   purpose = "commute",
-                  folder = paste0("outputdata/", parameters$date_routing),
+                  folder = output_folder,
                   date = parameters$date_routing,
                   segments = "both")
   rs
@@ -870,7 +870,7 @@ tar_target(rs_utility_fastest, {
   rs = get_routes(od = od_utility_combined |> dplyr::slice_max(n = parameters$max_to_route, order_by = all, with_ties = FALSE),
                   plans = "fastest", 
                   purpose = "utility",
-                  folder = paste0("outputdata/", parameters$date_routing),
+                  folder = output_folder,
                   date = parameters$date_routing,
                   segments = "both")
   rs
@@ -886,7 +886,7 @@ tar_target(rs_utility_quietest, {
   rs = get_routes(od = od_utility_combined,
                   plans = "quietest", 
                   purpose = "utility",
-                  folder = paste0("outputdata/", parameters$date_routing),
+                  folder = output_folder,
                   date = parameters$date_routing,
                   segments = "both")
   rs
@@ -901,7 +901,7 @@ tar_target(rs_utility_ebike, {
   rs = get_routes(od = od_utility_combined,
                   plans = "ebike", 
                   purpose = "utility",
-                  folder = paste0("outputdata/", parameters$date_routing),
+                  folder = output_folder,
                   date = parameters$date_routing,
                   segments = "both")
   rs
@@ -916,7 +916,7 @@ tar_target(rs_utility_balanced, {
   rs = get_routes(od = od_utility_combined,
                   plans = "balanced", 
                   purpose = "utility",
-                  folder = paste0("outputdata/", parameters$date_routing),
+                  folder = output_folder,
                   date = parameters$date_routing,
                   segments = "both")
   rs
