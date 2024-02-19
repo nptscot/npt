@@ -99,7 +99,9 @@ cohesive_network = function(network_tile, combined_grid_buffer, base_value = "co
 
     if (arterial) {
       # Filter the dataset for arterial roads
-      network_tile_linestring_percentile = dplyr::filter(network_tile_transformed, arterial == 'Yes')
+      min_percentile_value = stats::quantile(network_tile_transformed$value, probs = min_percentile)
+      network_tile_linestring_percentile = dplyr::filter(network_tile_transformed, value > min_percentile_value)
+      network_tile_linestring_percentile = dplyr::filter(network_tile_linestring_percentile, arterial == 'Yes')
 
     } else {
       # Calculate the minimum percentile value from the 'value' column for non-arterial roads

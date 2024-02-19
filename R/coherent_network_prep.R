@@ -14,7 +14,6 @@ cohesive_network_prep = function(combined_network_tile, crs = "EPSG:27700", para
     # Loop through each area in 'coherent_area'
     for (area in parameters$coherent_area) {
 
-
       print(paste("Preparing the network data for the", area))
 
       # combined_network_tile = sf::st_read("data-raw/combined_network_tile.geojson")
@@ -30,7 +29,7 @@ cohesive_network_prep = function(combined_network_tile, crs = "EPSG:27700", para
       zones = sg_intermediatezone_bdry_2011[sf::st_union(las_scotland_2023), , op = sf::st_within]
     
       zones$density = zones$TotPop2011 / zones$StdAreaHa
-      
+    
       # Read Scotland MasterMap GeoJSON parts
       MasterMap = sf::st_read("data-raw/MasterMap_Scotland.geojson") |> sf::st_transform(crs = crs)
       
@@ -52,19 +51,22 @@ cohesive_network_prep = function(combined_network_tile, crs = "EPSG:27700", para
       extra_tags = c("ref", "maxspeed", "highway")
 
       # Check if the OSM Zones file already exists
-      OSM_file_path = "data-raw/OSM_zones.geojson"
+      OSM_file_path = paste0("data-raw/OSM_", area, ".geojson")
+
       if (!file.exists(OSM_file_path)) {
       # If the file does not exist, proceed to download
-      
+      print(paste("The OSM at ", area, " does not exist, proceeding to download."))
       # Calculate the study area from zones
       study_area = sf::st_convex_hull(sf::st_union(zones))
       
       # Download OSM zones
       OSM_zones = osmextract::oe_get_network("Scotland", extra_tags = extra_tags, boundary = study_area, boundary_type = "clipsrc")
       
-
+      OSM_zones = sf::st_transform(OSM_zones, crs = crs)
       # Save the OSM data as geojson
       sf::st_write(OSM_zones, OSM_file_path)
+
+      print(paste("The OSM at ", area, " has been downloaded and saved at ", OSM_file_path))
 
       } else {
       # If the file exists, read the OSM zones from the geojson file
