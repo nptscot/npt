@@ -1286,11 +1286,11 @@ tar_target(
   coherent_network, {
     cue = tar_cue(mode = "always")
     
-    combined_network_tile = sf::st_read("data-raw/combined_network_tile.geojson")
-    parameters = jsonlite::fromJSON("parameters.json")
+    # combined_network_tile = sf::st_read("data-raw/combined_network_tile.geojson")
+    # parameters = jsonlite::fromJSON("parameters.json")
     # Prepare cohesive network
     NPT_MM_OSM = cohesive_network_prep(combined_network_tile, crs = "EPSG:27700", parameters = parameters)
-    
+
     NPT_MM_OSM_CITY =  NPT_MM_OSM$cohesive_network
 
     NPT_MM_OSM_ZONE =  NPT_MM_OSM$cohesive_zone
@@ -1314,7 +1314,7 @@ tar_target(
   
     
         # Store the networks in the list, organized by city
-        all_city_networks[[city]] <- list(
+        all_city_coherent_networks[[city]] <- list(
           arterial = rnet_coherent_arterial,
           percentile_90 = rnet_coherent_90,
           percentile_85 = rnet_coherent_85,
@@ -1322,8 +1322,11 @@ tar_target(
         )
     }
     all_city_coherent_networks
+
   }
 ),
+
+
 
 
 # Make PMTiles for website ------------------------------------------------
