@@ -73,9 +73,7 @@ list(
     {
       region_name_lower = snakecase::to_snake_case(parameters$region)
       folder_name = file.path("outputdata", parameters$date_routing, region_name_lower)
-      if(!dir.exists(folder_name)){
-        dir.create(file.path(folder_name), recursive = TRUE)
-      }
+      dir.create(file.path(folder_name), recursive = TRUE, showWarnings = FALSE)
       folder_name
     }
   ),
@@ -747,11 +745,11 @@ tar_target(zones_stats, {
 
 
 tar_target(zones_stats_json, {
-  export_zone_json(zones_stats, "DataZone", path = "outputdata")
+  export_zone_json(zones_stats, "DataZone", path = output_folder)
 }),
 
 tar_target(school_stats_json, {
-  export_zone_json(school_stats, "SeedCode", path = "outputdata")
+  export_zone_json(school_stats, "SeedCode", path = output_folder)
 }),
 
 
@@ -1523,58 +1521,7 @@ tar_target(pmtiles_rnet_simplified, {
     )
     combined_network_tile_file_path = paste0(output_folder, "/combined_network_tile.geojson")
     sys_time
-  }),
-  
-  # tar_target(visualise_rnet, {
-  #   # tar_source("code/vis_network.R")
-  #   # tarchetypes::tar_
-  # }),
-  # tarchetypes::tar_render(visualise_rnet, path = "code/vis_network.Rmd", params = list(rnet_commute_list)),
-  
-  # tarchetypes::tar_render(report, path = "README.Rmd", params = list(zones, rnet)),
-  tar_target(upload_data, {
-    
-    # Ensure the target runs after
-    check = length(save_outputs)
-
-    commit = gert::git_log(max = 1)
-    message("Commit: ", commit)
-    full_build = 
-      # isFALSE(parameters$geo_subset) &&     
-      isFALSE(parameters$open_data_build) &&
-      parameters$max_to_route > 20e3
-    is_linux = Sys.info()[['sysname']] == "Linux"
-    if(full_build) {
-    v = paste0("v", save_outputs, "_commit_", commit$commit)
-    v = gsub(pattern = " |:", replacement = "-", x = v)
-    setwd("outputdata")
-    f = list.files(path = ".", pattern = "Rds|zip|pmtiles|.json")
-    # Piggyback fails with error message so commented and using cust
-    # piggyback::pb_upload(f)
-    msg = glue::glue("gh release create {v} --generate-notes")
-    message("Creating new release and folder to save the files: ", v)
-    dir.create(v)
-    message("Going to try to upload the following files: ", paste0(f, collapse = ", "))
-    message("With sizes: ", paste0(fs::file_size(f), collapse = ", "))
-    system(msg)
-    for(i in f) {
-      gh_release_upload(file = i, tag = v)
-      # Move into a new directory
-      file.copy(from = i, to = file.path(v, i))
-    }
-    message("Files stored in output folder: ", v)
-    message("Which contains: ", paste0(list.files(v), collapse = ", "))
-    # For specific version:
-    # system("gh release create v0.0.1 --generate-notes")
-    file.remove(f)
-    setwd("..")
-  }  else {
-    message("Not full build or gh command line tool not available")
-    message("Not uploading files: manually move contents of outputdata (see upload_data target for details)")
-  }
-  Sys.Date()
-  }),
-  
+  }),  
   tar_target(metadata, {
     upload_data
     # metadata_all = tar_meta()
@@ -1607,6 +1554,3 @@ tar_target(pmtiles_rnet_simplified, {
   })
 
 )
-# # Download a snapshot of the data:
-# setwd("outputdata")
-# system("gh release download v2023-03-24-22-28-51_commit_e2a60d0f06e6ddbf768382b19dc524cb3824c0c4 ")
