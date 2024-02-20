@@ -29,7 +29,7 @@ cohesive_network_prep = function(combined_network_tile, crs = "EPSG:27700", para
       zones = sg_intermediatezone_bdry_2011[sf::st_union(las_scotland_2023), , op = sf::st_within]
     
       zones$density = zones$TotPop2011 / zones$StdAreaHa
-    
+
       # Read Scotland MasterMap GeoJSON parts
       MasterMap = sf::st_read("data-raw/MasterMap_Scotland.geojson") |> sf::st_transform(crs = crs)
       

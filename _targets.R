@@ -1298,13 +1298,14 @@ tar_target(
     all_city_coherent_networks = list()
 
     for(city in parameters$coherent_area) {
+
         CITY = NPT_MM_OSM_CITY[[city]]
         ZONE = NPT_MM_OSM_ZONE[[city]]
-
-        rnet_coherent_arterial = cohesive_network(network_tile = CITY, combined_grid_buffer = ZONE, arterial = TRUE, min_percentile = 0.60)
-        rnet_coherent_90 = cohesive_network(CITY, combined_grid_buffer = ZONE, arterial = FALSE, min_percentile = 0.90)
-        rnet_coherent_85 = cohesive_network(CITY, combined_grid_buffer = ZONE, arterial = FALSE, min_percentile = 0.85)
-        rnet_coherent_80 = cohesive_network(CITY, combined_grid_buffer = ZONE, arterial = FALSE, min_percentile = 0.80)
+    
+        rnet_coherent_arterial = cohesive_network(network_tile = CITY, combined_grid_buffer = ZONE, arterial = TRUE, min_percentile = 0.6)
+        rnet_coherent_90 = cohesive_network(network_tile = CITY, combined_grid_buffer = ZONE, arterial = FALSE, min_percentile = 0.90)
+        rnet_coherent_85 = cohesive_network(network_tile = CITY, combined_grid_buffer = ZONE, arterial = FALSE, min_percentile = 0.85)
+        rnet_coherent_80 = cohesive_network(network_tile = CITY, combined_grid_buffer = ZONE, arterial = FALSE, min_percentile = 0.80)
 
         # Export coherent networks to GeoJSON
         make_geojson_zones(rnet_coherent_arterial, paste0("outputdata/", city, "_coherent_network_arterial.geojson"))
@@ -1314,7 +1315,7 @@ tar_target(
   
     
         # Store the networks in the list, organized by city
-        all_city_coherent_networks[[city]] <- list(
+        all_city_coherent_networks[[city]] = list(
           arterial = rnet_coherent_arterial,
           percentile_90 = rnet_coherent_90,
           percentile_85 = rnet_coherent_85,
@@ -1322,9 +1323,6 @@ tar_target(
         )
     }
     all_city_coherent_networks
-    names(all_city_coherent_networks) 
-    names(all_city_coherent_networks[["City of Edinburgh"]])
-    plot(all_city_coherent_networks[["City of Edinburgh"]]$arterial$geometry)
   }
 ),
 
