@@ -1296,7 +1296,7 @@ tar_target(combined_network, {
     saveRDS(zones_stats, paste0(output_folder, "/zones_stats.Rds"))
     saveRDS(school_stats, paste0(output_folder, "/school_stats.Rds"))
     sf::write_sf(combined_network_tile, paste0(output_folder, "/combined_network_tile.geojson"), delete_dsn = TRUE)    
-    sf::write_sf(simplified_network, paste0(output_folder, "/simplified_network.geojson"), delete_dsn = TRUE)
+    # sf::write_sf(simplified_network, paste0(output_folder, "/simplified_network.geojson"), delete_dsn = TRUE)
     
     sys_time = Sys.time()
     zip(
@@ -1307,7 +1307,7 @@ tar_target(combined_network, {
     sys_time
   }),  
   tar_target(metadata, {
-    upload_data
+    # upload_data
     # metadata_all = tar_meta()
     # metadata_targets = metadata_all %>% 
     #   filter(type == "stem")
