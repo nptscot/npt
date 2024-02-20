@@ -833,7 +833,6 @@ tar_target(od_leisure, {
   od_leisure
 }),
 
-
 # Combined utility trip purposes --------------------------------------------
 
 tar_target(od_utility_combined, {
@@ -1276,26 +1275,10 @@ tar_target(combined_network, {
     
     rnet_tile
   }),
-
-tar_target(simplified_network, {
-  cue = tar_cue(mode = "always")
-  rnet_simple = simplify_network(combined_network_tile, parameters)
-  make_geojson_zones(rnet_simple, paste0(output_folder, "/simplified_network.geojson"))
-  rnet_simple
-}),
-  
-
 # Make PMTiles for website ------------------------------------------------
-
-
-
+# See outputdata/_targets.R for details
   
   tar_target(save_outputs, {
-    check = length(pmtiles_buildings)
-    check = length(pmtiles_rnet)
-    check = length(pmtiles_zones)
-    check = length(pmtiles_school)
-    check = length(pmtiles_rnet_simplified)
     check = length(rnet_utility_balanced)
     check = length(zones_stats_json)
     check = length(school_stats_json)
