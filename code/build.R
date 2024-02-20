@@ -41,7 +41,7 @@ full_build =
     parameters$max_to_route > 20e3
 is_linux = Sys.info()[["sysname"]] == "Linux"
 if (full_build) {
-  v = paste0("v", save_outputs, "_commit_", commit$commit)
+  v = paste0("v", Sys.Date(), "_commit_", commit$commit)
   v = gsub(pattern = " |:", replacement = "-", x = v)
   setwd("outputdata")
   f = list.files(path = ".", pattern = "Rds|zip|pmtiles|.json")
