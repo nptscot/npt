@@ -1286,8 +1286,8 @@ tar_target(
   coherent_network, {
     cue = tar_cue(mode = "always")
     
-    combined_network_tile = sf::st_read("data-raw/combined_network_tile.geojson")
-    parameters = jsonlite::fromJSON("parameters.json")
+    # combined_network_tile = sf::st_read("data-raw/combined_network_tile.geojson")
+    # parameters = jsonlite::fromJSON("parameters.json")
     # Prepare cohesive network
     NPT_MM_OSM = cohesive_network_prep(combined_network_tile, crs = "EPSG:27700", parameters = parameters)
 

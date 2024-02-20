@@ -16,12 +16,11 @@ cohesive_network_prep = function(combined_network_tile, crs = "EPSG:27700", para
 
       print(paste("Preparing the network data for the", area))
 
-      # combined_network_tile = sf::st_read("data-raw/combined_network_tile.geojson")
       combined_network_tile = sf::st_transform(combined_network_tile, crs)
 
-      sg_intermediatezone_bdry_2011 = sf::st_read("data-raw/sg_intermediatezone_bdry_2011.gpkg")
+      sg_intermediatezone_bdry_2011 = sf::st_read("inputdata/sg_intermediatezone_bdry_2011.gpkg")
       
-      las_scotland_2023 = sf::st_read("data-raw/las_scotland_2023.geojson") |> 
+      las_scotland_2023 = sf::st_read("inputdata/las_scotland_2023.geojson") |> 
                           sf::st_transform(crs = crs) |> 
                           dplyr::filter(LAD23NM == area) |> 
                           sf::st_buffer(dist = 4000)
@@ -31,7 +30,7 @@ cohesive_network_prep = function(combined_network_tile, crs = "EPSG:27700", para
       zones$density = zones$TotPop2011 / zones$StdAreaHa
 
       # Read Scotland MasterMap GeoJSON parts
-      MasterMap = sf::st_read("data-raw/MasterMap_Scotland.geojson") |> sf::st_transform(crs = crs)
+      MasterMap = sf::st_read("inputdata/MasterMap_Scotland.geojson") |> sf::st_transform(crs = crs)
       
       # Using mutate and case_when to update averageWidth
       MasterMap = MasterMap |>
@@ -51,7 +50,7 @@ cohesive_network_prep = function(combined_network_tile, crs = "EPSG:27700", para
       extra_tags = c("ref", "maxspeed", "highway")
 
       # Check if the OSM Zones file already exists
-      OSM_file_path = paste0("data-raw/OSM_", area, ".geojson")
+      OSM_file_path = paste0("inputdata/OSM_", area, ".geojson")
 
       if (!file.exists(OSM_file_path)) {
       # If the file does not exist, proceed to download
