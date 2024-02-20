@@ -84,7 +84,13 @@ list(
 
   tar_target(
     local_authorities,
-    sf::read_sf("inputdata/boundaries/la_regions_2023.geojson")
+    {
+      if (!file.exists("inputdata/boundaries/la_regions_2023.geojson")) {
+        download.file("https://github.com/nptscot/npt/releases/download/boundaries-2024/las_scotland_2023.geojson",
+                      destfile = "inputdata/boundaries/la_regions_2023.geojson")
+      }
+      sf::read_sf("inputdata/boundaries/la_regions_2023.geojson")
+    }
   ),
 
   tar_target(
