@@ -1290,8 +1290,6 @@ tar_target(combined_network, {
     saveRDS(zones_stats, paste0(output_folder, "/zones_stats.Rds"))
     saveRDS(school_stats, paste0(output_folder, "/school_stats.Rds"))
     sf::write_sf(combined_network_tile, paste0(output_folder, "/combined_network_tile.geojson"), delete_dsn = TRUE)    
-    sf::write_sf(simplified_network, paste0(output_folder, "/simplified_network.geojson"), delete_dsn = TRUE)
-    
     sys_time = Sys.time()
     zip(
       zipfile = paste0(output_folder, "/combined_network_tile.zip"),
@@ -1299,36 +1297,5 @@ tar_target(combined_network, {
     )
     combined_network_tile_file_path = paste0(output_folder, "/combined_network_tile.geojson")
     sys_time
-  }),  
-  tar_target(metadata, {
-    upload_data
-    # metadata_all = tar_meta()
-    # metadata_targets = metadata_all %>% 
-    #   filter(type == "stem")
-    # readr::write_csv(metadata_targets, "outputdata/metadata_targets.csv")
-    
-    # TODO: add more columns
-    build_summary = tibble::tibble(
-      n_segment_cells = nrow(combined_network) * ncol(combined_network),
-      min_flow = parameters$min_flow,
-      max_to_route = parameters$max_to_route,
-      # time_total_mins = round(sum(metadata_targets$seconds) / 60, digits = 2),
-      # time_r_commute_mins = round(metadata_targets %>% 
-      #                               filter(name == "r_commute") %>% 
-      #                               pull(seconds) / 60, 
-      #                             digits = 2),
-      routing_date = get_routing_date()
-    )
-    # # To overwrite previous build summary:
-    # write_csv(build_summary, "outputdata/build_summary.csv")
-    if (file.exists("outputdata/build_summary.csv")) {
-      build_summary_previous = readr::read_csv("outputdata/build_summary.csv")
-    } else {
-      build_summary_previous = NULL
-    }
-    # Combine previous and current build datasets
-    build_summary = data.table::rbindlist(list(build_summary, build_summary_previous), fill = TRUE)
-    write_csv(build_summary, "outputdata/build_summary.csv")
   })
-
 )
