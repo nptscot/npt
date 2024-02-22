@@ -3,6 +3,7 @@ path = "D:/OneDrive - University of Leeds/Data/Admin Boundaries/"
 
 path_la = "Local_Authority_Districts_(December_2022)_Boundaries_UK_BFC.zip"
 
+library(tidyverse)
 library(sf)
 
 
@@ -79,6 +80,18 @@ la_regions[is.na(la_regions$Region),]
 dir.create("inputdata/boundaries", showWarnings = FALSE)
 sf::write_sf(la_regions, "inputdata/boundaries/la_regions_2023.geojson", delete_dsn = TRUE)
 sf::write_sf(la, "inputdata/boundaries/las_2023.geojson", delete_dsn = TRUE)
+
+# Group by region and save
+scottish_regions = la_regions |>
+  group_by(Region) |>
+  summarise() 
+sf::write_sf(scottish_regions, "inputdata/boundaries/scottish_regions_2023.geojson", delete_dsn = TRUE)
+
+# Save las_scotland:
+las_scotland = la_regions |>
+  select(LAD23CD, LAD23NM)
+
+sf::write_sf(las_scotland, "inputdata/boundaries/las_scotland_2023.geojson", delete_dsn = TRUE)
 
 # https://github.com/nptscot/npt/releases/download/boundaries-2024/las_2023.geojson
 
