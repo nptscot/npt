@@ -101,25 +101,21 @@ list(
 
   # Case study area:
   tar_target(
-    study_area,
+    study_area_exact,
     {
-      region_name = region_names
       local_authorites_region = local_authorities |>
-        filter(Region == region_name)
+        filter(Region == parameters$region)
+      mapview::mapview(local_authorites_region)
       study_area_exact = sf::st_union(local_authorites_region)
       sf::st_buffer(study_area_exact, parameters$region_buffer_distance)
     }
   ),
 
   tar_target(zones, {
-    if(parameters$open_data_build) {
-      z = sf::read_sf("data-raw/DataZones.geojson")
-    } else {
-      z = readRDS("inputdata/DataZones.Rds") # 6976 zones
-    }
-    if(parameters$geo_subset) {
-      z = z[study_area[[1]], op = sf::st_within]
-    }
+    z = readRDS("inputdata/DataZones.Rds") # 6976 zones
+    z_centroids = sf::st_centroid(z)
+    z_centroids_within = z_centroids[study_area_exact, ]
+    z = z[z[[1]] %in% z_centroids_within[[1]], ]
     z
   }),
 
