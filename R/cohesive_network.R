@@ -17,7 +17,7 @@
 #' plot(network_tile_subset$geometry, col = "red", add = TRUE)
 #' }
 #' @export
-cohesive_network = function(network_tile, combined_grid_buffer, base_value = "commute_fastest_bicycle_go_dutch", crs = "EPSG:27700", min_percentile = 0.90 , arterial = FALSE, dist =10) {
+cohesive_network = function(network_tile, combined_grid_buffer, base_value = "all_fastest_bicycle_go_dutch", crs = "EPSG:27700", min_percentile = 0.90 , arterial = FALSE, dist =10) {
 
     # Transform the coordinates of the spatial object
     network_tile_transformed = sf::st_transform(network_tile, crs)
@@ -137,7 +137,7 @@ prepare_network = function(network, transform_crs = 27700) {
         sfnetworks::as_sfnetwork(directed = FALSE) |>
         sf::st_transform(transform_crs) |>
         sfnetworks::activate("edges") |>
-        dplyr::mutate(arterialness = calculate_arterialness_score(roadClassification, averageWidth, network),
+        dplyr::mutate(arterialness = calculate_arterialness_score(highway, bicycle, network),
                       # Higher arterialness_score leads to lower weight
                       weight = max(arterialness) + 1 - arterialness)
 
@@ -174,13 +174,13 @@ calculate_paths_from_point = function(network, point, centroids) {
 }
 
 
-calculate_arterialness_score = function(roadClassification, averageWidth, network_tile) {
+calculate_arterialness_score = function(highway, bicycle, network_tile) {
     # Base score based on road classification
     # browser()
     base_score = dplyr::case_when(
-        roadClassification == "primary" ~ 10,
-        roadClassification == "secondary" ~ 5,
-        roadClassification == "tertiary" ~ 5,
+        highway == "primary" ~ 10,
+        highway == "secondary" ~ 5,
+        highway == "tertiary" ~ 5,
         TRUE ~ 1  
     )
 
@@ -201,8 +201,8 @@ calculate_arterialness_score = function(roadClassification, averageWidth, networ
     # Bicycle preference scoring
     bicycle_score = dplyr::case_when(
         bicycle %in% c("yes", "designated", "permissive", "mtb") ~ 3, # High preference score
-        bicycle %in% c(NA) ~ 2, # Low preference score, treating NA as 'dismount'
-        bicycle %in% c("customers", "dismount", NA) ~ 1, # Low preference score, treating NA as 'dismount'
+        bicycle %in% c(NA, "unknown") ~ 2, # Low preference score, treating NA as 'dismount'
+        bicycle %in% c("customers", "dismount", "private") ~ 1, # Low preference score, treating NA as 'dismount'
         TRUE ~ 0  # Default score if none of the conditions are met
     )
     
