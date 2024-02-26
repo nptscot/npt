@@ -1,3 +1,20 @@
+# Include in Cycling Network
+# cycleway: Specifically designated for bicycle use, so these should definitely be included.
+# path: Generally accessible to cyclists and can be good for cycling routes, but check for any restrictions.
+# footway: Often includes paths where bicycles are allowed, but it's important to verify local rules as they can vary (some footways are pedestrian-only).
+# bridleway: These are often accessible to cyclists as well as horse riders and pedestrians, but the suitability can vary by location.
+# living_street: These streets have low speed limits and are designed to be shared by all users, including cyclists, pedestrians, and motorists.
+# service: Service roads can sometimes provide useful connections in a cycling network, but their suitability can vary depending on the presence of motorized traffic and service vehicle frequency.
+# Assess Further
+# residential, tertiary, secondary, primary: These can be included but might require additional infrastructure like bike lanes to ensure safety due to mixed traffic. Their inclusion often depends on traffic volumes and speeds.
+# tertiary_link, secondary_link, primary_link: Links are typically connectors between major roads and can be busy or fast-moving, requiring careful consideration.
+# track: Generally unpaved routes that can be suitable for mountain biking or leisure cycling, depending on their condition.
+# pedestrian: These areas are primarily for pedestrian use but might allow bikes; check local regulations.
+# Likely Exclude
+# trunk, trunk_link: These roads often have high-speed traffic and are not safe for cyclists unless there is a dedicated cycling path.
+# unclassified, road: The suitability of these can vary widely; they often require local knowledge to assess.
+# services: Typically refers to areas around service stations on highways and are not suitable for cycling routes.
+
 #' @param parameters parameters
 
 cohesive_network_prep = function(combined_network_tile, crs = "EPSG:27700", parameters) {
@@ -71,11 +88,16 @@ cohesive_network_prep = function(combined_network_tile, crs = "EPSG:27700", para
       # If the file exists, read the OSM zones from the geojson file
       OSM_zones = sf::st_read(OSM_file_path) |> sf::st_transform(crs = crs)
       }
+    
+      # filter highway = "footway" AND bicycle = "designated" in OSM
+
+      OSM_zones = OSM_zones |> 
+      dplyr::filter(!(highway == 'footway' & bicycle == "designated"))
 
       # Filter the OSM data to include only primary and secondary highways, 
       # excluding those with references '4', '5', and '6'
       filtered_OSM_zones = OSM_zones |>
-      dplyr::filter(highway == 'primary' | highway == 'secondary' | ref != '4' | ref != '5' | ref != '6')
+      dplyr::filter(highway == 'primary' | highway == 'primary_link' | highway == 'secondary' | highway == 'secondary_link'   | highway == 'tertiary' | highway == 'tertiary_link' | highway == 'trunk' | highway == 'trunk_link')
 
       # Create a buffer of 10 units around the filtered OSM data
       buffered_filtered_OSM_zones = sf::st_buffer(filtered_OSM_zones, dist =15)

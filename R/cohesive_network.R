@@ -1,4 +1,4 @@
-#' Subset a network
+#' Subset a networkmin_
 #' 
 #' The input dataset must contain a column named `value` which
 #' determines the most important segments of the network. 
@@ -178,27 +178,39 @@ calculate_arterialness_score = function(roadClassification, averageWidth, networ
     # Base score based on road classification
     # browser()
     base_score = dplyr::case_when(
-        roadClassification == "A Road" ~ 10,
-        roadClassification == "B Road" ~ 5,
+        roadClassification == "primary" ~ 10,
+        roadClassification == "secondary" ~ 5,
+        roadClassification == "tertiary" ~ 5,
         TRUE ~ 1  
     )
 
-    # Calculate max_width only if it's not already calculated
+    # # Calculate max_width only if it's not already calculated
 
-    max_width = max(network_tile$averageWidth, na.rm = TRUE)
-    print(max_width)
+    # max_width = max(network_tile$averageWidth, na.rm = TRUE)
+    # print(max_width)
 
-    # Normalize the width score
-    normalized_width_score = ifelse(is.numeric(averageWidth) & averageWidth > 0, 
-                                    averageWidth / max_width, 
-                                    0) # Handling NA and non-positive values
+    # # Normalize the width score
+    # normalized_width_score = ifelse(is.numeric(averageWidth) & averageWidth > 0, 
+    #                                 averageWidth / max_width, 
+    #                                 0) # Handling NA and non-positive values
 
-    # Scaling factor
+    # # Scaling factor
+    # scaling_factor = 5
+    # width_score = normalized_width_score * scaling_factor
+
+    # Bicycle preference scoring
+    bicycle_score = dplyr::case_when(
+        bicycle %in% c("yes", "designated", "permissive", "mtb") ~ 3, # High preference score
+        bicycle %in% c("customers", "dismount", NA) ~ 1, # Low preference score, treating NA as 'dismount'
+        TRUE ~ 0  # Default score if none of the conditions are met
+    )
+    
+    # You might adjust the scaling factor or add additional logic based on your requirements
     scaling_factor = 5
-    width_score = normalized_width_score * scaling_factor
+    adjusted_bicycle_score = bicycle_score * scaling_factor
 
     # Return the total arterialness score
-    return(base_score + width_score)
+    return(base_score + adjusted_bicycle_score)
 }
 
 create_buffers_and_grid = function(city_name, num_buffers, grid_sizes) {
