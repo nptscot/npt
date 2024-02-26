@@ -201,6 +201,7 @@ calculate_arterialness_score = function(roadClassification, averageWidth, networ
     # Bicycle preference scoring
     bicycle_score = dplyr::case_when(
         bicycle %in% c("yes", "designated", "permissive", "mtb") ~ 3, # High preference score
+        bicycle %in% c(NA) ~ 2, # Low preference score, treating NA as 'dismount'
         bicycle %in% c("customers", "dismount", NA) ~ 1, # Low preference score, treating NA as 'dismount'
         TRUE ~ 0  # Default score if none of the conditions are met
     )
