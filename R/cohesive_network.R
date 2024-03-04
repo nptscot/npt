@@ -42,11 +42,11 @@ cohesive_network = function(network_tile, combined_grid_buffer, base_value = "al
 
     select_by_density = function(density) {
       if (density < 10) {
-        top_n = 3
-      } else if (density >= 10 & density < 20) {
         top_n = 6
+      } else if (density >= 10 & density < 20) {
+        top_n = 10
       } else {
-        top_n = (density %/% 10) + 8
+        top_n = (density %/% 10) + 12
       }
       
       # Check if the value is NA (rest of the cases) and set top_n to 1
