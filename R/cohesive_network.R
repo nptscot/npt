@@ -178,8 +178,8 @@ calculate_arterialness_score = function(highway, bicycle, network_tile) {
     # Base score based on road classification
     # browser()
     base_score = dplyr::case_when(
-        highway == "primary" ~ 10,
-        highway == "secondary" ~ 5,
+        highway == "primary" ~ 50,
+        highway == "secondary" ~ 10,
         highway == "tertiary" ~ 5,
         TRUE ~ 1  
     )
@@ -199,19 +199,20 @@ calculate_arterialness_score = function(highway, bicycle, network_tile) {
     # width_score = normalized_width_score * scaling_factor
 
     # Bicycle preference scoring
-    bicycle_score = dplyr::case_when(
-        bicycle %in% c("yes", "designated", "permissive", "mtb") ~ 3, # High preference score
-        bicycle %in% c(NA, "unknown") ~ 2, # Low preference score, treating NA as 'dismount'
-        bicycle %in% c("customers", "dismount", "private") ~ 1, # Low preference score, treating NA as 'dismount'
-        TRUE ~ 0  # Default score if none of the conditions are met
-    )
+    # bicycle_score = dplyr::case_when(
+    #     bicycle %in% c("yes", "designated", "permissive", "mtb") ~ 3, # High preference score
+    #     bicycle %in% c(NA, "unknown") ~ 2, # Low preference score, treating NA as 'dismount'
+    #     bicycle %in% c("customers", "dismount", "private") ~ 1, # Low preference score, treating NA as 'dismount'
+    #     TRUE ~ 0  # Default score if none of the conditions are met
+    # )
     
-    # You might adjust the scaling factor or add additional logic based on your requirements
-    scaling_factor = 5
-    adjusted_bicycle_score = bicycle_score * scaling_factor
+    # # You might adjust the scaling factor or add additional logic based on your requirements
+    # scaling_factor = 5
+    # adjusted_bicycle_score = bicycle_score * scaling_factor
 
     # Return the total arterialness score
-    return(base_score + adjusted_bicycle_score)
+    # return(base_score + adjusted_bicycle_score)
+    return(base_score)
 }
 
 create_buffers_and_grid = function(city_name, num_buffers, grid_sizes) {
