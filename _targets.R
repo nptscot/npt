@@ -1124,17 +1124,10 @@ tar_target(zones_contextual, {
                         "drive_secondary","PT_GP","PT_post",
                         "PT_retail","broadband")]
   zones = sf::st_drop_geometry(zones)
-  
-  zones$drive_petrol = round(zones$drive_petrol, 1)
-  zones$drive_GP = round(zones$drive_GP, 1)
-  zones$drive_post = round(zones$drive_post, 1)
-  zones$drive_primary = round(zones$drive_primary, 1)
-  zones$drive_retail = round(zones$drive_retail, 1)
-  zones$drive_secondary = round(zones$drive_secondary, 1)
-  zones$PT_GP = round(zones$PT_GP, 1)
-  zones$PT_post = round(zones$PT_post, 1)
-  zones$PT_retail = round(zones$PT_retail, 1)
-  zones$broadband = as.integer(gsub("%","",zones$broadband))
+  zones = zones |>
+    mutate(across(drive_petrol:PT_retail, round, digits = 1))
+  # table(zones$broadband) # Check %s for NAs (see #385)
+  zones$broadband = as.integer(gsub("%", "", zones$broadband))
   zones
 }),
 
@@ -1286,13 +1279,13 @@ tar_target(
   coherent_network, {
     cue = tar_cue(mode = "always")
     devtools::load_all()
-    local_file_path <- "data-raw/combined_network_tile.geojson"
-    remote_file_url <- "https://github.com/nptscot/npt/releases/download/coherent_test/combined_network_tile.geojson"
+    local_file_path = "data-raw/combined_network_tile.geojson"
+    remote_file_url = "https://github.com/nptscot/npt/releases/download/coherent_test/combined_network_tile.geojson"
 
     if(file.exists(local_file_path)) {
-      combined_network_tile <- sf::st_read(local_file_path)
+      combined_network_tile = sf::st_read(local_file_path)
     } else {
-      combined_network_tile <- sf::st_read(remote_file_url)
+      combined_network_tile = sf::st_read(remote_file_url)
     }
     parameters = jsonlite::fromJSON("parameters.json")
 
@@ -1339,7 +1332,7 @@ tar_target(
 
 # Make PMTiles for website ------------------------------------------------
 tar_target(
-  pmtiles_coherent_75,
+  pmtiles_coherent,
   {
     # Loop over every city to create PMTiles for rnet_coherent_75 only
     for (city in names(all_city_coherent_networks)) {
