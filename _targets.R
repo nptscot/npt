@@ -1323,10 +1323,10 @@ tar_target(
 
 # Make PMTiles for website ------------------------------------------------
 tar_target(
-  pmtiles_coherent_75,
+  pmtiles_coherent,
   {
     # Loop over every city to create PMTiles for rnet_coherent_75 only
-    for (city in names(all_city_coherent_networks_75)) {
+    for (city in parameters$coherent_area) {
       coherent_geojson_filename_75 = paste0("outputdata/", city, "_coherent_network_75.geojson")
       output_filename_75 = paste0("outputdata/", city, "_coherent_network_75.pmtiles")
 
