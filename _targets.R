@@ -1331,20 +1331,26 @@ tar_target(
 # Make PMTiles for website ------------------------------------------------
 tar_target(pmtiles_coherent , {
   check = length(all_city_coherent_networks)
-  command_tippecanoe = paste0('tippecanoe -o coherent_network.pmtiles',
-                             '--name=coherent_network',
-                             '--layer=coherent_network',
-                             '--attribution=UniverstyofLeeds',
-                             '--minimum-zoom=6',
-                             '--maximum-zoom=13',
-                             '--maximum-tile-bytes=5000000',
-                             '--simplification=10',
-                             '--buffer=5',
-                             '-rg4',
-                             '--force  coherent_network.geojson', collapse = " ")
-
-})
-
+  coherent_geojson_filename = paste0("outputdata/", city, "_coherent_network_arterial.geojson")
+  # Loop over every city:
+  for(city in parameters$coherent_area) {
+    # Loop over every network type:
+    coherent_geojson_filename = paste0("outputdata/", city, "_coherent_network_75.geojson")
+      command_tippecanoe = paste0('tippecanoe -o coherent_network_percentile_75.pmtiles',
+                                  '--name=coherent_network_percentile_75',
+                                  '--layer=coherent_network_percentile_75',
+                                  '--attribution=UniverstyofLeeds',
+                                  '--minimum-zoom=6',
+                                  '--maximum-zoom=13',
+                                  '--maximum-tile-bytes=5000000',
+                                  '--simplification=10',
+                                  '--buffer=5',
+                                  '-rg4',
+                                  '--force ',
+                                  coherent_geojson_filename, collapse = " ")
+      system(command_tippecanoe, intern = TRUE)
+  }
+}),
 
 tar_target(pmtiles_school, {
   check = length(school_points)
