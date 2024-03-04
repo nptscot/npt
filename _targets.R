@@ -1285,9 +1285,9 @@ tar_target(simplified_network, {
 tar_target(
   coherent_network, {
     cue = tar_cue(mode = "always")
-    devtools::load_all()
-    combined_network_tile = sf::st_read("data-raw/combined_network_tile.geojson")
-    parameters = jsonlite::fromJSON("parameters.json")
+    # devtools::load_all()
+    # combined_network_tile = sf::st_read("data-raw/combined_network_tile.geojson")
+    # parameters = jsonlite::fromJSON("parameters.json")
 
     # Prepare cohesive network
     NPT_MM_OSM = cohesive_network_prep(combined_network_tile, crs = "EPSG:27700", parameters = parameters)
@@ -1299,6 +1299,8 @@ tar_target(
     all_city_coherent_networks = list()
 
     for(city in parameters$coherent_area) {
+        
+        city_filename = gsub(" ", "_", city)
 
         CITY = NPT_MM_OSM_CITY[[city]]
         ZONE = NPT_MM_OSM_ZONE[[city]]
@@ -1309,10 +1311,10 @@ tar_target(
         rnet_coherent_75 = cohesive_network(network_tile = CITY, combined_grid_buffer = ZONE, arterial = FALSE, min_percentile = 0.75)
 
         # Export coherent networks to GeoJSON
-        make_geojson_zones(rnet_coherent_arterial, paste0("outputdata/", city, "_coherent_network_arterial.geojson"))
-        make_geojson_zones(rnet_coherent_85, paste0("outputdata/", city, "_coherent_network_85.geojson"))
-        make_geojson_zones(rnet_coherent_80, paste0("outputdata/", city, "_coherent_network_80.geojson"))
-        make_geojson_zones(rnet_coherent_75, paste0("outputdata/", city, "_coherent_network_75.geojson"))
+        make_geojson_zones(rnet_coherent_arterial, paste0("outputdata/", city_filename, "_coherent_network_arterial.geojson"))
+        make_geojson_zones(rnet_coherent_85, paste0("outputdata/", city_filename, "_coherent_network_85.geojson"))
+        make_geojson_zones(rnet_coherent_80, paste0("outputdata/", city_filename, "_coherent_network_80.geojson"))
+        make_geojson_zones(rnet_coherent_75, paste0("outputdata/", city_filename, "_coherent_network_75.geojson"))
   
     
         # Store the networks in the list, organized by city
@@ -1333,9 +1335,12 @@ tar_target(
   pmtiles_coherent_75,
   {
     # Loop over every city to create PMTiles for rnet_coherent_75 only
-    for (city in names(all_city_coherent_networks_75)) {
-      coherent_geojson_filename_75 = paste0("outputdata/", city, "_coherent_network_75.geojson")
-      output_filename_75 = paste0("outputdata/", city, "_coherent_network_75.pmtiles")
+    for (city in names(all_city_coherent_networks)) {
+      city = "City of Edinburgh"
+      city_filename = gsub(" ", "_", city)
+
+      coherent_geojson_filename_75 = paste0("outputdata/", city_filename, "_coherent_network_75.geojson")
+      output_filename_75 = paste0("outputdata/", city_filename, "_coherent_network_75.pmtiles")
 
       command_tippecanoe  = paste0(
         'tippecanoe -o ', output_filename_75,
