@@ -1328,9 +1328,23 @@ tar_target(
 ),
 
 
-
-
 # Make PMTiles for website ------------------------------------------------
+tar_target(pmtiles_coherent , {
+  check = length(all_city_coherent_networks)
+  command_tippecanoe = paste0('tippecanoe -o coherent_network.pmtiles',
+                             '--name=coherent_network',
+                             '--layer=coherent_network',
+                             '--attribution=UniverstyofLeeds',
+                             '--minimum-zoom=6',
+                             '--maximum-zoom=13',
+                             '--maximum-tile-bytes=5000000',
+                             '--simplification=10',
+                             '--buffer=5',
+                             '-rg4',
+                             '--force  coherent_network.geojson', collapse = " ")
+
+})
+
 
 tar_target(pmtiles_school, {
   check = length(school_points)
