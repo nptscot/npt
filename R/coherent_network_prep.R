@@ -86,7 +86,7 @@ cohesive_network_prep = function(combined_network_tile, crs = "EPSG:27700", para
       dplyr::filter(highway == 'primary' | highway == 'primary_link' | highway == 'secondary' | highway == 'secondary_link'   | highway == 'tertiary' | highway == 'tertiary_link' | highway == 'trunk' | highway == 'trunk_link')
 
       # Create a buffer of 10 units around the filtered OSM data
-      buffered_filtered_OSM_zones = sf::st_buffer(filtered_OSM_zones, dist =15)
+      buffered_filtered_OSM_zones = sf::st_buffer(filtered_OSM_zones, dist =5)
 
       # Select features from NPT_zones that are within the buffered area of the OSM data
       NPT_filtered_OSM_zones = NPT_zones[sf::st_union(buffered_filtered_OSM_zones), , op = sf::st_within]
