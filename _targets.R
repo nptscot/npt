@@ -1278,8 +1278,8 @@ tar_target(simplified_network, {
 tar_target(
   coherent_network, {
     cue = tar_cue(mode = "always")
-    devtools::load_all()
-    local_file_path = "data-raw/combined_network_tile.geojson"
+    length(simplified_network)
+    local_file_path = "outputdata/combined_network_tile.geojson"
     remote_file_url = "https://github.com/nptscot/npt/releases/download/coherent_test/combined_network_tile.geojson"
 
     if(file.exists(local_file_path)) {
