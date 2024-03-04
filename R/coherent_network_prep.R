@@ -30,19 +30,29 @@ cohesive_network_prep = function(combined_network_tile, crs = "EPSG:27700", para
       zones$density = zones$TotPop2011 / zones$StdAreaHa
 
       # Read Scotland MasterMap GeoJSON parts
-      MasterMap = sf::st_read("inputdata/MasterMap_Scotland.geojson") |> sf::st_transform(crs = crs)
-      
-      # Using mutate and case_when to update averageWidth
-      MasterMap = MasterMap |>
-                    dplyr::mutate(averageWidth = dplyr::case_when(
-                        !is.na(averageWidth) ~ averageWidth,                       # If averageWidth is not NA, keep it
-                        is.na(averageWidth) & !is.na(minimumWidth) ~ minimumWidth,     # If averageWidth is NA but minimumWidth is not, use minimumWidth
-                        is.na(averageWidth) & is.na(minimumWidth) ~ 0.1,             # If both are NA, assign 0.1
-                        TRUE ~ averageWidth                                          # Fallback to keep existing averageWidth values if any other unexpected condition occurs
-                        ))
+      MasterMap_file_name = paste0("inputdata/MasterMap_", zones, ".geojson")
 
-      # MasterMap_zones = sf::st_intersection(MasterMap, sf::st_union(zones))
-      MasterMap_zones = MasterMap[sf::st_union(zones), , op = sf::st_intersects]
+      if(file.exists(MasterMap_file_name)) {
+        MasterMap_zones = sf::st_read(MasterMap_file_name) |> 
+                          sf::st_transform(crs = crs)
+      } else {
+        MasterMap = sf::st_read("inputdata/MasterMap_Scotland.geojson") |> sf::st_transform(crs = crs)
+        # Read and process the original MasterMap file if the zones-specific file does not exist
+        MasterMap = MasterMap |>
+                      dplyr::mutate(averageWidth = dplyr::case_when(
+                          !is.na(averageWidth) ~ averageWidth,                       # If averageWidth is not NA, keep it
+                          is.na(averageWidth) & !is.na(minimumWidth) ~ minimumWidth,     # If averageWidth is NA but minimumWidth is not, use minimumWidth
+                          is.na(averageWidth) & is.na(minimumWidth) ~ 0.1,             # If both are NA, assign 0.1
+                          TRUE ~ averageWidth                                          # Fallback to keep existing averageWidth values if any other unexpected condition occurs
+                          ))
+        
+        # Correcting the spatial operation for intersection
+        MasterMap_zones = MasterMap[sf::st_union(zones), , op = sf::st_intersects]
+        
+        # Save the processed MasterMap_zones to a new file
+        sf::st_write(MasterMap_zones, MasterMap_file_name)
+      }
+
       # Prepare NPT data
       NPT_zones = combined_network_tile[sf::st_union(zones), , op = sf::st_intersects]
 
