@@ -1326,8 +1326,7 @@ tar_target(
         )
     }
     all_city_coherent_networks
-  }
-),
+}),
 
 
 # Make PMTiles for website ------------------------------------------------
@@ -1335,7 +1334,7 @@ tar_target(
   pmtiles_coherent,
   {
     # Loop over every city to create PMTiles for rnet_coherent_75 only
-    for (city in names(all_city_coherent_networks)) {
+    for (city in names(coherent_network)) {
       city = "City of Edinburgh"
       city_filename = gsub(" ", "_", city)
 
