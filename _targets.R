@@ -1334,7 +1334,7 @@ tar_target(
   pmtiles_coherent,
   {
     # Loop over every city to create PMTiles for rnet_coherent_75 only
-    for (city in names(coherent_network)) {
+    for (city in parameters$coherent_area) {
       city = "City of Edinburgh"
       city_filename = gsub(" ", "_", city)
 
