@@ -1278,16 +1278,6 @@ tar_target(simplified_network, {
 tar_target(
   coherent_network, {
     cue = tar_cue(mode = "always")
- 
-    local_file_path = "outputdata/combined_network_tile.geojson"
-    remote_file_url = "https://github.com/nptscot/npt/releases/download/coherent_test/combined_network_tile.geojson"
-
-    if(file.exists(local_file_path)) {
-      combined_network_tile = sf::st_read(local_file_path)
-    } else {
-      combined_network_tile = sf::st_read(remote_file_url)
-    }
-    parameters = jsonlite::fromJSON("parameters.json")
 
     # Prepare cohesive network
     NPT_MM_OSM = cohesive_network_prep(combined_network_tile, crs = "EPSG:27700", parameters = parameters)
