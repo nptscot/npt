@@ -10,6 +10,8 @@ nohup nice -4 R CMD BATCH run.R &
 # Removing .RData is recommended.
 # rm -f .RData
 
-# Get data:
-gh repo clone nptscot/inputdata
-cd inputdata
+# # Get data if it doesn't exist:
+# fi [ ! -d inputdata ]; then
+# gh repo clone nptscot/inputdata
+# fi
+
