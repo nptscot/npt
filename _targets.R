@@ -1305,23 +1305,23 @@ tar_target(
         CITY = NPT_MM_OSM_CITY[[city]]
         ZONE = NPT_MM_OSM_ZONE[[city]]
 
-        rnet_coherent_arterial = cohesive_network(network_tile = CITY, combined_grid_buffer = ZONE, arterial = TRUE, min_percentile = 0.75)
-        rnet_coherent_85 = cohesive_network(network_tile = CITY, combined_grid_buffer = ZONE, arterial = FALSE, min_percentile = 0.85)
-        rnet_coherent_80 = cohesive_network(network_tile = CITY, combined_grid_buffer = ZONE, arterial = FALSE, min_percentile = 0.80)
+        # rnet_coherent_arterial = cohesive_network(network_tile = CITY, combined_grid_buffer = ZONE, arterial = TRUE, min_percentile = 0.75)
+        # rnet_coherent_85 = cohesive_network(network_tile = CITY, combined_grid_buffer = ZONE, arterial = FALSE, min_percentile = 0.85)
+        # rnet_coherent_80 = cohesive_network(network_tile = CITY, combined_grid_buffer = ZONE, arterial = FALSE, min_percentile = 0.80)
         rnet_coherent_75 = cohesive_network(network_tile = CITY, combined_grid_buffer = ZONE, arterial = FALSE, min_percentile = 0.75)
 
         # Export coherent networks to GeoJSON
-        make_geojson_zones(rnet_coherent_arterial, paste0("outputdata/", city_filename, "_coherent_network_arterial.geojson"))
-        make_geojson_zones(rnet_coherent_85, paste0("outputdata/", city_filename, "_coherent_network_85.geojson"))
-        make_geojson_zones(rnet_coherent_80, paste0("outputdata/", city_filename, "_coherent_network_80.geojson"))
+        # make_geojson_zones(rnet_coherent_arterial, paste0("outputdata/", city_filename, "_coherent_network_arterial.geojson"))
+        # make_geojson_zones(rnet_coherent_85, paste0("outputdata/", city_filename, "_coherent_network_85.geojson"))
+        # make_geojson_zones(rnet_coherent_80, paste0("outputdata/", city_filename, "_coherent_network_80.geojson"))
         make_geojson_zones(rnet_coherent_75, paste0("outputdata/", city_filename, "_coherent_network_75.geojson"))
   
     
         # Store the networks in the list, organized by city
         all_city_coherent_networks[[city]] = list(
-          arterial = rnet_coherent_arterial,
-          percentile_85 = rnet_coherent_85,
-          percentile_80 = rnet_coherent_80,
+          # arterial = rnet_coherent_arterial,
+          # percentile_85 = rnet_coherent_85,
+          # percentile_80 = rnet_coherent_80,
           percentile_75 = rnet_coherent_75
         )
     }
