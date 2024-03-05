@@ -1278,7 +1278,7 @@ tar_target(simplified_network, {
 tar_target(
   coherent_network, {
     cue = tar_cue(mode = "always")
-    length(simplified_network)
+ 
     local_file_path = "outputdata/combined_network_tile.geojson"
     remote_file_url = "https://github.com/nptscot/npt/releases/download/coherent_test/combined_network_tile.geojson"
 
@@ -1335,7 +1335,7 @@ tar_target(
   {
     # Loop over every city to create PMTiles for rnet_coherent_75 only
     for (city in parameters$coherent_area) {
-      city = "City of Edinburgh"
+
       city_filename = gsub(" ", "_", city)
 
       coherent_geojson_filename_75 = paste0("outputdata/", city_filename, "_coherent_network_75.geojson")

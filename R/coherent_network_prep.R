@@ -13,7 +13,7 @@ cohesive_network_prep = function(combined_network_tile, crs = "EPSG:27700", para
     
     # Loop through each area in 'coherent_area'
     for (area in parameters$coherent_area) {
-
+      area_filename = gsub(" ", "_", area)
       print(paste("Preparing the network data for the", area))
 
       combined_network_tile = sf::st_transform(combined_network_tile, crs)
@@ -30,7 +30,7 @@ cohesive_network_prep = function(combined_network_tile, crs = "EPSG:27700", para
       zones$density = zones$TotPop2011 / zones$StdAreaHa
 
       # Read Scotland MasterMap GeoJSON parts
-      MasterMap_file_name = paste0("inputdata/MasterMap_", zones, ".geojson")
+      MasterMap_file_name = paste0("inputdata/MasterMap_", area_filename, ".geojson")
 
       if(file.exists(MasterMap_file_name)) {
         MasterMap_zones = sf::st_read(MasterMap_file_name) |> 
