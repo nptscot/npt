@@ -30,7 +30,7 @@ if (!"zonebuilder" %in% installed.packages()) {
 
 # Load minimum of libraries (Should use package::function in most cases)
 library(targets) # Needed to make targets work
-library(magrittr) # Light load of %>%
+library(magrittr) # Light load of |>
 library(sf) # Needed for sf support
 
 tar_option_set(
@@ -115,12 +115,12 @@ list(
       desire_lines_raw = read_TEAMS("secure_data/commute/commute_dl_sub30km.Rds")
       od_raw = as_tibble(sf::st_drop_geometry(desire_lines_raw))
     }  
-    od_subset = od_raw %>%
-      filter(geo_code1 %in% zones$DataZone) %>%
-      filter(geo_code2 %in% zones$DataZone) %>%
-      filter(dist_euclidean < 20000) %>%
-      filter(dist_euclidean > 1000) %>%
-      filter(all >= parameters$min_flow) %>% 
+    od_subset = od_raw |>
+      filter(geo_code1 %in% zones$DataZone) |>
+      filter(geo_code2 %in% zones$DataZone) |>
+      filter(dist_euclidean < 20000) |>
+      filter(dist_euclidean > 1000) |>
+      filter(all >= parameters$min_flow) |> 
       mutate_od_commute()
     od_subset
   }),
@@ -180,9 +180,9 @@ list(
   }),
 
   tar_target(od_commute_subset, {
-    odcs = od_commute_jittered %>%
-      filter(dist_euclidean_jittered < 16000) %>%
-      filter(dist_euclidean_jittered > 1000) %>%
+    odcs = od_commute_jittered |>
+      filter(dist_euclidean_jittered < 16000) |>
+      filter(dist_euclidean_jittered > 1000) |>
       slice_max(n = parameters$max_to_route, order_by = all, with_ties = FALSE)
     odcs
   }),
@@ -201,10 +201,10 @@ tar_target(od_school, {
     schools_dl = schools_dl[study_area, op = sf::st_within]
   }
   schools_dl$dist_euclidean_jittered = round(as.numeric(sf::st_length(schools_dl)))
-  schools_dl = schools_dl %>%
-    filter(dist_euclidean_jittered < 10000) %>%
-    filter(dist_euclidean_jittered > 1000) %>%
-    slice_max(order_by = all, n = parameters$max_to_route, with_ties = FALSE) %>% 
+  schools_dl = schools_dl |>
+    filter(dist_euclidean_jittered < 10000) |>
+    filter(dist_euclidean_jittered > 1000) |>
+    slice_max(order_by = all, n = parameters$max_to_route, with_ties = FALSE) |> 
     mutate_od_school()
   schools_dl
 }),
@@ -212,7 +212,7 @@ tar_target(od_school, {
 # School routing ----------------------------------------------------------
 
 tar_target(rs_school_fastest, {
-  rs = get_routes(od = od_school %>% slice_max(n = parameters$max_to_route, order_by = all, with_ties = FALSE),
+  rs = get_routes(od = od_school |> slice_max(n = parameters$max_to_route, order_by = all, with_ties = FALSE),
                   plans = "fastest", 
                   purpose = "school",
                   folder = paste0("outputdata/", parameters$date_routing),
@@ -227,7 +227,7 @@ tar_target(done_school_fastest, {
 
 tar_target(rs_school_quietest, {
   length(done_school_fastest)
-  rs = get_routes(od = od_school %>% slice_max(n = parameters$max_to_route, order_by = all, with_ties = FALSE),
+  rs = get_routes(od = od_school |> slice_max(n = parameters$max_to_route, order_by = all, with_ties = FALSE),
                   plans = "quietest", 
                   purpose = "school",
                   folder = paste0("outputdata/", parameters$date_routing),
@@ -242,7 +242,7 @@ tar_target(done_school_quietest, {
 
 tar_target(rs_school_ebike, {
   length(done_school_quietest)
-  rs = get_routes(od = od_school %>% slice_max(n = parameters$max_to_route, order_by = all, with_ties = FALSE),
+  rs = get_routes(od = od_school |> slice_max(n = parameters$max_to_route, order_by = all, with_ties = FALSE),
                   plans = "ebike", 
                   purpose = "school",
                   folder = paste0("outputdata/", parameters$date_routing),
@@ -257,7 +257,7 @@ tar_target(done_school_ebike, {
 
 tar_target(rs_school_balanced, {
   length(done_utility_ebike)
-  rs = get_routes(od = od_school %>% slice_max(n = parameters$max_to_route, order_by = all, with_ties = FALSE),
+  rs = get_routes(od = od_school |> slice_max(n = parameters$max_to_route, order_by = all, with_ties = FALSE),
                   plans = "balanced", 
                   purpose = "school",
                   folder = paste0("outputdata/", parameters$date_routing),
@@ -405,32 +405,32 @@ tar_target(rnet_gq_school_balanced, {
 # Commute Uptake ----------------------------------------------------------
 
   tar_target(uptake_commute_fastest, {
-    routes = r_commute_fastest %>%
-      aadt_adjust(purpose = "commute", aadt_parameters = aadt_parameters) %>%
+    routes = r_commute_fastest |>
+      aadt_adjust(purpose = "commute", aadt_parameters = aadt_parameters) |>
       get_uptake_scenarios()
     saveRDS(routes, "outputdata/routes_commute_fastest.Rds")
     routes
   }),
   
   tar_target(uptake_commute_quietest, {
-    routes = r_commute_quietest %>%
-      aadt_adjust(purpose = "commute", aadt_parameters = aadt_parameters) %>%
+    routes = r_commute_quietest |>
+      aadt_adjust(purpose = "commute", aadt_parameters = aadt_parameters) |>
       get_uptake_scenarios()
     saveRDS(routes, "outputdata/routes_commute_quietest.Rds")
     routes
   }),
   
   tar_target(uptake_commute_ebike, {
-    routes = r_commute_ebike %>%
-      aadt_adjust(purpose = "commute", aadt_parameters = aadt_parameters) %>%
+    routes = r_commute_ebike |>
+      aadt_adjust(purpose = "commute", aadt_parameters = aadt_parameters) |>
       get_uptake_scenarios()
     saveRDS(routes, "outputdata/routes_commute_ebike.Rds")
     routes
   }),
   
   tar_target(uptake_commute_balanced, {
-    routes = r_commute_balanced %>%
-      aadt_adjust(purpose = "commute", aadt_parameters = aadt_parameters) %>%
+    routes = r_commute_balanced |>
+      aadt_adjust(purpose = "commute", aadt_parameters = aadt_parameters) |>
       get_uptake_scenarios()
     saveRDS(routes, "outputdata/routes_commute_balanced.Rds")
     routes
@@ -439,29 +439,29 @@ tar_target(rnet_gq_school_balanced, {
 # School Uptake ----------------------------------------------------------
 
 tar_target(uptake_school_fastest, {
-  routes = r_school_fastest %>%
-      aadt_adjust(purpose = "school", aadt_parameters = aadt_parameters) %>%
+  routes = r_school_fastest |>
+      aadt_adjust(purpose = "school", aadt_parameters = aadt_parameters) |>
     get_uptake_scenarios(purpose = "school")
   routes
 }),
 
 tar_target(uptake_school_quietest, {
-  routes = r_school_quietest %>%
-    aadt_adjust(purpose = "school", aadt_parameters = aadt_parameters) %>%
+  routes = r_school_quietest |>
+    aadt_adjust(purpose = "school", aadt_parameters = aadt_parameters) |>
     get_uptake_scenarios(purpose = "school")
   routes
 }),
 
 tar_target(uptake_school_ebike, {
-  routes = r_school_ebike %>%
-    aadt_adjust(purpose = "school", aadt_parameters = aadt_parameters) %>%
+  routes = r_school_ebike |>
+    aadt_adjust(purpose = "school", aadt_parameters = aadt_parameters) |>
     get_uptake_scenarios(purpose = "school")
   routes
 }),
 
 tar_target(uptake_school_balanced, {
-  routes = r_school_balanced %>%
-    aadt_adjust(purpose = "school", aadt_parameters = aadt_parameters) %>%
+  routes = r_school_balanced |>
+    aadt_adjust(purpose = "school", aadt_parameters = aadt_parameters) |>
     get_uptake_scenarios(purpose = "school")
   routes
 }),
@@ -559,14 +559,14 @@ tar_target(rnet_secondary_balanced, {
 tar_target(commute_stats_baseline, {
   stats = sf::st_drop_geometry(od_commute_subset)
   stats = aadt_adjust(stats, purpose = "commute", aadt_parameters = aadt_parameters)
-  stats_from = dplyr::group_by(stats, geo_code1) %>%
+  stats_from = dplyr::group_by(stats, geo_code1) |>
     dplyr::summarise(all = sum(all, na.rm = TRUE),
                      bicycle = sum(bicycle, na.rm = TRUE),
                      car = sum(car, na.rm = TRUE),
                      foot = sum(foot, na.rm = TRUE),
                      public_transport = sum(public_transport, na.rm = TRUE),
                      taxi = sum(taxi, na.rm = TRUE))
-  stats_to = dplyr::group_by(stats, geo_code2) %>%
+  stats_to = dplyr::group_by(stats, geo_code2) |>
     dplyr::summarise(all = sum(all, na.rm = TRUE),
                      bicycle = sum(bicycle, na.rm = TRUE),
                      car = sum(car, na.rm = TRUE),
@@ -605,7 +605,7 @@ tar_target(commute_stats_balanced, {
 tar_target(school_stats_baseline, {
   stats = sf::st_drop_geometry(od_school)
   stats = aadt_adjust(stats, purpose = "school", aadt_parameters = aadt_parameters)
-  stats = dplyr::group_by(stats, SeedCode, schooltype) %>%
+  stats = dplyr::group_by(stats, SeedCode, schooltype) |>
     dplyr::summarise(all = sum(all, na.rm = TRUE),
                      bicycle = sum(bicycle, na.rm = TRUE),
                      car = sum(car, na.rm = TRUE),
@@ -627,7 +627,7 @@ tar_target(school_stats_baseline, {
 tar_target(school_stats_from_baseline, {
   stats = sf::st_drop_geometry(od_school)
   stats = aadt_adjust(stats, purpose = "school", aadt_parameters = aadt_parameters)
-  stats = dplyr::group_by(stats, DataZone, schooltype) %>%
+  stats = dplyr::group_by(stats, DataZone, schooltype) |>
     dplyr::summarise(all = sum(all, na.rm = TRUE),
                      bicycle = sum(bicycle, na.rm = TRUE),
                      car = sum(car, na.rm = TRUE),
@@ -749,8 +749,8 @@ tar_target(school_stats_json, {
 tar_target(trip_purposes, {
   trip_purposes = read.csv("./data-raw/scottish-household-survey-2012-19.csv")
   go_home = trip_purposes$Mean[trip_purposes$Purpose == "Go Home"]
-  trip_purposes = trip_purposes %>% 
-    filter(Purpose != "Sample size (=100%)") %>% 
+  trip_purposes = trip_purposes |> 
+    filter(Purpose != "Sample size (=100%)") |> 
     mutate(adjusted_mean = Mean/(sum(Mean)-go_home)*sum(Mean)
     )
   trip_purposes
@@ -762,7 +762,7 @@ tar_target(os_pois, {
   # Get shopping destinations from secure OS data
   path_teams = Sys.getenv("NPT_TEAMS_PATH")
   os_pois = readRDS(file.path(path_teams, "secure_data/OS/os_poi.Rds"))
-  os_pois = os_pois %>% 
+  os_pois = os_pois |> 
     mutate(groupname = as.character(groupname))
   if(parameters$geo_subset) {
     os_pois = os_pois[study_area, op = sf::st_within]
@@ -830,14 +830,14 @@ tar_target(od_utility_combined, {
   check = length(od_shopping)
   check = length(od_leisure)
   check = length(od_visiting)
-  od_utility_combined = rbind(od_shopping, od_visiting, od_leisure) %>%
+  od_utility_combined = rbind(od_shopping, od_visiting, od_leisure) |>
     dplyr::slice_max(n = parameters$max_to_route, order_by = all, with_ties = FALSE)
   
   # Ensure the columns and distance units are identical to the other routing types 
   # (apart from the additional trip purpose column)
-  od_utility_combined = od_utility_combined %>% 
+  od_utility_combined = od_utility_combined |> 
     dplyr::mutate(dist_euclidean = length_euclidean_unjittered * 1000,
-           dist_euclidean_jittered = length_euclidean_jittered * 1000) %>% 
+           dist_euclidean_jittered = length_euclidean_jittered * 1000) |> 
     dplyr::select(geo_code1, geo_code2, car, foot, bicycle, all, 
            dist_euclidean, public_transport, taxi, geometry,
            dist_euclidean_jittered, purpose)
@@ -954,32 +954,32 @@ tar_target(rnet_gq_utility_balanced, {
 # Utility Uptake ----------------------------------------------------------
 
 tar_target(uptake_utility_fastest, {
-  routes = r_utility_fastest %>%
-    filter(distances < 10000) %>%
+  routes = r_utility_fastest |>
+    filter(distances < 10000) |>
     get_uptake_scenarios(purpose = "utility")
   saveRDS(routes, "outputdata/routes_utility_fastest.Rds")
   routes
 }),
 
 tar_target(uptake_utility_quietest, {
-  routes = r_utility_quietest %>%
-    filter(distances < 10000) %>%
+  routes = r_utility_quietest |>
+    filter(distances < 10000) |>
     get_uptake_scenarios(purpose = "utility")
   saveRDS(routes, "outputdata/routes_utility_quietest.Rds")
   routes
 }),
 
 tar_target(uptake_utility_ebike, {
-  routes = r_utility_ebike %>%
-    filter(distances < 10000) %>%
+  routes = r_utility_ebike |>
+    filter(distances < 10000) |>
     get_uptake_scenarios(purpose = "utility")
   saveRDS(routes, "outputdata/routes_utility_ebike.Rds")
   routes
 }),
 
 tar_target(uptake_utility_balanced, {
-  routes = r_utility_balanced %>%
-    filter(distances < 10000) %>%
+  routes = r_utility_balanced |>
+    filter(distances < 10000) |>
     get_uptake_scenarios(purpose = "utility")
   saveRDS(routes, "outputdata/routes_utility_balanced.Rds")
   routes
@@ -1030,14 +1030,14 @@ tar_target(utility_stats_baseline, {
   
   stats = rbind(stats_shopping, stats_leisure, stats_visiting)
   
-  stats_orig = stats %>%
-    dplyr::select(!endDZ) %>%
-    dplyr::group_by(startDZ, purpose) %>%
+  stats_orig = stats |>
+    dplyr::select(!endDZ) |>
+    dplyr::group_by(startDZ, purpose) |>
     dplyr::summarise_all(sum, na.rm = TRUE)
   
-  stats_dest = stats %>%
-    dplyr::select(!startDZ) %>%
-    dplyr::group_by(endDZ, purpose) %>%
+  stats_dest = stats |>
+    dplyr::select(!startDZ) |>
+    dplyr::group_by(endDZ, purpose) |>
     dplyr::summarise_all(sum, na.rm = TRUE)
   
   stats_orig$purpose = paste0(stats_orig$purpose,"_orig")
@@ -1279,6 +1279,16 @@ tar_target(
   coherent_network, {
     cue = tar_cue(mode = "always")
 
+    local_file_path = "outputdata/combined_network_tile.geojson"
+    remote_file_url = "https://github.com/nptscot/npt/releases/download/coherent_test/combined_network_tile.geojson"
+
+    if(file.exists(local_file_path)) {
+      combined_network_tile = sf::st_read(local_file_path)
+    } else {
+      combined_network_tile = sf::st_read(remote_file_url)
+    }
+    parameters = jsonlite::fromJSON("parameters.json")
+
     # Prepare cohesive network
     NPT_MM_OSM = cohesive_network_prep(combined_network_tile, crs = "EPSG:27700", parameters = parameters)
 
@@ -1298,13 +1308,29 @@ tar_target(
         # rnet_coherent_arterial = cohesive_network(network_tile = CITY, combined_grid_buffer = ZONE, arterial = TRUE, min_percentile = 0.75)
         # rnet_coherent_85 = cohesive_network(network_tile = CITY, combined_grid_buffer = ZONE, arterial = FALSE, min_percentile = 0.85)
         # rnet_coherent_80 = cohesive_network(network_tile = CITY, combined_grid_buffer = ZONE, arterial = FALSE, min_percentile = 0.80)
-        rnet_coherent_75 = cohesive_network(network_tile = CITY, combined_grid_buffer = ZONE, arterial = FALSE, min_percentile = 0.75)
+        rnet_coherent_75 = cohesive_network(network_tile = CITY, combined_grid_buffer = ZONE, arterial = FALSE, min_percentile = 0.5)
+        rnet_coherent_75_selected = rnet_coherent_75 |>
+              dplyr::select(all_fastest_bicycle_go_dutch, weight)
 
+        grouped_net = rnet_coherent_75_selected |>
+                  sfnetworks::as_sfnetwork(directed = FALSE) |>
+                  tidygraph::morph(to_linegraph) |>
+                  dplyr::mutate(group = tidygraph::group_edge_betweenness(n_groups = 12)) |>
+                  tidygraph::unmorph() |>
+                  tidygraph::activate(edges) |>
+                  sf::st_as_sf() |>
+                  sf::st_transform("EPSG:4326") |>
+                  dplyr::group_by(group) |>
+                  dplyr::summarise(mean_potential = mean(weight, na.rm = TRUE)) |>
+                  dplyr::mutate(group = rank(-mean_potential)) 
+        
         # Export coherent networks to GeoJSON
         # make_geojson_zones(rnet_coherent_arterial, paste0("outputdata/", city_filename, "_coherent_network_arterial.geojson"))
         # make_geojson_zones(rnet_coherent_85, paste0("outputdata/", city_filename, "_coherent_network_85.geojson"))
         # make_geojson_zones(rnet_coherent_80, paste0("outputdata/", city_filename, "_coherent_network_80.geojson"))
         make_geojson_zones(rnet_coherent_75, paste0("outputdata/", city_filename, "_coherent_network_75.geojson"))
+
+        sf::st_write(grouped_net, paste0("outputdata/", city_filename, "_coherent_network_75_grouped.geojson"), delete_dsn = TRUE)
   
     
         # Store the networks in the list, organized by city
@@ -1328,8 +1354,8 @@ tar_target(
 
       city_filename = gsub(" ", "_", city)
 
-      coherent_geojson_filename_75 = paste0("outputdata/", city_filename, "_coherent_network_75.geojson")
-      output_filename_75 = paste0("outputdata/", city_filename, "_coherent_network_75.pmtiles")
+      coherent_geojson_filename_75 = paste0("outputdata/", city_filename, "_coherent_network_75_grouped.geojson")
+      output_filename_75 = paste0("outputdata/", city_filename, "_coherent_network_75_grouped.pmtiles")
 
       command_tippecanoe  = paste0(
         'tippecanoe -o ', output_filename_75,
@@ -1653,7 +1679,7 @@ tar_target(pmtiles_rnet_simplified, {
   tar_target(metadata, {
     upload_data
     # metadata_all = tar_meta()
-    # metadata_targets = metadata_all %>% 
+    # metadata_targets = metadata_all |> 
     #   filter(type == "stem")
     # readr::write_csv(metadata_targets, "outputs/metadata_targets.csv")
     
@@ -1663,8 +1689,8 @@ tar_target(pmtiles_rnet_simplified, {
       min_flow = parameters$min_flow,
       max_to_route = parameters$max_to_route,
       # time_total_mins = round(sum(metadata_targets$seconds) / 60, digits = 2),
-      # time_r_commute_mins = round(metadata_targets %>% 
-      #                               filter(name == "r_commute") %>% 
+      # time_r_commute_mins = round(metadata_targets |> 
+      #                               filter(name == "r_commute") |> 
       #                               pull(seconds) / 60, 
       #                             digits = 2),
       routing_date = get_routing_date()

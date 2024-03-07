@@ -17,7 +17,7 @@
 #' plot(network_tile_subset$geometry, col = "red", add = TRUE)
 #' }
 #' @export
-cohesive_network = function(network_tile, combined_grid_buffer, base_value = "all_fastest_bicycle_go_dutch", crs = "EPSG:27700", min_percentile = 0.90 , arterial = FALSE, dist =10) {
+cohesive_network = function(network_tile, combined_grid_buffer, base_value = "all_fastest_bicycle_go_dutch", crs = "EPSG:27700", min_percentile = 0.90 , arterial = FALSE, dist = 100) {
 
     # Transform the coordinates of the spatial object
     network_tile_transformed = sf::st_transform(network_tile, crs)
