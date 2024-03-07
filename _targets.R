@@ -101,8 +101,12 @@ list(
   # Case study area:
   tar_target(
     local_authorities_region,
-    local_authorities |>
-      filter(Region == parameters$region)
+    {
+      local_authorities_region = local_authorities |>
+        filter(Region == parameters$region)
+      sf::write_sf(local_authorities_region, file.path(output_folder, "local_authorities_region.geojson"))
+      local_authorities_region
+    }
   ),
 
   tar_target(
