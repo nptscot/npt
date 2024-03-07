@@ -97,28 +97,30 @@ list(
     region_names,
     unique(local_authorities$Region)
   ),
-  
 
   # Case study area:
   tar_target(
-    study_area_exact,
-    {
-      local_authorites_region = local_authorities |>
-        filter(Region == parameters$region)
-    }
+    local_authorities_region,
+    local_authorities |>
+      filter(Region == parameters$region)
   ),
 
   tar_target(
-    study_area,
-    {
-      sf::st_buffer(study_area_exact, parameters$region_buffer_distance)
-    }
+    region_boundary,
+    local_authorities_region
+      |> sf::st_union()
+  ),
+
+  tar_target(
+    region_boundary_buffered,
+    region_boundary |>
+      stplanr::geo_buffer(dist = parameters$region_buffer_distance)
   ),
 
   tar_target(zones, {
     z = readRDS("inputdata/DataZones.Rds") # 6976 zones
     z_centroids = sf::st_centroid(z)
-    z_centroids_within = z_centroids[study_area_exact, ]
+    z_centroids_within = z_centroids[region_boundary, ]
     z = z[z[[1]] %in% z_centroids_within[[1]], ]
     z
   }),
@@ -212,7 +214,7 @@ tar_target(od_school, {
   } else {
     schools_dl = read_TEAMS("secure_data/schools/school_dl_sub30km.Rds")
   }
-  schools_dl = schools_dl[study_area, op = sf::st_within]
+  schools_dl = schools_dl[region_boundary_buffered, op = sf::st_within]
   schools_dl$dist_euclidean_jittered = round(as.numeric(sf::st_length(schools_dl)))
   schools_dl = schools_dl %>%
     filter(dist_euclidean_jittered < 10000) %>%
@@ -776,7 +778,7 @@ tar_target(os_pois, {
   os_pois_raw = readRDS(file.path(path_teams, "secure_data/OS/os_poi.Rds"))
   os_pois_subset = os_pois_raw %>% 
     mutate(groupname = as.character(groupname))
-  os_pois_subset[study_area, , op = sf::st_within]
+  os_pois_subset[region_boundary_buffered, , op = sf::st_within]
 }),
 
 # tar_target(mode_shares, {
@@ -816,19 +818,19 @@ tar_target(intermediate_zones,{
 # Utility OD -------------------------------------------------------------
 tar_target(od_shopping, {
   od_shopping = make_od_shopping(oas, os_pois, grid, trip_purposes,
-                                intermediate_zones, parameters,study_area, odjitter_location = parameters$odjitter_location)
+                                intermediate_zones, parameters,region_boundary_buffered, odjitter_location = parameters$odjitter_location)
   od_shopping
 }),
 
 tar_target(od_visiting, {
   od_visiting = make_od_visiting(oas, os_pois, grid, trip_purposes,
-                                intermediate_zones, parameters, study_area, odjitter_location = parameters$odjitter_location)
+                                intermediate_zones, parameters, region_boundary_buffered, odjitter_location = parameters$odjitter_location)
   od_visiting
 }),
 
 tar_target(od_leisure, {
   od_leisure = make_od_leisure(oas, os_pois, grid, trip_purposes,
-                              intermediate_zones, parameters, study_area, odjitter_location = parameters$odjitter_location)
+                              intermediate_zones, parameters, region_boundary_buffered, odjitter_location = parameters$odjitter_location)
   od_leisure
 }),
 
