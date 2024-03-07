@@ -1306,13 +1306,61 @@ tar_target(
         ZONE = NPT_MM_OSM_ZONE[[city]]
 
         # rnet_coherent_arterial = cohesive_network(network_tile = CITY, combined_grid_buffer = ZONE, arterial = TRUE, min_percentile = 0.75)
-        # rnet_coherent_85 = cohesive_network(network_tile = CITY, combined_grid_buffer = ZONE, arterial = FALSE, min_percentile = 0.85)
-        # rnet_coherent_80 = cohesive_network(network_tile = CITY, combined_grid_buffer = ZONE, arterial = FALSE, min_percentile = 0.80)
-        rnet_coherent_75 = cohesive_network(network_tile = CITY, combined_grid_buffer = ZONE, arterial = FALSE, min_percentile = 0.5)
+        rnet_coherent_90 = cohesive_network(network_tile = CITY, combined_grid_buffer = ZONE, arterial = FALSE, min_percentile = 0.90)
+        rnet_coherent_85 = cohesive_network(network_tile = CITY, combined_grid_buffer = ZONE, arterial = FALSE, min_percentile = 0.85)
+        rnet_coherent_80 = cohesive_network(network_tile = CITY, combined_grid_buffer = ZONE, arterial = FALSE, min_percentile = 0.80)
+        rnet_coherent_75 = cohesive_network(network_tile = CITY, combined_grid_buffer = ZONE, arterial = FALSE, min_percentile = 0.75)
+        
+        rnet_coherent_90_selected = rnet_coherent_90 |>
+              dplyr::select(all_fastest_bicycle_go_dutch, weight)
+
+        rnet_coherent_85_selected = rnet_coherent_85 |>
+              dplyr::select(all_fastest_bicycle_go_dutch, weight)
+
+        rnet_coherent_80_selected = rnet_coherent_80 |>
+              dplyr::select(all_fastest_bicycle_go_dutch, weight)
+        
         rnet_coherent_75_selected = rnet_coherent_75 |>
               dplyr::select(all_fastest_bicycle_go_dutch, weight)
 
-        grouped_net = rnet_coherent_75_selected |>
+        
+        grouped_net_90 = rnet_coherent_90_selected |>
+                  sfnetworks::as_sfnetwork(directed = FALSE) |>
+                  tidygraph::morph(to_linegraph) |>
+                  dplyr::mutate(group = tidygraph::group_edge_betweenness(n_groups = 12)) |>
+                  tidygraph::unmorph() |>
+                  tidygraph::activate(edges) |>
+                  sf::st_as_sf() |>
+                  sf::st_transform("EPSG:4326") |>
+                  dplyr::group_by(group) |>
+                  dplyr::summarise(mean_potential = mean(weight, na.rm = TRUE)) |>
+                  dplyr::mutate(group = rank(-mean_potential))
+        
+        grouped_net_85 = rnet_coherent_85_selected |>
+                  sfnetworks::as_sfnetwork(directed = FALSE) |>
+                  tidygraph::morph(to_linegraph) |>
+                  dplyr::mutate(group = tidygraph::group_edge_betweenness(n_groups = 12)) |>
+                  tidygraph::unmorph() |>
+                  tidygraph::activate(edges) |>
+                  sf::st_as_sf() |>
+                  sf::st_transform("EPSG:4326") |>
+                  dplyr::group_by(group) |>
+                  dplyr::summarise(mean_potential = mean(weight, na.rm = TRUE)) |>
+                  dplyr::mutate(group = rank(-mean_potential))
+
+        grouped_net_80 = rnet_coherent_80_selected |>
+                  sfnetworks::as_sfnetwork(directed = FALSE) |>
+                  tidygraph::morph(to_linegraph) |>
+                  dplyr::mutate(group = tidygraph::group_edge_betweenness(n_groups = 12)) |>
+                  tidygraph::unmorph() |>
+                  tidygraph::activate(edges) |>
+                  sf::st_as_sf() |>
+                  sf::st_transform("EPSG:4326") |>
+                  dplyr::group_by(group) |>
+                  dplyr::summarise(mean_potential = mean(weight, na.rm = TRUE)) |>
+                  dplyr::mutate(group = rank(-mean_potential))
+
+        grouped_net_75 = rnet_coherent_75_selected |>
                   sfnetworks::as_sfnetwork(directed = FALSE) |>
                   tidygraph::morph(to_linegraph) |>
                   dplyr::mutate(group = tidygraph::group_edge_betweenness(n_groups = 12)) |>
@@ -1324,20 +1372,23 @@ tar_target(
                   dplyr::summarise(mean_potential = mean(weight, na.rm = TRUE)) |>
                   dplyr::mutate(group = rank(-mean_potential)) 
         
+
         # Export coherent networks to GeoJSON
         # make_geojson_zones(rnet_coherent_arterial, paste0("outputdata/", city_filename, "_coherent_network_arterial.geojson"))
-        # make_geojson_zones(rnet_coherent_85, paste0("outputdata/", city_filename, "_coherent_network_85.geojson"))
-        # make_geojson_zones(rnet_coherent_80, paste0("outputdata/", city_filename, "_coherent_network_80.geojson"))
-        make_geojson_zones(rnet_coherent_75, paste0("outputdata/", city_filename, "_coherent_network_75.geojson"))
+        make_geojson_zones(grouped_net_90, paste0("outputdata/", city_filename, "_coherent_network_90.geojson"))
+        make_geojson_zones(grouped_net_85, paste0("outputdata/", city_filename, "_coherent_network_85.geojson"))
+        make_geojson_zones(grouped_net_80, paste0("outputdata/", city_filename, "_coherent_network_80.geojson"))
+        make_geojson_zones(grouped_net_75, paste0("outputdata/", city_filename, "_coherent_network_75.geojson"))
 
-        sf::st_write(grouped_net, paste0("outputdata/", city_filename, "_coherent_network_75_grouped.geojson"), delete_dsn = TRUE)
+        sf::st_write(grouped_net, paste0("outputdata/cohesivenetwork.geojson"), delete_dsn = TRUE)
   
     
         # Store the networks in the list, organized by city
         all_city_coherent_networks[[city]] = list(
           # arterial = rnet_coherent_arterial,
-          # percentile_85 = rnet_coherent_85,
-          # percentile_80 = rnet_coherent_80,
+          percentile_90 = rnet_coherent_90,
+          percentile_85 = rnet_coherent_85,
+          percentile_80 = rnet_coherent_80,
           percentile_75 = rnet_coherent_75
         )
     }
@@ -1354,13 +1405,13 @@ tar_target(
 
       city_filename = gsub(" ", "_", city)
 
-      coherent_geojson_filename_75 = paste0("outputdata/", city_filename, "_coherent_network_75_grouped.geojson")
-      output_filename_75 = paste0("outputdata/", city_filename, "_coherent_network_75_grouped.pmtiles")
+      coherent_geojson_filename_75 = "outputdata/cohesivenetwork.geojson"
+      coherent_pmtiles_filenam_75 = "outputdata/cohesivenetwork.pmtiles"
 
       command_tippecanoe  = paste0(
-        'tippecanoe -o ', output_filename_75,
-        ' --name=', output_filename_75,
-        ' --layer=coherent_network_75',
+        'tippecanoe -o ', coherent_pmtiles_filenam_75,
+        ' --name=', coherent_pmtiles_filenam_75,
+        ' --layer=cohesivenetwork',
         ' --attribution="University of Leeds"',
         ' --minimum-zoom=6',
         ' --maximum-zoom=13',
