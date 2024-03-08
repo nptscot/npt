@@ -129,7 +129,7 @@ list(
     z
   }),
 
-  tar_target(od_data, {
+  tar_target(od_national, {
     if(parameters$open_data_build) {
       od_raw = read_csv("data-raw/od_data_dz_synthetic.csv")
     } else {
@@ -154,7 +154,7 @@ list(
     } else {
       spo = readRDS("inputdata/oas.Rds")
     }
-    spo
+    spo[region_bounddary, ]
   }),
   tar_target(subpoints_destinations, {
     # source("data-raw/get_wpz.R")
@@ -171,15 +171,15 @@ list(
       spd = spd[spd$workplace, ]
       
     }
-    spd
+    spd[region_boundary_buffered, ]
   }),
   tar_target(od_commute_jittered, {
-    # od_jittered = od_data # for no jittering
+    # od_jittered = od_national # for no jittering
     # Install the Rust crate and the associated R package:
     # system("cargo install --git https://github.com/dabreegster/odjitter")
     z = zones
     z = z[subpoints_destinations, ]
-    od = od_data |>
+    od = od_national |>
       filter(geo_code1 %in% z$DataZone) |>
       filter(geo_code2 %in% z$DataZone)
     set.seed(2023)
