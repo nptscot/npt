@@ -1302,75 +1302,76 @@ tar_target(simplified_network, {
 }),
 
   
-tar_target(
-  coherent_network, {
-    # Prepare cohesive network
-    NPT_MM_OSM = cohesive_network_prep(combined_network_tile, crs = "EPSG:27700", parameters = parameters)
+# tar_target(
+#   coherent_network, {
+#     parameters_new = parameters
+#     parameters_new$coherent_area = local_authorities_region$LAD23NM
+#     NPT_MM_OSM = cohesive_network_prep(combined_network_tile, crs = "EPSG:27700", parameters = parameters)
 
-    NPT_MM_OSM_CITY =  NPT_MM_OSM$cohesive_network
+#     NPT_MM_OSM_CITY =  NPT_MM_OSM$cohesive_network
 
-    NPT_MM_OSM_ZONE =  NPT_MM_OSM$cohesive_zone
+#     NPT_MM_OSM_ZONE =  NPT_MM_OSM$cohesive_zone
 
-    all_city_coherent_networks = list()
+#     all_city_coherent_networks = list()
 
-    for(city in parameters$coherent_area) {
+#     for(city in parameters_new$coherent_area) {
         
-        city_filename = gsub(" ", "_", city)
+#         city_filename = gsub(" ", "_", city)
 
-        CITY = NPT_MM_OSM_CITY[[city]]
-        ZONE = NPT_MM_OSM_ZONE[[city]]
+#         CITY = NPT_MM_OSM_CITY[[city]]
+#         ZONE = NPT_MM_OSM_ZONE[[city]]
 
-        # rnet_coherent_arterial = cohesive_network(network_tile = CITY, combined_grid_buffer = ZONE, arterial = TRUE, min_percentile = 0.75)
-        # rnet_coherent_85 = cohesive_network(network_tile = CITY, combined_grid_buffer = ZONE, arterial = FALSE, min_percentile = 0.85)
-        # rnet_coherent_80 = cohesive_network(network_tile = CITY, combined_grid_buffer = ZONE, arterial = FALSE, min_percentile = 0.80)
-        rnet_coherent_75 = cohesive_network(network_tile = CITY, combined_grid_buffer = ZONE, arterial = FALSE, min_percentile = 0.75)
+#         # rnet_coherent_arterial = cohesive_network(network_tile = CITY, combined_grid_buffer = ZONE, arterial = TRUE, min_percentile = 0.75)
+#         # rnet_coherent_85 = cohesive_network(network_tile = CITY, combined_grid_buffer = ZONE, arterial = FALSE, min_percentile = 0.85)
+#         # rnet_coherent_80 = cohesive_network(network_tile = CITY, combined_grid_buffer = ZONE, arterial = FALSE, min_percentile = 0.80)
+#         rnet_coherent_75 = cohesive_network(network_tile = CITY, combined_grid_buffer = ZONE, arterial = FALSE, min_percentile = 0.75)
 
-        # Export coherent networks to GeoJSON
-        make_geojson_zones(rnet_coherent_75, paste0(output_folder, "/", city_filename, "_coherent.geojson"))
+#         # Export coherent networks to GeoJSON
+#         make_geojson_zones(rnet_coherent_75, paste0(output_folder, "/", city_filename, "_coherent.geojson"))
   
     
-        # Store the networks in the list, organized by city
-        all_city_coherent_networks[[city]] = list(
-          # arterial = rnet_coherent_arterial,
-          # percentile_85 = rnet_coherent_85,
-          # percentile_80 = rnet_coherent_80,
-          percentile_75 = rnet_coherent_75
-        )
-    }
-    all_city_coherent_networks
-}),
+#         # Store the networks in the list, organized by city
+#         all_city_coherent_networks[[city]] = list(
+#           # arterial = rnet_coherent_arterial,
+#           # percentile_85 = rnet_coherent_85,
+#           # percentile_80 = rnet_coherent_80,
+#           percentile_75 = rnet_coherent_75
+#         )
+#     }
+#     all_city_coherent_networks
+# }),
 
 
 # Make PMTiles for website ------------------------------------------------
-tar_target(
-  pmtiles_coherent,
-  {
-    # Loop over every city to create PMTiles for rnet_coherent_75 only
-    for (city in parameters$coherent_area) {
+# tar_target(
+#   pmtiles_coherent,
+#   {
+#     # Loop over every city to create PMTiles for rnet_coherent_75 only
+#     for (city in parameters$coherent_area) {
 
-      city_filename = gsub(" ", "_", city)
+#       city_filename = gsub(" ", "_", city)
 
-      coherent_geojson_filename_75 = paste0(output_folder, "/", city_filename, "coherentnetwork.geojson")
-      output_filename_75 = paste0(output_folder, "/", city_filename, "coherentnetwork.pmtiles")
+#       coherent_geojson_filename_75 = paste0(output_folder, "/", city_filename, "coherentnetwork.geojson")
+#       output_filename_75 = paste0(output_folder, "/", city_filename, "coherentnetwork.pmtiles")
 
-      command_tippecanoe  = paste0(
-        'tippecanoe -o ', output_filename_75,
-        ' --name=', output_filename_75,
-        ' --layer=coherent_network_75',
-        ' --attribution="University of Leeds"',
-        ' --minimum-zoom=6',
-        ' --maximum-zoom=13',
-        ' --maximum-tile-bytes=5000000',
-        ' --simplification=10',
-        ' --buffer=5',
-        ' -rg4',
-        ' --force ',
-        coherent_geojson_filename_75
-      )
-      system(command_tippecanoe , intern = TRUE)
-    }
-  }
-),
+#       command_tippecanoe  = paste0(
+#         'tippecanoe -o ', output_filename_75,
+#         ' --name=', output_filename_75,
+#         ' --layer=coherent_network_75',
+#         ' --attribution="University of Leeds"',
+#         ' --minimum-zoom=6',
+#         ' --maximum-zoom=13',
+#         ' --maximum-tile-bytes=5000000',
+#         ' --simplification=10',
+#         ' --buffer=5',
+#         ' -rg4',
+#         ' --force ',
+#         coherent_geojson_filename_75
+#       )
+#       system(command_tippecanoe , intern = TRUE)
+#     }
+#   }
+# ),
 
 tar_target(pmtiles_school, {
   check = length(school_points)

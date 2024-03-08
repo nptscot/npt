@@ -8,5 +8,5 @@
   "min_distance_meters": [500],
   "region_buffer_distance_meters": [5000],
   "region": ["Tayside, Central and Fife"],
-  "coherent_area" : ["City of Edinburgh"]
+  "coherent_area": ["City of Edinburgh"]
 }
