@@ -1,11 +1,13 @@
 {
   "plans": ["fastest", "balanced", "quietest", "ebike"],
   "min_flow": [1],
+<<<<<<< HEAD
   "max_to_route": [250],
   "date_routing": ["2024-04-07"],
   "open_data_build": [false],
   "disag_threshold": [100],
   "min_distance_meters": [500],
   "region_buffer_distance_meters": [5000],
-  "region": ["Scotland South"]
+  "region": ["Scotland South"],
+  "coherent_area" : ["City of Edinburgh"]
 }

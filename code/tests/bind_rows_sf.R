@@ -1,4 +1,4 @@
-
+group_by
 
 # Ok, so the data.table approach is something else (as expected I guess):
 library(sf)  
@@ -12,7 +12,7 @@ nc_list_10 <- nc %>%
 
 bench::mark(max_iterations = 2, check = FALSE,
   rbind = (res_rbind <<- do.call(what = rbind, args = nc_list_10)),
-  bind_rows = (res_bind_rows <<- do.call(what = bind_rows, args = nc_list_10)),
+  dplyr::bind_rows = (res_bind_rows <<- do.call(what = bind_rows, args = nc_list_10)),
   rbindlist = (res_rbindlist <<- sf::st_as_sf(data.table::rbindlist(nc_list_10))), # incorrect bb
   res_unlist2d = (res_unlist2d <<- st_as_sf(collapse::unlist2d(nc_list_10, idcols = FALSE, recursive = FALSE)))
   # ,
