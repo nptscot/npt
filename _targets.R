@@ -121,12 +121,18 @@ list(
       stplanr::geo_buffer(dist = parameters$region_buffer_distance)
   ),
 
-  tar_target(zones, {
+  tar_target(zones_boundary_buffered, {
     z = readRDS("inputdata/DataZones.Rds") # 6976 zones
     z_centroids = sf::st_centroid(z)
+    z_centroids_within = z_centroids[region_boundary_buffered, ]
+    z[z[[1]] %in% z_centroids_within[[1]], ]
+  }),
+
+  tar_target(zones, {
+    z = zones_boundary_buffered
+    z_centroids = sf::st_centroid(z)
     z_centroids_within = z_centroids[region_boundary, ]
-    z = z[z[[1]] %in% z_centroids_within[[1]], ]
-    z
+    z[z[[1]] %in% z_centroids_within[[1]], ]
   }),
 
   tar_target(od_national, {
@@ -154,7 +160,7 @@ list(
     } else {
       spo = readRDS("inputdata/oas.Rds")
     }
-    spo[region_bounddary, ]
+    spo[region_boundary, ]
   }),
   tar_target(subpoints_destinations, {
     # source("data-raw/get_wpz.R")
