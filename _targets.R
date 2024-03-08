@@ -783,6 +783,8 @@ tar_target(trip_purposes, {
 }),
 
 tar_target(os_pois, {
+  check = length(parameters)
+  check = length(study_area)
   # Get shopping destinations from secure OS data
   path_teams = Sys.getenv("NPT_TEAMS_PATH")
   os_pois_raw = readRDS(file.path(path_teams, "secure_data/OS/os_poi.Rds"))
@@ -1291,8 +1293,297 @@ tar_target(combined_network, {
     
     rnet_tile
   }),
+
+tar_target(simplified_network, {
+  cue = tar_cue(mode = "always")
+  rnet_simple = simplify_network(combined_network_tile, parameters)
+  make_geojson_zones(rnet_simple, "outputdata/simplified_network.geojson")
+  rnet_simple
+}),
+
+  
+tar_target(
+  coherent_network, {
+    cue = tar_cue(mode = "always")
+
+    # Prepare cohesive network
+    NPT_MM_OSM = cohesive_network_prep(combined_network_tile, crs = "EPSG:27700", parameters = parameters)
+
+    NPT_MM_OSM_CITY =  NPT_MM_OSM$cohesive_network
+
+    NPT_MM_OSM_ZONE =  NPT_MM_OSM$cohesive_zone
+
+    all_city_coherent_networks = list()
+
+    for(city in parameters$coherent_area) {
+        
+        city_filename = gsub(" ", "_", city)
+
+        CITY = NPT_MM_OSM_CITY[[city]]
+        ZONE = NPT_MM_OSM_ZONE[[city]]
+
+        # rnet_coherent_arterial = cohesive_network(network_tile = CITY, combined_grid_buffer = ZONE, arterial = TRUE, min_percentile = 0.75)
+        # rnet_coherent_85 = cohesive_network(network_tile = CITY, combined_grid_buffer = ZONE, arterial = FALSE, min_percentile = 0.85)
+        # rnet_coherent_80 = cohesive_network(network_tile = CITY, combined_grid_buffer = ZONE, arterial = FALSE, min_percentile = 0.80)
+        rnet_coherent_75 = cohesive_network(network_tile = CITY, combined_grid_buffer = ZONE, arterial = FALSE, min_percentile = 0.75)
+
+        # Export coherent networks to GeoJSON
+        # make_geojson_zones(rnet_coherent_arterial, paste0("outputdata/", city_filename, "_coherent_network_arterial.geojson"))
+        # make_geojson_zones(rnet_coherent_85, paste0("outputdata/", city_filename, "_coherent_network_85.geojson"))
+        # make_geojson_zones(rnet_coherent_80, paste0("outputdata/", city_filename, "_coherent_network_80.geojson"))
+        make_geojson_zones(rnet_coherent_75, paste0("outputdata/", city_filename, "_coherent_network_75.geojson"))
+  
+    
+        # Store the networks in the list, organized by city
+        all_city_coherent_networks[[city]] = list(
+          # arterial = rnet_coherent_arterial,
+          # percentile_85 = rnet_coherent_85,
+          # percentile_80 = rnet_coherent_80,
+          percentile_75 = rnet_coherent_75
+        )
+    }
+    all_city_coherent_networks
+}),
+
+
 # Make PMTiles for website ------------------------------------------------
-# See outputdata/_targets.R for details
+tar_target(
+  pmtiles_coherent,
+  {
+    # Loop over every city to create PMTiles for rnet_coherent_75 only
+    for (city in parameters$coherent_area) {
+
+      city_filename = gsub(" ", "_", city)
+
+      coherent_geojson_filename_75 = paste0("outputdata/", city_filename, "_coherent_network_75.geojson")
+      output_filename_75 = paste0("outputdata/", city_filename, "_coherent_network_75.pmtiles")
+
+      command_tippecanoe  = paste0(
+        'tippecanoe -o ', output_filename_75,
+        ' --name=', output_filename_75,
+        ' --layer=coherent_network_75',
+        ' --attribution="University of Leeds"',
+        ' --minimum-zoom=6',
+        ' --maximum-zoom=13',
+        ' --maximum-tile-bytes=5000000',
+        ' --simplification=10',
+        ' --buffer=5',
+        ' -rg4',
+        ' --force ',
+        coherent_geojson_filename_75
+      )
+      system(command_tippecanoe , intern = TRUE)
+    }
+  }
+),
+
+tar_target(pmtiles_school, {
+  check = length(school_points)
+  command_tippecanoe = paste('tippecanoe -o schools.pmtiles',
+                             '--name=schools',
+                             '--layer=schools',
+                             '--attribution=UniverstyofLeeds',
+                             '--minimum-zoom=6',
+                             '--maximum-zoom=13',
+                             '--maximum-tile-bytes=5000000',
+                             '--simplification=10',
+                             '--buffer=5',
+                             '-rg4',
+                             '--force  school_locations.geojson', collapse = " ")
+  
+  if(.Platform$OS.type == "unix") {
+    command_cd = 'cd outputdata'
+    command_all = paste(c(command_cd, command_tippecanoe), collapse = "; ")
+  } else {
+    # Using WSL
+    dir = getwd()
+    command_start = 'bash -c '
+    command_cd = paste0('cd /mnt/',tolower(substr(dir,1,1)),substr(dir,3,nchar(dir)),'/outputs')
+    command_all = paste(c(command_cd, command_tippecanoe), collapse = "; ")
+    command_all = paste0(command_start,'"',command_all,'"')
+  }
+  responce = system(command_all, intern = TRUE)
+  responce
+}),
+
+
+tar_target(pmtiles_zones, {
+  check = length(zones_tile)
+  command_tippecanoe = paste('tippecanoe -o data_zones.pmtiles',
+                             '--name=data_zones',
+                             '--layer=data_zones',
+                             '--attribution=UniverstyofLeeds',
+                             '--minimum-zoom=6',
+                             '-zg',
+                             '--coalesce-smallest-as-needed',
+                             '--detect-shared-borders',
+                             '--extend-zooms-if-still-dropping',
+                             '--maximum-tile-bytes=5000000',
+                             '--simplification=10',
+                             '--buffer=5',
+                             '--force  data_zones.geojson', collapse = " ")
+  
+  if(.Platform$OS.type == "unix") {
+    command_cd = 'cd outputdata'
+    command_all = paste(c(command_cd, command_tippecanoe), collapse = "; ")
+  } else {
+    # Using WSL
+    dir = getwd()
+    command_start = 'bash -c '
+    command_cd = paste0('cd /mnt/',tolower(substr(dir,1,1)),substr(dir,3,nchar(dir)),'/outputs')
+    command_all = paste(c(command_cd, command_tippecanoe), collapse = "; ")
+    command_all = paste0(command_start,'"',command_all,'"')
+  }
+  responce = system(command_all, intern = TRUE)
+  responce
+}),
+
+tar_target(pmtiles_buildings, {
+  check = length(zones_dasymetric_tile)
+ 
+  tippecanoe_verylow = paste('tippecanoe -o dasymetric_verylow.pmtiles',
+                             '--name=dasymetric',
+                             '--layer=dasymetric',
+                             '--attribution=OS',
+                             '--minimum-zoom=4',
+                             '--maximum-zoom=6',
+                             '--coalesce-smallest-as-needed',
+                             '--detect-shared-borders',
+                             '--maximum-tile-bytes=5000000',
+                             '--simplification=1',
+                             '--buffer=5',
+                             '--force dasymetric_verylow.geojson', 
+                             collapse = " ")
+  
+  tippecanoe_low = paste('tippecanoe -o dasymetric_low.pmtiles',
+                         '--name=dasymetric',
+                         '--layer=dasymetric',
+                         '--attribution=OS',
+                         '--minimum-zoom=7',
+                         '--maximum-zoom=9',
+                         '--coalesce-smallest-as-needed',
+                         '--detect-shared-borders',
+                         '--maximum-tile-bytes=5000000',
+                         '--simplification=1',
+                         '--buffer=5',
+                         '--force dasymetric_low.geojson', 
+                         collapse = " ")
+  
+  tippecanoe_med = paste('tippecanoe -o dasymetric_med.pmtiles',
+                         '--name=dasymetric',
+                         '--layer=dasymetric',
+                         '--attribution=OS',
+                         '--minimum-zoom=10',
+                         '--maximum-zoom=14',
+                         '--coalesce-smallest-as-needed',
+                         '--detect-shared-borders',
+                         '--maximum-tile-bytes=5000000',
+                         '--simplification=2',
+                         '--buffer=5',
+                         '--force dasymetric_med.geojson', 
+                         collapse = " ")
+  
+  tippecanoe_high = paste('tippecanoe -o dasymetric_high.pmtiles',
+                          '--name=dasymetric',
+                          '--layer=dasymetric',
+                          '--attribution=OS',
+                          '-zg',
+                          '--minimum-zoom=15',
+                          '--extend-zooms-if-still-dropping',
+                          '--coalesce-smallest-as-needed',
+                          '--detect-shared-borders',
+                          '--maximum-tile-bytes=5000000',
+                          '--simplification=5',
+                          '--buffer=5',
+                          '--force dasymetric_high.geojson', 
+                          collapse = " ")
+  
+  tippecanoe_join = paste('tile-join -o dasymetric.pmtiles -pk --force',
+                          'dasymetric_verylow.pmtiles',
+                          'dasymetric_low.pmtiles',
+                          'dasymetric_med.pmtiles',
+                          'dasymetric_high.pmtiles', 
+                          collapse = " ")
+  
+  
+  
+  if(.Platform$OS.type == "unix") {
+    command_cd = 'cd outputdata'
+    command_all = paste(c(command_cd, tippecanoe_verylow, tippecanoe_low, 
+                          tippecanoe_med, tippecanoe_high, tippecanoe_join), collapse = "; ")
+  } else {
+    # Using WSL
+    dir = getwd()
+    command_start = 'bash -c '
+    command_cd = paste0('cd /mnt/',tolower(substr(dir,1,1)),substr(dir,3,nchar(dir)),'/outputs')
+    command_all = paste(c(command_cd, tippecanoe_verylow, tippecanoe_low, 
+                          tippecanoe_med, tippecanoe_high, tippecanoe_join), collapse = "; ")
+    command_all = paste0(command_start,'"',command_all,'"')
+  }
+  responce = system(command_all, intern = TRUE)
+  responce
+}),
+
+tar_target(pmtiles_rnet, {
+  check = length(combined_network_tile)
+  command_tippecanoe = paste('tippecanoe -o rnet.pmtiles',
+                             '--name=rnet',
+                             '--layer=rnet',
+                             '--attribution=UniverstyofLeeds',
+                             '--minimum-zoom=6',
+                             '--maximum-zoom=13',
+                             '--drop-smallest-as-needed',
+                             '--maximum-tile-bytes=5000000',
+                             '--simplification=10',
+                             '--buffer=5',
+                             '--force  combined_network_tile.geojson', collapse = " ")
+  
+  if(.Platform$OS.type == "unix") {
+    command_cd = 'cd outputdata'
+    command_all = paste(c(command_cd, command_tippecanoe), collapse = "; ")
+  } else {
+    # Using WSL
+    dir = getwd()
+    command_start = 'bash -c '
+    command_cd = paste0('cd /mnt/',tolower(substr(dir,1,1)),substr(dir,3,nchar(dir)),'/outputdata')
+    
+    command_all = paste(c(command_cd, command_tippecanoe), collapse = "; ")
+    command_all = paste0(command_start,'"',command_all,'"')
+  }
+  responce = system(command_all, intern = TRUE)
+  responce
+}),
+
+tar_target(pmtiles_rnet_simplified, {
+  check = length(simplified_network)
+  command_tippecanoe = paste('tippecanoe -o rnet_simplified.pmtiles',
+                             '--name=rnet',
+                             '--layer=rnet',
+                             '--attribution=UniverstyofLeeds',
+                             '--minimum-zoom=6',
+                             '--maximum-zoom=13',
+                             '--drop-smallest-as-needed',
+                             '--maximum-tile-bytes=5000000',
+                             '--simplification=10',
+                             '--buffer=5',
+                             '--force  simplified_network.geojson', collapse = " ")
+  
+  if(.Platform$OS.type == "unix") {
+    command_cd = 'cd outputdata'
+    command_all = paste(c(command_cd, command_tippecanoe), collapse = "; ")
+  } else {
+    # Using WSL
+    dir = getwd()
+    command_start = 'bash -c '
+    command_cd = paste0('cd /mnt/',tolower(substr(dir,1,1)),substr(dir,3,nchar(dir)),'/outputdata')
+    
+    command_all = paste(c(command_cd, command_tippecanoe), collapse = "; ")
+    command_all = paste0(command_start,'"',command_all,'"')
+  }
+  responce = system(command_all, intern = TRUE)
+  responce
+}),
+
   
   tar_target(save_outputs, {
     check = length(rnet_utility_balanced)
