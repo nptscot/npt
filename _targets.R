@@ -1304,8 +1304,6 @@ tar_target(simplified_network, {
   
 tar_target(
   coherent_network, {
-    cue = tar_cue(mode = "always")
-
     # Prepare cohesive network
     NPT_MM_OSM = cohesive_network_prep(combined_network_tile, crs = "EPSG:27700", parameters = parameters)
 
