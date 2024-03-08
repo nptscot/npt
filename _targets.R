@@ -788,7 +788,7 @@ tar_target(os_pois, {
   os_pois_raw = readRDS(file.path(path_teams, "secure_data/OS/os_poi.Rds"))
   os_pois_subset = os_pois_raw %>% 
     mutate(groupname = as.character(groupname))
-  os_pois_subset[region_boundary_buffered, , op = sf::st_within]
+  os_pois_subset[region_boundary_buffered, ]
 }),
 
 # tar_target(mode_shares, {
@@ -809,7 +809,7 @@ tar_target(grid,{
 }),
 tar_target(oas,{
   oas = readRDS("./inputdata/oas.Rds")
-  oas
+  oas[region_boundary, ]
 }),
 
 tar_target(intermediate_zones,{
@@ -822,7 +822,8 @@ tar_target(intermediate_zones,{
     # system("gh release upload v0.02 SG_IntermediateZoneBdry_2011.zip")
   }
   intermediate_zones = st_read("./data-raw/SG_IntermediateZone_Bdry_2011.shp")
-  intermediate_zones
+  # TODO: buffered boundary?
+  intermediate_zones[region_boundary, ]
 }),
 
 # Utility OD -------------------------------------------------------------
