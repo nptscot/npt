@@ -822,8 +822,12 @@ tar_target(intermediate_zones,{
     # system("gh release upload v0.02 SG_IntermediateZoneBdry_2011.zip")
   }
   intermediate_zones = st_read("./data-raw/SG_IntermediateZone_Bdry_2011.shp")
+  sf::sf_use_s2(FALSE)
+  intermediate_zones = sf::st_transform(intermediate_zones, "EPSG:4326")
+  iz_centroids = sf::st_point_on_surface(intermediate_zones)
   # TODO: buffered boundary?
-  intermediate_zones[region_boundary, ]
+  iz_centroids_within = iz_centroids[region_boundary, ]
+  intermediate_zones[intermediate_zones[[1]] %in% iz_centroids_within[[1]], ]
 }),
 
 # Utility OD -------------------------------------------------------------
