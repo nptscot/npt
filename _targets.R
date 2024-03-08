@@ -790,7 +790,8 @@ tar_target(os_pois, {
   os_pois_raw = readRDS(file.path(path_teams, "secure_data/OS/os_poi.Rds"))
   os_pois_subset = os_pois_raw %>% 
     mutate(groupname = as.character(groupname))
-  os_pois_subset[region_boundary_buffered, ]
+  os_pois_subset[region_boundary_buffered, ] |>
+    sf::st_transform("EPSG:27700")
 }),
 
 # tar_target(mode_shares, {
@@ -825,8 +826,8 @@ tar_target(intermediate_zones,{
   }
   intermediate_zones = st_read("./data-raw/SG_IntermediateZone_Bdry_2011.shp")
   sf::sf_use_s2(FALSE)
-  intermediate_zones = sf::st_transform(intermediate_zones, "EPSG:4326")
   iz_centroids = sf::st_point_on_surface(intermediate_zones)
+  iz_centroids = sf::st_transform(iz_centroids, sf::st_crs(region_boundary))
   # TODO: buffered boundary?
   iz_centroids_within = iz_centroids[region_boundary, ]
   intermediate_zones[intermediate_zones[[1]] %in% iz_centroids_within[[1]], ]
