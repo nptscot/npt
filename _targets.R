@@ -97,33 +97,45 @@ list(
     region_names,
     unique(local_authorities$Region)
   ),
-  
 
   # Case study area:
   tar_target(
-    study_area,
+    local_authorities_region,
     {
-      region_name = region_names
-      local_authorites_region = local_authorities |>
-        filter(Region == region_name)
-      study_area_exact = sf::st_union(local_authorites_region)
-      sf::st_buffer(study_area_exact, parameters$region_buffer_distance)
+      local_authorities_region = local_authorities |>
+        filter(Region == parameters$region)
+      sf::write_sf(local_authorities_region, file.path(output_folder, "local_authorities_region.geojson"))
+      local_authorities_region
     }
   ),
 
-  tar_target(zones, {
-    if(parameters$open_data_build) {
-      z = sf::read_sf("data-raw/DataZones.geojson")
-    } else {
-      z = readRDS("inputdata/DataZones.Rds") # 6976 zones
-    }
-    if(parameters$geo_subset) {
-      z = z[study_area[[1]], op = sf::st_within]
-    }
-    z
+  tar_target(
+    region_boundary,
+    local_authorities_region
+      |> sf::st_union()
+  ),
+
+  tar_target(
+    region_boundary_buffered,
+    region_boundary |>
+      stplanr::geo_buffer(dist = parameters$region_buffer_distance)
+  ),
+
+  tar_target(zones_boundary_buffered, {
+    z = readRDS("inputdata/DataZones.Rds") # 6976 zones
+    z_centroids = sf::st_centroid(z)
+    z_centroids_within = z_centroids[region_boundary_buffered, ]
+    z[z[[1]] %in% z_centroids_within[[1]], ]
   }),
 
-  tar_target(od_data, {
+  tar_target(zones, {
+    z = zones_boundary_buffered
+    z_centroids = sf::st_centroid(z)
+    z_centroids_within = z_centroids[region_boundary, ]
+    z[z[[1]] %in% z_centroids_within[[1]], ]
+  }),
+
+  tar_target(od_national, {
     if(parameters$open_data_build) {
       od_raw = read_csv("data-raw/od_data_dz_synthetic.csv")
     } else {
@@ -148,7 +160,7 @@ list(
     } else {
       spo = readRDS("inputdata/oas.Rds")
     }
-    spo
+    spo[region_boundary, ]
   }),
   tar_target(subpoints_destinations, {
     # source("data-raw/get_wpz.R")
@@ -165,15 +177,15 @@ list(
       spd = spd[spd$workplace, ]
       
     }
-    spd
+    spd[region_boundary_buffered, ]
   }),
   tar_target(od_commute_jittered, {
-    # od_jittered = od_data # for no jittering
+    # od_jittered = od_national # for no jittering
     # Install the Rust crate and the associated R package:
     # system("cargo install --git https://github.com/dabreegster/odjitter")
     z = zones
     z = z[subpoints_destinations, ]
-    od = od_data |>
+    od = od_national |>
       filter(geo_code1 %in% z$DataZone) |>
       filter(geo_code2 %in% z$DataZone)
     set.seed(2023)
@@ -212,9 +224,7 @@ tar_target(od_school, {
   } else {
     schools_dl = read_TEAMS("secure_data/schools/school_dl_sub30km.Rds")
   }
-  if(parameters$geo_subset) {
-    schools_dl = schools_dl[study_area[[1]], op = sf::st_within]
-  }
+  schools_dl = schools_dl[region_boundary_buffered, op = sf::st_within]
   schools_dl$dist_euclidean_jittered = round(as.numeric(sf::st_length(schools_dl)))
   schools_dl = schools_dl %>%
     filter(dist_euclidean_jittered < 10000) %>%
@@ -774,16 +784,14 @@ tar_target(trip_purposes, {
 
 tar_target(os_pois, {
   check = length(parameters)
-  check = length(study_area[[1]])
+  check = length(region_boundary)
   # Get shopping destinations from secure OS data
   path_teams = Sys.getenv("NPT_TEAMS_PATH")
-  os_pois = readRDS(file.path(path_teams, "secure_data/OS/os_poi.Rds"))
-  os_pois = os_pois %>% 
+  os_pois_raw = readRDS(file.path(path_teams, "secure_data/OS/os_poi.Rds"))
+  os_pois_subset = os_pois_raw %>% 
     mutate(groupname = as.character(groupname))
-  if(parameters$geo_subset) {
-    os_pois = os_pois[study_area[[1]], op = sf::st_within]
-  }
-  os_pois
+  os_pois_subset[region_boundary_buffered, ] |>
+    sf::st_transform("EPSG:27700")
 }),
 
 # tar_target(mode_shares, {
@@ -804,7 +812,7 @@ tar_target(grid,{
 }),
 tar_target(oas,{
   oas = readRDS("./inputdata/oas.Rds")
-  oas
+  oas[region_boundary, ]
 }),
 
 tar_target(intermediate_zones,{
@@ -817,25 +825,30 @@ tar_target(intermediate_zones,{
     # system("gh release upload v0.02 SG_IntermediateZoneBdry_2011.zip")
   }
   intermediate_zones = st_read("./data-raw/SG_IntermediateZone_Bdry_2011.shp")
-  intermediate_zones
+  sf::sf_use_s2(FALSE)
+  iz_centroids = sf::st_point_on_surface(intermediate_zones)
+  iz_centroids = sf::st_transform(iz_centroids, sf::st_crs(region_boundary))
+  # TODO: buffered boundary?
+  iz_centroids_within = iz_centroids[region_boundary, ]
+  intermediate_zones[intermediate_zones[[1]] %in% iz_centroids_within[[1]], ]
 }),
 
 # Utility OD -------------------------------------------------------------
 tar_target(od_shopping, {
   od_shopping = make_od_shopping(oas, os_pois, grid, trip_purposes,
-                                intermediate_zones, parameters,study_area[[1]], odjitter_location = parameters$odjitter_location)
+                                intermediate_zones, parameters,region_boundary_buffered, odjitter_location = parameters$odjitter_location)
   od_shopping
 }),
 
 tar_target(od_visiting, {
   od_visiting = make_od_visiting(oas, os_pois, grid, trip_purposes,
-                                intermediate_zones, parameters, study_area[[1]], odjitter_location = parameters$odjitter_location)
+                                intermediate_zones, parameters, region_boundary_buffered, odjitter_location = parameters$odjitter_location)
   od_visiting
 }),
 
 tar_target(od_leisure, {
   od_leisure = make_od_leisure(oas, os_pois, grid, trip_purposes,
-                              intermediate_zones, parameters, study_area[[1]], odjitter_location = parameters$odjitter_location)
+                              intermediate_zones, parameters, region_boundary_buffered, odjitter_location = parameters$odjitter_location)
   od_leisure
 }),
 
@@ -1281,8 +1294,293 @@ tar_target(combined_network, {
     
     rnet_tile
   }),
+
+tar_target(simplified_network, {
+  cue = tar_cue(mode = "always")
+  rnet_simple = simplify_network(combined_network_tile, parameters)
+  make_geojson_zones(rnet_simple, paste0(output_folder, "/simplified_network.geojson"))
+  rnet_simple
+}),
+
+  
+# tar_target(
+#   coherent_network, {
+#     parameters_new = parameters
+#     parameters_new$coherent_area = local_authorities_region$LAD23NM
+#     NPT_MM_OSM = cohesive_network_prep(combined_network_tile, crs = "EPSG:27700", parameters = parameters)
+
+#     NPT_MM_OSM_CITY =  NPT_MM_OSM$cohesive_network
+
+#     NPT_MM_OSM_ZONE =  NPT_MM_OSM$cohesive_zone
+
+#     all_city_coherent_networks = list()
+
+#     for(city in parameters_new$coherent_area) {
+        
+#         city_filename = gsub(" ", "_", city)
+
+#         CITY = NPT_MM_OSM_CITY[[city]]
+#         ZONE = NPT_MM_OSM_ZONE[[city]]
+
+#         # rnet_coherent_arterial = cohesive_network(network_tile = CITY, combined_grid_buffer = ZONE, arterial = TRUE, min_percentile = 0.75)
+#         # rnet_coherent_85 = cohesive_network(network_tile = CITY, combined_grid_buffer = ZONE, arterial = FALSE, min_percentile = 0.85)
+#         # rnet_coherent_80 = cohesive_network(network_tile = CITY, combined_grid_buffer = ZONE, arterial = FALSE, min_percentile = 0.80)
+#         rnet_coherent_75 = cohesive_network(network_tile = CITY, combined_grid_buffer = ZONE, arterial = FALSE, min_percentile = 0.75)
+
+#         # Export coherent networks to GeoJSON
+#         make_geojson_zones(rnet_coherent_75, paste0(output_folder, "/", city_filename, "_coherent.geojson"))
+  
+    
+#         # Store the networks in the list, organized by city
+#         all_city_coherent_networks[[city]] = list(
+#           # arterial = rnet_coherent_arterial,
+#           # percentile_85 = rnet_coherent_85,
+#           # percentile_80 = rnet_coherent_80,
+#           percentile_75 = rnet_coherent_75
+#         )
+#     }
+#     all_city_coherent_networks
+# }),
+
+
 # Make PMTiles for website ------------------------------------------------
-# See outputdata/_targets.R for details
+# tar_target(
+#   pmtiles_coherent,
+#   {
+#     # Loop over every city to create PMTiles for rnet_coherent_75 only
+#     for (city in parameters$coherent_area) {
+
+#       city_filename = gsub(" ", "_", city)
+
+#       coherent_geojson_filename_75 = paste0(output_folder, "/", city_filename, "coherentnetwork.geojson")
+#       output_filename_75 = paste0(output_folder, "/", city_filename, "coherentnetwork.pmtiles")
+
+#       command_tippecanoe  = paste0(
+#         'tippecanoe -o ', output_filename_75,
+#         ' --name=', output_filename_75,
+#         ' --layer=coherent_network_75',
+#         ' --attribution="University of Leeds"',
+#         ' --minimum-zoom=6',
+#         ' --maximum-zoom=13',
+#         ' --maximum-tile-bytes=5000000',
+#         ' --simplification=10',
+#         ' --buffer=5',
+#         ' -rg4',
+#         ' --force ',
+#         coherent_geojson_filename_75
+#       )
+#       system(command_tippecanoe , intern = TRUE)
+#     }
+#   }
+# ),
+
+tar_target(pmtiles_school, {
+  check = length(school_points)
+  command_tippecanoe = paste('tippecanoe -o schools.pmtiles',
+                             '--name=schools',
+                             '--layer=schools',
+                             '--attribution=UniverstyofLeeds',
+                             '--minimum-zoom=6',
+                             '--maximum-zoom=13',
+                             '--maximum-tile-bytes=5000000',
+                             '--simplification=10',
+                             '--buffer=5',
+                             '-rg4',
+                             '--force  school_locations.geojson', collapse = " ")
+  
+  if(.Platform$OS.type == "unix") {
+    command_cd = 'cd outputdata'
+    command_all = paste(c(command_cd, command_tippecanoe), collapse = "; ")
+  } else {
+    # Using WSL
+    dir = getwd()
+    command_start = 'bash -c '
+    command_cd = paste0('cd /mnt/',tolower(substr(dir,1,1)),substr(dir,3,nchar(dir)),'/outputs')
+    command_all = paste(c(command_cd, command_tippecanoe), collapse = "; ")
+    command_all = paste0(command_start,'"',command_all,'"')
+  }
+  responce = system(command_all, intern = TRUE)
+  responce
+}),
+
+
+tar_target(pmtiles_zones, {
+  check = length(zones_tile)
+  command_tippecanoe = paste('tippecanoe -o data_zones.pmtiles',
+                             '--name=data_zones',
+                             '--layer=data_zones',
+                             '--attribution=UniverstyofLeeds',
+                             '--minimum-zoom=6',
+                             '-zg',
+                             '--coalesce-smallest-as-needed',
+                             '--detect-shared-borders',
+                             '--extend-zooms-if-still-dropping',
+                             '--maximum-tile-bytes=5000000',
+                             '--simplification=10',
+                             '--buffer=5',
+                             '--force  data_zones.geojson', collapse = " ")
+  
+  if(.Platform$OS.type == "unix") {
+    command_cd = 'cd outputdata'
+    command_all = paste(c(command_cd, command_tippecanoe), collapse = "; ")
+  } else {
+    # Using WSL
+    dir = getwd()
+    command_start = 'bash -c '
+    command_cd = paste0('cd /mnt/',tolower(substr(dir,1,1)),substr(dir,3,nchar(dir)),'/outputs')
+    command_all = paste(c(command_cd, command_tippecanoe), collapse = "; ")
+    command_all = paste0(command_start,'"',command_all,'"')
+  }
+  responce = system(command_all, intern = TRUE)
+  responce
+}),
+
+tar_target(pmtiles_buildings, {
+  check = length(zones_dasymetric_tile)
+ 
+  tippecanoe_verylow = paste('tippecanoe -o dasymetric_verylow.pmtiles',
+                             '--name=dasymetric',
+                             '--layer=dasymetric',
+                             '--attribution=OS',
+                             '--minimum-zoom=4',
+                             '--maximum-zoom=6',
+                             '--coalesce-smallest-as-needed',
+                             '--detect-shared-borders',
+                             '--maximum-tile-bytes=5000000',
+                             '--simplification=1',
+                             '--buffer=5',
+                             '--force dasymetric_verylow.geojson', 
+                             collapse = " ")
+  
+  tippecanoe_low = paste('tippecanoe -o dasymetric_low.pmtiles',
+                         '--name=dasymetric',
+                         '--layer=dasymetric',
+                         '--attribution=OS',
+                         '--minimum-zoom=7',
+                         '--maximum-zoom=9',
+                         '--coalesce-smallest-as-needed',
+                         '--detect-shared-borders',
+                         '--maximum-tile-bytes=5000000',
+                         '--simplification=1',
+                         '--buffer=5',
+                         '--force dasymetric_low.geojson', 
+                         collapse = " ")
+  
+  tippecanoe_med = paste('tippecanoe -o dasymetric_med.pmtiles',
+                         '--name=dasymetric',
+                         '--layer=dasymetric',
+                         '--attribution=OS',
+                         '--minimum-zoom=10',
+                         '--maximum-zoom=14',
+                         '--coalesce-smallest-as-needed',
+                         '--detect-shared-borders',
+                         '--maximum-tile-bytes=5000000',
+                         '--simplification=2',
+                         '--buffer=5',
+                         '--force dasymetric_med.geojson', 
+                         collapse = " ")
+  
+  tippecanoe_high = paste('tippecanoe -o dasymetric_high.pmtiles',
+                          '--name=dasymetric',
+                          '--layer=dasymetric',
+                          '--attribution=OS',
+                          '-zg',
+                          '--minimum-zoom=15',
+                          '--extend-zooms-if-still-dropping',
+                          '--coalesce-smallest-as-needed',
+                          '--detect-shared-borders',
+                          '--maximum-tile-bytes=5000000',
+                          '--simplification=5',
+                          '--buffer=5',
+                          '--force dasymetric_high.geojson', 
+                          collapse = " ")
+  
+  tippecanoe_join = paste('tile-join -o dasymetric.pmtiles -pk --force',
+                          'dasymetric_verylow.pmtiles',
+                          'dasymetric_low.pmtiles',
+                          'dasymetric_med.pmtiles',
+                          'dasymetric_high.pmtiles', 
+                          collapse = " ")
+  
+  
+  
+  if(.Platform$OS.type == "unix") {
+    command_cd = 'cd outputdata'
+    command_all = paste(c(command_cd, tippecanoe_verylow, tippecanoe_low, 
+                          tippecanoe_med, tippecanoe_high, tippecanoe_join), collapse = "; ")
+  } else {
+    # Using WSL
+    dir = getwd()
+    command_start = 'bash -c '
+    command_cd = paste0('cd /mnt/',tolower(substr(dir,1,1)),substr(dir,3,nchar(dir)),'/outputs')
+    command_all = paste(c(command_cd, tippecanoe_verylow, tippecanoe_low, 
+                          tippecanoe_med, tippecanoe_high, tippecanoe_join), collapse = "; ")
+    command_all = paste0(command_start,'"',command_all,'"')
+  }
+  responce = system(command_all, intern = TRUE)
+  responce
+}),
+
+tar_target(pmtiles_rnet, {
+  check = length(combined_network_tile)
+  command_tippecanoe = paste('tippecanoe -o rnet.pmtiles',
+                             '--name=rnet',
+                             '--layer=rnet',
+                             '--attribution=UniverstyofLeeds',
+                             '--minimum-zoom=6',
+                             '--maximum-zoom=13',
+                             '--drop-smallest-as-needed',
+                             '--maximum-tile-bytes=5000000',
+                             '--simplification=10',
+                             '--buffer=5',
+                             '--force  combined_network_tile.geojson', collapse = " ")
+  
+  if(.Platform$OS.type == "unix") {
+    command_cd = 'cd outputdata'
+    command_all = paste(c(command_cd, command_tippecanoe), collapse = "; ")
+  } else {
+    # Using WSL
+    dir = getwd()
+    command_start = 'bash -c '
+    command_cd = paste0('cd /mnt/',tolower(substr(dir,1,1)),substr(dir,3,nchar(dir)),'/outputdata')
+    
+    command_all = paste(c(command_cd, command_tippecanoe), collapse = "; ")
+    command_all = paste0(command_start,'"',command_all,'"')
+  }
+  responce = system(command_all, intern = TRUE)
+  responce
+}),
+
+tar_target(pmtiles_rnet_simplified, {
+  check = length(simplified_network)
+  command_tippecanoe = paste('tippecanoe -o rnet_simplified.pmtiles',
+                             '--name=rnet',
+                             '--layer=rnet',
+                             '--attribution=UniverstyofLeeds',
+                             '--minimum-zoom=6',
+                             '--maximum-zoom=13',
+                             '--drop-smallest-as-needed',
+                             '--maximum-tile-bytes=5000000',
+                             '--simplification=10',
+                             '--buffer=5',
+                             '--force  simplified_network.geojson', collapse = " ")
+  
+  if(.Platform$OS.type == "unix") {
+    command_cd = 'cd outputdata'
+    command_all = paste(c(command_cd, command_tippecanoe), collapse = "; ")
+  } else {
+    # Using WSL
+    dir = getwd()
+    command_start = 'bash -c '
+    command_cd = paste0('cd /mnt/',tolower(substr(dir,1,1)),substr(dir,3,nchar(dir)),'/outputdata')
+    
+    command_all = paste(c(command_cd, command_tippecanoe), collapse = "; ")
+    command_all = paste0(command_start,'"',command_all,'"')
+  }
+  responce = system(command_all, intern = TRUE)
+  responce
+}),
+
   
   tar_target(save_outputs, {
     check = length(rnet_utility_balanced)
@@ -1296,8 +1594,6 @@ tar_target(combined_network, {
     saveRDS(zones_stats, paste0(output_folder, "/zones_stats.Rds"))
     saveRDS(school_stats, paste0(output_folder, "/school_stats.Rds"))
     sf::write_sf(combined_network_tile, paste0(output_folder, "/combined_network_tile.geojson"), delete_dsn = TRUE)    
-    # sf::write_sf(simplified_network, paste0(output_folder, "/simplified_network.geojson"), delete_dsn = TRUE)
-    
     sys_time = Sys.time()
     zip(
       zipfile = paste0(output_folder, "/combined_network_tile.zip"),
@@ -1305,36 +1601,5 @@ tar_target(combined_network, {
     )
     combined_network_tile_file_path = paste0(output_folder, "/combined_network_tile.geojson")
     sys_time
-  }),  
-  tar_target(metadata, {
-    # upload_data
-    # metadata_all = tar_meta()
-    # metadata_targets = metadata_all %>% 
-    #   filter(type == "stem")
-    # readr::write_csv(metadata_targets, "outputdata/metadata_targets.csv")
-    
-    # TODO: add more columns
-    build_summary = tibble::tibble(
-      n_segment_cells = nrow(combined_network) * ncol(combined_network),
-      min_flow = parameters$min_flow,
-      max_to_route = parameters$max_to_route,
-      # time_total_mins = round(sum(metadata_targets$seconds) / 60, digits = 2),
-      # time_r_commute_mins = round(metadata_targets %>% 
-      #                               filter(name == "r_commute") %>% 
-      #                               pull(seconds) / 60, 
-      #                             digits = 2),
-      routing_date = get_routing_date()
-    )
-    # # To overwrite previous build summary:
-    # write_csv(build_summary, "outputdata/build_summary.csv")
-    if (file.exists("outputdata/build_summary.csv")) {
-      build_summary_previous = readr::read_csv("outputdata/build_summary.csv")
-    } else {
-      build_summary_previous = NULL
-    }
-    # Combine previous and current build datasets
-    build_summary = data.table::rbindlist(list(build_summary, build_summary_previous), fill = TRUE)
-    write_csv(build_summary, "outputdata/build_summary.csv")
   })
-
 )
