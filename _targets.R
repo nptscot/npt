@@ -1185,7 +1185,7 @@ tar_target(zones_tile, {
 
 tar_target(school_points, {
   schools = sf::read_sf("inputdata/Schools/school_locations.geojson")
-  make_geojson_zones(schools, file.path(output_folder, "school_locations.geojson"))
+  # make_geojson_zones(schools, file.path(output_folder, "school_locations.geojson"))
   schools
 }),
 
