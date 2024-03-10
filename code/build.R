@@ -6,7 +6,7 @@ region_names = unique(lads$Region)
 region_names_lowercase = snakecase::to_snake_case(region_names)
 region = region_names[1]
 
-for (region in region_names[1:2]) {
+for (region in region_names[1:3]) {
   message("Processing region: ", region)
   parameters$region = region
   jsonlite::write_json(parameters, "parameters.json", pretty = TRUE)

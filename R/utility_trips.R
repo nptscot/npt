@@ -219,7 +219,7 @@ make_od_leisure = function(oas, os_pois, grid, trip_purposes, intermediate_zones
     odjitter_location = odjitter_location
   )
   
-  # Get mode shares
+  # Get mode shares: TODO: move to parameters
   mode_shares = data_frame(
     bicycle = 0.012,
     foot = 0.221,
@@ -259,7 +259,12 @@ make_od_leisure = function(oas, os_pois, grid, trip_purposes, intermediate_zones
       all = leisure_all_modes
     ) %>% 
     dplyr::mutate(purpose = "leisure")
-  
+
+  # Remove "output_col" column if it exists (TODO: fix upstream):
+  if ("output_col" %in% colnames(od_leisure_subset)) {
+    od_leisure_subset = od_leisure_subset %>% 
+      dplyr::select(-output_col)
+  }  
   od_leisure_subset
   
   
