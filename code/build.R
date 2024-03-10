@@ -102,6 +102,87 @@ make_geojson_zones(b_low, file.path(output_folder, "dasymetric_low.geojson"))
 make_geojson_zones(b_med, file.path(output_folder, "dasymetric_med.geojson"))
 make_geojson_zones(b_high, file.path(output_folder, "dasymetric_high.geojson"))
 
+tippecanoe_verylow = paste('tippecanoe -o dasymetric_verylow.pmtiles',
+                           '--name=dasymetric',
+                           '--layer=dasymetric',
+                           '--attribution=OS',
+                           '--minimum-zoom=4',
+                           '--maximum-zoom=6',
+                           '--coalesce-smallest-as-needed',
+                           '--detect-shared-borders',
+                           '--maximum-tile-bytes=5000000',
+                           '--simplification=1',
+                           '--buffer=5',
+                           '--force dasymetric_verylow.geojson', 
+                           collapse = " ")
+
+tippecanoe_low = paste('tippecanoe -o dasymetric_low.pmtiles',
+                       '--name=dasymetric',
+                       '--layer=dasymetric',
+                       '--attribution=OS',
+                       '--minimum-zoom=7',
+                       '--maximum-zoom=9',
+                       '--coalesce-smallest-as-needed',
+                       '--detect-shared-borders',
+                       '--maximum-tile-bytes=5000000',
+                       '--simplification=1',
+                       '--buffer=5',
+                       '--force dasymetric_low.geojson', 
+                       collapse = " ")
+
+tippecanoe_med = paste('tippecanoe -o dasymetric_med.pmtiles',
+                       '--name=dasymetric',
+                       '--layer=dasymetric',
+                       '--attribution=OS',
+                       '--minimum-zoom=10',
+                       '--maximum-zoom=14',
+                       '--coalesce-smallest-as-needed',
+                       '--detect-shared-borders',
+                       '--maximum-tile-bytes=5000000',
+                       '--simplification=2',
+                       '--buffer=5',
+                       '--force dasymetric_med.geojson', 
+                       collapse = " ")
+
+tippecanoe_high = paste('tippecanoe -o dasymetric_high.pmtiles',
+                        '--name=dasymetric',
+                        '--layer=dasymetric',
+                        '--attribution=OS',
+                        '-zg',
+                        '--minimum-zoom=15',
+                        '--extend-zooms-if-still-dropping',
+                        '--coalesce-smallest-as-needed',
+                        '--detect-shared-borders',
+                        '--maximum-tile-bytes=5000000',
+                        '--simplification=5',
+                        '--buffer=5',
+                        '--force dasymetric_high.geojson', 
+                        collapse = " ")
+
+tippecanoe_join = paste('tile-join -o dasymetric.pmtiles -pk --force',
+                        'dasymetric_verylow.pmtiles',
+                        'dasymetric_low.pmtiles',
+                        'dasymetric_med.pmtiles',
+                        'dasymetric_high.pmtiles', 
+                        collapse = " ")
+
+
+
+if(.Platform$OS.type == "unix") {
+  command_cd = 'cd outputdata'
+  command_all = paste(c(command_cd, tippecanoe_verylow, tippecanoe_low, 
+                        tippecanoe_med, tippecanoe_high, tippecanoe_join), collapse = "; ")
+} else {
+  # Using WSL
+  dir = getwd()
+  command_start = 'bash -c '
+  command_cd = paste0('cd /mnt/',tolower(substr(dir,1,1)),substr(dir,3,nchar(dir)),'/outputs')
+  command_all = paste(c(command_cd, tippecanoe_verylow, tippecanoe_low, 
+                        tippecanoe_med, tippecanoe_high, tippecanoe_join), collapse = "; ")
+  command_all = paste0(command_start,'"',command_all,'"')
+}
+responce = system(command_all, intern = TRUE)
+
 # Check contents of outputdata folder:
 outputdata_files = list.files("outputdata")
 outputdata_files
