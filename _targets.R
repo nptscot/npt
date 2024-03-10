@@ -855,9 +855,6 @@ tar_target(od_leisure, {
 # Combined utility trip purposes --------------------------------------------
 
 tar_target(od_utility_combined, {
-  check = length(od_shopping)
-  check = length(od_leisure)
-  check = length(od_visiting)
   od_utility_combined = rbind(od_shopping, od_visiting, od_leisure) %>%
     dplyr::slice_max(n = parameters$max_to_route, order_by = all, with_ties = FALSE)
   
