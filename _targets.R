@@ -1183,32 +1183,6 @@ tar_target(zones_tile, {
   z
 }),
 
-tar_target(zones_dasymetric_tile, {
-  
-  if (parameters$open_data_build){
-    NULL
-  } else {
-    b_verylow = read_TEAMS("open_data/os_buildings/buildings_low_nat_lsoa_split.Rds")
-    b_low = read_TEAMS("open_data/os_buildings/buildings_low_reg_lsoa_split.Rds")
-    b_med = read_TEAMS("open_data/os_buildings/buildings_med_lsoa_split.Rds")
-    b_high = read_TEAMS("open_data/os_buildings/buildings_high_lsoa_split.Rds")
-    
-    zones = sf::st_drop_geometry(zones_tile)
-    
-    b_verylow = dplyr::left_join(b_verylow, zones, by = c("geo_code" = "DataZone"))
-    b_low = dplyr::left_join(b_low, zones, by = c("geo_code" = "DataZone"))
-    b_med = dplyr::left_join(b_med, zones, by = c("geo_code" = "DataZone"))
-    b_high = dplyr::left_join(b_high, zones, by = c("geo_code" = "DataZone"))
-    
-    make_geojson_zones(b_verylow, file.path(output_folder, "dasymetric_verylow.geojson"))
-    make_geojson_zones(b_low, file.path(output_folder, "dasymetric_low.geojson"))
-    make_geojson_zones(b_med, file.path(output_folder, "dasymetric_med.geojson"))
-    make_geojson_zones(b_high, file.path(output_folder, "dasymetric_high.geojson"))
-  }
-  TRUE
-}),
-
-
 tar_target(school_points, {
   schools = sf::read_sf("inputdata/Schools/school_locations.geojson")
   make_geojson_zones(schools, file.path(output_folder, "school_locations.geojson"))

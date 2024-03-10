@@ -16,7 +16,8 @@ for (region in region_names[1:3]) {
 }
 
 output_folders = list.dirs(file.path("outputdata", parameters$date_routing))[-1]
-list.files(output_folders[1])
+regional_output_files = list.files(output_folders[1])
+regional_output_files
 
 # Combine regional route networks:
 combined_network_list = lapply(output_folders, function(folder) {
@@ -27,30 +28,31 @@ combined_network_list = lapply(output_folders, function(folder) {
 })
 # TODO: try with stplanr:::bind_sf(combined_network_list)
 combined_network = dplyr::bind_rows(combined_network_list)
-# With do.call and rbind:
-combined_network = do.call(rbind, combined_network_list)
-plot(combined_network$geometry)
+# # With do.call and rbind:
+# combined_network = do.call(rbind, combined_network_list)
+# combined_network |>
+#   sample_n(1000) |>
+#   select(1) |>
+#   plot()
 sf::write_sf(combined_network, file.path("outputdata", "combined_network.geojson"), delete_dsn = TRUE)
 
+# Combine zones data:
+
+
 # Dasymetric population data:
-dasymetric_low_files = list.files(output_folders[1], pattern = "dasymetric_low", full.names = TRUE)
-dasymetric_low_1 = sf::read_sf(dasymetric_low_files[1])
-# compare 1st and 2nd with fs::
-file_1_info = fs::file_info(dasymetric_low_files[1])
-file_2_info = fs::file_info(list.files(output_folders[2], pattern = "dasymetric_low", full.names = TRUE))
-dasymetric_low_2 = sf::read_sf(file_2_info$path)
-
-# They are identical:
-waldo::compare(dasymetric_low_1[[1]], dasymetric_low_2[[1]])
-waldo::compare(dasymetric_low_1[[2]], dasymetric_low_2[[2]])
-
-
-waldo::compare(file_1_info, file_2_info)
-# Plot random subset of 1000:
-dasymetric_low_1 |>
-  sample_n(1000) |>
-  select(1) |>
-  plot()
+b_verylow = read_TEAMS("open_data/os_buildings/buildings_low_nat_lsoa_split.Rds")
+b_low = read_TEAMS("open_data/os_buildings/buildings_low_reg_lsoa_split.Rds")
+b_med = read_TEAMS("open_data/os_buildings/buildings_med_lsoa_split.Rds")
+b_high = read_TEAMS("open_data/os_buildings/buildings_high_lsoa_split.Rds")
+zones = sf::st_drop_geometry(zones_tile)
+b_verylow = dplyr::left_join(b_verylow, zones, by = c("geo_code" = "DataZone"))
+b_low = dplyr::left_join(b_low, zones, by = c("geo_code" = "DataZone"))
+b_med = dplyr::left_join(b_med, zones, by = c("geo_code" = "DataZone"))
+b_high = dplyr::left_join(b_high, zones, by = c("geo_code" = "DataZone"))
+make_geojson_zones(b_verylow, file.path(output_folder, "dasymetric_verylow.geojson"))
+make_geojson_zones(b_low, file.path(output_folder, "dasymetric_low.geojson"))
+make_geojson_zones(b_med, file.path(output_folder, "dasymetric_med.geojson"))
+make_geojson_zones(b_high, file.path(output_folder, "dasymetric_high.geojson"))
 
 commit = gert::git_log(max = 1)
 message("Commit: ", commit)
