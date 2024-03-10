@@ -97,10 +97,10 @@ b_verylow = dplyr::left_join(b_verylow, zones, by = c("geo_code" = "DataZone"))
 b_low = dplyr::left_join(b_low, zones, by = c("geo_code" = "DataZone"))
 b_med = dplyr::left_join(b_med, zones, by = c("geo_code" = "DataZone"))
 b_high = dplyr::left_join(b_high, zones, by = c("geo_code" = "DataZone"))
-make_geojson_zones(b_verylow, file.path(output_folder, "dasymetric_verylow.geojson"))
-make_geojson_zones(b_low, file.path(output_folder, "dasymetric_low.geojson"))
-make_geojson_zones(b_med, file.path(output_folder, "dasymetric_med.geojson"))
-make_geojson_zones(b_high, file.path(output_folder, "dasymetric_high.geojson"))
+make_geojson_zones(b_verylow, file.path("outputdata", "dasymetric_verylow.geojson"))
+make_geojson_zones(b_low, file.path("outputdata", "dasymetric_low.geojson"))
+make_geojson_zones(b_med, file.path("outputdata", "dasymetric_med.geojson"))
+make_geojson_zones(b_high, file.path("outputdata", "dasymetric_high.geojson"))
 
 tippecanoe_verylow = paste('tippecanoe -o dasymetric_verylow.pmtiles',
                            '--name=dasymetric',
