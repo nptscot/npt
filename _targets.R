@@ -1467,8 +1467,6 @@ tar_target(pmtiles_rnet_simplified, {
   
   tar_target(save_outputs, {
     check = length(rnet_utility_balanced)
-    check = length(zones_stats_json)
-    check = length(school_stats_json)
     check = length(utility_stats_balanced)
 
     message("Saving outputs for ", parameters$date_routing)
