@@ -759,16 +759,14 @@ tar_target(zones_stats, {
   stats = dplyr::full_join(stats, utility_stats, by = "DataZone")
 }),
 
+# Now covered in build.R:
+# tar_target(zones_stats_json, {
+#   export_zone_json(zones_stats, "DataZone", path = output_folder)
+# }),
 
-tar_target(zones_stats_json, {
-  export_zone_json(zones_stats, "DataZone", path = output_folder)
-}),
-
-tar_target(school_stats_json, {
-  export_zone_json(school_stats, "SeedCode", path = output_folder)
-}),
-
-
+# tar_target(school_stats_json, {
+#   export_zone_json(school_stats, "SeedCode", path = output_folder)
+# }),
 
 # Shopping OD ---------------------------------------------------------
 

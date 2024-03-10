@@ -102,6 +102,10 @@ make_geojson_zones(b_low, file.path(output_folder, "dasymetric_low.geojson"))
 make_geojson_zones(b_med, file.path(output_folder, "dasymetric_med.geojson"))
 make_geojson_zones(b_high, file.path(output_folder, "dasymetric_high.geojson"))
 
+# Check contents of outputdata folder:
+outputdata_files = list.files("outputdata")
+outputdata_files
+
 commit = gert::git_log(max = 1)
 message("Commit: ", commit)
 full_build =
