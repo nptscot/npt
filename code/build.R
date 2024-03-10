@@ -68,19 +68,24 @@ school_locations_list[[1]] |>
   plot()
 
 # Export SchoolStats:
-tar_load(school_stats)
-# Same for school_stats.Rds
 school_stats_list = lapply(output_folders, function(folder) {
   school_stats_file = paste0(folder, "/school_stats.Rds")
   if (file.exists(school_stats_file)) {
     school_stats = readRDS(school_stats_file)
   }
 })
-school_stats_list[[1]]
-school_stats_list[[2]]
 school_stats = dplyr::bind_rows(school_stats_list)
-export_zone_json(zones_stats, "DataZone", path = "outputdata")
 export_zone_json(school_stats, "SeedCode", path = "outputdata")
+
+# Same for zones_stats.Rds
+zones_stats_list = lapply(output_folders, function(folder) {
+  zones_stats_file = paste0(folder, "/zones_stats.Rds")
+  if (file.exists(zones_stats_file)) {
+    zones_stats = readRDS(zones_stats_file)
+  }
+})
+zones_stats = dplyr::bind_rows(zones_stats_list)
+export_zone_json(zones_stats, "DataZone", path = "outputdata")
 
 # Dasymetric population data:
 b_verylow = read_TEAMS("open_data/os_buildings/buildings_low_nat_lsoa_split.Rds")
