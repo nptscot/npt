@@ -1404,36 +1404,6 @@ tar_target(pmtiles_zones, {
   responce
 }),
 
-tar_target(pmtiles_rnet, {
-  check = length(combined_network_tile)
-  command_tippecanoe = paste('tippecanoe -o rnet.pmtiles',
-                             '--name=rnet',
-                             '--layer=rnet',
-                             '--attribution=UniverstyofLeeds',
-                             '--minimum-zoom=6',
-                             '--maximum-zoom=13',
-                             '--drop-smallest-as-needed',
-                             '--maximum-tile-bytes=5000000',
-                             '--simplification=10',
-                             '--buffer=5',
-                             '--force  combined_network_tile.geojson', collapse = " ")
-  
-  if(.Platform$OS.type == "unix") {
-    command_cd = 'cd outputdata'
-    command_all = paste(c(command_cd, command_tippecanoe), collapse = "; ")
-  } else {
-    # Using WSL
-    dir = getwd()
-    command_start = 'bash -c '
-    command_cd = paste0('cd /mnt/',tolower(substr(dir,1,1)),substr(dir,3,nchar(dir)),'/outputdata')
-    
-    command_all = paste(c(command_cd, command_tippecanoe), collapse = "; ")
-    command_all = paste0(command_start,'"',command_all,'"')
-  }
-  responce = system(command_all, intern = TRUE)
-  responce
-}),
-
 tar_target(pmtiles_rnet_simplified, {
   check = length(simplified_network)
   command_tippecanoe = paste('tippecanoe -o rnet_simplified.pmtiles',

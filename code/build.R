@@ -36,7 +36,7 @@ combined_network |>
   sample_n(1000) |>
   select(1) |>
   plot()
-sf::write_sf(combined_network, file.path("outputdata", "combined_network.geojson"), delete_dsn = TRUE)
+sf::write_sf(combined_network, file.path("outputdata", "combined_network_tile.geojson"), delete_dsn = TRUE)
 
 # Same for simplified_network.geojson:
 simplified_network_list = lapply(output_folders, function(folder) {
@@ -97,6 +97,27 @@ zones_stats_list = lapply(output_folders, function(folder) {
 })
 zones_stats = dplyr::bind_rows(zones_stats_list)
 export_zone_json(zones_stats, "DataZone", path = "outputdata")
+
+#Combined network tiling
+setwd("outputdata")
+# Check the combined_network_tile.geojson file is there:
+file.exists("combined_network_tile.geojson")
+command_tippecanoe = paste('tippecanoe -o rnet.pmtiles',
+                           '--name=rnet',
+                           '--layer=rnet',
+                           '--attribution=UniverstyofLeeds',
+                           '--minimum-zoom=6',
+                           '--maximum-zoom=13',
+                           '--drop-smallest-as-needed',
+                           '--maximum-tile-bytes=5000000',
+                           '--simplification=10',
+                           '--buffer=5',
+                           '--force  combined_network_tile.geojson', collapse = " ")
+
+responce = system(command_all, intern = TRUE)
+
+# Re-set working directory:
+setwd("..")
 
 # Dasymetric population data:
 b_verylow = read_TEAMS("open_data/os_buildings/buildings_low_nat_lsoa_split.Rds")
@@ -199,7 +220,7 @@ app_tiles_directory = "../nptscot.github.io/tiles"
 list.files(app_tiles_directory) # list current files
 pmtiles = list.files("outputdata", pattern = "pmtiles", full.names = TRUE)
 pmtiles_new = file.path(app_tiles_directory, basename(pmtiles))
-file.copy(pmtiles, pmtiles_new)
+file.copy(pmtiles, pmtiles_new,  overwrite = TRUE)
 
 # Check contents of outputdata folder:
 outputdata_files = list.files("outputdata")
