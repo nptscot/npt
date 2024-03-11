@@ -8,4 +8,5 @@ if(update_github_packages){
   remotes::install_github("robinlovelace/ukboundaries")
   remotes::install_github("robinlovelace/simodels")
   remotes::install_dev("rsgeo")
+  remotes::install_dev("od")
 }

@@ -104,7 +104,7 @@ list(
     {
       local_authorities_region = local_authorities |>
         filter(Region == parameters$region)
-      sf::write_sf(local_authorities_region, file.path(output_folder, "local_authorities_region.geojson"))
+      sf::write_sf(local_authorities_region, file.path(output_folder, "local_authorities_region.geojson"), delete_dsn = TRUE)
       local_authorities_region
     }
   ),
