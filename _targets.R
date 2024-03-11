@@ -1294,7 +1294,7 @@ tar_target(
 
         # Loop through percentiles and process each network
         for (percentile in parameters$coherent_percentile) {
-          print(paste0("Processing coherent network for ", city, " at percentile ", percentile)
+          print(paste0("Processing coherent network for ", city, " at percentile ", percentile))
           percentile_factor = percentile / 100
           grouped_net = coherent_network_group(CITY, ZONE, percentile_factor)
           make_geojson_zones(grouped_net, paste0("outputdata/", city_filename, "_coherent_network_", percentile, ".geojson"))
