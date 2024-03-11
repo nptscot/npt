@@ -12,20 +12,31 @@ simplify_network = function(rnet_y, parameters){
     rnet_x_buffer = sf::st_sf(geometry = single_rnet_x_buffer)
     rnet_x_buffer = sf::st_make_valid(rnet_x_buffer)
   } else {
-    # URL for the original route network
-    url_rnet_x = "https://github.com/nptscot/networkmerge/releases/download/v0.1/OS_Scotland_Network.geojson"
-    f_rnet_x = basename(url_rnet_x)
-    if (!file.exists(f_rnet_x)) {
-      download.file(url_rnet_x, f_rnet_x, method = "libcurl")
-    }
-    if (file.exists(f_rnet_x) && file.size(f_rnet_x) > 0) {
-      rnet_x = geojsonsf::geojson_sf(f_rnet_x)
+    # Build file path and URL based on parameters$region
+    if (!is.null(parameters$region)) {
+      region_snake_case = snakecase::to_snake_case(parameters$region)
+      base_name = paste("OS_Scotland_Network", region_snake_case, sep = "_")
     } else {
-      stop("File download failed or file is empty for rnet_x")
+      base_name = "OS_Scotland_Network"
     }
     
+    file_path = paste0("inputdata/", base_name, ".geojson")
+    url_rnet_x = paste0("https://github.com/nptscot/inputdata/releases/download/OS_network/", base_name, ".geojson")
+    
+    # Check if the file exists locally
+    if (!file.exists(file_path) || file.size(file_path) <= 0) {
+      message(paste("Local file", file_path, "not found or is empty. Attempting to download from URL..."))
+      download.file(url_rnet_x, file_path, method = "libcurl")
+    }
+    
+    # After attempting download, check again if the file exists and is valid
+    if (file.exists(file_path) && file.size(file_path) > 0) {
+      rnet_x = geojsonsf::geojson_sf(file_path)
+    } else {
+      stop(paste("File download failed or file is empty for", base_name))
+    }
   }
-  
+
   # Transform the spatial data to a different coordinate reference system (EPSG:27700)
   # TODO: uncomment:
   rnet_xp = sf::st_transform(rnet_x, "EPSG:27700")
