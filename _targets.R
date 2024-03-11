@@ -15,7 +15,7 @@ pkgs  = c(
   "readr",
   "bs4Dash", "DT", "gt", "pingr", "shinybusy", "shinyWidgets","geos",
   "cyclestreets" ,"stplanr", "simodels",
-  "geojsonsf","lwgeom","targets","tidyverse", "crew", "snakecase"
+  "geojsonsf","lwgeom","targets","tidyverse", "crew", "snakecase","osmextract"
   #,"rsgeo"
 )
 

@@ -2,6 +2,7 @@
 
 library(tidyverse)
 library(targets)
+library(tidygraph)
 tar_source()
 
 parameters = jsonlite::read_json("parameters.json", simplifyVector = T)

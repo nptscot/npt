@@ -1,4 +1,5 @@
 coherent_network_group = function(CITY, ZONE, min_percentile, arterial = FALSE) {
+  library(tidygraph)
   # Generate coherent network
   rnet_coherent = cohesive_network(network_tile = CITY, combined_grid_buffer = ZONE, arterial = arterial, min_percentile = min_percentile)
   
