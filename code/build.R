@@ -32,11 +32,22 @@ combined_network_list = lapply(output_folders, function(folder) {
 combined_network = dplyr::bind_rows(combined_network_list)
 # # With do.call and rbind:
 # combined_network = do.call(rbind, combined_network_list)
-# combined_network |>
-#   sample_n(1000) |>
-#   select(1) |>
-#   plot()
+combined_network |>
+  sample_n(1000) |>
+  select(1) |>
+  plot()
 sf::write_sf(combined_network, file.path("outputdata", "combined_network.geojson"), delete_dsn = TRUE)
+
+# Same for simplified_network.geojson:
+simplified_network_list = lapply(output_folders, function(folder) {
+  simplified_network_file = paste0(folder, "/simplified_network.geojson")
+  if (file.exists(simplified_network_file)) {
+    network = sf::read_sf(simplified_network_file)
+  }
+})
+simplified_network = dplyr::bind_rows(simplified_network_list)
+sf::write_sf(simplified_network, file.path("outputdata", "simplified_network.geojson"), delete_dsn = TRUE)
+
 
 # Combine zones data:
 # DataZones file path: data_zones.geojson
@@ -182,6 +193,13 @@ if(.Platform$OS.type == "unix") {
   command_all = paste0(command_start,'"',command_all,'"')
 }
 responce = system(command_all, intern = TRUE)
+
+# Copy pmtiles into app folder
+app_tiles_directory = "../nptscot.github.io/tiles"
+list.files(app_tiles_directory) # list current files
+pmtiles = list.files("outputdata", pattern = "pmtiles", full.names = TRUE)
+pmtiles_new = file.path(app_tiles_directory, basename(pmtiles))
+file.copy(pmtiles, pmtiles_new)
 
 # Check contents of outputdata folder:
 outputdata_files = list.files("outputdata")
