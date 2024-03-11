@@ -1294,6 +1294,7 @@ tar_target(
 
         # Loop through percentiles and process each network
         for (percentile in parameters$coherent_percentile) {
+          print(paste0("Processing coherent network for ", city, " at percentile ", percentile)
           percentile_factor = percentile / 100
           grouped_net = coherent_network_group(CITY, ZONE, percentile_factor)
           make_geojson_zones(grouped_net, paste0("outputdata/", city_filename, "_coherent_network_", percentile, ".geojson"))
@@ -1315,9 +1316,6 @@ tar_target(
 tar_target(
   pmtiles_coherent,
   {
-    # Initialize an empty list to store outputs for potential use or verification
-    pmtiles_outputs <- list()
-
     # Loop over every city
     for (city in parameters$coherent_area) {
       # Sanitize city name for filenames
@@ -1346,16 +1344,9 @@ tar_target(
         )
 
         # Execute the command and capture output
-        system_output <- system(command_tippecanoe, intern = TRUE)
-
-        # Store command output for verification
-        output_key <- paste(city, percentile, sep = "_")
-        pmtiles_outputs[[output_key]] <- system_output
+        system_output = system(command_tippecanoe, intern = TRUE)
       }
     }
-
-    # Return the outputs for verification or further use
-    pmtiles_outputs
   },
   cue = tar_cue(mode = "always")
 ),
