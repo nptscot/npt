@@ -1272,94 +1272,95 @@ tar_target(simplified_network, {
 }),
 
   
-tar_target(
-  coherent_network, {
-    # Prepare cohesive network
-    NPT_MM_OSM = cohesive_network_prep(combined_network_tile, crs = "EPSG:27700", parameters = parameters)
+# tar_target(
+#   coherent_network, {
+#     # Prepare cohesive network
+#     NPT_MM_OSM = cohesive_network_prep(combined_network_tile, crs = "EPSG:27700", parameters = parameters)
 
-    NPT_MM_OSM_CITY =  NPT_MM_OSM$cohesive_network
+#     NPT_MM_OSM_CITY =  NPT_MM_OSM$cohesive_network
 
-    NPT_MM_OSM_ZONE =  NPT_MM_OSM$cohesive_zone
+#     NPT_MM_OSM_ZONE =  NPT_MM_OSM$cohesive_zone
 
-    all_city_coherent_networks = list()
+#     all_city_coherent_networks = list()
 
-    # Define folder path using parameters for date_routing and region
-    folder_path = paste0("outputdata/", parameters$date_routing,"/",  snakecase::to_snake_case(parameters$region), "/", "coherent_networks/")
-    if(!dir.exists(folder_path)) {
-      dir.create(folder_path, recursive = TRUE)
-    }
-    for(city in parameters$coherent_area) {
+#     # Define folder path using parameters for date_routing and region
+#     folder_path = paste0("outputdata/", parameters$date_routing,"/",  snakecase::to_snake_case(parameters$region), "/", "coherent_networks/")
+#     if(!dir.exists(folder_path)) {
+#       dir.create(folder_path, recursive = TRUE)
+#     }
+#     for(city in parameters$coherent_area) {
         
-        city_coherent_networks = list()
+#         city_coherent_networks = list()
 
-        city_filename = gsub(" ", "_", city)
+#         city_filename = gsub(" ", "_", city)
 
-        CITY = NPT_MM_OSM_CITY[[city]]
-        ZONE = NPT_MM_OSM_ZONE[[city]]
+#         CITY = NPT_MM_OSM_CITY[[city]]
+#         ZONE = NPT_MM_OSM_ZONE[[city]]
 
-        # Loop through percentiles and process each network
-        for (percentile in parameters$coherent_percentile) {
-          print(paste0("Processing coherent network for ", city, " at percentile ", percentile))
-          percentile_factor = percentile / 100
-          grouped_net = coherent_network_group(CITY, ZONE, percentile_factor, arterial = FALSE)
+#         # Loop through percentiles and process each network
+#         for (percentile in parameters$coherent_percentile) {
+#           print(paste0("Processing coherent network for ", city, " at percentile ", percentile))
+#           percentile_factor = percentile / 100
+#           grouped_net = coherent_network_group(CITY, ZONE, percentile_factor, arterial = FALSE)
 
-          # Updated file path to include dynamic folder path
-          file_path = paste0(folder_path, city_filename, "_coherent_network_", percentile, ".geojson")
-          make_geojson_zones(grouped_net, file_path)
+#           # Updated file path to include dynamic folder path
+#           file_path = paste0(folder_path, city_filename, "_coherent_network_", percentile, ".geojson")
+#           make_geojson_zones(grouped_net, file_path)
 
-          city_coherent_networks[[paste0("percentile_", percentile)]] = grouped_net
-        }
+#           city_coherent_networks[[paste0("percentile_", percentile)]] = grouped_net
+#         }
   
-        # Store the networks in the list, organized by city
-        all_city_coherent_networks[[city]] = city_coherent_networks
-    }
+#         # Store the networks in the list, organized by city
+#         all_city_coherent_networks[[city]] = city_coherent_networks
+#     }
 
-    all_city_coherent_networks
-  },
-  cue = tar_cue(mode = "always")
-),
+#     all_city_coherent_networks
+#   },
+#   cue = tar_cue(mode = "always")
+# ),
 
 
-# Make PMTiles for website ------------------------------------------------
-tar_target(
-  pmtiles_coherent,
-  {
-    # Define folder path using parameters for date_routing and region
-    folder_path = paste0("outputdata/", parameters$date_routing,"/",  snakecase::to_snake_case(parameters$region), "/", "coherent_networks/") 
-    # Loop over every city
-    for (city in parameters$coherent_area) {
-      # Sanitize city name for filenames
-      city_filename = gsub(" ", "_", city)
+# # Make PMTiles for website ------------------------------------------------
+# tar_target(
+#   pmtiles_coherent,
+#   {
+#     # Define folder path using parameters for date_routing and region
+#     folder_path = paste0("outputdata/", parameters$date_routing,"/",  snakecase::to_snake_case(parameters$region), "/", "coherent_networks/") 
+    
+#     # Loop over every city
+#     for (city in parameters$coherent_area) {
+#       # Sanitize city name for filenames
+#       city_filename = gsub(" ", "_", city)
 
-      # Loop through each specified percentile
-      for (percentile in parameters$coherent_percentile) {
-        # Generate filenames for GeoJSON and PMTiles using city name and percentile
-        coherent_geojson_filename = paste0(folder_path, city_filename, "_coherent_network_", percentile, ".geojson")
-        coherent_pmtiles_filename = paste0(folder_path, city_filename, "_coherent_network_", percentile, ".pmtiles")
+#       # Loop through each specified percentile
+#       for (percentile in parameters$coherent_percentile) {
+#         # Generate filenames for GeoJSON and PMTiles using city name and percentile
+#         coherent_geojson_filename = paste0(folder_path, city_filename, "_coherent_network_", percentile, ".geojson")
+#         coherent_pmtiles_filename = paste0(folder_path, city_filename, "_coherent_network_", percentile, ".pmtiles")
 
-        # Construct the Tippecanoe command
-        command_tippecanoe = paste0(
-          'tippecanoe -o ', coherent_pmtiles_filename,
-          ' --name="', city_filename, '_coherent_network_', percentile, '"',
-          ' --layer=cohesivenetwork',
-          ' --attribution="University of Leeds"',
-          ' --minimum-zoom=6',
-          ' --maximum-zoom=13',
-          ' --maximum-tile-bytes=5000000',
-          ' --simplification=10',
-          ' --buffer=5',
-          ' -rg',
-          ' --force ',
-          coherent_geojson_filename
-        )
+#         # Construct the Tippecanoe command
+#         command_tippecanoe = paste0(
+#           'tippecanoe -o ', coherent_pmtiles_filename,
+#           ' --name="', city_filename, '_coherent_network_', percentile, '"',
+#           ' --layer=cohesivenetwork',
+#           ' --attribution="University of Leeds"',
+#           ' --minimum-zoom=6',
+#           ' --maximum-zoom=13',
+#           ' --maximum-tile-bytes=5000000',
+#           ' --simplification=10',
+#           ' --buffer=5',
+#           ' -rg',
+#           ' --force ',
+#           coherent_geojson_filename
+#         )
 
-        # Execute the command and capture output
-        system_output = system(command_tippecanoe, intern = TRUE)
-      }
-    }
-  },
-  cue = tar_cue(mode = "always")
-),
+#         # Execute the command and capture output
+#         system_output = system(command_tippecanoe, intern = TRUE)
+#       }
+#     }
+#   },
+#   cue = tar_cue(mode = "always")
+# ),
 
 tar_target(pmtiles_school, {
   check = length(school_points)

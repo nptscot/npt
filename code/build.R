@@ -26,12 +26,73 @@ for (region in region_names) {
 region_names_lowercase = snakecase::to_snake_case(region_names)
 region = region_names[1]
 
-for (region in region_names[1:6]) {
+for (region in region_names[1]) {
   message("Processing region: ", region)
   parameters$region = region
   parameters$coherent_area = cities_region_names[[region]]
   jsonlite::write_json(parameters, "parameters.json", pretty = TRUE)
   targets::tar_make()
+}
+
+# Generate coherent network
+for (region in region_names[1]) {
+    message("Processing coherent network for region: ", region)
+    parameters$region = region
+    parameters$coherent_area = cities_region_names[[region]]
+    jsonlite::write_json(parameters, "parameters.json", pretty = TRUE)
+
+    combined_network_tile_path = paste0("outputdata/", parameters$date_routing,"/",  snakecase::to_snake_case(parameters$region), "/", "combined_network_tile.geojson")
+    combined_network_tile = sf::read_sf(combined_network_tile_path)
+
+    NPT_MM_OSM = cohesive_network_prep(combined_network_tile, crs = "EPSG:27700", parameters = parameters)
+
+    NPT_MM_OSM_CITY =  NPT_MM_OSM$cohesive_network
+
+    NPT_MM_OSM_ZONE =  NPT_MM_OSM$cohesive_zone
+
+    folder_path = paste0("outputdata/", parameters$date_routing,"/",  snakecase::to_snake_case(parameters$region), "/", "coherent_networks/")
+
+    if(!dir.exists(folder_path)) {
+      dir.create(folder_path, recursive = TRUE)
+    }
+    for(city in parameters$coherent_area) {
+     
+        city_filename = gsub(" ", "_", city)
+
+        CITY = NPT_MM_OSM_CITY[[city]]
+        ZONE = NPT_MM_OSM_ZONE[[city]]
+
+        # Loop through percentiles and process each network
+        for (percentile in parameters$coherent_percentile) {
+          print(paste0("Processing coherent network for ", city, " at percentile ", percentile))
+          percentile_factor = percentile / 100
+          grouped_net = coherent_network_group(CITY, ZONE, percentile_factor, arterial = FALSE)
+
+          # Updated file path to include dynamic folder path
+          coherent_geojson_filename = paste0(folder_path, city_filename, "_coherent_network_", percentile, ".geojson")
+          make_geojson_zones(grouped_net, coherent_geojson_filename)
+
+          coherent_pmtiles_filename = paste0(folder_path, city_filename, "_coherent_network_", percentile, ".pmtiles")
+
+          # Construct the Tippecanoe command
+          command_tippecanoe = paste0(
+            'tippecanoe -o ', coherent_pmtiles_filename,
+            ' --name="', city_filename, '_coherent_network_', percentile, '"',
+            ' --layer=cohesivenetwork',
+            ' --attribution="University of Leeds"',
+            ' --minimum-zoom=6',
+            ' --maximum-zoom=13',
+            ' --maximum-tile-bytes=5000000',
+            ' --simplification=10',
+            ' --buffer=5',
+            ' -rg',
+            ' --force ',
+            coherent_geojson_filename
+          )
+          # Execute the command and capture output
+          system_output = system(command_tippecanoe, intern = TRUE)          
+        }
+  }   
 }
 
 output_folders = list.dirs(file.path("outputdata", parameters$date_routing))[-1]
