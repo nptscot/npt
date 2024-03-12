@@ -1285,7 +1285,9 @@ tar_target(
 
     # Define folder path using parameters for date_routing and region
     folder_path = paste0("outputdata/", parameters$date_routing,"/",  snakecase::to_snake_case(parameters$region), "/", "coherent_networks/")
-
+    if(!dir.exists(folder_path)) {
+      dir.create(folder_path, recursive = TRUE)
+    }
     for(city in parameters$coherent_area) {
         
         city_coherent_networks = list()
