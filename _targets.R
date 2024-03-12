@@ -1274,6 +1274,7 @@ tar_target(simplified_network, {
   
 tar_target(
   coherent_network, {
+
     # Prepare cohesive network
     NPT_MM_OSM = cohesive_network_prep(combined_network_tile, crs = "EPSG:27700", parameters = parameters)
 
@@ -1282,6 +1283,9 @@ tar_target(
     NPT_MM_OSM_ZONE =  NPT_MM_OSM$cohesive_zone
 
     all_city_coherent_networks = list()
+
+    # Define folder path using parameters for date_routing and region
+    folder_path = paste0("outputdata/", parameters$date_routing, parameters$region, "/", "coherent_networks/")
 
     for(city in parameters$coherent_area) {
         
@@ -1296,8 +1300,11 @@ tar_target(
         for (percentile in parameters$coherent_percentile) {
           print(paste0("Processing coherent network for ", city, " at percentile ", percentile))
           percentile_factor = percentile / 100
-          grouped_net = coherent_network_group(CITY, ZONE, percentile_factor)
-          make_geojson_zones(grouped_net, paste0("outputdata/", city_filename, "_coherent_network_", percentile, ".geojson"))
+          grouped_net = coherent_network_group(CITY, ZONE, percentile_factor, arterial = FALSE)
+
+          # Updated file path to include dynamic folder path
+          file_path = paste0(folder_path, city_filename, "_coherent_network_", percentile, ".geojson")
+          make_geojson_zones(grouped_net, file_path)
 
           city_coherent_networks[[paste0("percentile_", percentile)]] = grouped_net
         }
@@ -1316,6 +1323,9 @@ tar_target(
 tar_target(
   pmtiles_coherent,
   {
+    # Define folder path using parameters for date_routing and region
+    folder_path = paste0("outputdata/", parameters$date_routing, parameters$region, "/", "coherent_networks/")
+        
     # Loop over every city
     for (city in parameters$coherent_area) {
       # Sanitize city name for filenames
@@ -1324,8 +1334,8 @@ tar_target(
       # Loop through each specified percentile
       for (percentile in parameters$coherent_percentile) {
         # Generate filenames for GeoJSON and PMTiles using city name and percentile
-        coherent_geojson_filename = paste0("outputdata/", city_filename, "_coherent_network_", percentile, ".geojson")
-        coherent_pmtiles_filename = paste0("outputdata/", city_filename, "_coherent_network_", percentile, ".pmtiles")
+        coherent_geojson_filename = paste0(folder_path, city_filename, "_coherent_network_", percentile, ".geojson")
+        coherent_pmtiles_filename = paste0(folder_path, city_filename, "_coherent_network_", percentile, ".pmtiles")
 
         # Construct the Tippecanoe command
         command_tippecanoe = paste0(
