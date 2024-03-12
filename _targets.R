@@ -1274,7 +1274,6 @@ tar_target(simplified_network, {
   
 tar_target(
   coherent_network, {
-
     # Prepare cohesive network
     NPT_MM_OSM = cohesive_network_prep(combined_network_tile, crs = "EPSG:27700", parameters = parameters)
 
@@ -1285,7 +1284,7 @@ tar_target(
     all_city_coherent_networks = list()
 
     # Define folder path using parameters for date_routing and region
-    folder_path = paste0("outputdata/", parameters$date_routing, parameters$region, "/", "coherent_networks/")
+    folder_path = paste0("outputdata/", parameters$date_routing,"/",  snakecase::to_snake_case(parameters$region), "/", "coherent_networks/")
 
     for(city in parameters$coherent_area) {
         
@@ -1324,8 +1323,7 @@ tar_target(
   pmtiles_coherent,
   {
     # Define folder path using parameters for date_routing and region
-    folder_path = paste0("outputdata/", parameters$date_routing, parameters$region, "/", "coherent_networks/")
-        
+    folder_path = paste0("outputdata/", parameters$date_routing,"/",  snakecase::to_snake_case(parameters$region), "/", "coherent_networks/") 
     # Loop over every city
     for (city in parameters$coherent_area) {
       # Sanitize city name for filenames

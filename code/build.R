@@ -4,6 +4,7 @@ library(tidyverse)
 library(targets)
 library(tidygraph)
 library(osmextract)
+devtools::load_all()
 tar_source()
 
 parameters = jsonlite::read_json("parameters.json", simplifyVector = T)
