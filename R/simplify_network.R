@@ -26,7 +26,13 @@ simplify_network = function(rnet_y, parameters){
     # Check if the file exists locally
     if (!file.exists(file_path) || file.size(file_path) <= 0) {
       message(paste("Local file", file_path, "not found or is empty. Attempting to download from URL..."))
-      download.file(url_rnet_x, file_path, method = "libcurl")
+      message("Download the file from https://github.com/nptscot/inputdata/releases/tag/OS_network")
+      message("Attempting to do that with the following command in bash:")
+      old_wd = setwd("inputdata")
+      msg = "gh release download OS_network --pattern '*.geojson'"
+      message(msg)
+      system(command = msg)
+      setwd(old_wd)
     }
     
     # After attempting download, check again if the file exists and is valid
