@@ -26,7 +26,7 @@ for (region in region_names) {
 region_names_lowercase = snakecase::to_snake_case(region_names)
 region = region_names[1]
 
-for (region in region_names[1]) {
+for (region in region_names[1:6]) {
   message("Processing region: ", region)
   parameters$region = region
   parameters$coherent_area = cities_region_names[[region]]
@@ -35,7 +35,7 @@ for (region in region_names[1]) {
 }
 
 # Generate coherent network
-for (region in region_names[1]) {
+for (region in region_names[1:6]) {
     message("Processing coherent network for region: ", region)
     parameters$region = region
     parameters$coherent_area = cities_region_names[[region]]
@@ -94,6 +94,7 @@ for (region in region_names[1]) {
         }
   }   
 }
+# End of coherent network
 
 output_folders = list.dirs(file.path("outputdata", parameters$date_routing))[-1]
 regional_output_files = list.files(output_folders[1])
