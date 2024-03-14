@@ -83,9 +83,9 @@ setwd(old_wd)
 
 scotland_park_access = st_read("inputdata/scotland_park_access.gpkg")
 
-park_access = scotland_park_access[study_area, ]
-tm_shape(park_access) + tm_dots()
-mapview::mapview(park_access)
+# park_access_study = scotland_park_access[study_area, ]
+# tm_shape(park_access_study) + tm_dots()
+# mapview::mapview(park_access_study)
 
 # Calculate park areas and exclude very small ones
 
@@ -107,32 +107,32 @@ scotland_park_areas = scotland_park_areas |>
 large_parks = scotland_park_areas |> 
   filter(area_m > 6000)
 
-park_areas = large_parks[study_area, ]
-tm_shape(park_areas, alpha = 0.5) + tm_polygons() + 
-  tm_shape(park_access) + tm_dots()
-mapview::mapview(park_areas)
+# park_areas_study = large_parks[study_area, ]
+# tm_shape(park_areas_study, alpha = 0.5) + tm_polygons() + 
+#   tm_shape(park_access_study) + tm_dots()
+# mapview::mapview(park_areas_study)
 
 # Make a 20m buffer around the large parks
 
 large_parks_buff = large_parks |> 
   st_buffer(dist = 20)
 st_write(large_parks_buff, "inputdata/large_parks_buff.gpkg", delete_dsn = TRUE)
-
 old_wd = setwd("inputdata")
 system("gh release upload parks large_parks_buff.gpkg --clobber")
 setwd(old_wd)
 
 large_parks_buff = st_read("inputdata/large_parks_buff.gpkg")
 
-parks_buff_study = large_parks_buff[study_area, ]
+# parks_buff_study = large_parks_buff[study_area, ]
 # tm_shape(parks_buff_study, alpha = 0.5) + tm_polygons() + 
-#   tm_shape(park_access) + tm_dots()
+#   tm_shape(park_access_study) + tm_dots()
 
 # Filter park access points to the buffered large parks
 
-large_park_access_study = park_access[parks_buff_study, ]
-tm_shape(parks_buff_study, alpha = 0.5) + tm_polygons() +
-  tm_shape(large_park_access_study) + tm_dots()
-
 large_park_access = scotland_park_access[large_parks_buff, ]
+
+# large_park_access_study = park_access_study[parks_buff_study, ]
+# tm_shape(parks_buff_study, alpha = 0.5) + tm_polygons() +
+#   tm_shape(large_park_access_study) + tm_dots()
+
 
