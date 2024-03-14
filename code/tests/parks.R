@@ -210,7 +210,7 @@ park_grid_study = park_grid[study_area, ]
 tm_shape(park_grid_study) + tm_dots(size = "size")
 
 # New combined grid
-combined_grid = rbind(leisure_grid_study, park_grid_study)
+combined_grid = rbind(leisure_grid, park_grid)
 combined_grid = combined_grid |> 
   sf::st_drop_geometry() |> 
   dplyr::group_by(grid_id) |> 
