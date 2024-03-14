@@ -313,6 +313,21 @@ tar_target(done_commute_fastest, {
   length(rs_commute_fastest) #Hack for scheduling
 }),
 
+tar_target(rs_commute_balanced, {
+  length(done_commute_fastest)
+  rs = get_routes(od = od_commute_subset,
+                  plans = "balanced", 
+                  purpose = "commute",
+                  folder = output_folder,
+                  date = parameters$date_routing,
+                  segments = "both")
+  rs
+}),
+
+tar_target(done_commute_balanced, {
+  length(rs_commute_balanced) #Hack for scheduling
+}),
+
 tar_target(rs_commute_quietest, {
   length(done_commute_fastest)
   rs = get_routes(od = od_commute_subset,
@@ -342,22 +357,6 @@ tar_target(rs_commute_ebike, {
 tar_target(done_commute_ebike, {
   length(rs_commute_ebike) #Hack for scheduling
 }),
-
-tar_target(rs_commute_balanced, {
-  length(done_school_balanced)
-  rs = get_routes(od = od_commute_subset,
-                  plans = "balanced", 
-                  purpose = "commute",
-                  folder = output_folder,
-                  date = parameters$date_routing,
-                  segments = "both")
-  rs
-}),
-
-tar_target(done_commute_balanced, {
-  length(rs_commute_balanced) #Hack for scheduling
-}),
-
 
 # Commute routing post-processing -----------------------------------------
 
