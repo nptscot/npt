@@ -57,6 +57,7 @@ os_recreation = os_pois |>
 tm_shape(os_recreation) + tm_dots()
 
 # Get parks from Ordnance Survey
+
 scotland_boundary = read_sf("./inputdata/Scotland_boundary.shp")
 scotland_boundary = scotland_boundary |> 
   st_transform(4326)
@@ -87,6 +88,7 @@ tm_shape(park_access) + tm_dots()
 mapview::mapview(park_access)
 
 # Calculate park areas and exclude very small ones
+
 os_park_areas = read_sf("inputdata/opgrsp_gb.gpkg", layer = "greenspace_site")
 os_park_areas = os_park_areas |> 
   st_transform(4326)
@@ -110,15 +112,27 @@ tm_shape(park_areas, alpha = 0.5) + tm_polygons() +
   tm_shape(park_access) + tm_dots()
 mapview::mapview(park_areas)
 
-# Join park access points to the large parks polygons
+# Make a 20m buffer around the large parks
+
 large_parks_buff = large_parks |> 
   st_buffer(dist = 20)
 st_write(large_parks_buff, "inputdata/large_parks_buff.gpkg", delete_dsn = TRUE)
+
+old_wd = setwd("inputdata")
+system("gh release upload parks large_parks_buff.gpkg --clobber")
+setwd(old_wd)
+
+large_parks_buff = st_read("inputdata/large_parks_buff.gpkg")
 
 parks_buff_study = large_parks_buff[study_area, ]
 # tm_shape(parks_buff_study, alpha = 0.5) + tm_polygons() + 
 #   tm_shape(park_access) + tm_dots()
 
-large_park_access = 
+# Filter park access points to the buffered large parks
 
+large_park_access_study = park_access[parks_buff_study, ]
+tm_shape(parks_buff_study, alpha = 0.5) + tm_polygons() +
+  tm_shape(large_park_access_study) + tm_dots()
+
+large_park_access = scotland_park_access[large_parks_buff, ]
 
