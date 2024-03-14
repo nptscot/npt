@@ -2,6 +2,7 @@ tar_load(parameters)
 tar_load(os_pois)
 library(tmap)
 tmap_mode("view")
+library(tidyverse)
 
 # Exploring OS pois - we could easily include a wider range of attractions
 
@@ -96,11 +97,28 @@ old_wd = setwd("inputdata")
 system("gh release upload parks scotland_park_areas.gpkg --clobber")
 setwd(old_wd)
 
-scotland_park_areas = st_read("inputdata/scotland_park_access.gpkg")
+scotland_park_areas = st_read("inputdata/scotland_park_areas.gpkg")
 
-# Get parks from OSM, and calculate their centroids
-osmextract
+scotland_park_areas = scotland_park_areas |> 
+  mutate(area_m = units::drop_units(st_area(scotland_park_areas)))
 
-# Make 500m grid of points within parks, so larger parks have higher desirability
+large_parks = scotland_park_areas |> 
+  filter(area_m > 6000)
+
+park_areas = large_parks[study_area, ]
+tm_shape(park_areas, alpha = 0.5) + tm_polygons() + 
+  tm_shape(park_access) + tm_dots()
+mapview::mapview(park_areas)
+
+# Join park access points to the large parks polygons
+large_parks_buff = large_parks |> 
+  st_buffer(dist = 20)
+st_write(large_parks_buff, "inputdata/large_parks_buff.gpkg", delete_dsn = TRUE)
+
+parks_buff_study = large_parks_buff[study_area, ]
+# tm_shape(parks_buff_study, alpha = 0.5) + tm_polygons() + 
+#   tm_shape(park_access) + tm_dots()
+
+large_park_access = 
 
 
