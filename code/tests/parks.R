@@ -170,12 +170,15 @@ setwd(old_wd)
 
 # Compare effect of changes -----------------------------------------------
 
+tar_load(grid)
+grid_df = data.frame(grid)
+grid_df = tibble::rowid_to_column(grid_df, "grid_id")
+
 # Original leisure grid
 os_leisure = os_pois %>% 
   dplyr::filter(groupname == "Sport and Entertainment") # 20524 points
 os_leisure = os_leisure %>% 
   sf::st_transform(27700)
-tar_load(grid)
 leisure = os_leisure %>% 
   dplyr::mutate(grid_id = sf::st_nearest_feature(os_leisure, grid))
 # calculate weighting of each grid point
@@ -184,8 +187,6 @@ leisure_grid = leisure %>%
   dplyr::group_by(grid_id) %>% 
   dplyr::summarise(size = n())
 # assign grid geometry
-grid_df = data.frame(grid)
-grid_df = tibble::rowid_to_column(grid_df, "grid_id")
 leisure_join = dplyr::inner_join(grid_df, leisure_grid)
 leisure_grid = sf::st_as_sf(leisure_join)
 leisure_grid = sf::st_transform(leisure_grid, 4326)
@@ -202,8 +203,6 @@ park_grid = park_grid %>%
   dplyr::group_by(grid_id) %>% 
   dplyr::summarise(size = n())
 # assign grid geometry
-grid_df = data.frame(grid)
-grid_df = tibble::rowid_to_column(grid_df, "grid_id")
 park_join = dplyr::inner_join(grid_df, park_grid)
 park_grid = sf::st_as_sf(park_join)
 park_grid = sf::st_transform(park_grid, 4326)
@@ -211,4 +210,15 @@ park_grid_study = park_grid[study_area, ]
 tm_shape(park_grid_study) + tm_dots(size = "size")
 
 # New combined grid
-
+combined_grid = rbind(leisure_grid_study, park_grid_study)
+combined_grid = combined_grid |> 
+  sf::st_drop_geometry() |> 
+  dplyr::group_by(grid_id) |> 
+  dplyr::summarise(size = sum(size))
+# assign grid geometry
+combined_join = dplyr::inner_join(grid_df, combined_grid)
+combined_grid = sf::st_as_sf(combined_join)
+combined_grid = sf::st_transform(combined_grid, 4326)
+combined_grid_study = combined_grid[study_area, ]
+tm_shape(combined_grid) + tm_dots(size = "size")
+  
