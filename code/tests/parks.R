@@ -57,26 +57,46 @@ tm_shape(os_recreation) + tm_dots()
 
 # Get parks from Ordnance Survey
 scotland_boundary = read_sf("./inputdata/Scotland_boundary.shp")
-st_layers("inputdata/opgrsp_gb.gpkg")
-os_parks = read_sf("inputdata/opgrsp_gb.gpkg")
 scotland_boundary = scotland_boundary |> 
   st_transform(4326)
-os_parks = os_parks |> 
+
+st_layers("inputdata/opgrsp_gb.gpkg")
+# Driver: GPKG 
+# Available layers:
+#   layer_name geometry_type features fields                       crs_name
+# 1    access_point         Point   296639      3 OSGB36 / British National Grid
+# 2 greenspace_site Multi Polygon   150415      6 OSGB36 / British National Grid
+
+os_park_access = read_sf("inputdata/opgrsp_gb.gpkg")
+os_park_access = os_park_access |> 
   st_transform(4326)
-scotland_parks = os_parks[scotland_boundary, ]
-st_write(scotland_parks, "./inputdata/scotland_parks.gpkg")
+scotland_park_access = os_park_access[scotland_boundary, ]
+st_write(scotland_park_access, "./inputdata/scotland_park_access.gpkg", delete_dsn = TRUE)
 # Upload to inputdata release
 old_wd = setwd("inputdata")
 system("gh release list")
 system("gh release create parks")
-system("gh release upload parks scotland_parks.gpkg --clobber")
+system("gh release upload parks scotland_park_access.gpkg --clobber")
 setwd(old_wd)
 
-parks = scotland_parks[study_area, ]
-tm_shape(parks) + tm_polygons()
-mapview::mapview(parks)
+scotland_park_access = st_read("inputdata/scotland_park_access.gpkg")
 
-# Calculate park areas and weight by area and number of entrances
+park_access = scotland_park_access[study_area, ]
+tm_shape(park_access) + tm_dots()
+mapview::mapview(park_access)
+
+# Calculate park areas and exclude very small ones
+os_park_areas = read_sf("inputdata/opgrsp_gb.gpkg", layer = "greenspace_site")
+os_park_areas = os_park_areas |> 
+  st_transform(4326)
+scotland_park_areas = os_park_areas[scotland_boundary, ]
+st_write(scotland_park_areas, "./inputdata/scotland_park_areas.gpkg", delete_dsn = TRUE)
+# Upload to inputdata release
+old_wd = setwd("inputdata")
+system("gh release upload parks scotland_park_areas.gpkg --clobber")
+setwd(old_wd)
+
+scotland_park_areas = st_read("inputdata/scotland_park_access.gpkg")
 
 # Get parks from OSM, and calculate their centroids
 osmextract
