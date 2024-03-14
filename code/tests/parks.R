@@ -113,7 +113,6 @@ large_parks = scotland_park_areas |>
 # mapview::mapview(park_areas_study)
 
 # Make a 20m buffer around the large parks
-
 large_parks_buff = large_parks |> 
   st_buffer(dist = 20)
 st_write(large_parks_buff, "inputdata/large_parks_buff.gpkg", delete_dsn = TRUE)
@@ -128,11 +127,88 @@ large_parks_buff = st_read("inputdata/large_parks_buff.gpkg")
 #   tm_shape(park_access_study) + tm_dots()
 
 # Filter park access points to the buffered large parks
-
 large_park_access = scotland_park_access[large_parks_buff, ]
 
 # large_park_access_study = park_access_study[parks_buff_study, ]
 # tm_shape(parks_buff_study, alpha = 0.5) + tm_polygons() +
 #   tm_shape(large_park_access_study) + tm_dots()
 
+# Get OS pois for whole of Scotland
+path_teams = Sys.getenv("NPT_TEAMS_PATH")
+os_pois = readRDS(file.path(path_teams, "secure_data/OS/os_poi.Rds"))
+os_pois = os_pois %>% 
+  mutate(groupname = as.character(groupname))
+os_recreation = os_pois |> 
+  filter(categoryname == "Recreational")
+
+# Join park access points with OS pois
+dim(large_park_access)
+# [1] 21043     4
+dim(os_recreation)
+# [1] 6661   10
+
+unique(large_park_access$access_type)
+# [1] "Pedestrian"                   "Motor Vehicle And Pedestrian" "Motor Vehicle" 
+
+park_access_standard = large_park_access |> 
+  transmute(id, type = access_type)
+os_rec_standard = os_recreation |> 
+  transmute(id = ref_no, type = name)
+os_rec_standard$id = as.character(os_rec_standard$id)
+
+park_points = bind_rows(park_access_standard, os_rec_standard)
+
+# park_points_study = park_points[study_area, ]
+# tm_shape(parks_buff_study, alpha = 0.5) + tm_polygons() +
+#   tm_shape(park_points_study) + tm_dots()
+
+st_write(park_points, "inputdata/park_points.gpkg", delete_dsn = TRUE)
+old_wd = setwd("inputdata")
+system("gh release upload parks park_points.gpkg --clobber")
+setwd(old_wd)
+
+
+# Compare effect of changes -----------------------------------------------
+
+# Original leisure grid
+os_leisure = os_pois %>% 
+  dplyr::filter(groupname == "Sport and Entertainment") # 20524 points
+os_leisure = os_leisure %>% 
+  sf::st_transform(27700)
+tar_load(grid)
+leisure = os_leisure %>% 
+  dplyr::mutate(grid_id = sf::st_nearest_feature(os_leisure, grid))
+# calculate weighting of each grid point
+leisure_grid = leisure %>% 
+  sf::st_drop_geometry() %>% 
+  dplyr::group_by(grid_id) %>% 
+  dplyr::summarise(size = n())
+# assign grid geometry
+grid_df = data.frame(grid)
+grid_df = tibble::rowid_to_column(grid_df, "grid_id")
+leisure_join = dplyr::inner_join(grid_df, leisure_grid)
+leisure_grid = sf::st_as_sf(leisure_join)
+leisure_grid = sf::st_transform(leisure_grid, 4326)
+leisure_grid_study = leisure_grid[study_area, ]
+tm_shape(leisure_grid_study) + tm_dots(size = "size")
+
+# New park grid
+park_grid = park_points %>% 
+  st_transform(27700)
+park_grid = park_grid |> 
+  dplyr::mutate(grid_id = sf::st_nearest_feature(park_grid, grid))
+park_grid = park_grid %>% 
+  sf::st_drop_geometry() %>% 
+  dplyr::group_by(grid_id) %>% 
+  dplyr::summarise(size = n())
+# assign grid geometry
+grid_df = data.frame(grid)
+grid_df = tibble::rowid_to_column(grid_df, "grid_id")
+park_join = dplyr::inner_join(grid_df, park_grid)
+park_grid = sf::st_as_sf(park_join)
+park_grid = sf::st_transform(park_grid, 4326)
+park_grid_study = park_grid[study_area, ]
+tm_shape(park_grid_study) + tm_dots(size = "size")
+
+# New combined grid
 
