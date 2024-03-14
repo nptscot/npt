@@ -31,7 +31,7 @@ region = region_names[1]
 failed_regions = character()
 
 # First loop: Attempt to process each region and capture any failures
-for (region in region_names[2:6]) {
+for (region in region_names[3:4]) {
   tryCatch({
     message("Processing region: ", region)
     parameters$region = region
@@ -41,7 +41,8 @@ for (region in region_names[2:6]) {
   }, error = function(e) {
     message(paste("Error encountered in region", region, ". Error details: ", e$message))
     # Add the failed region to the vector for later retry
-    failed_regions = c(failed_regions, region)
+    print(paste("Adding", region, "to failed_regions"))
+    failed_regions <<- c(failed_regions, region)
   })
 }
 
