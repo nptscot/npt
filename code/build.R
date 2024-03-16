@@ -9,7 +9,7 @@ tar_source()
 
 parameters = jsonlite::read_json("parameters.json", simplifyVector = T)
 lads = sf::read_sf("inputdata/boundaries/la_regions_2023.geojson")
-region_names = unique(lads$Region)
+region_names = unique(lads$Region)[c(3, 2, 1, 4, 5, 6)] # Start with Glasgow
 cities_region_names = list()
 
 for (region in region_names) {
