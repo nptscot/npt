@@ -13,20 +13,21 @@ region_names = unique(lads$Region)[c(3, 2, 1, 4, 5, 6)] # Start with Glasgow
 cities_region_names = list()
 
 for (region in region_names) {
-  # Assuming 'CityName' is the column that holds the names of cities or localities
+# Assuming 'CityName' is the column that holds the names of cities or localities
   cities_in_region = lads |> 
     filter(Region == region) |> 
     pull(LAD23NM) |> 
     unique() # Ensure unique city names
-  
-  # Add the city names to the list under the region name
+
+# Add the city names to the list under the region name
   cities_region_names[[region]] = cities_in_region
 }
 
 region_names_lowercase = snakecase::to_snake_case(region_names)
 region = region_names[1]
+region_names_lowercase
 
-for (region in region_names[1]) {
+for (region in region_names[3:6]) {
   message("Processing region: ", region)
   parameters$region = region
   parameters$coherent_area = cities_region_names[[region]]
