@@ -4,60 +4,49 @@
 
 simplify_network = function(rnet_y, parameters){
   # Read spatial data directly from URLs into sf objects
-  # TODO: use small dataset if open data build is TRUE
-  if (parameters$open_data_build) {
-    rnet_x = geojsonsf::geojson_sf("https://github.com/ropensci/stplanr/releases/download/v1.0.2/rnet_x_ed.geojson")
-    rnet_x_buffers = sf::st_buffer(rnet_x, dist = 20, endCapStyle = "FLAT")
-    single_rnet_x_buffer = sf::st_union(rnet_x_buffers)
-    rnet_x_buffer = sf::st_sf(geometry = single_rnet_x_buffer)
-    rnet_x_buffer = sf::st_make_valid(rnet_x_buffer)
-  } else {
     # Build file path and URL based on parameters$region
-    if (!is.null(parameters$region)) {
-      region_snake_case = snakecase::to_snake_case(parameters$region)
-      base_name = paste("OS_Scotland_Network", region_snake_case, sep = "_")
-    } else {
-      base_name = "OS_Scotland_Network"
-    }
-    
-    file_path = paste0("inputdata/", base_name, ".geojson")
-    url_rnet_x = paste0("https://github.com/nptscot/inputdata/releases/download/OS_network/", base_name, ".geojson")
-    
-    # Check if the file exists locally
-    if (!file.exists(file_path) || file.size(file_path) <= 0) {
-      message(paste("Local file", file_path, "not found or is empty. Attempting to download from URL..."))
-      message("Download the file from https://github.com/nptscot/inputdata/releases/tag/OS_network")
-      message("Attempting to do that with the following command in bash:")
-      old_wd = setwd("inputdata")
-      msg = "gh release download OS_network --pattern '*.geojson'"
-      message(msg)
-      system(command = msg)
-      setwd(old_wd)
-    }
-    
-    # After attempting download, check again if the file exists and is valid
-    if (file.exists(file_path) && file.size(file_path) > 0) {
-      rnet_x = geojsonsf::geojson_sf(file_path)
-    } else {
-      stop(paste("File download failed or file is empty for", base_name))
-    }
+
+  if (!is.null(parameters$region)) {
+    region_snake_case = snakecase::to_snake_case(parameters$region[[1]])
+    base_name = paste("OS_Scotland_Network", region_snake_case, sep = "_")
+  } else {
+    base_name = "OS_Scotland_Network"
+  }
+  
+  file_path = paste0("inputdata/", base_name, ".geojson")
+  url_rnet_x = paste0("https://github.com/nptscot/inputdata/releases/download/OS_network/", base_name, ".geojson")
+  
+  # Check if the file exists locally
+  if (!file.exists(file_path) || file.size(file_path) <= 0) {
+    message(paste("Local file", file_path, "not found or is empty. Attempting to download from URL..."))
+    message("Download the file from https://github.com/nptscot/inputdata/releases/tag/OS_network")
+    message("Attempting to do that with the following command in bash:")
+    old_wd = setwd("inputdata")
+    msg = "gh release download OS_network --pattern '*.geojson'"
+    message(msg)
+    system(command = msg)
+    setwd(old_wd)
+  }
+  
+  # After attempting download, check again if the file exists and is valid
+  if (file.exists(file_path) && file.size(file_path) > 0) {
+    rnet_x = geojsonsf::geojson_sf(file_path)
+  } else {
+    stop(paste("File download failed or file is empty for", base_name))
   }
 
+  lads = sf::read_sf("inputdata/boundaries/la_regions_2023.geojson")
+
+  zone = lads[lads$Region == parameters$region[[1]],]
+  zone = sf::st_transform(zone, "EPSG:27700")
   # Transform the spatial data to a different coordinate reference system (EPSG:27700)
   # TODO: uncomment:
   rnet_xp = sf::st_transform(rnet_x, "EPSG:27700")
   rnet_yp = sf::st_transform(rnet_y, "EPSG:27700")
 
-  # Removing lines that not exist in combined_network_tile
-  # Creating a buffer around the GEOS geometry 'rnet_yp'. This expands the geometry by a specified distance (15 meters in this case).
-  rnet_yp_buffer = geos::geos_buffer(rnet_yp, distance = 15, params = geos::geos_buffer_params(quad_segs = 4))
-
-  # Converting the buffer created above into an 'sf' (simple features) object. This is necessary because the buffer created by 'geos_buffer'
-  rnet_yp_buffer = sf::st_as_sf(rnet_yp_buffer)
-
   # Subsetting 'rnet_xp' to include only those features that are within the buffer created around 'rnet_yp'.
-  rnet_xp = rnet_xp[rnet_yp_buffer, , op = sf::st_within]
-
+  rnet_xp = rnet_xp[zone, , op = sf::st_within]
+  rnet_yp = rnet_yp[zone, , op = sf::st_within]
   # Extract column names from the rnet_yp
   name_list = names(rnet_yp)
   
@@ -78,7 +67,7 @@ simplify_network = function(rnet_y, parameters){
   # Merge the spatial objects rnet_xp and rnet_yp based on specified parameters
   dist = 20
   angle = 15
-  rnet_merged_all = stplanr::rnet_merge(rnet_xp, rnet_yp, dist = dist, funs = funs, max_angle_diff = angle)  #segment_length = 20
+  rnet_merged_all = stplanr::rnet_merge(rnet_xp, rnet_yp, dist = dist, funs = funs, max_angle_diff = angle, segment_length = 20) 
   
   # Remove unnecessary columns from the merged spatial object
   rnet_merged_all = rnet_merged_all[ , !(names(rnet_merged_all) %in% c('identifier','length_x'))]
