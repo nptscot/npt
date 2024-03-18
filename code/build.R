@@ -9,23 +9,23 @@ tar_source()
 
 parameters = jsonlite::read_json("parameters.json", simplifyVector = T)
 lads = sf::read_sf("inputdata/boundaries/la_regions_2023.geojson")
-region_names = unique(lads$Region)
+region_names = unique(lads$Region)[c(3, 2, 1, 4, 5, 6)] # Start with Glasgow
 cities_region_names = list()
 
 for (region in region_names) {
-  # Assuming 'CityName' is the column that holds the names of cities or localities
+# Assuming 'CityName' is the column that holds the names of cities or localities
   cities_in_region = lads |> 
     filter(Region == region) |> 
     pull(LAD23NM) |> 
     unique() # Ensure unique city names
-  
-  # Add the city names to the list under the region name
+
+# Add the city names to the list under the region name
   cities_region_names[[region]] = cities_in_region
 }
 
 region_names_lowercase = snakecase::to_snake_case(region_names)
 region = region_names[1]
-
+region_names_lowercase
 
 # Initialize a vector to hold the names of regions that fail in the first attempt
 failed_regions = character()
@@ -64,6 +64,28 @@ if (length(failed_regions) > 0) {
 } else {
   message("All regions processed successfully on the first attempt.")
 }
+
+# Zip the contents of the outputdata folder
+output_folder = file.path("outputdata", parameters$date_routing)
+list.files(output_folder)
+setwd("outputdata")
+zip_file = paste0(parameters$date_routing, "2.zip")
+zip(zipfile = zip_file, parameters$date_routing, extras = "-x *.Rds")
+dir.create("2024-03-14-geojson")
+for(i in list.dirs("2024-03-14")) {
+  r = gsub(pattern = "2024-03-14/", replacement = "", x = i)
+  f = list.files(i, pattern = "geojson", full.names = TRUE)
+  f_new = file.path("2024-03-14-geojson", paste0(r, "_", basename(f)))
+  message(paste(f, collapse = "\n"))
+  message(paste(f_new, collapse = "\n"))
+  file.copy(f, f_new)
+}
+
+zip("2024-03-14-geojson.zip", files = "2024-03-14-geojson")
+fs::file_size("2024-03-14-geojson.zip")
+system("gh release list")
+system("gh release create 2024-03-14-geojson")
+system("gh release upload 2024-03-14-geojson 2024-03-14-geojson.zip")
 
 # Generate coherent network
 for (region in region_names[1:6]) {
