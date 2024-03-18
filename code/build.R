@@ -27,13 +27,35 @@ region_names_lowercase = snakecase::to_snake_case(region_names)
 region = region_names[1]
 region_names_lowercase
 
-for (region in region_names[3:6]) {
+for (region in region_names[5:6]) {
   message("Processing region: ", region)
   parameters$region = region
   parameters$coherent_area = cities_region_names[[region]]
   jsonlite::write_json(parameters, "parameters.json", pretty = TRUE)
   targets::tar_make()
 }
+
+# Zip the contents of the outputdata folder
+output_folder = file.path("outputdata", parameters$date_routing)
+list.files(output_folder)
+setwd("outputdata")
+zip_file = paste0(parameters$date_routing, "2.zip")
+zip(zipfile = zip_file, parameters$date_routing, extras = "-x *.Rds")
+dir.create("2024-03-14-geojson")
+for(i in list.dirs("2024-03-14")) {
+  f = list.files(i, pattern = "geojson", full.names = TRUE)
+  f_new = file.path("2024-03-14-geojson", basename(f))
+  message(paste(f, collapse = "\n"))
+  message(paste(f_new, collapse = "\n"))
+  file.copy(f, f_new)
+  
+}
+
+zip("2024-03-14-geojson.zip", files = "2024-03-14-geojson")
+fs::file_size("2024-03-14-geojson.zip")
+system("gh release list")
+system("gh release create 2024-03-14-geojson")
+system("gh release upload 2024-03-14-geojson 2024-03-14-geojson.zip")
 
 # Generate coherent network
 for (region in region_names[1]) {
