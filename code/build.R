@@ -27,12 +27,42 @@ region_names_lowercase = snakecase::to_snake_case(region_names)
 region = region_names[1]
 region_names_lowercase
 
-for (region in region_names[5:6]) {
-  message("Processing region: ", region)
-  parameters$region = region
-  parameters$coherent_area = cities_region_names[[region]]
-  jsonlite::write_json(parameters, "parameters.json", pretty = TRUE)
-  targets::tar_make()
+# Initialize a vector to hold the names of regions that fail in the first attempt
+failed_regions = character()
+
+# First loop: Attempt to process each region and capture any failures
+for (region in region_names[3:4]) {
+  tryCatch({
+    message("Processing region: ", region)
+    parameters$region = region
+    parameters$coherent_area = cities_region_names[[region]]
+    jsonlite::write_json(parameters, "parameters.json", pretty = TRUE)
+    targets::tar_make()
+  }, error = function(e) {
+    message(paste("Error encountered in region", region, ". Error details: ", e$message))
+    # Add the failed region to the vector for later retry
+    print(paste("Adding", region, "to failed_regions"))
+    failed_regions <<- c(failed_regions, region)
+  })
+}
+
+# Second loop: Attempt to reprocess any regions that failed in the first attempt
+if (length(failed_regions) > 0) {
+  message("Attempting to reprocess failed regions...")
+  for (region in failed_regions) {
+    tryCatch({
+      message("Reprocessing region: ", region)
+      parameters$region = region
+      parameters$coherent_area = cities_region_names[[region]]
+      jsonlite::write_json(parameters, "parameters.json", pretty = TRUE)
+      targets::tar_make()
+    }, error = function(e) {
+      message(paste("Failed again in region", region, ". Error details: ", e$message))
+      # Here you could log the failure or take additional recovery actions
+    })
+  }
+} else {
+  message("All regions processed successfully on the first attempt.")
 }
 
 # Zip the contents of the outputdata folder
@@ -58,7 +88,7 @@ system("gh release create 2024-03-14-geojson")
 system("gh release upload 2024-03-14-geojson 2024-03-14-geojson.zip")
 
 # Generate coherent network
-for (region in region_names[1]) {
+for (region in region_names[1:6]) {
     message("Processing coherent network for region: ", region)
     parameters$region = region
     parameters$coherent_area = cities_region_names[[region]]

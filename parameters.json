@@ -7,7 +7,7 @@
   "disag_threshold": [100],
   "min_distance_meters": [500],
   "region_buffer_distance_meters": [5000],
-  "region": ["Aberdeen and North East"],
-  "coherent_area": ["Moray", "Aberdeen City", "Aberdeenshire"],
+  "region": ["Edinburgh and Lothians"],
+  "coherent_area": ["Na h-Eileanan Siar", "Highland", "Orkney Islands", "Shetland Islands", "Argyll and Bute"],
   "coherent_percentile": [75]
 }
