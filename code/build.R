@@ -43,12 +43,12 @@ zip_file = paste0(parameters$date_routing, "2.zip")
 zip(zipfile = zip_file, parameters$date_routing, extras = "-x *.Rds")
 dir.create("2024-03-14-geojson")
 for(i in list.dirs("2024-03-14")) {
+  r = gsub(pattern = "2024-03-14/", replacement = "", x = i)
   f = list.files(i, pattern = "geojson", full.names = TRUE)
-  f_new = file.path("2024-03-14-geojson", basename(f))
+  f_new = file.path("2024-03-14-geojson", paste0(r, "_", basename(f)))
   message(paste(f, collapse = "\n"))
   message(paste(f_new, collapse = "\n"))
   file.copy(f, f_new)
-  
 }
 
 zip("2024-03-14-geojson.zip", files = "2024-03-14-geojson")
