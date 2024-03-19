@@ -50,12 +50,12 @@ for(i in list.dirs("2024-03-14")) {
   message(paste(f_new, collapse = "\n"))
   file.copy(f, f_new)
 }
-
+list.files("2024-03-14-geojson/")
 zip("2024-03-14-geojson.zip", files = "2024-03-14-geojson")
 fs::file_size("2024-03-14-geojson.zip")
 system("gh release list")
-system("gh release create 2024-03-14-geojson")
-system("gh release upload 2024-03-14-geojson 2024-03-14-geojson.zip")
+# system("gh release create 2024-03-14-geojson")
+system("gh release upload 2024-03-14-geojson 2024-03-14-geojson.zip --clobber")
 
 # Generate coherent network
 for (region in region_names[1]) {
