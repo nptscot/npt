@@ -24,7 +24,7 @@ for (region in region_names) {
 }
 
 region_names_lowercase = snakecase::to_snake_case(region_names)
-region = region_names[1]
+region = region_names[4]
 region_names_lowercase
 
 # Initialize a vector to hold the names of regions that fail in the first attempt
@@ -392,3 +392,9 @@ if (full_build) {
   message("Not full build or gh command line tool not available")
   message("Not uploading files: manually move contents of outputdata (see upload_data target for details)")
 }
+
+# Test for central Edinburgh:
+edinburgh_central = zonebuilder::zb_zone("Edinburgh", n_circles = 2)
+tar_load(simplified_network)
+simplified_central = simplified_network[edinburgh_central, ]
+mapview::mapview(simplified_central)
