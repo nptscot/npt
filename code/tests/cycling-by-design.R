@@ -77,3 +77,33 @@ osm_cbd = osm_highways %>%
     cycleway, cycleway_left, cycleway_right, cycleway_both, 
     lanes, lanes_both_ways, lanes_forward, lanes_backward, 
     lanes_bus, lanes_bus_conditional, oneway, width, segregated)
+
+# Investigate which values are in use
+
+unique(osm_cbd$highway)
+ [1] "residential"    "trunk"          "primary"        "secondary"     
+ [5] "tertiary"       "primary_link"   "trunk_link"     "unclassified"  
+ [9] "service"        "tertiary_link"  "cycleway"       "secondary_link"
+[13] "living_street"  "busway"         "crossing"
+unique(osm_cbd$cycleway)
+ [1] NA                      "lane"                  "advisory"             
+ [4] "no"                    "share_busway"          "track"                
+ [7] "opposite"              "opposite_lane"         "yes"                  
+[10] "opposite_share_busway" "shared"                "shared_lane"          
+[13] "separate"              "opposite_track"        "segregated"           
+[16] "mtb"                   "crossing"              "sidepath"             
+[19] "none"                  "sidewalk"              "left"                 
+[22] "unmarked_lane"         "traffic_island" 
+
+# Categorise level of segregation
+
+osm_segregation = osm_cbd |>
+  mutate(cycle_segregation = case_when(
+    cycleway == "lane" ~ "lane",
+    cycleway_right == "lane" ~ "lane",
+    cycleway_left == "lane" ~ "lane",
+    cycleway == "track" ~ "track",
+    cycleway_left == "track" ~ "track",
+    cycleway_right == "track" ~ "track"
+    )
+  )
