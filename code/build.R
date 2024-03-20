@@ -31,7 +31,7 @@ region_names_lowercase
 failed_regions = character()
 
 # First loop: Attempt to process each region and capture any failures
-for (region in region_names[3:4]) {
+for (region in region_names) {
   tryCatch({
     message("Processing region: ", region)
     parameters$region = region
@@ -69,8 +69,8 @@ if (length(failed_regions) > 0) {
 output_folder = file.path("outputdata", parameters$date_routing)
 list.files(output_folder)
 setwd("outputdata")
-zip_file = paste0(parameters$date_routing, "2.zip")
-zip(zipfile = zip_file, parameters$date_routing, extras = "-x *.Rds")
+zip_file = paste0(parameters$date_routing, "3.zip")
+zip(zipfile = zip_file, parameters$date_routing)
 dir.create("2024-03-14-geojson")
 for(i in list.dirs("2024-03-14")) {
   r = gsub(pattern = "2024-03-14/", replacement = "", x = i)
