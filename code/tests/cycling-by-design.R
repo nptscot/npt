@@ -12,16 +12,23 @@ et = c(
   "cycleway:right",
   "cycleway:both",
   "lanes",
-  "sidewalk",
-  "ref",
-  "surface",
-  "segregated",
-  "route",           # for proposed routes
-  "state",
-  "lcn",
-  "rcn",
-  "ncn",
-  "network"
+  "lanes:both_ways",
+  "lanes:forward",
+  "lanes:backward",
+  "lanes:bus",
+  "lanes:bus:conditional",
+  "oneway",
+  "width",      # useful to ensure width of cycleways is at least 1.5m
+  "segregated"  # classifies whether cycles and pedestrians are segregated on shared paths
+#  "sidewalk",
+#  "ref",
+#  "surface",
+#  "route",           # for proposed routes
+#  "state",
+#  "lcn",
+#  "rcn",
+#  "ncn",
+#  "network"
 )
 
 # Read-in road network data
@@ -60,10 +67,13 @@ dim(osm_highways)
 
 save_name = paste0("inputdata/osm_highways_",sys_date,".Rds")
 saveRDS(osm_highways, save_name)
-# osm_highways = readRDS("./inputdata/osm_highways_2023-08-09.Rds")
+# osm_highways = readRDS("./inputdata/osm_highways_2024-03-20.Rds")
 
 names(osm_highways)
 summary(osm_highways)
 
 osm_cbd = osm_highways %>%
-    select(osm_id, name, highway, maxspeed, bicycle, cycleway, cycleway_left, cycleway_right, cycleway_both, lanes, segregated)
+    select(osm_id, name, highway, maxspeed, bicycle, 
+    cycleway, cycleway_left, cycleway_right, cycleway_both, 
+    lanes, lanes_both_ways, lanes_forward, lanes_backward, 
+    lanes_bus, lanes_bus_conditional, oneway, width, segregated)
