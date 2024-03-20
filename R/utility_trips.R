@@ -173,6 +173,35 @@ make_od_leisure = function(oas, os_pois, grid, trip_purposes, intermediate_zones
   leisure_grid = sf::st_as_sf(leisure_join)
   leisure_grid = sf::st_transform(leisure_grid, 4326)
   
+  # add in park points
+  park_points = sf::st_read("inputdata/park_points.gpkg")
+  if(parameters$geo_subset) {
+    park_points = park_points[study_area, op = sf::st_within]
+  }
+  park_grid = park_points |> 
+    st_transform(27700)
+  park_grid = park_grid |> 
+    dplyr::mutate(grid_id = sf::st_nearest_feature(park_grid, grid))
+  park_grid = park_grid |> 
+    sf::st_drop_geometry() |> 
+    dplyr::group_by(grid_id) |> 
+    dplyr::summarise(size = n())
+  # assign grid geometry
+  park_join = dplyr::inner_join(grid_df, park_grid)
+  park_grid = sf::st_as_sf(park_join)
+  park_grid = sf::st_transform(park_grid, 4326)
+  
+  # combine the grids
+  combined_grid = rbind(leisure_grid, park_grid)
+  combined_grid = combined_grid |> 
+    sf::st_drop_geometry() |> 
+    dplyr::group_by(grid_id) |> 
+    dplyr::summarise(size = sum(size))
+  # assign grid geometry
+  combined_join = dplyr::inner_join(grid_df, combined_grid)
+  combined_grid = sf::st_as_sf(combined_join)
+  combined_grid = sf::st_transform(combined_grid, 4326)
+  
   leisure_percent = trip_purposes %>% 
     dplyr::filter(Purpose =="Sport/Entertainment") %>% 
     dplyr::select(adjusted_mean)
@@ -193,7 +222,7 @@ make_od_leisure = function(oas, os_pois, grid, trip_purposes, intermediate_zones
   # Spatial interaction model of journeys
   # We could validate this SIM using the Scottish data on mean km travelled 
   max_length_euclidean_km = 5
-  od_leisure_initial = simodels::si_to_od(zones_leisure, leisure_grid, max_dist = max_length_euclidean_km * 1000)
+  od_leisure_initial = simodels::si_to_od(zones_leisure, combined_grid, max_dist = max_length_euclidean_km * 1000)
   od_interaction = od_leisure_initial %>% 
     simodels::si_calculate(fun = gravity_model, 
                  m = origin_leisure_trips,
@@ -212,7 +241,7 @@ make_od_leisure = function(oas, os_pois, grid, trip_purposes, intermediate_zones
     dplyr::ungroup()
   
   # Jittering
-  leisure_polygons = sf::st_buffer(leisure_grid, dist = 0.0001)
+  leisure_polygons = sf::st_buffer(combined_grid, dist = 0.0001)
   
   # why does distance_euclidean drop so dramatically when we go from od_interaction to od_adjusted_jittered? 
   od_adjusted_jittered = odjitter::jitter(
@@ -220,7 +249,7 @@ make_od_leisure = function(oas, os_pois, grid, trip_purposes, intermediate_zones
     zones = zones_leisure,
     zones_d = leisure_polygons, # each polygon is a single grid point, so destinations are kept the same
     subpoints_origins = oas,
-    subpoints_destinations = leisure_grid,
+    subpoints_destinations = combined_grid,
     disaggregation_key = "leisure_all_modes",
     disaggregation_threshold = parameters$disag_threshold,
     deduplicate_pairs = FALSE,
