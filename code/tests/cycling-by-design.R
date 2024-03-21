@@ -245,13 +245,18 @@ track = osm_study |>
   filter(cycleway == "track")
 tm_shape(track) + tm_lines()
 
-# Mostly detached/remote, but also some adjacent to highways. 
+# Mostly detached/remote, but also some adjacent to highways as 'level_track'
 # We may need to filter using distance from highway
 det = osm_study |> 
   filter(highway == "cycleway")
 tm_shape(det) + tm_lines()
 
-# Categorise level of segregation. The categories are:
+# segregated == no |> stepped_or_footway
+
+
+# Categorise segregation --------------------------------------------------
+
+# The categories are:
 # detached_track
 # level_track
 # stepped_or_footway
@@ -259,14 +264,18 @@ tm_shape(det) + tm_lines()
 # cycle_lane
 # mixed_traffic
 
-# segregated == no |> stepped_or_footway
 
-strings = "cycleway"
+# Function for level_track v detached_track
+
+# Make a 10m buffer around highway==cycleway
+# If other highways appear within this buffer, it's a level_track
+# Of no other highways appear, it's a detached track
+
 
 osm_segregation = osm_study |>
   mutate(cycle_segregation = case_when(
     
-    # Cycleways detached from the road 
+    # Cycleways detached from the road (edit to add level_track)
     highway == "cycleway" ~ "detached_track",
     
     # Cycleways on road
@@ -281,7 +290,7 @@ osm_segregation = osm_study |>
     cycleway_both == "track" ~ "light_segregation",
     
     
-    # Shared with pedestrians
+    # Shared with pedestrians (but not highway == cycleway)
     segregated == "no" ~ "stepped_or_footway",
     
     # Rare cases
