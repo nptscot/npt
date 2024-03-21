@@ -1,6 +1,10 @@
 # Cycling by design compliance
 library(tidyverse)
-sys_date = Sys.Date()
+library(targets)
+library(tmap)
+tmap_mode("view")
+sys_datetmapsys_date = Sys.Date()
+
 
 # Download osm data
 et = c(
@@ -87,7 +91,7 @@ osm_cbd = osm_highways %>%
     lanes, lanes_both_ways, lanes_forward, lanes_backward, 
     lanes_bus, lanes_bus_conditional, oneway, width, segregated)
 
-names(osm$cbd)
+names(osm_cbd)
 # [1] "osm_id"                "name"                  "highway"              
 # [4] "maxspeed"              "bicycle"               "cycleway"             
 # [7] "cycleway_left"         "cycleway_right"        "cycleway_both"        
@@ -128,23 +132,105 @@ unique(osm_cbd$maxspeed)
 # [8] "10 mph"  "5 mph"   "signals" "15 mph"  "15"      "25 mph"  "11 mph" 
 # [15] "50"      "9 mph"   "8 mph"   "4 mph"   "5"       "8"   
 
+# There are assumptions in OSM about the number of lanes for all roads smaller than trunk/motorway
+# So when there are NA values we can assume there is 1 lane 
+unique(osm_cbd$lanes)
+# [1] NA    "2"   "4"   "1"   "3"   "6"   "5"   "1.5" "0" 
+unique(osm_cbd$lanes_both_ways)
+# [1] NA  "1"
+unique(osm_cbd$lanes_forward)
+# [1] NA  "2" "1" "3"
+unique(osm_cbd$lanes_backward)
+# [1] NA  "1" "2" "4" "3"
+unique(osm_cbd$lanes_bus)
+# [1] NA                   "1"                  "yes|yes|designated"
+unique(osm_cbd$lanes_bus_conditional) # This tag seems to be unusued
+# [1] NA
+
+unique(osm_cbd$bicycle)
+# [1] NA            "designated"  "yes"         "dismount"    "permissive" 
+# [6] "customers"   "destination" "mtb"         "discouraged" "unknown" 
+
+unique(osm_cbd$oneway)
+# [1] NA            "yes"         "no"          "-1"          "alternating"
+# [6] "reversible" 
+unique(osm_cbd$width)
+# [1] NA       "5.3"    "5.5"    "5.2"    "4.2"    "2.5 m"  "2.0 m"  "5.6"   
+# [9] "8.6"    "10"     "6.5"    "6"      "4.8"    "2.5"    "6.0"    "2.2"   
+# [17] "2"      "3"      "4"      "10.4"   "7.2"    "6.1"    "9"      "5.8"   
+# [25] "7.5"    "9.1"    "7.3"    "2.75"   "8"      "4.9"    "6.7"    "2.3"   
+# [33] "7.8"    "3.2"    "4.5"    "8.5"    "3.1"    "7"      "2.25"   "1.5"   
+# [41] "1"      "0.75"   "1.75"   "9.3"    "5.9"    "7.9"    "8.1"    "3.6"   
+# [49] "5"      "6.2"    "4.3"    "11"     "1.8"    "3.5"    "11.1"   "9.8"   
+# [57] "4.4"    "11.5"   "8.3"    "8.8"    "12"     "7.1"    "4.7"    "4.1"   
+# [65] "6.3"    "6.6"    "7.7"    "9.5"    "13"     "10.5"   "2.7"    "13.5"  
+# [73] "5.4"    "4.6"    "5.1"    "5.0"    "5.7"    "8.4"    "8.2"    "2.4"   
+# [81] "2.6"    "12.8"   "3.3"    "9 m"    "0.5"    "12.5"   "6.9"    "6.8"   
+# [89] "narrow" "6.4"    "9.6"    "2.8"    "3.9"    "2m"     "15"     "3.4"   
+# [97] "9.0"    "5.5."   "4.0"    "3.0"    "3.8"    "7.4"    "10m"    "3m"    
+# [105] "3.7"    "1.6"    "10.0"   "1.1"    "1.5 m"  "1.9"    "8.0"    "11.0"  
+# [113] "14"     "4.85"   "2.9"    "8.9"    "0.7"    "1m"     "20"     "5.5 m" 
+# [121] "7.0"    "3.75"   "1.75m"  "1.2"    "0.75m"  "1.5m"   "2.3 m"  "16.5"  
+# [129] "2.0"    "2.0m"   "4.0m"   "2.1"    "1.4"    "4m"     "1.6 m"  "8.7"   
+# [137] "0.5 m"  "4.75"   ".8"     "5'6\""  "11.8"   "14.9"   "10.1"   "2.65"  
+# [145] "14.8"   "18"     "17"     "5.9 m" 
+unique(osm_cbd$segregated)
+# [1] NA    "yes" "no"
+unique(osm_cbd$highway)
+#  [1] "residential"    "trunk"          "primary"        "secondary"     
+# [5] "tertiary"       "primary_link"   "trunk_link"     "unclassified"  
+# [9] "service"        "tertiary_link"  "cycleway"       "secondary_link"
+# [13] "living_street"  "busway"         "crossing"
+
+# Busways are ok to cycle on (there's only a couple in Scotland anyway) - FINE
+busway = osm_cbd |> 
+  filter(highway == "busway")
+tm_shape(busway) + tm_lines()
+# This is just a single lane track in Orkney - FINE
+zero_lane = osm_cbd |> 
+  filter(lanes == "0")
+tm_shape(zero_lane) + tm_lines()
+# This is a few small roads that can be treated as single lane - FINE
+half_lane = osm_cbd |> 
+  filter(lanes == "1.5")
+tm_shape(half_lane) + tm_lines()
+# A couple of dead-end tracks - REMOVE
+mtb = osm_cbd |> 
+  filter(bicycle == "mtb")
+tm_shape(mtb) + tm_lines()
+# dead end track - REMOVE
+unknown = osm_cbd |> 
+  filter(bicycle == "unknown")
+tm_shape(unknown) + tm_lines()
+# Towpath section, onroad tram route, pedestrian crossing, etc - KEEP
+dismount = osm_cbd |> 
+  filter(bicycle == "dismount")
+tm_shape(dismount) + tm_lines()
 
 
-# Categorise level of segregation
-
+# Categorise level of segregation. The categories are:
+# detached_track
+# level_track
+# stepped_track
+# light_segregation
+# cycle_lane
+# mixed_traffic
 osm_segregation = osm_cbd |>
   mutate(cycle_segregation = case_when(
+    cycleway == "buffered_lane" ~ "detached_track",
+    
     cycleway == "separate" ~ "separate",
     cycleway_right == "separate" ~ "separate",
     cycleway_left == "separate" ~ "separate",
     cycleway == "segregated" ~ "segregated",
     cycleway_right == "segregated" ~ "segregated",
     cycleway_left == "segregated" ~ "segregated",
-    cycleway == "lane" ~ "lane",
-    cycleway_right == "lane" ~ "lane",
-    cycleway_left == "lane" ~ "lane",
+    cycleway == "lane" ~ "cycle_lane",
+    cycleway_right == "lane" ~ "cycle_lane",
+    cycleway_left == "lane" ~ "cycle_lane",
     cycleway == "track" ~ "track",
     cycleway_left == "track" ~ "track",
-    cycleway_right == "track" ~ "track"
+    cycleway_right == "track" ~ "track",
+    .default = "mixed_traffic"
     )
   )
