@@ -206,22 +206,45 @@ tm_shape(unknown) + tm_lines()
 dismount = osm_cbd |> 
   filter(bicycle == "dismount")
 tm_shape(dismount) + tm_lines()
+# there are very few of these and most seem to be stepped_or_footway
+separate = osm_cbd |> 
+  filter(cycleway == "separate")
+tm_shape(separate) + tm_lines()
+# one single road segment with unclear (post-google streetview) cycle infrastructure
+buffered = osm_cbd |> 
+  filter(cycleway_left == "buffered_lane")
+tm_shape(buffered) + tm_lines()
 
+# Check segregation categories in Edinburgh
+
+tar_load(study_area)
+osm_study = osm_cbd[study_area, ]
+
+# These are off-road paths shared with pedestrians
+segno = osm_study |> 
+  filter(segregated == "no")
+tm_shape(segno) + tm_lines()
+# These are more mixed - some fully kerbed, others footway level/shared with pedestrians
+segyes = osm_study |> 
+  filter(segregated == "yes")
+tm_shape(segyes) + tm_lines()
 
 # Categorise level of segregation. The categories are:
 # detached_track
 # level_track
-# stepped_track
+# stepped_or_footway
 # light_segregation
 # cycle_lane
 # mixed_traffic
+
+# segregated == no |> stepped_or_footway
+
+
+
 osm_segregation = osm_cbd |>
   mutate(cycle_segregation = case_when(
-    cycleway == "buffered_lane" ~ "detached_track",
+    segregated == "no" ~ "stepped_or_footway", # shared with pedestrians
     
-    cycleway == "separate" ~ "separate",
-    cycleway_right == "separate" ~ "separate",
-    cycleway_left == "separate" ~ "separate",
     cycleway == "segregated" ~ "segregated",
     cycleway_right == "segregated" ~ "segregated",
     cycleway_left == "segregated" ~ "segregated",
@@ -231,6 +254,13 @@ osm_segregation = osm_cbd |>
     cycleway == "track" ~ "track",
     cycleway_left == "track" ~ "track",
     cycleway_right == "track" ~ "track",
+    
+    cycleway == "separate" ~ "stepped_or_footway",
+    cycleway_right == "separate" ~ "stepped_or_footway",
+    cycleway_left == "separate" ~ "stepped_or_footway",
+    cycleway == "buffered_lane" ~ "cycle_lane",
+    cycleway_right == "buffered_lane" ~ "cycle_lane",
+    cycleway_left == "buffered_lane" ~ "cycle_lane",
     .default = "mixed_traffic"
     )
   )
