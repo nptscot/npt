@@ -312,3 +312,4 @@ osm_segregation = osm_study |>
     )
   )
 
+tm_shape(osm_segregation) + tm_lines("cycle_segregation")
