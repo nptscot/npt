@@ -63,7 +63,9 @@ osm_lines = osmextract::oe_get_network(
 to_exclude = "motorway|services|bridleway|disused|emergency|escap|far|foot|path|pedestrian|rest|road|track"
 
 osm_highways = osm_lines %>%
-  filter(!str_detect(string = highway, pattern = to_exclude))
+  filter(!str_detect(string = highway, pattern = to_exclude),
+         !str_detect(string = bicycle, pattern = "mtb|discouraged|unknown")
+         )
 
 
 dim(osm_highways) 
@@ -206,6 +208,9 @@ tm_shape(unknown) + tm_lines()
 dismount = osm_cbd |> 
   filter(bicycle == "dismount")
 tm_shape(dismount) + tm_lines()
+
+# Check segregation categories in Scotland or Edinburgh
+
 # there are very few of these and most seem to be stepped_or_footway
 separate = osm_cbd |> 
   filter(cycleway == "separate")
@@ -214,8 +219,10 @@ tm_shape(separate) + tm_lines()
 buffered = osm_cbd |> 
   filter(cycleway_left == "buffered_lane")
 tm_shape(buffered) + tm_lines()
-
-# Check segregation categories in Edinburgh
+# Very few, unclear but seem to be pedestrian level
+segway = osm_cbd |> 
+  filter(cycleway == "segregated")
+tm_shape(segway) + tm_lines()
 
 tar_load(study_area)
 osm_study = osm_cbd[study_area, ]
@@ -229,6 +236,21 @@ segyes = osm_study |>
   filter(segregated == "yes")
 tm_shape(segyes) + tm_lines()
 
+# Classic painted cycle lane
+lane = osm_study |> 
+  filter(cycleway == "lane")
+tm_shape(lane) + tm_lines()
+# Light segregation with orca wands
+track = osm_study |> 
+  filter(cycleway == "track")
+tm_shape(track) + tm_lines()
+
+# Mostly detached/remote, but also some adjacent to highways. 
+# We may need to filter using distance from highway
+det = osm_study |> 
+  filter(highway == "cycleway")
+tm_shape(det) + tm_lines()
+
 # Categorise level of segregation. The categories are:
 # detached_track
 # level_track
@@ -239,28 +261,45 @@ tm_shape(segyes) + tm_lines()
 
 # segregated == no |> stepped_or_footway
 
+strings = "cycleway"
 
-
-osm_segregation = osm_cbd |>
+osm_segregation = osm_study |>
   mutate(cycle_segregation = case_when(
-    segregated == "no" ~ "stepped_or_footway", # shared with pedestrians
     
-    cycleway == "segregated" ~ "segregated",
-    cycleway_right == "segregated" ~ "segregated",
-    cycleway_left == "segregated" ~ "segregated",
+    # Cycleways detached from the road 
+    highway == "cycleway" ~ "detached_track",
+    
+    # Cycleways on road
     cycleway == "lane" ~ "cycle_lane",
     cycleway_right == "lane" ~ "cycle_lane",
     cycleway_left == "lane" ~ "cycle_lane",
-    cycleway == "track" ~ "track",
-    cycleway_left == "track" ~ "track",
-    cycleway_right == "track" ~ "track",
+    cycleway_both == "lane" ~ "cycle_lane",
     
+    cycleway == "track" ~ "light_segregation",
+    cycleway_left == "track" ~ "light_segregation",
+    cycleway_right == "track" ~ "light_segregation",
+    cycleway_both == "track" ~ "light_segregation",
+    
+    
+    # Shared with pedestrians
+    segregated == "no" ~ "stepped_or_footway",
+    
+    # Rare cases
     cycleway == "separate" ~ "stepped_or_footway",
-    cycleway_right == "separate" ~ "stepped_or_footway",
     cycleway_left == "separate" ~ "stepped_or_footway",
+    cycleway_right == "separate" ~ "stepped_or_footway",
+    cycleway_both == "separate" ~ "stepped_or_footway",
     cycleway == "buffered_lane" ~ "cycle_lane",
-    cycleway_right == "buffered_lane" ~ "cycle_lane",
     cycleway_left == "buffered_lane" ~ "cycle_lane",
+    cycleway_right == "buffered_lane" ~ "cycle_lane",
+    cycleway_both == "buffered_lane" ~ "cycle_lane",
+    cycleway == "segregated" ~ "stepped_or_footway",
+    cycleway_left == "segregated" ~ "stepped_or_footway",
+    cycleway_right == "segregated" ~ "stepped_or_footway",
+    cycleway_both == "segregated" ~ "stepped_or_footway",
+    
+    # Default mixed traffic
     .default = "mixed_traffic"
     )
   )
+
