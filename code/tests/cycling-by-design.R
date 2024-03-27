@@ -3,7 +3,7 @@ library(tidyverse)
 library(targets)
 library(tmap)
 tmap_mode("view")
-sys_datetmapsys_date = Sys.Date()
+sys_date = Sys.Date()
 
 
 # Download osm data
@@ -269,7 +269,9 @@ tm_shape(det) + tm_lines()
 
 # Make a 10m buffer around highway==cycleway
 # If other highways appear within this buffer, it's a level_track
-# Of no other highways appear, it's a detached track
+# If no other highways appear, it's a detached track
+osm_buffer = osm_study |> 
+  filter(highway == "cycleway")
 
 
 osm_segregation = osm_study |>
@@ -292,6 +294,7 @@ osm_segregation = osm_study |>
     
     # Shared with pedestrians (but not highway == cycleway)
     segregated == "no" ~ "stepped_or_footway",
+    segregated == "yes" ~ "stepped_or_footway",
     
     # Rare cases
     cycleway == "separate" ~ "stepped_or_footway",
