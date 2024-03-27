@@ -4,7 +4,6 @@ library(tidyverse)
 library(targets)
 library(tidygraph)
 library(osmextract)
-devtools::load_all()
 tar_source()
 
 parameters = jsonlite::read_json("parameters.json", simplifyVector = T)
@@ -178,7 +177,24 @@ simplified_network_list = lapply(output_folders, function(folder) {
 })
 simplified_network = dplyr::bind_rows(simplified_network_list)
 sf::write_sf(simplified_network, file.path("outputdata", "simplified_network.geojson"), delete_dsn = TRUE)
+sf::write_sf(simplified_network, file.path("outputdata", "simplified_network.gpkg"), delete_dsn = TRUE)
+fs::file_info(file.path("outputdata", "simplified_network.gpkg"))
+old_wd = setwd("outputdata")
+system("gh release upload 2024-03-14-geojson simplified_network.gpkg")
+setwd(old_wd)
 
+# And in for loop
+network_national = NULL
+for (r in region_names_lowercase) {
+  simplified_network_list = lapply(output_folders, function(folder) {
+    simplified_network_file = paste0(folder, "/simplified_network.geojson")
+    if (file.exists(simplified_network_file)) {
+      network = sf::read_sf(simplified_network_file)
+    }
+  })
+  simplified_network = dplyr::bind_rows(simplified_network_list)
+  network_national = dplyr::bind_rows(network_national, simplified_network)
+}
 
 # Combine zones data:
 # DataZones file path: data_zones.geojson
