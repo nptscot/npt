@@ -273,7 +273,7 @@ tm_shape(det) + tm_lines()
 osm_buffer = osm_study |> 
   filter(highway == "cycleway")
 osm_buffer = osm_buffer |> 
-  st_buffer(20) # could change to 10m
+  sf::st_buffer(20) # could change to 10m
 # tm_shape(osm_buffer) + tm_lines()
 
 # Get all highways
@@ -286,11 +286,14 @@ to_exclude = "services|bridleway|disused|emergency|escap|far|foot|path|pedestria
 
 osm_roads = osm_lines |> 
   filter(!str_detect(string = highway, pattern = to_exclude))
+saveRDS(osm_roads, "inputdata/osm_roads.Rds")
 roads_study = osm_roads[study_area, ]
 
 # calculate length of road with the buffer
-buffer_roads = osm_roads[osm_buffer, ]
+buffer_roads = roads_study[osm_buffer, ]
 tm_shape(buffer_roads) + tm_lines()
+
+intersecting_roads = sf::st_intersection(buffer_roads, osm_buffer)
 
 # Define the cycle route types
 
