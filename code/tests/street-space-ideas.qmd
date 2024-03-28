@@ -1,0 +1,25 @@
+---
+format: gfm
+---
+
+We need to classify roads by width.
+In the first instance we will assume there no on street parking.
+
+A toggle can be used to switch between whether or not there is on street parking.
+
+Another toggle can be used to switch whether or not we're supplying the space by reallocation of a lane.
+
+A dropdown menu will allow the user to select the intervention type from the following options (in the What column)
+
+| What                                                                  | Not enough below            | May be enough | Enough space |
+|--------------|--------------------|--------------------|--------------------|
+|                                                                       |                             |               |              |
+| Two way light segregated cycleway on 2 way carriageway                | 6                           | 6-8           | 8+           |
+| 2 oneway light segregated cycleways, one on either side of the road   |                             |               |              |
+| One way light segregated cycleway on 2 way carriageway                | 8 carriageway               | 8-10          | 10+          |
+| Fully protected 2 way cycleway on corridor with pavements and 2 lanes | 20 metres b2b is too little |               |              |
+|                                                                       |                             |               |              |
+
+Other layers could include:
+
+-
