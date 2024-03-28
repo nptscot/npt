@@ -275,6 +275,7 @@ osm_buffer = osm_study |>
 osm_buffer = osm_buffer |> 
   sf::st_buffer(20) # could change to 10m
 # tm_shape(osm_buffer) + tm_lines()
+saveRDS(osm_buffer, "inputdata/osm_buffer.Rds")
 
 # Get all highways
 to_exclude = "services|bridleway|disused|emergency|escap|far|foot|path|pedestrian|rest|road|track"
@@ -287,13 +288,25 @@ to_exclude = "services|bridleway|disused|emergency|escap|far|foot|path|pedestria
 osm_roads = osm_lines |> 
   filter(!str_detect(string = highway, pattern = to_exclude))
 saveRDS(osm_roads, "inputdata/osm_roads.Rds")
+
+osm_roads = readRDS("inputdata/osm_roads.Rds")
 roads_study = osm_roads[study_area, ]
 
 # calculate length of road with the buffer
 buffer_roads = roads_study[osm_buffer, ]
 tm_shape(buffer_roads) + tm_lines()
 
-intersecting_roads = sf::st_intersection(buffer_roads, osm_buffer)
+# intersecting_roads = sf::st_intersection(buffer_roads, osm_buffer) # very slow
+
+# find midpoints for road segments
+road_midpoints = buffer_roads |> 
+  stplanr::line_midpoint()
+tm_shape(road_midpoints) + tm_dots()
+
+# find the osm_buffer objects that don't intersect with any road midpoints
+
+remote = osm_buffer |> 
+  sf::st_intersects(road_midpoints)
 
 # Define the cycle route types
 
