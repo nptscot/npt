@@ -272,7 +272,27 @@ tm_shape(det) + tm_lines()
 # If no other highways appear, it's a detached track
 osm_buffer = osm_study |> 
   filter(highway == "cycleway")
+osm_buffer = osm_buffer |> 
+  st_buffer(20) # could change to 10m
+# tm_shape(osm_buffer) + tm_lines()
 
+# Get all highways
+to_exclude = "services|bridleway|disused|emergency|escap|far|foot|path|pedestrian|rest|road|track"
+
+# unique(osm_lines$highway)
+# road = osm_lines |> 
+#   filter(highway == "services")
+# tm_shape(road) + tm_lines()
+
+osm_roads = osm_lines |> 
+  filter(!str_detect(string = highway, pattern = to_exclude))
+roads_study = osm_roads[study_area, ]
+
+# calculate length of road with the buffer
+buffer_roads = osm_roads[osm_buffer, ]
+tm_shape(buffer_roads) + tm_lines()
+
+# Define the cycle route types
 
 osm_segregation = osm_study |>
   mutate(cycle_segregation = case_when(
