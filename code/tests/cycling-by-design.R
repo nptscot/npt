@@ -4,7 +4,7 @@ library(targets)
 library(tmap)
 tmap_mode("view")
 sys_date = Sys.Date()
-
+tar_load(study_area)
 
 # Download osm data
 et = c(
@@ -224,7 +224,6 @@ segway = osm_cbd |>
   filter(cycleway == "segregated")
 tm_shape(segway) + tm_lines()
 
-tar_load(study_area)
 osm_study = osm_cbd[study_area, ]
 
 # These are off-road paths shared with pedestrians
@@ -273,7 +272,7 @@ tm_shape(det) + tm_lines()
 osm_buffer = osm_study |> 
   filter(highway == "cycleway")
 osm_buffer = osm_buffer |> 
-  sf::st_buffer(20) # could change to 10m
+  sf::st_buffer(10) # could change to 10m
 # tm_shape(osm_buffer) + tm_lines()
 saveRDS(osm_buffer, "inputdata/osm_buffer.Rds")
 
@@ -289,10 +288,14 @@ osm_roads = osm_lines |>
   filter(!str_detect(string = highway, pattern = to_exclude))
 saveRDS(osm_roads, "inputdata/osm_roads.Rds")
 
+
+# Start here  -------------------------------------------------------------
+
 osm_roads = readRDS("inputdata/osm_roads.Rds")
 roads_study = osm_roads[study_area, ]
 
 # calculate length of road with the buffer
+osm_buffer = readRDS("inputdata/osm_buffer.Rds")
 buffer_roads = roads_study[osm_buffer, ]
 tm_shape(buffer_roads) + tm_lines()
 
@@ -301,13 +304,24 @@ tm_shape(buffer_roads) + tm_lines()
 # find midpoints for road segments
 road_midpoints = buffer_roads |> 
   stplanr::line_midpoint()
-tm_shape(road_midpoints) + tm_dots()
+midpoints = sf::st_as_sf(road_midpoints)
+# tm_shape(midpoints) + tm_dots()
 
 # find the osm_buffer objects that don't intersect with any road midpoints
 
-remote = osm_buffer |> 
-  sf::st_intersects(road_midpoints)
+near_road = osm_buffer |> 
+  sf::st_join(midpoints, 
+              join = sf::st_intersects,
+              left = FALSE)
+near_unique = near_road |> 
+  select(osm_id) 
+near_unique = unique(near_unique)
 
+osm_remote = osm_study |> 
+  filter(highway == "cycleway",
+         ! osm_id %in% near_unique$osm_id
+         )
+tm_shape(osm_remote) + tm_lines()
 # Define the cycle route types
 
 osm_segregation = osm_study |>
