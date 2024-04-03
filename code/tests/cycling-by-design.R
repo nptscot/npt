@@ -436,8 +436,6 @@ tm_shape(osm_segregation) + tm_lines("cycle_segregation")
 
 
 
-
-
 # Function to take OSM data and return cycleway type:
 cycleway_type = function(osm_study) {
   # ...
