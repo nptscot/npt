@@ -369,25 +369,27 @@ osm_segregation = osm_roads |>
     )
   )
 
-segregrated = osm_segregation |> 
-  filter(cycle_segregation %in% c("detached_track", "level_track"))
+# segregated = osm_segregation |> 
+#   filter(cycle_segregation %in% c("detached_track", "level_track"))
+segregated = osm_study |> 
+  filter(highway == "cycleway")
 
 # Aim: calculate distance from the osm_study object to the nearest road
-segregrated_points = sf::st_point_on_surface(segregrated)
+segregated_points = sf::st_point_on_surface(segregated)
 # # Check stplanr:
-# segregated_point2 = stplanr::line_midpoint(segregrated) |> 
+# segregated_point2 = stplanr::line_midpoint(segregated) |> 
 #   sf::st_as_sf()
 # 
 # bench::mark(check = FALSE,
-#   stplan = stplanr::line_midpoint(segregrated) |> sf::st_as_sf(),
-#   sf = sf::st_point_on_surface(segregrated)
+#   stplan = stplanr::line_midpoint(segregated) |> sf::st_as_sf(),
+#   sf = sf::st_point_on_surface(segregated)
 # )
 
 # Check for one point
-segregrated |> 
+segregated |> 
   slice(1) |> 
   tm_shape() + tm_lines() +
-  tm_shape(segregrated_points |> slice(1)) + tm_dots(size = 2, alpha = 0.1) +
+  tm_shape(segregated_points |> slice(1)) + tm_dots(size = 2, alpha = 0.1) +
   tm_shape(segregated_point2 |> slice(1)) + tm_dots(size = 1, alpha = 0.5)
 
 roads = osm_roads |> 
@@ -399,32 +401,33 @@ roads_buffer_union = roads |>
   sf::st_union() |> 
   sf::st_transform(27700)
 
-# distances_to_roads = sf::st_distance(segregrated_points, roads)
+# distances_to_roads = sf::st_distance(segregated_points, roads)
 
 # Try with geos pkg
 roads_geos = geos::as_geos_geometry(roads_buffer_union)
-points_geos = geos::as_geos_geometry(segregrated_points |>  sf::st_transform(27700))
+points_geos = geos::as_geos_geometry(segregated_points |>  sf::st_transform(27700))
 points_distances = geos::geos_distance(points_geos, roads_geos)
 head(points_distances)
 summary(points_distances)
 
-segregrated$distance_to_road = points_distances
+segregated$distance_to_road = points_distances
 # plot the most remote ones
 tmap_mode("plot")
-segregrated |> 
+segregated |> 
   arrange(desc(distance_to_road)) |> 
   head(1000) |>
-  ggplot() +
-  geom_sf(aes(color = distance_to_road)) 
+  qtm()
+  # ggplot() +
+  # geom_sf(aes(color = distance_to_road)) 
 
-segregrated |> 
+segregated |> 
   arrange(distance_to_road) |> 
   head(1000) |>
   ggplot() +
   geom_sf(aes(color = distance_to_road)) 
 
 
-segregrated |> 
+segregated |> 
   arrange(distance_to_road) |> 
   head(1000) |> 
   tm_shape() + tm_lines("distance_to_road", lwd = 3, palette = "viridis")
