@@ -236,12 +236,37 @@ segyes = osm_study |>
 tm_shape(segyes) + tm_lines()
 
 # Classic painted cycle lane
+lane_values = c(
+  "lane",
+  "opposite_lane"
+)
+track_values = c(
+  "separate",
+  "track"
+)
 lane = osm_study |> 
-  filter(cycleway == "lane")
+  filter(
+    cycleway %in% lane_values |
+      cycleway_left %in% lane_values |
+      cycleway_right %in% lane_values |
+      cycleway_both %in% lane_values
+  )
+nrow(lane)
+table(osm_study$cycleway_left)
+table(osm_study$cycleway_right)
+table(osm_study$cycleway_both)
 tm_shape(lane) + tm_lines()
+
 # Light segregation with orca wands
+# 
 track = osm_study |> 
-  filter(cycleway == "track")
+  filter(
+    cycleway %in% track_values |
+      cycleway_left %in% track_values |
+      cycleway_right %in% track_values |
+      cycleway_both %in% track_values
+  )
+nrow(track)
 tm_shape(track) + tm_lines()
 
 # Mostly detached/remote, but also some adjacent to highways as 'level_track'
@@ -277,7 +302,7 @@ osm_buffer = osm_buffer |>
 saveRDS(osm_buffer, "inputdata/osm_buffer.Rds")
 
 # Get all highways
-to_exclude = "cycleway|crossing|services|bridleway|disused|emergency|escap|far|foot|path|pedestrian|rest|road|track"
+to_exclude = "services|bridleway|disused|emergency|escap|far|foot|path|pedestrian|rest|road|track"
 
 # unique(osm_lines$highway)
 # road = osm_lines |> 
@@ -292,44 +317,18 @@ saveRDS(osm_roads, "inputdata/osm_roads.Rds")
 # Start here  -------------------------------------------------------------
 
 osm_roads = readRDS("inputdata/osm_roads.Rds")
-long_roads = osm_roads |> 
-  mutate(length = sf::st_length(osm_roads))
-long_roads = long_roads |> 
-  filter(length > 50)
+osm_roads = osm_roads[study_area, ]
+table(osm_roads$highway)
 roads_study = osm_roads[study_area, ]
 
-# calculate length of road with the buffer
-osm_buffer = readRDS("inputdata/osm_buffer.Rds")
-buffer_roads = roads_study[osm_buffer, ]
-tm_shape(buffer_roads) + tm_lines()
+# Plot osm_roads
+osm_roads |> 
+  sample_n(1000) |>
+  select(highway) |> 
+  qtm()
 
-# intersecting_roads = sf::st_intersection(buffer_roads, osm_buffer) # very slow
-
-# find midpoints for road segments
-road_midpoints = buffer_roads |> 
-  # stplanr::line_midpoint()
-  sf::st_point_on_surface()
-midpoints = sf::st_as_sf(road_midpoints)
-# tm_shape(midpoints) + tm_dots()
-
-# find the osm_buffer objects that don't intersect with any road midpoints
-
-near_road = osm_buffer |> 
-  sf::st_join(midpoints, 
-              join = sf::st_intersects,
-              left = FALSE)
-near_unique = near_road |> 
-  select(osm_id) 
-near_unique = unique(near_unique)
-
-osm_remote = osm_study |> 
-  filter(highway == "cycleway",
-         ! osm_id %in% near_unique$osm_id
-         )
-tm_shape(osm_remote) + tm_lines()
-near_unique# Define the cycle route types
-
-osm_segregation = osm_study |>
+# Define the cycle route types:
+osm_segregation = osm_roads |>
   mutate(cycle_segregation = case_when(
     
     # Cycleways detached from the road (edit to add level_track)
@@ -370,4 +369,85 @@ osm_segregation = osm_study |>
     )
   )
 
+segregrated = osm_segregation |> 
+  filter(cycle_segregation %in% c("detached_track", "level_track"))
+
+# Aim: calculate distance from the osm_study object to the nearest road
+segregrated_points = sf::st_point_on_surface(segregrated)
+# # Check stplanr:
+# segregated_point2 = stplanr::line_midpoint(segregrated) |> 
+#   sf::st_as_sf()
+# 
+# bench::mark(check = FALSE,
+#   stplan = stplanr::line_midpoint(segregrated) |> sf::st_as_sf(),
+#   sf = sf::st_point_on_surface(segregrated)
+# )
+
+# Check for one point
+segregrated |> 
+  slice(1) |> 
+  tm_shape() + tm_lines() +
+  tm_shape(segregrated_points |> slice(1)) + tm_dots(size = 2, alpha = 0.1) +
+  tm_shape(segregated_point2 |> slice(1)) + tm_dots(size = 1, alpha = 0.5)
+
+roads = osm_roads |> 
+  filter(!highway %in% c("cycleway"))
+
+# Distance to nearest road:
+
+roads_buffer_union = roads |> 
+  sf::st_union() |> 
+  sf::st_transform(27700)
+
+# distances_to_roads = sf::st_distance(segregrated_points, roads)
+
+# Try with geos pkg
+roads_geos = geos::as_geos_geometry(roads_buffer_union)
+points_geos = geos::as_geos_geometry(segregrated_points |>  sf::st_transform(27700))
+points_distances = geos::geos_distance(points_geos, roads_geos)
+head(points_distances)
+summary(points_distances)
+
+segregrated$distance_to_road = points_distances
+# plot the most remote ones
+tmap_mode("plot")
+segregrated |> 
+  arrange(desc(distance_to_road)) |> 
+  head(1000) |>
+  ggplot() +
+  geom_sf(aes(color = distance_to_road)) 
+
+segregrated |> 
+  arrange(distance_to_road) |> 
+  head(1000) |>
+  ggplot() +
+  geom_sf(aes(color = distance_to_road)) 
+
+
+segregrated |> 
+  arrange(distance_to_road) |> 
+  head(1000) |> 
+  tm_shape() + tm_lines("distance_to_road", lwd = 3, palette = "viridis")
+
+
+
 tm_shape(osm_segregation) + tm_lines("cycle_segregation")
+
+
+
+
+
+
+# Function to take OSM data and return cycleway type:
+cycleway_type = function(osm_study) {
+  # ...
+  res = case_when(
+    osm_study$highway == "cycleway" ~ "detached_track",
+    TRUE ~ "mixed_traffic"
+  )
+  return(res)
+}
+
+# Test the function
+cycleway_types = cycleway_type(osm_study)
+table(cycleway_types)
