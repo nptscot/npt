@@ -63,17 +63,18 @@ osm_lines = osmextract::oe_get_network(
 to_exclude = "motorway|services|bridleway|disused|emergency|escap|far|foot|path|pedestrian|rest|road|track"
 
 osm_highways = osm_lines %>%
-  filter(!str_detect(string = highway, pattern = to_exclude),
-         !str_detect(string = bicycle, pattern = "mtb|discouraged|unknown")
-         )
+  filter(
+    !str_detect(string = highway, pattern = to_exclude),
+    is.na(bicycle)|!str_detect(string = bicycle, pattern = "mtb|discouraged|unknown")
+  )
 
 
 dim(osm_highways) 
-# [1] 436853     30
+# [1] 438028     27
 
 save_name = paste0("inputdata/osm_highways_",sys_date,".Rds")
 saveRDS(osm_highways, save_name)
-# osm_highways = readRDS("./inputdata/osm_highways_2024-03-20.Rds")
+# osm_highways = readRDS("./inputdata/osm_highways_2024-04-04.Rds")
 
 names(osm_highways)
 # [1] "osm_id"                "name"                  "highway"              
@@ -301,15 +302,32 @@ osm_buffer = osm_buffer |>
 # tm_shape(osm_buffer) + tm_lines()
 saveRDS(osm_buffer, "inputdata/osm_buffer.Rds")
 
-# Get all highways
-to_exclude = "services|bridleway|disused|emergency|escap|far|foot|path|pedestrian|rest|road|track"
 
-# unique(osm_lines$highway)
+# Get all roads (with mode = driving) -------------------------------------
+
+# Read-in road network data
+osm_roads = osmextract::oe_get_network(
+  place = "Scotland",
+  mode = "driving",
+  extra_tags = et
+  # , force_download = TRUE # keep it up-to date
+)
+
+table(osm_roads$highway)
+# busway       crossing        disused  emergency_bay         escape  living_street       motorway  motorway_link 
+# 17              3              1              2              1            504           1255            917 
+# primary   primary_link        raceway    residential      rest_area           road      secondary secondary_link 
+# 18299            706            106         117538             13             17          13460            138 
+# service       services       tertiary  tertiary_link          track          trunk     trunk_link   unclassified 
+# 219127              9          20268            166          97645           6329            924          32029
+
+to_exclude = "crossing|services|disused|emergency|escap|far|raceway|rest|road|track"
+
 # road = osm_lines |> 
 #   filter(highway == "services")
 # tm_shape(road) + tm_lines()
 
-osm_roads = osm_lines |> 
+osm_roads = osm_roads |> 
   filter(!str_detect(string = highway, pattern = to_exclude))
 saveRDS(osm_roads, "inputdata/osm_roads.Rds")
 
@@ -318,8 +336,7 @@ saveRDS(osm_roads, "inputdata/osm_roads.Rds")
 
 osm_roads = readRDS("inputdata/osm_roads.Rds")
 osm_roads = osm_roads[study_area, ]
-table(osm_roads$highway)
-roads_study = osm_roads[study_area, ]
+# table(osm_roads$highway)
 
 # Plot osm_roads
 osm_roads |> 
@@ -327,47 +344,6 @@ osm_roads |>
   select(highway) |> 
   qtm()
 
-# Define the cycle route types:
-osm_segregation = osm_roads |>
-  mutate(cycle_segregation = case_when(
-    
-    # Cycleways detached from the road (edit to add level_track)
-    highway == "cycleway" ~ "detached_track",
-    
-    # Cycleways on road
-    cycleway == "lane" ~ "cycle_lane",
-    cycleway_right == "lane" ~ "cycle_lane",
-    cycleway_left == "lane" ~ "cycle_lane",
-    cycleway_both == "lane" ~ "cycle_lane",
-    
-    cycleway == "track" ~ "light_segregation",
-    cycleway_left == "track" ~ "light_segregation",
-    cycleway_right == "track" ~ "light_segregation",
-    cycleway_both == "track" ~ "light_segregation",
-    
-    
-    # Shared with pedestrians (but not highway == cycleway)
-    segregated == "no" ~ "stepped_or_footway",
-    segregated == "yes" ~ "stepped_or_footway",
-    
-    # Rare cases
-    cycleway == "separate" ~ "stepped_or_footway",
-    cycleway_left == "separate" ~ "stepped_or_footway",
-    cycleway_right == "separate" ~ "stepped_or_footway",
-    cycleway_both == "separate" ~ "stepped_or_footway",
-    cycleway == "buffered_lane" ~ "cycle_lane",
-    cycleway_left == "buffered_lane" ~ "cycle_lane",
-    cycleway_right == "buffered_lane" ~ "cycle_lane",
-    cycleway_both == "buffered_lane" ~ "cycle_lane",
-    cycleway == "segregated" ~ "stepped_or_footway",
-    cycleway_left == "segregated" ~ "stepped_or_footway",
-    cycleway_right == "segregated" ~ "stepped_or_footway",
-    cycleway_both == "segregated" ~ "stepped_or_footway",
-    
-    # Default mixed traffic
-    .default = "mixed_traffic"
-    )
-  )
 
 # segregated = osm_segregation |> 
 #   filter(cycle_segregation %in% c("detached_track", "level_track"))
@@ -440,6 +416,50 @@ tm_shape(osm_segregation) + tm_lines("cycle_segregation")
 
 
 # Function to take OSM data and return cycleway type:
+
+
+# Define the cycle route types:
+osm_segregation = osm_roads |>
+  mutate(cycle_segregation = case_when(
+    
+    # Cycleways detached from the road (edit to add level_track)
+    highway == "cycleway" ~ "detached_track",
+    
+    # Cycleways on road
+    cycleway == "lane" ~ "cycle_lane",
+    cycleway_right == "lane" ~ "cycle_lane",
+    cycleway_left == "lane" ~ "cycle_lane",
+    cycleway_both == "lane" ~ "cycle_lane",
+    
+    cycleway == "track" ~ "light_segregation",
+    cycleway_left == "track" ~ "light_segregation",
+    cycleway_right == "track" ~ "light_segregation",
+    cycleway_both == "track" ~ "light_segregation",
+    
+    
+    # Shared with pedestrians (but not highway == cycleway)
+    segregated == "no" ~ "stepped_or_footway",
+    segregated == "yes" ~ "stepped_or_footway",
+    
+    # Rare cases
+    cycleway == "separate" ~ "stepped_or_footway",
+    cycleway_left == "separate" ~ "stepped_or_footway",
+    cycleway_right == "separate" ~ "stepped_or_footway",
+    cycleway_both == "separate" ~ "stepped_or_footway",
+    cycleway == "buffered_lane" ~ "cycle_lane",
+    cycleway_left == "buffered_lane" ~ "cycle_lane",
+    cycleway_right == "buffered_lane" ~ "cycle_lane",
+    cycleway_both == "buffered_lane" ~ "cycle_lane",
+    cycleway == "segregated" ~ "stepped_or_footway",
+    cycleway_left == "segregated" ~ "stepped_or_footway",
+    cycleway_right == "segregated" ~ "stepped_or_footway",
+    cycleway_both == "segregated" ~ "stepped_or_footway",
+    
+    # Default mixed traffic
+    .default = "mixed_traffic"
+  )
+  )
+
 cycleway_type = function(osm_study) {
   # ...
   res = case_when(
