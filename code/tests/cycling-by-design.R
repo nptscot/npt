@@ -74,7 +74,7 @@ dim(osm_highways)
 
 save_name = paste0("inputdata/osm_highways_",sys_date,".Rds")
 saveRDS(osm_highways, save_name)
-# osm_highways = readRDS("./inputdata/osm_highways_2024-04-04.Rds")
+# osm_highways = readRDS("inputdata/osm_highways_2024-04-04.Rds")
 
 names(osm_highways)
 # [1] "osm_id"                "name"                  "highway"              
@@ -88,13 +88,15 @@ names(osm_highways)
 # [25] "z_order"               "other_tags"            "geometry" 
 summary(osm_highways)
 
-osm_cbd = osm_highways %>%
+osm_cyclenet = osm_highways %>%
     select(osm_id, name, highway, maxspeed, bicycle, 
     cycleway, cycleway_left, cycleway_right, cycleway_both, 
     lanes, lanes_both_ways, lanes_forward, lanes_backward, 
     lanes_bus, lanes_bus_conditional, oneway, width, segregated)
 
-names(osm_cbd)
+cyclenet_study = osm_cyclenet[study_area, ]
+
+names(osm_cyclenet)
 # [1] "osm_id"                "name"                  "highway"              
 # [4] "maxspeed"              "bicycle"               "cycleway"             
 # [7] "cycleway_left"         "cycleway_right"        "cycleway_both"        
@@ -105,12 +107,12 @@ names(osm_cbd)
 
 # Investigate which values are in use
 
-unique(osm_cbd$highway)
+unique(osm_cyclenet$highway)
 #  [1] "residential"    "trunk"          "primary"        "secondary"     
 #  [5] "tertiary"       "primary_link"   "trunk_link"     "unclassified"  
 #  [9] "service"        "tertiary_link"  "cycleway"       "secondary_link"
 # [13] "living_street"  "busway"         "crossing"
-unique(osm_cbd$cycleway)
+unique(osm_cyclenet$cycleway)
 #  [1] NA                      "lane"                  "advisory"             
 #  [4] "no"                    "share_busway"          "track"                
 #  [7] "opposite"              "opposite_lane"         "yes"                  
@@ -119,45 +121,45 @@ unique(osm_cbd$cycleway)
 # [16] "mtb"                   "crossing"              "sidepath"             
 # [19] "none"                  "sidewalk"              "left"                 
 # [22] "unmarked_lane"         "traffic_island" 
-unique(osm_cbd$cycleway_left)
+unique(osm_cyclenet$cycleway_left)
 # [1] NA              "no"            "track"         "lane"         
 # [5] "share_busway"  "shared_lane"   "separate"      "segregated"   
 # [9] "advisory"      "buffered_lane" "yes"
-unique(osm_cbd$cycleway_right)
+unique(osm_cyclenet$cycleway_right)
 # [1] NA              "shared_lane"   "track"         "lane"         
 # [5] "no"            "share_busway"  "separate"      "opposite_lane"
 # [9] "opposite"      "shared" 
-unique(osm_cbd$cycleway_both)
+unique(osm_cyclenet$cycleway_both)
 # [1] "no"           NA             "lane"         "share_busway" "separate"    
 # [6] "track"        "shared_lane"  "shoulder" 
-unique(osm_cbd$maxspeed)
+unique(osm_cyclenet$maxspeed)
 # [1] "20 mph"  "30 mph"  "70 mph"  "50 mph"  NA        "40 mph"  "60 mph" 
 # [8] "10 mph"  "5 mph"   "signals" "15 mph"  "15"      "25 mph"  "11 mph" 
 # [15] "50"      "9 mph"   "8 mph"   "4 mph"   "5"       "8"   
 
 # There are assumptions in OSM about the number of lanes for all roads smaller than trunk/motorway
 # So when there are NA values we can assume there is 1 lane 
-unique(osm_cbd$lanes)
+unique(osm_cyclenet$lanes)
 # [1] NA    "2"   "4"   "1"   "3"   "6"   "5"   "1.5" "0" 
-unique(osm_cbd$lanes_both_ways)
+unique(osm_cyclenet$lanes_both_ways)
 # [1] NA  "1"
-unique(osm_cbd$lanes_forward)
+unique(osm_cyclenet$lanes_forward)
 # [1] NA  "2" "1" "3"
-unique(osm_cbd$lanes_backward)
+unique(osm_cyclenet$lanes_backward)
 # [1] NA  "1" "2" "4" "3"
-unique(osm_cbd$lanes_bus)
+unique(osm_cyclenet$lanes_bus)
 # [1] NA                   "1"                  "yes|yes|designated"
-unique(osm_cbd$lanes_bus_conditional) # This tag seems to be unusued
+unique(osm_cyclenet$lanes_bus_conditional) # This tag seems to be unusued
 # [1] NA
 
-unique(osm_cbd$bicycle)
+unique(osm_cyclenet$bicycle)
 # [1] NA            "designated"  "yes"         "dismount"    "permissive" 
 # [6] "customers"   "destination" "mtb"         "discouraged" "unknown" 
 
-unique(osm_cbd$oneway)
+unique(osm_cyclenet$oneway)
 # [1] NA            "yes"         "no"          "-1"          "alternating"
 # [6] "reversible" 
-unique(osm_cbd$width)
+unique(osm_cyclenet$width)
 # [1] NA       "5.3"    "5.5"    "5.2"    "4.2"    "2.5 m"  "2.0 m"  "5.6"   
 # [9] "8.6"    "10"     "6.5"    "6"      "4.8"    "2.5"    "6.0"    "2.2"   
 # [17] "2"      "3"      "4"      "10.4"   "7.2"    "6.1"    "9"      "5.8"   
@@ -177,107 +179,38 @@ unique(osm_cbd$width)
 # [129] "2.0"    "2.0m"   "4.0m"   "2.1"    "1.4"    "4m"     "1.6 m"  "8.7"   
 # [137] "0.5 m"  "4.75"   ".8"     "5'6\""  "11.8"   "14.9"   "10.1"   "2.65"  
 # [145] "14.8"   "18"     "17"     "5.9 m" 
-unique(osm_cbd$segregated)
+unique(osm_cyclenet$segregated)
 # [1] NA    "yes" "no"
-unique(osm_cbd$highway)
+unique(osm_cyclenet$highway)
 #  [1] "residential"    "trunk"          "primary"        "secondary"     
 # [5] "tertiary"       "primary_link"   "trunk_link"     "unclassified"  
 # [9] "service"        "tertiary_link"  "cycleway"       "secondary_link"
 # [13] "living_street"  "busway"         "crossing"
 
 # Busways are ok to cycle on (there's only a couple in Scotland anyway) - FINE
-busway = osm_cbd |> 
+busway = osm_cyclenet |> 
   filter(highway == "busway")
 tm_shape(busway) + tm_lines()
 # This is just a single lane track in Orkney - FINE
-zero_lane = osm_cbd |> 
+zero_lane = osm_cyclenet |> 
   filter(lanes == "0")
 tm_shape(zero_lane) + tm_lines()
 # This is a few small roads that can be treated as single lane - FINE
-half_lane = osm_cbd |> 
+half_lane = osm_cyclenet |> 
   filter(lanes == "1.5")
 tm_shape(half_lane) + tm_lines()
 # A couple of dead-end tracks - REMOVE
-mtb = osm_cbd |> 
+mtb = osm_cyclenet |> 
   filter(bicycle == "mtb")
 tm_shape(mtb) + tm_lines()
 # dead end track - REMOVE
-unknown = osm_cbd |> 
+unknown = osm_cyclenet |> 
   filter(bicycle == "unknown")
 tm_shape(unknown) + tm_lines()
 # Towpath section, onroad tram route, pedestrian crossing, etc - KEEP
-dismount = osm_cbd |> 
+dismount = osm_cyclenet |> 
   filter(bicycle == "dismount")
 tm_shape(dismount) + tm_lines()
-
-# Check segregation categories in Scotland or Edinburgh
-
-# there are very few of these and most seem to be stepped_or_footway
-separate = osm_cbd |> 
-  filter(cycleway == "separate")
-tm_shape(separate) + tm_lines()
-# one single road segment with unclear (post-google streetview) cycle infrastructure
-buffered = osm_cbd |> 
-  filter(cycleway_left == "buffered_lane")
-tm_shape(buffered) + tm_lines()
-# Very few, unclear but seem to be pedestrian level
-segway = osm_cbd |> 
-  filter(cycleway == "segregated")
-tm_shape(segway) + tm_lines()
-
-osm_study = osm_cbd[study_area, ]
-
-# These are off-road paths shared with pedestrians
-segno = osm_study |> 
-  filter(segregated == "no")
-tm_shape(segno) + tm_lines()
-# These are more mixed - some fully kerbed, others footway level/shared with pedestrians
-segyes = osm_study |> 
-  filter(segregated == "yes")
-tm_shape(segyes) + tm_lines()
-
-# Classic painted cycle lane
-lane_values = c(
-  "lane",
-  "opposite_lane"
-)
-track_values = c(
-  "separate",
-  "track"
-)
-lane = osm_study |> 
-  filter(
-    cycleway %in% lane_values |
-      cycleway_left %in% lane_values |
-      cycleway_right %in% lane_values |
-      cycleway_both %in% lane_values
-  )
-nrow(lane)
-table(osm_study$cycleway_left)
-table(osm_study$cycleway_right)
-table(osm_study$cycleway_both)
-tm_shape(lane) + tm_lines()
-
-# Light segregation with orca wands
-# 
-track = osm_study |> 
-  filter(
-    cycleway %in% track_values |
-      cycleway_left %in% track_values |
-      cycleway_right %in% track_values |
-      cycleway_both %in% track_values
-  )
-nrow(track)
-tm_shape(track) + tm_lines()
-
-# Mostly detached/remote, but also some adjacent to highways as 'level_track'
-# We may need to filter using distance from highway
-det = osm_study |> 
-  filter(highway == "cycleway")
-tm_shape(det) + tm_lines()
-
-# segregated == no |> stepped_or_footway
-
 
 # Categorise segregation --------------------------------------------------
 
@@ -289,13 +222,78 @@ tm_shape(det) + tm_lines()
 # cycle_lane
 # mixed_traffic
 
+# Check segregation categories in Scotland or Edinburgh
+
+# there are very few of these and most seem to be stepped_or_footway
+separate = osm_cyclenet |> 
+  filter(cycleway == "separate")
+tm_shape(separate) + tm_lines()
+# one single road segment with unclear (post-google streetview) cycle infrastructure
+buffered = osm_cyclenet |> 
+  filter(cycleway_left == "buffered_lane")
+tm_shape(buffered) + tm_lines()
+# Very few, unclear but seem to be pedestrian level
+segway = osm_cyclenet |> 
+  filter(cycleway == "segregated")
+tm_shape(segway) + tm_lines()
+
+# These are off-road paths shared with pedestrians
+segno = cyclenet_study |> 
+  filter(segregated == "no")
+tm_shape(segno) + tm_lines()
+# These are more mixed - some fully kerbed, others footway level/shared with pedestrians
+segyes = cyclenet_study |> 
+  filter(segregated == "yes")
+tm_shape(segyes) + tm_lines()
+
+# Classic painted cycle lane
+lane_values = c(
+  "lane",
+  "opposite_lane"
+)
+track_values = c(
+  "track"
+)
+lane = cyclenet_study |> 
+  filter(
+    cycleway %in% lane_values |
+      cycleway_left %in% lane_values |
+      cycleway_right %in% lane_values |
+      cycleway_both %in% lane_values
+  )
+nrow(lane)
+table(cyclenet_study$cycleway_left)
+table(cyclenet_study$cycleway_right)
+table(cyclenet_study$cycleway_both)
+tm_shape(lane) + tm_lines()
+
+# Light segregation with orca wands
+# 
+track = cyclenet_study |> 
+  filter(
+    cycleway %in% track_values |
+      cycleway_left %in% track_values |
+      cycleway_right %in% track_values |
+      cycleway_both %in% track_values
+  )
+nrow(track)
+tm_shape(track) + tm_lines()
+
+# Mostly detached/remote, but also some adjacent to highways as 'level_track'
+# We need to filter using distance from highway
+det = cyclenet_study |> 
+  filter(highway == "cycleway")
+tm_shape(det) + tm_lines()
+
+# segregated == no |> stepped_or_footway
+
 
 # Function for level_track v detached_track
 
 # Make a 10m buffer around highway==cycleway
 # If other highways appear within this buffer, it's a level_track
 # If no other highways appear, it's a detached track
-osm_buffer = osm_study |> 
+osm_buffer = cyclenet_study |> 
   filter(highway == "cycleway")
 osm_buffer = osm_buffer |> 
   sf::st_buffer(10) # could change to 10m
@@ -329,12 +327,14 @@ to_exclude = "crossing|services|disused|emergency|escap|far|raceway|rest|road|tr
 
 osm_roads = osm_roads |> 
   filter(!str_detect(string = highway, pattern = to_exclude))
-saveRDS(osm_roads, "inputdata/osm_roads.Rds")
+
+save_name = paste0("inputdata/osm_roads_",sys_date,".Rds")
+saveRDS(osm_roads, save_name)
 
 
 # Start here  -------------------------------------------------------------
 
-osm_roads = readRDS("inputdata/osm_roads.Rds")
+osm_roads = readRDS("inputdata/osm_roads_2024-04-04.Rds")
 osm_roads = osm_roads[study_area, ]
 # table(osm_roads$highway)
 
@@ -347,10 +347,10 @@ osm_roads |>
 
 # segregated = osm_segregation |> 
 #   filter(cycle_segregation %in% c("detached_track", "level_track"))
-segregated = osm_study |> 
+segregated = cyclenet_study |> 
   filter(highway == "cycleway")
 
-# Aim: calculate distance from the osm_study object to the nearest road
+# Aim: calculate distance from the cyclenet_study object to the nearest road
 segregated_points = sf::st_point_on_surface(segregated)
 # # Check stplanr:
 # segregated_point2 = stplanr::line_midpoint(segregated) |> 
@@ -361,26 +361,23 @@ segregated_points = sf::st_point_on_surface(segregated)
 #   sf = sf::st_point_on_surface(segregated)
 # )
 
-# Check for one point
-segregated |> 
-  slice(1) |> 
-  tm_shape() + tm_lines() +
-  tm_shape(segregated_points |> slice(1)) + tm_dots(size = 2, alpha = 0.1) +
-  tm_shape(segregated_point2 |> slice(1)) + tm_dots(size = 1, alpha = 0.5)
-
-roads = osm_roads |> 
-  filter(!highway %in% c("cycleway"))
+# # Check for one point
+# segregated |> 
+#   slice(1) |> 
+#   tm_shape() + tm_lines() +
+#   tm_shape(segregated_points |> slice(1)) + tm_dots(size = 2, alpha = 0.1) +
+#   tm_shape(segregated_point2 |> slice(1)) + tm_dots(size = 1, alpha = 0.5)
 
 # Distance to nearest road:
 
-roads_buffer_union = roads |> 
+roads_union = osm_roads |> 
   sf::st_union() |> 
   sf::st_transform(27700)
 
-# distances_to_roads = sf::st_distance(segregated_points, roads)
+# distances_to_roads = sf::st_distance(segregated_points, osm_roads)
 
 # Try with geos pkg
-roads_geos = geos::as_geos_geometry(roads_buffer_union)
+roads_geos = geos::as_geos_geometry(roads_union)
 points_geos = geos::as_geos_geometry(segregated_points |>  sf::st_transform(27700))
 points_distances = geos::geos_distance(points_geos, roads_geos)
 head(points_distances)
@@ -460,15 +457,15 @@ osm_segregation = osm_roads |>
   )
   )
 
-cycleway_type = function(osm_study) {
+cycleway_type = function(cyclenet_study) {
   # ...
   res = case_when(
-    osm_study$highway == "cycleway" ~ "detached_track",
+    cyclenet_study$highway == "cycleway" ~ "detached_track",
     TRUE ~ "mixed_traffic"
   )
   return(res)
 }
 
 # Test the function
-cycleway_types = cycleway_type(osm_study)
+cycleway_types = cycleway_type(cyclenet_study)
 table(cycleway_types)
