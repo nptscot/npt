@@ -47,11 +47,12 @@ osm_lines %>%
   sample_n(500) %>% 
   qtm()
 
-to_exclude = "motorway|services|bridleway|disused|emergency|escap|far|foot|path|pedestrian|rest|road|track"
+to_exclude = "motorway|services|bridleway|disused|emergency|escap|far|foot|path|rest|road|track"
 
 osm_highways = osm_lines %>%
-  filter(!str_detect(string = highway, pattern = to_exclude))
-
+  filter(!str_detect(string = highway, pattern = to_exclude),
+         is.na(bicycle)|!str_detect(string = bicycle, pattern = "mtb|discouraged|unknown"),
+         !(str_detect(string = highway, pattern = "pedestrian")& !str_detect(string = bicycle, pattern = "designated")))
 
 dim(osm_highways) 
 # [1] 423190     30
