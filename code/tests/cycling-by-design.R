@@ -1,6 +1,7 @@
 # Cycling by design compliance
 library(tidyverse)
 library(targets)
+library(sf)
 library(tmap)
 tmap_mode("view")
 sys_date = Sys.Date()
@@ -382,6 +383,8 @@ points_geos = geos::as_geos_geometry(segregated_points |>  sf::st_transform(2770
 points_distances = geos::geos_distance(points_geos, roads_geos)
 head(points_distances)
 summary(points_distances)
+# Min. 1st Qu.  Median    Mean 3rd Qu.    Max. 
+# 0.000   5.793  11.840  32.093  35.888 727.403
 
 segregated$distance_to_road = points_distances
 # plot the most remote ones
@@ -405,22 +408,36 @@ segregated |>
   head(1000) |> 
   tm_shape() + tm_lines("distance_to_road", lwd = 3, palette = "viridis")
 
+segregated = segregated |> 
+  mutate(type = case_when(
+    distance_to_road > 10 ~ "detached_track",
+    TRUE ~ "level_track"
+  ))
 
+segregated |> 
+  filter(type == "detached_track") |> 
+  tm_shape() + tm_lines()
 
-tm_shape(osm_segregation) + tm_lines("cycle_segregation")
+segregated |> 
+  filter(type == "level_track") |> 
+  tm_shape() + tm_lines()
 
+# Join with original cycle network
+seg_type = sf::st_drop_geometry(segregated)
+seg_type = seg_type |> 
+  select(osm_id, distance_to_road, type)
+cyclenet_joined = cyclenet_study |> 
+  left_join(seg_type, by = "osm_id")
 
-
-
-# Function to take OSM data and return cycleway type:
-
+# Function to take OSM data and return cycleway type: ---------------------
 
 # Define the cycle route types:
-osm_segregation = osm_roads |>
+osm_segregation = cyclenet_joined |>
   mutate(cycle_segregation = case_when(
     
-    # Cycleways detached from the road (edit to add level_track)
-    highway == "cycleway" ~ "detached_track",
+    # Where highway == cycleway
+    type == "detached_track" ~ "detached_track",
+    type == "level_track" ~ "level_track",
     
     # Cycleways on road
     cycleway == "lane" ~ "cycle_lane",
@@ -456,6 +473,14 @@ osm_segregation = osm_roads |>
     .default = "mixed_traffic"
   )
   )
+
+table(osm_segregation$cycle_segregation)
+# cycle_lane     detached_track        level_track  light_segregation      mixed_traffic 
+# 288               1354               1149                105              48966 
+# stepped_or_footway 
+# 116 
+
+tm_shape(osm_segregation) + tm_lines("cycle_segregation")
 
 cycleway_type = function(cyclenet_study) {
   # ...
