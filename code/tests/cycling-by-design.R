@@ -61,17 +61,18 @@ osm_lines = osmextract::oe_get_network(
 #   sample_n(500) %>% 
 #   qtm()
 
-to_exclude = "motorway|services|bridleway|disused|emergency|escap|far|foot|path|pedestrian|rest|road|track"
+to_exclude = "motorway|services|bridleway|disused|emergency|escap|far|foot|path|rest|road|track"
 
 osm_highways = osm_lines %>%
   filter(
     !str_detect(string = highway, pattern = to_exclude),
-    is.na(bicycle)|!str_detect(string = bicycle, pattern = "mtb|discouraged|unknown")
+    is.na(bicycle)|!str_detect(string = bicycle, pattern = "mtb|discouraged|unknown"),
+    !(str_detect(string = highway, pattern = "pedestrian")& !str_detect(string = bicycle, pattern = "designated"))
   )
 
 
 dim(osm_highways) 
-# [1] 438028     27
+# [1] 438090     27
 
 save_name = paste0("inputdata/osm_highways_",sys_date,".Rds")
 saveRDS(osm_highways, save_name)
@@ -349,7 +350,7 @@ osm_roads |>
 # segregated = osm_segregation |> 
 #   filter(cycle_segregation %in% c("detached_track", "level_track"))
 segregated = cyclenet_study |> 
-  filter(highway == "cycleway")
+  filter(highway == "cycleway|pedestrian")
 
 # Aim: calculate distance from the cyclenet_study object to the nearest road
 segregated_points = sf::st_point_on_surface(segregated)
@@ -480,7 +481,41 @@ table(osm_segregation$cycle_segregation)
 # stepped_or_footway 
 # 116 
 
-tm_shape(osm_segregation) + tm_lines("cycle_segregation")
+# Even with arrange it still plots mixed_traffic routes on top of others
+osm_segregation |> 
+  arrange(cycle_segregation) |> 
+  tm_shape() + tm_lines("cycle_segregation", lwd = 2)
+
+
+# Classify by maxspeed ----------------------------------------------------
+
+table(osm_segregation$maxspeed)
+# 10 mph     15 15 mph 20 mph 30 mph 40 mph      5  5 mph 50 mph 60 mph 70 mph 
+# 218      1    118  15410   7431   1372      1     82    390    983     49
+
+osm_speeds = osm_segregation |> 
+  mutate(maxspeed = gsub("[ mph]", "", maxspeed),
+         maxspeed = as.numeric(maxspeed))
+table(osm_speeds$maxspeed)
+# 10    15    20    30    40     5    50    60    70 
+# 218   119 15410  7431  1372    83   390   983    49 
+
+# Get speed limits for the roads near to level_tracks
+
+level = osm_speeds |> 
+  filter(cycle_segregation == "level_track")
+table(level$maxspeed)
+
+stepped = osm_speeds |> 
+  filter(cycle_segregation == "stepped_or_footway")
+table(stepped$maxspeed)
+summary(stepped)
+
+osm_speeds = osm_speeds |> 
+  mutate(level_of_service = case_when(
+    cycle_segregation == "detached_track" ~ "high",
+    cycle_segregation == "level_track" & 
+  ))
 
 cycleway_type = function(cyclenet_study) {
   # ...
