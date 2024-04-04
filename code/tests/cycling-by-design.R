@@ -110,10 +110,9 @@ names(osm_cyclenet)
 # Investigate which values are in use
 
 unique(osm_cyclenet$highway)
-#  [1] "residential"    "trunk"          "primary"        "secondary"     
-#  [5] "tertiary"       "primary_link"   "trunk_link"     "unclassified"  
-#  [9] "service"        "tertiary_link"  "cycleway"       "secondary_link"
-# [13] "living_street"  "busway"         "crossing"
+# [1] "residential"    "trunk"          "primary"        "secondary"      "tertiary"       "primary_link"  
+# [7] "trunk_link"     "unclassified"   "service"        "pedestrian"     "tertiary_link"  "cycleway"      
+# [13] "secondary_link" "living_street"  "busway"         "crossing"
 unique(osm_cyclenet$cycleway)
 #  [1] NA                      "lane"                  "advisory"             
 #  [4] "no"                    "share_busway"          "track"                
@@ -337,11 +336,11 @@ saveRDS(osm_roads, save_name)
 # Start here  -------------------------------------------------------------
 
 osm_roads = readRDS("inputdata/osm_roads_2024-04-04.Rds")
-osm_roads = osm_roads[study_area, ]
+roads_study = osm_roads[study_area, ]
 # table(osm_roads$highway)
 
-# Plot osm_roads
-osm_roads |> 
+# Plot roads_study
+roads_study |> 
   sample_n(1000) |>
   select(highway) |> 
   qtm()
@@ -350,7 +349,7 @@ osm_roads |>
 # segregated = osm_segregation |> 
 #   filter(cycle_segregation %in% c("detached_track", "level_track"))
 segregated = cyclenet_study |> 
-  filter(highway == "cycleway|pedestrian")
+  filter(highway == "cycleway"|highway == "pedestrian")
 
 # Aim: calculate distance from the cyclenet_study object to the nearest road
 segregated_points = sf::st_point_on_surface(segregated)
@@ -372,11 +371,11 @@ segregated_points = sf::st_point_on_surface(segregated)
 
 # Distance to nearest road:
 
-roads_union = osm_roads |> 
+roads_union = roads_study |> 
   sf::st_union() |> 
   sf::st_transform(27700)
 
-# distances_to_roads = sf::st_distance(segregated_points, osm_roads)
+# distances_to_roads = sf::st_distance(segregated_points, roads_study)
 
 # Try with geos pkg
 roads_geos = geos::as_geos_geometry(roads_union)
@@ -408,6 +407,8 @@ segregated |>
   arrange(distance_to_road) |> 
   head(1000) |> 
   tm_shape() + tm_lines("distance_to_road", lwd = 3, palette = "viridis")
+
+# Categorise the cycleway types -------------------------------------------
 
 segregated = segregated |> 
   mutate(type = case_when(
@@ -476,10 +477,8 @@ osm_segregation = cyclenet_joined |>
   )
 
 table(osm_segregation$cycle_segregation)
-# cycle_lane     detached_track        level_track  light_segregation      mixed_traffic 
-# 288               1354               1149                105              48966 
-# stepped_or_footway 
-# 116 
+# cycle_lane     detached_track        level_track  light_segregation      mixed_traffic stepped_or_footway 
+# 288               1389               1164                105              48966                116
 
 # Even with arrange it still plots mixed_traffic routes on top of others
 osm_segregation |> 
