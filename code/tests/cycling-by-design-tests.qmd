@@ -580,3 +580,28 @@ table(cycleway_types)
 
 ```
 
+# Functions
+
+To capture the logic described above, we will create a few functions to classify the cycleways.
+
+The main data processing steps outlined above are as follows:
+
+1. Filtering the osm_cyclenet data based on different criteria such as highway, lanes, bicycle, and cycleway.
+
+2. Categorizing the segregation types of cycleways.
+
+3. Calculating the distance from the cycleways to the nearest road using sf::st_distance.
+
+4. Classifying level of service based on speed, volume, and cycleway type (not implemented above)
+
+We will create functions for each of these steps, named:
+
+- `filter_osm()`
+- `segregation_levels()`
+- `distance_to_road()`
+- `classify_level_of_service()`
+
+```{r}
+
+```
+
