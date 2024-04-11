@@ -501,13 +501,34 @@ osm_segregation = cyclenet_joined |>
 table(osm_segregation$cycle_segregation)
 # cycle_lane     detached_track        level_track  light_segregation      mixed_traffic stepped_or_footway 
 # 288               1389               1164                105              48966                116
+# Convert to ordered factor for plotting (most segregated first)
+osm_segregation$cycle_segregation_full = osm_segregation$cycle_segregation
+osm_segregation = osm_segregation |> 
+  # combine level, light and stepped into one category (roadside cycle track):
+  mutate(cycle_segregation = case_when(
+    cycle_segregation %in% c("level_track", "light_segregation", "stepped_or_footway") ~ "roadside_cycle_track",
+    # Combine cycle lane with mixed traffic:
+    cycle_segregation %in% c("cycle_lane", "mixed_traffic") ~ "mixed_traffic",
+    TRUE ~ cycle_segregation
+  )) 
+osm_segregation$cycle_segregation = factor(
+  osm_segregation$cycle_segregation,
+  levels = c("detached_track", "roadside_cycle_track", "mixed_traffic"),
+  ordered = TRUE
+)
+```
 
-# Even with arrange it still plots mixed_traffic routes on top of others
-osm_segregation |> 
+```{r}
+#| label: plot-segregation
+
+study_area_to_plot = study_area |> 
+  slice(1)
+osm_segregation[study_area_to_plot, ] |> 
   arrange(cycle_segregation) |> 
   tm_shape() + tm_lines("cycle_segregation", lwd = 2)
+```
 
-
+```{r}
 # Classify by maxspeed ----------------------------------------------------
 
 table(osm_segregation$maxspeed)

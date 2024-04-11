@@ -558,14 +558,32 @@ table(osm_segregation$cycle_segregation)
 ``` r
 # cycle_lane     detached_track        level_track  light_segregation      mixed_traffic stepped_or_footway 
 # 288               1389               1164                105              48966                116
+# Convert to ordered factor for plotting (most segregated first)
+osm_segregation$cycle_segregation_full = osm_segregation$cycle_segregation
+osm_segregation = osm_segregation |> 
+  # combine level, light and stepped into one category (roadside cycle track):
+  mutate(cycle_segregation = case_when(
+    cycle_segregation %in% c("level_track", "light_segregation", "stepped_or_footway") ~ "roadside_cycle_track",
+    # Combine cycle lane with mixed traffic:
+    cycle_segregation %in% c("cycle_lane", "mixed_traffic") ~ "mixed_traffic",
+    TRUE ~ cycle_segregation
+  )) 
+osm_segregation$cycle_segregation = factor(
+  osm_segregation$cycle_segregation,
+  levels = c("detached_track", "roadside_cycle_track", "mixed_traffic"),
+  ordered = TRUE
+)
+```
 
-# Even with arrange it still plots mixed_traffic routes on top of others
-osm_segregation |> 
+``` r
+study_area_to_plot = study_area |> 
+  slice(1)
+osm_segregation[study_area_to_plot, ] |> 
   arrange(cycle_segregation) |> 
   tm_shape() + tm_lines("cycle_segregation", lwd = 2)
 ```
 
-![](cycling-by-design-tests_files/figure-commonmark/unnamed-chunk-3-7.png)
+![](cycling-by-design-tests_files/figure-commonmark/plot-segregation-1.png)
 
 ``` r
 # Classify by maxspeed ----------------------------------------------------
@@ -660,14 +678,14 @@ summary(stepped)
                                            3rd Qu.: NA                        
                                            Max.   : NA                        
                                            NA's   :103                        
-              geometry   cycle_segregation 
-     LINESTRING   :103   Length:103        
-     epsg:4326    :  0   Class :character  
-     +proj=long...:  0   Mode  :character  
-                                           
-                                           
-                                           
-                                           
+              geometry            cycle_segregation
+     LINESTRING   :103   detached_track    :  0    
+     epsg:4326    :  0   level_track       :  0    
+     +proj=long...:  0   light_segregation :  0    
+                         cycle_lane        :  0    
+                         stepped_or_footway:103    
+                         mixed_traffic     :  0    
+                                                   
 
 ``` r
 # TODO: complete this with reference to speeds and volumes
