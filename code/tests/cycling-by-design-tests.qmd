@@ -7,13 +7,15 @@ execute:
 Load the data:
 
 ```{r}
+#| label: setup
+
 # Cycling by design compliance
 library(tidyverse)
 library(targets)
 library(sf)
 library(tmap)
 tmap_mode("view")
-sys_date = Sys.Date()
+sys_date = "2024-04-04"
 study_area = zonebuilder::zb_zone("Edinburgh")
 
 # Download osm data
@@ -44,7 +46,10 @@ et = c(
 #  "ncn",
 #  "network"
 )
+```
 
+```{r}
+#| eval: false
 # Read-in road network data
 osm_lines = osmextract::oe_get_network(
   place = "Scotland",
@@ -338,14 +343,17 @@ to_exclude = "crossing|services|disused|emergency|escap|far|raceway|rest|road|tr
 osm_roads = osm_roads |> 
   filter(!str_detect(string = highway, pattern = to_exclude))
 
+# Save cyclenet_study:
+saveRDS(cyclenet_study, "inputdata/cyclenet_study.Rds")
 save_name = paste0("inputdata/osm_roads_",sys_date,".Rds")
 saveRDS(osm_roads, save_name)
 ```
 
 ```{r}
 # Start here  -------------------------------------------------------------
-
-osm_roads = readRDS("inputdata/osm_roads_2024-04-04.Rds")
+# list.files("inputdata", pattern = "osm_roads")
+osm_roads = readRDS(here::here("inputdata/osm_roads.Rds"))
+cyclenet_study = readRDS(here::here("inputdata/cyclenet_study.Rds"))
 roads_study = osm_roads[study_area, ]
 # table(osm_roads$highway)
 
@@ -488,7 +496,7 @@ osm_segregation = cyclenet_joined |>
   )
   )
 
-saveRDS(osm_segregation, "inputdata/osm_segregation_2024-04-11.Rds")
+# saveRDS(osm_segregation, "inputdata/osm_segregation_2024-04-04.Rds")
 
 table(osm_segregation$cycle_segregation)
 # cycle_lane     detached_track        level_track  light_segregation      mixed_traffic stepped_or_footway 
