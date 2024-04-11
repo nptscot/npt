@@ -514,10 +514,15 @@ stepped = osm_speeds |>
 table(stepped$maxspeed)
 summary(stepped)
 
+# TODO: complete this with reference to speeds and volumes
 osm_speeds = osm_speeds |> 
   mutate(level_of_service = case_when(
     cycle_segregation == "detached_track" ~ "high",
-    cycle_segregation == "level_track" & 
+    cycle_segregation == "level_track" ~ "medium",
+    cycle_segregation == "light_segregation" ~ "medium",
+    cycle_segregation == "cycle_lane" ~ "medium",
+    cycle_segregation == "stepped_or_footway" ~ "medium",
+    cycle_segregation == "mixed_traffic" ~ "low"
   ))
 
 cycleway_type = function(cyclenet_study) {
