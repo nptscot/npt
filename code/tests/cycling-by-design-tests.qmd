@@ -588,9 +588,9 @@ The main data processing steps outlined above are as follows:
 
 1. Filtering the osm_cyclenet data based on different criteria such as highway, lanes, bicycle, and cycleway.
 
-2. Categorizing the segregation types of cycleways.
+2. Calculating the distance from the cycleways to the nearest road using sf::st_distance.
 
-3. Calculating the distance from the cycleways to the nearest road using sf::st_distance.
+3. Categorizing the segregation types of cycleways.
 
 4. Classifying level of service based on speed, volume, and cycleway type (not implemented above)
 
@@ -601,7 +601,133 @@ We will create functions for each of these steps, named:
 - `distance_to_road()`
 - `classify_level_of_service()`
 
-```{r}
+We'll test these for Leeds:
 
+```{r}
+et = function() {
+  et = c(
+    "maxspeed",
+    "oneway",
+    "bicycle",
+    "cycleway",
+    "cycleway:left",
+    "cycleway:right",
+    "cycleway:both",
+    "lanes",
+    "lanes:both_ways",
+    "lanes:forward",
+    "lanes:backward",
+    "lanes:bus",
+    "lanes:bus:conditional",
+    "oneway",
+    "width",      # useful to ensure width of cycleways is at least 1.5m
+    "segregated"  # classifies whether cycles and pedestrians are segregated on shared paths
+  )
+  return(et)
+}
+osm_lines = osmextract::oe_get_network(
+  place = "Leeds",
+  mode = "cycling",
+  extra_tags = et()
+)
 ```
+
+## Filtering the OSM data
+
+```{r}
+exclude_cycling = function() {
+  to_exclude = paste0(
+    "motorway|services|bridleway|disused|emergency|escap",
+    "|far|foot|path|rest|road|track"
+  )
+  return(to_exclude)
+}
+exclude_bicycle = function() {
+  to_exclude = paste0(
+    "mtb|discouraged|unknown"
+  )
+  return(to_exclude)
+}
+exclude_driving = function() {
+  to_exclude = paste0(
+    "crossing|services|disused|emergency|escap|far|raceway|rest|track",
+    # Paths that cannot be driven on:
+    "|bridleway|cycleway|footway|path|pedestrian|steps|track|proposed|construction"
+  )
+  return(to_exclude)
+}
+#' Get the OSM network that is relevant for cycling
+#' 
+#' @param place The place to get the OSM data for
+#' @param modes The type of network to filter for ("cycling" or "driving")
+#'   Default is "cycling", meaning the network that can be cycled on without
+#'   a specialist bike like a mountain bike.
+#'   If "driving" is selected, the network will be filtered for roads that can
+#'   be driven on (e.g. motorways, residential roads, etc.), this excludes cycle tracks.
+#' @param ex_h A string of highway types to exclude
+#' @param ex_b A string of bicycle types to exclude
+#' @param ex_c A string of cycleway types to exclude
+#' @return The filtered OSM network data
+#' @export
+#' @examples
+#' filter_osm(osm_lines)
+get_driving_network = function(
+  place,
+  ex_d = exclude_driving()
+  ) {
+    osm_highways = osmextract::oe_get_network(
+      place = place,
+      mode = "driving",
+      extra_tags = et()
+    )
+    osm_highways = osm_lines |> 
+      filter(!str_detect(string = highway, pattern = ex_d))
+  return(osm_highways)
+}
+
+#' Get the OSM network that is relevant for cycling
+get_cycling_network = function(
+  place,
+  ex_c = exclude_cycling(),
+  ex_b = exclude_bicycle()
+  ) {
+  osm_highways = osmextract::oe_get_network(
+    place = place,
+    mode = "cycling",
+    extra_tags = et()
+  )
+  osm_highways = osm_lines |> 
+    filter(!str_detect(string = highway, pattern = ex_c)) |>
+    # Exlude mtb paths and related tags
+    filter(is.na(bicycle)|!str_detect(string = bicycle, pattern = ex_b))
+
+  return(osm_highways)
+}
+
+cycle_network = get_cycling_network("Leeds")
+driving_network = get_driving_network("Leeds")
+summary(cycle_network$osm_id %in% driving_network$osm_id)
+summary(driving_network$osm_id %in% cycle_network$osm_id)
+
+# Check for motorways
+motorways = cycle_network |> 
+  filter(highway == "motorway")
+nrow(motorways)
+
+motorways = driving_network |> 
+  filter(highway == "motorway")
+nrow(motorways)
+
+# Check for cycleways
+cycleways = cycle_network |> 
+  filter(highway == "cycleway")
+cycleways_driving = driving_network |> 
+  filter(highway == "cycleway")
+nrow(cycleways)
+nrow(cycleways_driving)
+```
+
+# Distance to the nearest road
+
+
 
