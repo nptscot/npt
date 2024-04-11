@@ -412,6 +412,8 @@ segregated |>
 
 segregated = segregated |> 
   mutate(type = case_when(
+    grepl("Path", name, fixed = TRUE) ~ "detached_track",
+    grepl("Towpath", name, fixed = TRUE) ~ "detached_track",
     distance_to_road > 10 ~ "detached_track",
     TRUE ~ "level_track"
   ))
@@ -475,6 +477,8 @@ osm_segregation = cyclenet_joined |>
     .default = "mixed_traffic"
   )
   )
+
+saveRDS(osm_segregation, "inputdata/osm_segregation_2024-04-11.Rds")
 
 table(osm_segregation$cycle_segregation)
 # cycle_lane     detached_track        level_track  light_segregation      mixed_traffic stepped_or_footway 
