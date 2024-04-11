@@ -635,6 +635,7 @@ osm_lines = osmextract::oe_get_network(
 ## Filtering the OSM data
 
 ```{r}
+#| message: false
 exclude_cycling = function() {
   to_exclude = paste0(
     "motorway|services|bridleway|disused|emergency|escap",
@@ -703,9 +704,24 @@ get_cycling_network = function(
 
   return(osm_highways)
 }
+```
 
+
+```r
 cycle_network = get_cycling_network("Leeds")
 driving_network = get_driving_network("Leeds")
+```
+
+```{r}
+#| include: false
+cycle_network = get_cycling_network("Leeds")
+driving_network = get_driving_network("Leeds")
+```
+
+```{r}
+# Show highway types:
+table(cycle_network$highway)
+table(driving_network$highway)
 summary(cycle_network$osm_id %in% driving_network$osm_id)
 summary(driving_network$osm_id %in% cycle_network$osm_id)
 
