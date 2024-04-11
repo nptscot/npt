@@ -1,11 +1,22 @@
+---
+format: gfm
+execute: 
+  cache: true
+---
+
+Load the data:
+
+```{r}
+#| label: setup
+
 # Cycling by design compliance
 library(tidyverse)
 library(targets)
 library(sf)
 library(tmap)
 tmap_mode("view")
-sys_date = Sys.Date()
-tar_load(study_area)
+sys_date = "2024-04-04"
+study_area = zonebuilder::zb_zone("Edinburgh")
 
 # Download osm data
 et = c(
@@ -35,7 +46,10 @@ et = c(
 #  "ncn",
 #  "network"
 )
+```
 
+```{r}
+#| eval: false
 # Read-in road network data
 osm_lines = osmextract::oe_get_network(
   place = "Scotland",
@@ -329,13 +343,17 @@ to_exclude = "crossing|services|disused|emergency|escap|far|raceway|rest|road|tr
 osm_roads = osm_roads |> 
   filter(!str_detect(string = highway, pattern = to_exclude))
 
+# Save cyclenet_study:
+saveRDS(cyclenet_study, "inputdata/cyclenet_study.Rds")
 save_name = paste0("inputdata/osm_roads_",sys_date,".Rds")
 saveRDS(osm_roads, save_name)
+```
 
-
+```{r}
 # Start here  -------------------------------------------------------------
-
-osm_roads = readRDS("inputdata/osm_roads_2024-04-04.Rds")
+# list.files("inputdata", pattern = "osm_roads")
+osm_roads = readRDS(here::here("inputdata/osm_roads.Rds"))
+cyclenet_study = readRDS(here::here("inputdata/cyclenet_study.Rds"))
 roads_study = osm_roads[study_area, ]
 # table(osm_roads$highway)
 
@@ -412,6 +430,8 @@ segregated |>
 
 segregated = segregated |> 
   mutate(type = case_when(
+    grepl("Path", name, fixed = TRUE) ~ "detached_track",
+    grepl("Towpath", name, fixed = TRUE) ~ "detached_track",
     distance_to_road > 10 ~ "detached_track",
     TRUE ~ "level_track"
   ))
@@ -476,16 +496,39 @@ osm_segregation = cyclenet_joined |>
   )
   )
 
+# saveRDS(osm_segregation, "inputdata/osm_segregation_2024-04-04.Rds")
+
 table(osm_segregation$cycle_segregation)
 # cycle_lane     detached_track        level_track  light_segregation      mixed_traffic stepped_or_footway 
 # 288               1389               1164                105              48966                116
+# Convert to ordered factor for plotting (most segregated first)
+osm_segregation$cycle_segregation_full = osm_segregation$cycle_segregation
+osm_segregation = osm_segregation |> 
+  # combine level, light and stepped into one category (roadside cycle track):
+  mutate(cycle_segregation = case_when(
+    cycle_segregation %in% c("level_track", "light_segregation", "stepped_or_footway") ~ "roadside_cycle_track",
+    # Combine cycle lane with mixed traffic:
+    cycle_segregation %in% c("cycle_lane", "mixed_traffic") ~ "mixed_traffic",
+    TRUE ~ cycle_segregation
+  )) 
+osm_segregation$cycle_segregation = factor(
+  osm_segregation$cycle_segregation,
+  levels = c("detached_track", "roadside_cycle_track", "mixed_traffic"),
+  ordered = TRUE
+)
+```
 
-# Even with arrange it still plots mixed_traffic routes on top of others
-osm_segregation |> 
+```{r}
+#| label: plot-segregation
+
+study_area_to_plot = study_area |> 
+  slice(1)
+osm_segregation[study_area_to_plot, ] |> 
   arrange(cycle_segregation) |> 
   tm_shape() + tm_lines("cycle_segregation", lwd = 2)
+```
 
-
+```{r}
 # Classify by maxspeed ----------------------------------------------------
 
 table(osm_segregation$maxspeed)
@@ -510,10 +553,15 @@ stepped = osm_speeds |>
 table(stepped$maxspeed)
 summary(stepped)
 
+# TODO: complete this with reference to speeds and volumes
 osm_speeds = osm_speeds |> 
   mutate(level_of_service = case_when(
     cycle_segregation == "detached_track" ~ "high",
-    cycle_segregation == "level_track" & 
+    cycle_segregation == "level_track" ~ "medium",
+    cycle_segregation == "light_segregation" ~ "medium",
+    cycle_segregation == "cycle_lane" ~ "medium",
+    cycle_segregation == "stepped_or_footway" ~ "medium",
+    cycle_segregation == "mixed_traffic" ~ "low"
   ))
 
 cycleway_type = function(cyclenet_study) {
@@ -528,3 +576,7 @@ cycleway_type = function(cyclenet_study) {
 # Test the function
 cycleway_types = cycleway_type(cyclenet_study)
 table(cycleway_types)
+
+
+```
+
