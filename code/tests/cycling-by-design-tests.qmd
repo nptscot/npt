@@ -625,11 +625,6 @@ et = function() {
   )
   return(et)
 }
-osm_lines = osmextract::oe_get_network(
-  place = "Leeds",
-  mode = "cycling",
-  extra_tags = et()
-)
 ```
 
 ## Filtering the OSM data
@@ -681,9 +676,9 @@ get_driving_network = function(
       mode = "driving",
       extra_tags = et()
     )
-    osm_highways = osm_lines |> 
+    res = osm_highways |> 
       filter(!str_detect(string = highway, pattern = ex_d))
-  return(osm_highways)
+  return(res)
 }
 
 #' Get the OSM network that is relevant for cycling
@@ -692,17 +687,17 @@ get_cycling_network = function(
   ex_c = exclude_cycling(),
   ex_b = exclude_bicycle()
   ) {
-  osm_highways = osmextract::oe_get_network(
+  osm_cycleways = osmextract::oe_get_network(
     place = place,
     mode = "cycling",
     extra_tags = et()
   )
-  osm_highways = osm_lines |> 
+  res = osm_cycleways |> 
     filter(!str_detect(string = highway, pattern = ex_c)) |>
     # Exlude mtb paths and related tags
     filter(is.na(bicycle)|!str_detect(string = bicycle, pattern = ex_b))
 
-  return(osm_highways)
+  return(res)
 }
 ```
 
