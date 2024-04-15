@@ -878,13 +878,52 @@ And plot the results:
 m = cycleways_segregated |> 
   sf::st_filter(study_area_1km) |>
   arrange(cycle_segregation) |> 
-  tm_shape() + tm_lines("cycle_segregation", lwd = 2)
+  tm_shape() + tm_lines("cycle_segregation", lwd = 4, palette = "-Blues", popup.vars = c("name", "cycle_segregation", "distance_to_road", "maxspeed", "highway", "other_tags"))
 m
 tmap_save(m, "segregation_levels.html")
 ```
 
-
 ```{r}
 #| eval: false
 browseURL("segregation_levels.html")
+```
+
+
+```{r}
+#| label: upload-release
+#| eval: false
+file.copy("code/tests/segregation_levels.html", "segregation_levels.html", T)
+system("gh release upload v1 segregation_levels.html")
+```
+
+
+## Results for Edinburgh
+
+We can generate the results for Edinburgh:
+
+```{r}
+#| label: edinburgh
+edinburgh = zonebuilder::zb_zone("Edinburgh")
+edinburgh_3km = edinburgh |> 
+  filter(circle_id <= 2)
+cycle_network = get_cycling_network("Scotland")
+driving_network = get_driving_network("Scotland")
+edinburgh_cycle = cycle_network[edinburgh, , op = sf::st_within]
+edinburgh_driving = driving_network[edinburgh, , op = sf::st_within]
+edinburgh_cycle_with_distance = distance_to_road(edinburgh_cycle, edinburgh_driving)
+edinburgh_segregated = segregation_levels(edinburgh_cycle_with_distance)
+table(edinburgh_segregated$cycle_segregation)
+m = edinburgh_segregated |> 
+  arrange(cycle_segregation) |> 
+  tm_shape() + tm_lines("cycle_segregation", lwd = 4, palette = "-Blues", popup.vars = c("name", "cycle_segregation", "distance_to_road", "maxspeed", "highway", "other_tags"))
+m
+tmap_save(m, "segregation_levels_edinburgh.html")
+```
+
+```{r}
+#| eval: false
+browseURL("segregation_levels_edinburgh.html")
+# Upload the results:
+file.copy("code/tests/segregation_levels_edinburgh.html", "segregation_levels_edinburgh.html", T)
+system("gh release upload v1 segregation_levels_edinburgh.html")
 ```
