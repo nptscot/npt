@@ -580,3 +580,311 @@ table(cycleway_types)
 
 ```
 
+# Functions
+
+To capture the logic described above, we will create a few functions to classify the cycleways.
+
+The main data processing steps outlined above are as follows:
+
+1. Filtering the osm_cyclenet data based on different criteria such as highway, lanes, bicycle, and cycleway.
+
+2. Calculating the distance from the cycleways to the nearest road using sf::st_distance.
+
+3. Categorizing the segregation types of cycleways.
+
+4. Classifying level of service based on speed, volume, and cycleway type (not implemented above)
+
+We will create functions for each of these steps, named:
+
+- `filter_osm()`
+- `segregation_levels()`
+- `distance_to_road()`
+- `classify_level_of_service()`
+
+We'll test these for Leeds:
+
+```{r}
+et = function() {
+  et = c(
+    "maxspeed",
+    "oneway",
+    "bicycle",
+    "cycleway",
+    "cycleway:left",
+    "cycleway:right",
+    "cycleway:both",
+    "lanes",
+    "lanes:both_ways",
+    "lanes:forward",
+    "lanes:backward",
+    "lanes:bus",
+    "lanes:bus:conditional",
+    "oneway",
+    "width",      # useful to ensure width of cycleways is at least 1.5m
+    "segregated"  # classifies whether cycles and pedestrians are segregated on shared paths
+  )
+  return(et)
+}
+```
+
+## Filtering the OSM data
+
+```{r}
+#| message: false
+exclude_cycling = function() {
+  to_exclude = paste0(
+    "motorway|bridleway|disused|emergency|escap",
+    "|far|foot|rest|road|track"
+  )
+  return(to_exclude)
+}
+exclude_bicycle = function() {
+  to_exclude = paste0(
+    "mtb|discouraged|unknown"
+  )
+  return(to_exclude)
+}
+exclude_driving = function() {
+  to_exclude = paste0(
+    "crossing|disused|emergency|escap|far|raceway|rest|track",
+    # Paths that cannot be driven on:
+    "|bridleway|cycleway|footway|path|pedestrian|steps|track|proposed|construction"
+  )
+  return(to_exclude)
+}
+#' Get the OSM network that is relevant for cycling
+#' 
+#' @param place The place to get the OSM data for
+#' @param modes The type of network to filter for ("cycling" or "driving")
+#'   Default is "cycling", meaning the network that can be cycled on without
+#'   a specialist bike like a mountain bike.
+#'   If "driving" is selected, the network will be filtered for roads that can
+#'   be driven on (e.g. motorways, residential roads, etc.), this excludes cycle tracks.
+#' @param ex_h A string of highway types to exclude
+#' @param ex_b A string of bicycle types to exclude
+#' @param ex_c A string of cycleway types to exclude
+#' @return The filtered OSM network data
+#' @export
+#' @examples
+#' filter_osm(osm_lines)
+get_driving_network = function(
+  place,
+  ex_d = exclude_driving()
+  ) {
+    osm_highways = osmextract::oe_get(
+      place = place,
+      extra_tags = et()
+    )
+    res = osm_highways |> 
+      filter(!is.na(highway)) |>
+      filter(!str_detect(string = highway, pattern = ex_d))
+  return(res)
+}
+
+#' Get the OSM network that is relevant for cycling
+get_cycling_network = function(
+  place,
+  ex_c = exclude_cycling(),
+  ex_b = exclude_bicycle()
+  ) {
+  osm_cycleways = osmextract::oe_get(
+    place = place,
+    extra_tags = et()
+  )
+  res = osm_cycleways |> 
+      filter(!is.na(highway)) |> 
+    filter(!str_detect(string = highway, pattern = ex_c)) |>
+    # Exlude mtb paths and related tags
+    filter(is.na(bicycle)|!str_detect(string = bicycle, pattern = ex_b))
+
+  return(res)
+}
+```
+
+
+```r
+cycle_network = get_cycling_network("Leeds")
+driving_network = get_driving_network("Leeds")
+```
+
+```{r}
+#| include: false
+cycle_network = get_cycling_network("Leeds")
+driving_network = get_driving_network("Leeds")
+osm_network = osmextract::oe_get(
+  place = "Leeds",
+  extra_tags = et()
+)
+```
+
+```{r}
+# Show highway types:
+table(cycle_network$highway)
+table(driving_network$highway)
+summary(cycle_network$osm_id %in% driving_network$osm_id)
+summary(driving_network$osm_id %in% cycle_network$osm_id)
+
+# Check for motorways
+motorways = cycle_network |> 
+  filter(highway == "motorway")
+nrow(motorways)
+
+motorways = driving_network |> 
+  filter(highway == "motorway")
+nrow(motorways)
+
+# Check for cycleways
+cycleways = cycle_network |> 
+  filter(highway == "cycleway")
+cycleways_driving = driving_network |> 
+  filter(highway == "cycleway")
+nrow(cycleways)
+nrow(cycleways_driving)
+```
+
+## Distance to the nearest road
+
+There are two inputs to this function: the cycleways and the roads.
+
+```{r}
+distance_to_road = function(cycleways, roads) {
+  # Aim: calculate distance from the cycleways to the nearest road
+  segregated_points = sf::st_point_on_surface(cycleways)
+  roads_union = roads |> 
+    # Failed attempt to make it faster:
+    # rmapshaper::ms_simplify(keep = 0.1) |>
+    sf::st_union() |> 
+    sf::st_transform(27700)
+  roads_geos = geos::as_geos_geometry(roads_union)
+  # Failed attempt to make it faster:
+  # roads_geos = geos::geos_simplify(roads_geos, tolerance = 5)
+  points_geos = geos::as_geos_geometry(segregated_points |>  sf::st_transform(27700))
+  points_distances = geos::geos_distance(points_geos, roads_geos)
+  cycleways$distance_to_road = points_distances
+  return(cycleways)
+}
+```
+
+We can test the function as follows:
+
+```{r}
+study_area = zonebuilder::zb_zone("Leeds")
+study_area_1km = study_area |> 
+  slice(1)
+osm_test_1km = osm_network[study_area_1km, , op = sf::st_within]
+mapview::mapview(osm_test_1km)
+c_test_1km = cycle_network[study_area_1km, , op = sf::st_within]
+mapview::mapview(c_test_1km)
+d_test_1km = driving_network[study_area_1km, , op = sf::st_within]
+plot(d_test_1km$geometry)
+nrow(c_test_1km)
+plot(c_test_1km$geometry)
+tt = system.time({
+  cycleways_with_distance = distance_to_road(c_test_1km, d_test_1km)
+})
+# Rows per second:
+nrow(c_test_1km)/tt[3]
+summary(cycleways_with_distance$distance_to_road)
+cycleways_remote = cycleways_with_distance |> 
+  filter(distance_to_road > 10)
+mapview::mapview(cycleways_remote)
+```
+
+Let's test again with the first 3 km of Leeds:
+
+```{r}
+study_area_6km = study_area |> 
+  filter(circle_id <= 3) 
+c_test = cycle_network[study_area_6km, , op = sf::st_within]
+d_test = driving_network[study_area_6km, , op = sf::st_within]
+system.time({
+  cycleways_with_distance = distance_to_road(c_test, d_test)
+})
+cycleways_remote = cycleways_with_distance |> 
+  filter(distance_to_road > 15)
+mapview::mapview(cycleways_remote)
+```
+
+The results are very promising.
+
+## Segregation levels
+
+With knowledge of the type of cycleway, the distance to roads, and the speed limits, we can classify the segregation levels.
+
+```{r}
+segregation_levels = function(cycleways) {
+  cycleways |> 
+    mutate(type = case_when(
+      grepl("Path", name, fixed = TRUE) ~ "detached_track",
+      grepl("Towpath", name, fixed = TRUE) ~ "detached_track",
+      distance_to_road > 10 ~ "detached_track",
+      TRUE ~ "mixed_traffic"
+    )) |> 
+    mutate(cycle_segregation = case_when(
+      # Where highway == cycleway
+      type == "detached_track" ~ "detached_track",
+      type == "level_track" ~ "level_track",
+      # Cycleways on road
+      cycleway == "lane" ~ "cycle_lane",
+      cycleway_right == "lane" ~ "cycle_lane",
+      cycleway_left == "lane" ~ "cycle_lane",
+      cycleway_both == "lane" ~ "cycle_lane",
+      cycleway == "track" ~ "light_segregation",
+      cycleway_left == "track" ~ "light_segregation",
+      cycleway_right == "track" ~ "light_segregation",
+      cycleway_both == "track" ~ "light_segregation",
+      # Shared with pedestrians (but not highway == cycleway)
+      segregated == "no" ~ "stepped_or_footway",
+      segregated == "yes" ~ "stepped_or_footway",
+      # Rare cases
+      cycleway == "separate" ~ "stepped_or_footway",
+      cycleway_left == "separate" ~ "stepped_or_footway",
+      cycleway_right == "separate" ~ "stepped_or_footway",
+      cycleway_both == "separate" ~ "stepped_or_footway",
+      cycleway == "buffered_lane" ~ "cycle_lane",
+      cycleway_left == "buffered_lane" ~ "cycle_lane",
+      cycleway_right == "buffered_lane" ~ "cycle_lane",
+      cycleway_both == "buffered_lane" ~ "cycle_lane",
+      cycleway == "segregated" ~ "stepped_or_footway",
+      cycleway_left == "segregated" ~ "stepped_or_footway",
+      cycleway_right == "segregated" ~ "stepped_or_footway",
+      cycleway_both == "segregated" ~ "stepped_or_footway",
+      # Default mixed traffic
+      .default = "mixed_traffic"
+    )) |>
+    mutate(cycle_segregation = case_when(
+      cycle_segregation %in% c("level_track", "light_segregation", "stepped_or_footway") ~ "roadside_cycle_track",
+      cycle_segregation %in% c("cycle_lane", "mixed_traffic") ~ "mixed_traffic",
+      TRUE ~ cycle_segregation
+    )) |>
+    mutate(cycle_segregation = factor(
+      cycle_segregation,
+      levels = c("detached_track", "roadside_cycle_track", "mixed_traffic"),
+      ordered = TRUE
+    ))
+}
+```
+
+Let's test the function:
+
+```{r}
+cycleways_segregated = segregation_levels(cycleways_with_distance)
+table(cycleways_segregated$cycle_segregation)
+```
+
+And plot the results:
+
+```{r}
+m = cycleways_segregated |> 
+  sf::st_filter(study_area_1km) |>
+  arrange(cycle_segregation) |> 
+  tm_shape() + tm_lines("cycle_segregation", lwd = 2)
+m
+tmap_save(m, "segregation_levels.html")
+```
+
+
+```{r}
+#| eval: false
+browseURL("segregation_levels.html")
+```
