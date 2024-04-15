@@ -1137,3 +1137,7 @@ tmap_save(m, "segregation_levels.html")
 ``` r
 browseURL("segregation_levels.html")
 ```
+
+``` r
+system("gh release upload v0.1 segregation_levels.html")
+```
