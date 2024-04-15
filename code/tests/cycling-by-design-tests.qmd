@@ -783,7 +783,7 @@ tt = system.time({
   cycleways_with_distance = distance_to_road(c_test_1km, d_test_1km)
 })
 # Rows per second:
-nrow(c_test)/tt[3]
+nrow(c_test_1km)/tt[3]
 summary(cycleways_with_distance$distance_to_road)
 cycleways_remote = cycleways_with_distance |> 
   filter(distance_to_road > 10)
@@ -881,5 +881,10 @@ m = cycleways_segregated |>
   tm_shape() + tm_lines("cycle_segregation", lwd = 2)
 m
 tmap_save(m, "segregation_levels.html")
+```
+
+
+```{r}
+#| eval: false
 browseURL("segregation_levels.html")
 ```

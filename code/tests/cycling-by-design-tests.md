@@ -773,8 +773,8 @@ et = function() {
 ``` r
 exclude_cycling = function() {
   to_exclude = paste0(
-    "motorway|services|bridleway|disused|emergency|escap",
-    "|far|foot|path|rest|road|track"
+    "motorway|bridleway|disused|emergency|escap",
+    "|far|foot|rest|road|track"
   )
   return(to_exclude)
 }
@@ -786,7 +786,7 @@ exclude_bicycle = function() {
 }
 exclude_driving = function() {
   to_exclude = paste0(
-    "crossing|services|disused|emergency|escap|far|raceway|rest|track",
+    "crossing|disused|emergency|escap|far|raceway|rest|track",
     # Paths that cannot be driven on:
     "|bridleway|cycleway|footway|path|pedestrian|steps|track|proposed|construction"
   )
@@ -811,12 +811,12 @@ get_driving_network = function(
   place,
   ex_d = exclude_driving()
   ) {
-    osm_highways = osmextract::oe_get_network(
+    osm_highways = osmextract::oe_get(
       place = place,
-      mode = "driving",
       extra_tags = et()
     )
     res = osm_highways |> 
+      filter(!is.na(highway)) |>
       filter(!str_detect(string = highway, pattern = ex_d))
   return(res)
 }
@@ -827,12 +827,12 @@ get_cycling_network = function(
   ex_c = exclude_cycling(),
   ex_b = exclude_bicycle()
   ) {
-  osm_cycleways = osmextract::oe_get_network(
+  osm_cycleways = osmextract::oe_get(
     place = place,
-    mode = "cycling",
     extra_tags = et()
   )
   res = osm_cycleways |> 
+      filter(!is.na(highway)) |> 
     filter(!str_detect(string = highway, pattern = ex_c)) |>
     # Exlude mtb paths and related tags
     filter(is.na(bicycle)|!str_detect(string = bicycle, pattern = ex_b))
@@ -921,4 +921,219 @@ nrow(cycleways_driving)
 
     [1] 0
 
-# Distance to the nearest road
+## Distance to the nearest road
+
+There are two inputs to this function: the cycleways and the roads.
+
+``` r
+distance_to_road = function(cycleways, roads) {
+  # Aim: calculate distance from the cycleways to the nearest road
+  segregated_points = sf::st_point_on_surface(cycleways)
+  roads_union = roads |> 
+    # Failed attempt to make it faster:
+    # rmapshaper::ms_simplify(keep = 0.1) |>
+    sf::st_union() |> 
+    sf::st_transform(27700)
+  roads_geos = geos::as_geos_geometry(roads_union)
+  # Failed attempt to make it faster:
+  # roads_geos = geos::geos_simplify(roads_geos, tolerance = 5)
+  points_geos = geos::as_geos_geometry(segregated_points |>  sf::st_transform(27700))
+  points_distances = geos::geos_distance(points_geos, roads_geos)
+  cycleways$distance_to_road = points_distances
+  return(cycleways)
+}
+```
+
+We can test the function as follows:
+
+``` r
+study_area = zonebuilder::zb_zone("Leeds")
+study_area_1km = study_area |> 
+  slice(1)
+osm_test_1km = osm_network[study_area_1km, , op = sf::st_within]
+mapview::mapview(osm_test_1km)
+```
+
+![](cycling-by-design-tests_files/figure-commonmark/unnamed-chunk-11-1.png)
+
+``` r
+c_test_1km = cycle_network[study_area_1km, , op = sf::st_within]
+mapview::mapview(c_test_1km)
+```
+
+![](cycling-by-design-tests_files/figure-commonmark/unnamed-chunk-11-2.png)
+
+``` r
+d_test_1km = driving_network[study_area_1km, , op = sf::st_within]
+plot(d_test_1km$geometry)
+```
+
+![](cycling-by-design-tests_files/figure-commonmark/unnamed-chunk-11-3.png)
+
+``` r
+nrow(c_test_1km)
+```
+
+    [1] 2347
+
+``` r
+plot(c_test_1km$geometry)
+```
+
+![](cycling-by-design-tests_files/figure-commonmark/unnamed-chunk-11-4.png)
+
+``` r
+tt = system.time({
+  cycleways_with_distance = distance_to_road(c_test_1km, d_test_1km)
+})
+```
+
+    Warning: st_point_on_surface assumes attributes are constant over geometries
+
+    Warning in st_point_on_surface.sfc(st_geometry(x)): st_point_on_surface may not
+    give correct results for longitude/latitude data
+
+``` r
+# Rows per second:
+nrow(c_test_1km)/tt[3]
+```
+
+     elapsed 
+    7745.875 
+
+``` r
+summary(cycleways_with_distance$distance_to_road)
+```
+
+       Min. 1st Qu.  Median    Mean 3rd Qu.    Max. 
+      0.000   0.000   0.000   4.672   0.000 119.330 
+
+``` r
+cycleways_remote = cycleways_with_distance |> 
+  filter(distance_to_road > 10)
+mapview::mapview(cycleways_remote)
+```
+
+![](cycling-by-design-tests_files/figure-commonmark/unnamed-chunk-11-5.png)
+
+Let’s test again with the first 3 km of Leeds:
+
+``` r
+study_area_6km = study_area |> 
+  filter(circle_id <= 3) 
+c_test = cycle_network[study_area_6km, , op = sf::st_within]
+d_test = driving_network[study_area_6km, , op = sf::st_within]
+system.time({
+  cycleways_with_distance = distance_to_road(c_test, d_test)
+})
+```
+
+    Warning: st_point_on_surface assumes attributes are constant over geometries
+
+    Warning in st_point_on_surface.sfc(st_geometry(x)): st_point_on_surface may not
+    give correct results for longitude/latitude data
+
+       user  system elapsed 
+     38.692   0.004  38.700 
+
+``` r
+cycleways_remote = cycleways_with_distance |> 
+  filter(distance_to_road > 15)
+mapview::mapview(cycleways_remote)
+```
+
+![](cycling-by-design-tests_files/figure-commonmark/unnamed-chunk-12-1.png)
+
+The results are very promising.
+
+## Segregation levels
+
+With knowledge of the type of cycleway, the distance to roads, and the
+speed limits, we can classify the segregation levels.
+
+``` r
+segregation_levels = function(cycleways) {
+  cycleways |> 
+    mutate(type = case_when(
+      grepl("Path", name, fixed = TRUE) ~ "detached_track",
+      grepl("Towpath", name, fixed = TRUE) ~ "detached_track",
+      distance_to_road > 10 ~ "detached_track",
+      TRUE ~ "mixed_traffic"
+    )) |> 
+    mutate(cycle_segregation = case_when(
+      # Where highway == cycleway
+      type == "detached_track" ~ "detached_track",
+      type == "level_track" ~ "level_track",
+      # Cycleways on road
+      cycleway == "lane" ~ "cycle_lane",
+      cycleway_right == "lane" ~ "cycle_lane",
+      cycleway_left == "lane" ~ "cycle_lane",
+      cycleway_both == "lane" ~ "cycle_lane",
+      cycleway == "track" ~ "light_segregation",
+      cycleway_left == "track" ~ "light_segregation",
+      cycleway_right == "track" ~ "light_segregation",
+      cycleway_both == "track" ~ "light_segregation",
+      # Shared with pedestrians (but not highway == cycleway)
+      segregated == "no" ~ "stepped_or_footway",
+      segregated == "yes" ~ "stepped_or_footway",
+      # Rare cases
+      cycleway == "separate" ~ "stepped_or_footway",
+      cycleway_left == "separate" ~ "stepped_or_footway",
+      cycleway_right == "separate" ~ "stepped_or_footway",
+      cycleway_both == "separate" ~ "stepped_or_footway",
+      cycleway == "buffered_lane" ~ "cycle_lane",
+      cycleway_left == "buffered_lane" ~ "cycle_lane",
+      cycleway_right == "buffered_lane" ~ "cycle_lane",
+      cycleway_both == "buffered_lane" ~ "cycle_lane",
+      cycleway == "segregated" ~ "stepped_or_footway",
+      cycleway_left == "segregated" ~ "stepped_or_footway",
+      cycleway_right == "segregated" ~ "stepped_or_footway",
+      cycleway_both == "segregated" ~ "stepped_or_footway",
+      # Default mixed traffic
+      .default = "mixed_traffic"
+    )) |>
+    mutate(cycle_segregation = case_when(
+      cycle_segregation %in% c("level_track", "light_segregation", "stepped_or_footway") ~ "roadside_cycle_track",
+      cycle_segregation %in% c("cycle_lane", "mixed_traffic") ~ "mixed_traffic",
+      TRUE ~ cycle_segregation
+    )) |>
+    mutate(cycle_segregation = factor(
+      cycle_segregation,
+      levels = c("detached_track", "roadside_cycle_track", "mixed_traffic"),
+      ordered = TRUE
+    ))
+}
+```
+
+Let’s test the function:
+
+``` r
+cycleways_segregated = segregation_levels(cycleways_with_distance)
+table(cycleways_segregated$cycle_segregation)
+```
+
+
+          detached_track roadside_cycle_track        mixed_traffic 
+                    2602                  496                20445 
+
+And plot the results:
+
+``` r
+m = cycleways_segregated |> 
+  sf::st_filter(study_area_1km) |>
+  arrange(cycle_segregation) |> 
+  tm_shape() + tm_lines("cycle_segregation", lwd = 2)
+m
+```
+
+![](cycling-by-design-tests_files/figure-commonmark/unnamed-chunk-15-1.png)
+
+``` r
+tmap_save(m, "segregation_levels.html")
+```
+
+    Interactive map saved to /home/robin/github/nptscot/npt/code/tests/segregation_levels.html
+
+``` r
+browseURL("segregation_levels.html")
+```
