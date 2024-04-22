@@ -758,6 +758,8 @@ tar_target(os_pois, {
   if(parameters$geo_subset) {
     os_pois = os_pois[study_area, op = sf::st_within]
   }
+  # Workaround for #445
+  sf::st_geometry(os_pois) = "geom"
   os_pois
 }),
 
@@ -788,17 +790,6 @@ tar_target(intermediate_zones,{
 
 # Utility OD -------------------------------------------------------------
 tar_target(od_shopping, {
-  library(tidyverse)
-  devtools::load_all("../odjitter/r")
-  tar_load(oas)
-  tar_load(os_pois)
-  tar_load(grid)
-  tar_load(trip_purposes)
-  tar_load(intermediate_zones)
-  tar_load(parameters)
-  tar_load(study_area)
-  sf::st_geometry(os_pois) = "geom"
-
   od_shopping = make_od_shopping(oas, os_pois, grid, trip_purposes,
                                 intermediate_zones, parameters,study_area, odjitter_location = parameters$odjitter_location)
   od_shopping

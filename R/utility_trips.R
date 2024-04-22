@@ -77,7 +77,7 @@ make_od_shopping = function(oas, os_pois, grid, trip_purposes, intermediate_zone
   shopping_polygons = sf::st_buffer(shopping_grid, dist = 0.0001)
   
   # why does distance_euclidean drop so dramatically when we go from od_interaction to od_adjusted_jittered? 
-  od_adjusted_jittered = jitter(
+  od_adjusted_jittered = odjitter::jitter(
     od = od_adjusted,
     zones = zones_shopping,
     zones_d = shopping_polygons, # each polygon is a single grid point, so destinations are kept the same
@@ -244,7 +244,7 @@ make_od_leisure = function(oas, os_pois, grid, trip_purposes, intermediate_zones
   leisure_polygons = sf::st_buffer(combined_grid, dist = 0.0001)
   
   # why does distance_euclidean drop so dramatically when we go from od_interaction to od_adjusted_jittered? 
-  od_adjusted_jittered = jitter(
+  od_adjusted_jittered = odjitter::jitter(
     od = od_adjusted,
     zones = zones_leisure,
     zones_d = leisure_polygons, # each polygon is a single grid point, so destinations are kept the same
@@ -352,7 +352,7 @@ make_od_visiting = function(oas, os_pois, grid, trip_purposes, intermediate_zone
     dplyr::ungroup()
   
   # why does distance_euclidean drop so dramatically when we go from od_interaction to od_adjusted_jittered? 
-  od_adjusted_jittered = jitter(
+  od_adjusted_jittered = odjitter::jitter(
     od = od_adjusted,
     zones = zones_visiting,
     subpoints = oas,
