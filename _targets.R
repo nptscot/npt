@@ -65,16 +65,7 @@ list(
     if(!dir.exists(folder_name)){
       dir.create(file.path(folder_name))
     }
-
-    if (!is_bin_on_path("odjitter")) {
-      old_path = Sys.getenv("PATH")
-      Sys.setenv(PATH = paste(old_path, "/root/.cargo/bin", sep = ":"))
-      odjitter_location = "/root/.cargo/bin/odjitter"
-    } else {
-      odjitter_location = "odjitter"
-    }
-    p$odjitter_location = odjitter_location
-
+    p$odjitter_location = find_odjitter_location()
     p 
   }),
   tar_target(aadt_file, command = "data-raw/AADT_factors.csv", format = "file"),
@@ -170,7 +161,7 @@ list(
       subpoints_destinations = subpoints_destinations,
       disaggregation_threshold = 30,
       deduplicate_pairs = FALSE,
-      odjitter_location = "odjitter"
+      odjitter_location = parameters$odjitter_location
     )
     odj$dist_euclidean_jittered = as.numeric(sf::st_length(odj))
     # saveRDS(odj, "inputdata/od_commute_jittered.Rds")
