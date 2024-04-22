@@ -170,7 +170,7 @@ list(
       subpoints_destinations = subpoints_destinations,
       disaggregation_threshold = 30,
       deduplicate_pairs = FALSE,
-      odjitter_location = parameters$odjitter_location
+      odjitter_location = "odjitter"
     )
     odj$dist_euclidean_jittered = as.numeric(sf::st_length(odj))
     # saveRDS(odj, "inputdata/od_commute_jittered.Rds")
@@ -792,16 +792,7 @@ tar_target(oas,{
 }),
 
 tar_target(intermediate_zones,{
-  if (!file.exists("./data-raw/SG_IntermediateZone_Bdry_2011.shp")) {
-    u = "https://maps.gov.scot/ATOM/shapefiles/SG_IntermediateZoneBdry_2011.zip"
-    f = basename(u)
-    download.file(u, f)
-    unzip(f, exdir = "./data-raw")
-    # # Upload to v0.02 the .zip file:
-    # system("gh release upload v0.02 SG_IntermediateZoneBdry_2011.zip")
-  }
-  intermediate_zones = st_read("./data-raw/SG_IntermediateZone_Bdry_2011.shp")
-  intermediate_zones
+  sf::read_sf("inputdata/SG_IntermediateZone_Bdry_2011.gpkg")
 }),
 
 # Utility OD -------------------------------------------------------------
