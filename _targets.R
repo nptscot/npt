@@ -1264,7 +1264,6 @@ tar_target(
     # Prepare cohesive network
     NPT_MM_OSM = cohesive_network_prep(
       combined_network_tile,
-      intermediate_zones,
       crs = "EPSG:27700",
       parameters = parameters
     )

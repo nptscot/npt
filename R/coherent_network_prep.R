@@ -1,11 +1,6 @@
 #' @param parameters parameters
 
-cohesive_network_prep = function(
-    combined_network_tile,
-    sg_intermediatezone_bdry_2011,
-    crs = "EPSG:27700",
-    parameters
-  ) {
+cohesive_network_prep = function(combined_network_tile, crs = "EPSG:27700", parameters) {
   
   # Initialize an empty list to store results for each area
   cohesive_network_list = list()
@@ -23,6 +18,8 @@ cohesive_network_prep = function(
 
       combined_network_tile = sf::st_transform(combined_network_tile, crs)
 
+      sg_intermediatezone_bdry_2011 = sf::st_read("inputdata/sg_intermediatezone_bdry_2011.gpkg")
+      
       las_scotland_2023 = sf::st_read("inputdata/las_scotland_2023.geojson") |> 
                           sf::st_transform(crs = crs) |> 
                           dplyr::filter(LAD23NM == area) |> 
@@ -145,7 +142,6 @@ cohesive_network_prep = function(
     print("No coherent area specified, proceeding with default settings.")
   }
 }
-
 
 
 
