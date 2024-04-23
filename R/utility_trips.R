@@ -75,6 +75,8 @@ make_od_shopping = function(oas, os_pois, grid, trip_purposes, intermediate_zone
   
   # Jittering
   shopping_polygons = sf::st_buffer(shopping_grid, dist = 0.0001)
+    # Workaround for #445
+  sf::st_geometry(shopping_polygons) = "geom"
   
   # why does distance_euclidean drop so dramatically when we go from od_interaction to od_adjusted_jittered? 
   od_adjusted_jittered = odjitter::jitter(
@@ -242,7 +244,7 @@ make_od_leisure = function(oas, os_pois, grid, trip_purposes, intermediate_zones
   
   # Jittering
   leisure_polygons = sf::st_buffer(combined_grid, dist = 0.0001)
-  
+  sf::st_geometry(leisure_polygons) = "geom"
   # why does distance_euclidean drop so dramatically when we go from od_interaction to od_adjusted_jittered? 
   od_adjusted_jittered = odjitter::jitter(
     od = od_adjusted,

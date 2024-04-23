@@ -758,8 +758,6 @@ tar_target(os_pois, {
   if(parameters$geo_subset) {
     os_pois = os_pois[study_area, op = sf::st_within]
   }
-  # Workaround for #445
-  sf::st_geometry(os_pois) = "geom"
   os_pois
 }),
 
@@ -1264,7 +1262,12 @@ tar_target(
     cue = tar_cue(mode = "always")
 
     # Prepare cohesive network
-    NPT_MM_OSM = cohesive_network_prep(combined_network_tile, crs = "EPSG:27700", parameters = parameters)
+    NPT_MM_OSM = cohesive_network_prep(
+      combined_network_tile,
+      intermediate_zones,
+      crs = "EPSG:27700",
+      parameters = parameters
+    )
 
     NPT_MM_OSM_CITY =  NPT_MM_OSM$cohesive_network
 
