@@ -41,3 +41,7 @@ cd tippecanoe
 make -j
 sudo make install
 tippecanoe --version
+
+# Add local instance of odjitter to the /usr/local/bin directory:
+which odjitter
+sudo ln -s ~/.cargo/bin/odjitter /usr/local/bin/odjitter
