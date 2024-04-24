@@ -16,7 +16,7 @@ simplify_network = function(rnet_y, parameters){
     url_rnet_x = "https://github.com/nptscot/networkmerge/releases/download/v0.1/OS_Scotland_Network.geojson"
     f_rnet_x = basename(url_rnet_x)
     if (!file.exists(f_rnet_x)) {
-      download.file(url_rnet_x, f_rnet_x, method = "libcurl")
+      download.file(url_rnet_x, f_rnet_x)
     }
     if (file.exists(f_rnet_x) && file.size(f_rnet_x) > 0) {
       rnet_x = geojsonsf::geojson_sf(f_rnet_x)
