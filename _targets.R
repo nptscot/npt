@@ -47,7 +47,7 @@ tar_source()
 
 # Targets -----------------------------------------------------------------
 if(!file.exists("outputdata")){
-  dir.create("outputdata")
+  stop("You don't have the outputdata folder")
 }
 
 list(
