@@ -19,6 +19,7 @@ pkgs  = c(
   #,"rsgeo"
 )
 
+
 #Do you want to reinstall github packages, set to TRUE for first run
 update_github_packages = TRUE
 
