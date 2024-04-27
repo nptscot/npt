@@ -1069,14 +1069,14 @@ tar_target(zones_contextual, {
     message("SIMD data not found, skipping this target")
     return(NULL)
   }
-  dir.create(file.path(parameters$local_dir,"SIMD"))
-  unzip(f_simd, exdir = file.path(parameters$local_dir,"SIMD"))
-  files = list.files(file.path(parameters$local_dir,"SIMD/simd2020_withgeog"), full.names = TRUE)
+  dir.create(file.path(parameters$dir_local,"SIMD"), recursive = TRUE, showWarnings = FALSE)
+  unzip(f_simd, exdir = file.path(parameters$dir_local,"SIMD"))
+  files = list.files(file.path(parameters$dir_local,"SIMD/simd2020_withgeog"), full.names = TRUE)
   
-  zones = sf::read_sf(file.path(parameters$local_dir,"SIMD/simd2020_withgeog/sc_dz_11.shp"))
-  simd = readr::read_csv(file.path(parameters$local_dir,"SIMD/simd2020_withgeog/simd2020_withinds.csv"))
+  zones = sf::read_sf(file.path(parameters$dir_local,"SIMD/simd2020_withgeog/sc_dz_11.shp"))
+  simd = readr::read_csv(file.path(parameters$dir_local,"SIMD/simd2020_withgeog/simd2020_withinds.csv"))
   
-  unlink(file.path(parameters$local_dir,"SIMD"), recursive = TRUE)
+  unlink(file.path(parameters$dir_local,"SIMD"), recursive = TRUE)
   
   zones = zones[,c("DataZone","Name","TotPop2011","ResPop2011","HHCnt2011")]
   simd$Intermediate_Zone = NULL
