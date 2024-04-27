@@ -1473,16 +1473,7 @@ tar_target(pmtiles_rnet_simplified, {
     sf::write_sf(rnet_secondary_fastest, "outputdata/rnet_secondary_fastest.gpkg")
     sf::write_sf(rnet_utility_fastest, "outputdata/rnet_utility_fastest.gpkg")
     sf::write_sf(combined_network, "outputdata/combined_network.gpkg", delete_dsn = TRUE)
-    
-    sys_time = Sys.time()
-    zip(zipfile = "outputdata/combined_network_tile.zip", "outputdata/combined_network_tile.geojson")
-    # Remove the unzipped file:
-    file.remove("outputdata/combined_network_tile.geojson")
-    # Upload pmtiles to release
-    # cd outputdata
-    # gh release upload z2023-07-28 rnet_2023-07-04.pmtiles
-    # cd ..
-    sys_time
+    Sys.time()
   }),
   
   # tar_target(visualise_rnet, {
