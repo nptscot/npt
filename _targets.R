@@ -1143,10 +1143,10 @@ tar_target(zones_dasymetric_tile, {
     b_med = dplyr::left_join(b_med, zones, by = c("geo_code" = "DataZone"))
     b_high = dplyr::left_join(b_high, zones, by = c("geo_code" = "DataZone"))
     
-    make_geojson_zones(b_verylow, file.path(parameters$dir_local, "dasymetric_verylow.geojson"))
-    make_geojson_zones(b_low, file.path(parameters$dir_local, "dasymetric_low.geojson"))
-    make_geojson_zones(b_med, file.path(parameters$dir_local, "dasymetric_med.geojson"))
-    make_geojson_zones(b_high, file.path(parameters$dir_local, "dasymetric_high.geojson"))
+    make_geojson_zones(b_verylow, file.path("outputdata", "dasymetric_verylow.geojson"))
+    make_geojson_zones(b_low, file.path("outputdata", "dasymetric_low.geojson"))
+    make_geojson_zones(b_med, file.path("outputdata", "dasymetric_med.geojson"))
+    make_geojson_zones(b_high, file.path("outputdata", "dasymetric_high.geojson"))
   }
   TRUE
 }),
@@ -1154,7 +1154,7 @@ tar_target(zones_dasymetric_tile, {
 
 tar_target(school_points, {
   schools = sf::read_sf("inputdata/Schools/school_locations.geojson")
-  make_geojson_zones(schools, file.path(parameters$dir_local, "school_locations.geojson"))
+  make_geojson_zones(schools, file.path("outputdata", "school_locations.geojson"))
   schools
 }),
 
@@ -1473,7 +1473,7 @@ tar_target(pmtiles_rnet_simplified, {
     sf::write_sf(rnet_secondary_fastest, "outputdata/rnet_secondary_fastest.gpkg")
     sf::write_sf(rnet_utility_fastest, "outputdata/rnet_utility_fastest.gpkg")
     sf::write_sf(combined_network, "outputdata/combined_network.gpkg", delete_dsn = TRUE)
-    Sys.time()
+    as.character(Sys.Date())
   }),
   
   # tar_target(visualise_rnet, {
@@ -1500,7 +1500,7 @@ tar_target(pmtiles_rnet_simplified, {
     v = gsub(pattern = " |:", replacement = "-", x = v)
     setwd("outputdata")
     f = list.files(path = ".", pattern = "Rds|zip|pmtiles|json|gpkg")
-    # Piggyback fails with error message so commented and using cust
+    f = f[!grepl(".geojson", f)] # Remove .geojsons
     # piggyback::pb_upload(f)
     msg = glue::glue("gh release create {v} --generate-notes")
     message("Creating new release and folder to save the files: ", v)
