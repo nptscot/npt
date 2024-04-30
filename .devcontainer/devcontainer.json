@@ -31,6 +31,6 @@
 	// "remoteUser": "root"
 
 	// Run the script install-additional-dependencies.sh:
-	"postCreateCommand": "bash .devcontainer/install-additional-dependencies.sh"
+	"postCreateCommand": "bash .devcontainer/postCreateCommand.sh"
 
 }
