@@ -1,5 +1,7 @@
 ---
 format: gfm
+execute: 
+  cache: true
 ---
 
 ```{r}
@@ -55,6 +57,8 @@ pcycle_utility = pct::uptake_pct_godutch_2020(
     gradient = uptake_utility_fastest$route_hilliness
 )
 summary(pcycle_utility)
+mean(pcycle_utility)
+mean(uptake_utility_fastest$pcycle_go_dutch) # supressed due to shopping
 ```
 
 Same for all commutes:
@@ -68,4 +72,64 @@ pcycle_commute = pct::uptake_pct_godutch_2020(
     gradient = uptake_commute_fastest$route_hilliness
 )
 summary(pcycle_commute)
+mean(pcycle_commute)
+mean(uptake_commute_fastest$pcycle_go_dutch) 
 ```
+
+Exploring current % cycling:
+
+```{r}
+#| echo: false
+#| eval: false
+uptake_utility_fastest |>
+  ggplot(aes(x = pcycle_go_dutch)) +
+  geom_histogram() +
+  # Consistent x axis
+  scale_x_continuous(limits = c(0, 1))
+uptake_commute_fastest |>
+    ggplot(aes(x = pcycle_go_dutch)) +
+    geom_histogram() +
+    # Consistent x axis
+    scale_x_continuous(limits = c(0, 1))
+```
+
+```{r}
+uptake_combined = bind_rows(
+    uptake_utility_fastest |>
+        sf::st_drop_geometry() |>
+        transmute(
+            route_type = "utility",
+            pcycle_go_dutch,
+            length_route,
+            route_hilliness
+            ),
+    uptake_commute_fastest |>
+        sf::st_drop_geometry() |>
+        transmute(
+            route_type = "commute",
+            pcycle_go_dutch,
+            length_route,
+            route_hilliness
+            )
+)
+# Plot length vs % cycling
+uptake_combined |>
+    ggplot(aes(x = length_route, y = pcycle_go_dutch, color = route_type)) +
+    geom_point(alpha = 0.01) +
+    geom_smooth() +
+    xlim(0, 10000)
+```
+
+The above plot shows that the uptake model is working correctly for utility trips, with cycling potential slightly below cycling potential for commute trips, for OD pairs with equivalent lengths and distances.
+
+Let's look at the distribution of trip lengths:
+
+```{r}
+uptake_combined |>
+    ggplot(aes(x = length_route, fill = route_type)) +
+    geom_histogram(bins = 100) +
+    xlim(0, 20000)
+```
+
+This shows that utility trips are much shorter than commute trips.
+The average commute trip is `r round(mean(uptake_combined$length_route[uptake_combined$route_type == "commute"]), 0)` meters long, while the average utility trip is `r round(mean(uptake_combined$length_route[uptake_combined$route_type == "utility"]), 0)` meters long.

@@ -162,6 +162,18 @@ summary(pcycle_utility)
        Min. 1st Qu.  Median    Mean 3rd Qu.    Max. 
     0.01483 0.35382 0.40619 0.40013 0.45353 0.55865 
 
+``` r
+mean(pcycle_utility)
+```
+
+    [1] 0.4001263
+
+``` r
+mean(uptake_utility_fastest$pcycle_go_dutch) # supressed due to shopping
+```
+
+    [1] 0.3229911
+
 Same for all commutes:
 
 ``` r
@@ -183,3 +195,54 @@ summary(pcycle_commute)
 
        Min. 1st Qu.  Median    Mean 3rd Qu.    Max. 
     0.01229 0.11610 0.25601 0.25650 0.38838 0.55861 
+
+``` r
+mean(pcycle_commute)
+```
+
+    [1] 0.2565037
+
+``` r
+mean(uptake_commute_fastest$pcycle_go_dutch) 
+```
+
+    [1] 0.2565333
+
+Exploring current % cycling:
+
+``` r
+uptake_combined = bind_rows(
+    uptake_utility_fastest |>
+        sf::st_drop_geometry() |>
+        transmute(
+            route_type = "utility",
+            pcycle_go_dutch,
+            length_route,
+            route_hilliness
+            ),
+    uptake_commute_fastest |>
+        sf::st_drop_geometry() |>
+        transmute(
+            route_type = "commute",
+            pcycle_go_dutch,
+            length_route,
+            route_hilliness
+            )
+)
+# Plot length vs % cycling
+uptake_combined |>
+    ggplot(aes(x = length_route, y = pcycle_go_dutch, color = route_type)) +
+    geom_point(alpha = 0.01) +
+    geom_smooth() +
+    xlim(0, 10000)
+```
+
+    `geom_smooth()` using method = 'gam' and formula = 'y ~ s(x, bs = "cs")'
+
+    Warning: Removed 169541 rows containing non-finite outside the scale range
+    (`stat_smooth()`).
+
+    Warning: Removed 169541 rows containing missing values or values outside the scale range
+    (`geom_point()`).
+
+![](test-utility-uptake_files/figure-commonmark/unnamed-chunk-5-1.png)
