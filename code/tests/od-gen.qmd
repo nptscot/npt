@@ -135,3 +135,5 @@ The information on the number of desired desire lines per distance band can be u
 The spatial distribution of desire lines should also be explored before routing.
 
 The proportion of trips made by bike under the baseline scenario for each origin zone should depend on the proportion of trips made by bike according to official datasets.
+
+OD datasets can be aggregated to grid cells to reduce routing requirements.
