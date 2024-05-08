@@ -1,0 +1,71 @@
+---
+format: gfm
+---
+
+```{r}
+library(sf)
+library(tidyverse)
+library(targets)
+```
+
+```{r}
+setwd("../..")
+tar_load(parameters)
+tar_load(uptake_utility_fastest)
+tar_load(uptake_commute_fastest)
+names(uptake_utility_fastest)
+#  [1] "route_number"              "distances"                
+#  [3] "quietness"                 "gradient_smooth"          
+#  [5] "geo_code1"                 "geo_code2"                
+#  [7] "car"                       "foot"                     
+#  [9] "bicycle"                   "all"                      
+# [11] "dist_euclidean"            "public_transport"         
+# [13] "taxi"                      "dist_euclidean_jittered"  
+# [15] "purpose"                   "endDZ"                    
+# [17] "startDZ"                   "geometry"                 
+# [19] "route_hilliness"           "length_route"             
+# [21] "pcycle_go_dutch"           "pcycle_ebike"             
+# [23] "bicycle_go_dutch"          "bicycle_ebike"            
+# [25] "mode_ratio_baseline"       "mode_ratio_go_dutch"      
+# [27] "mode_ratio_ebike"          "car_go_dutch"             
+# [29] "public_transport_go_dutch" "foot_go_dutch"            
+# [31] "taxi_go_dutch"             "car_ebike"                
+# [33] "public_transport_ebike"    "foot_ebike"               
+# [35] "taxi_ebike"   
+head(uptake_utility_fastest)
+edinburgh = zonebuilder::zb_zone("edinburgh")
+edinburgh_1km = edinburgh |>
+  slice(1)
+uptake_sample = uptake_utility_fastest[edinburgh_1km,]
+uptake_sample |>
+  select(1) |>
+  plot()
+uptake_1 = uptake_sample |>
+  ungroup() |>
+  slice(1)
+plot(uptake_1)
+sf::st_length(uptake_1)
+summary(sf::st_length(uptake_sample))
+# for all utility routes:
+uptake_utility_fastest |>
+  st_length() |>
+  summary()
+pcycle_utility = pct::uptake_pct_godutch_2020(
+    distance = sf::st_length(uptake_utility_fastest) |> as.numeric(),
+    gradient = uptake_utility_fastest$route_hilliness
+)
+summary(pcycle_utility)
+```
+
+Same for all commutes:
+
+```{r}
+uptake_commute_fastest |>
+  st_length() |>
+  summary()
+pcycle_commute = pct::uptake_pct_godutch_2020(
+    distance = sf::st_length(uptake_commute_fastest) |> as.numeric(),
+    gradient = uptake_commute_fastest$route_hilliness
+)
+summary(pcycle_commute)
+```
