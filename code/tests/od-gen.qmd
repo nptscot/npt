@@ -1,0 +1,133 @@
+---
+format: gfm
+title: "Generating origin-destination data from first principles"
+execute: 
+  echo: false
+  message: false
+---
+
+```{r}
+#| include: false
+library(tidyverse)
+library(targets)
+```
+
+# Introduction
+
+The notes presented here are part of the quality assurance process for the Network Planning Tool (NPT) project.
+They should also form the basis of a more efficient data processing pipeline for the project.
+
+# Current set-up
+
+The OD datasets which form the basis of the NPT are presented below:
+
+```{r}
+if (!dir.exists("_targets")) {
+    setwd("../..")
+}
+tar_load(od_data)
+tar_load(od_commute_subset)
+tar_load(od_school)
+tar_load(od_shopping)
+tar_load(od_visiting)
+tar_load(od_leisure)
+```
+
+```{r}
+od_list = list(od_commute_subset, od_school, od_shopping, od_visiting, od_leisure)
+names(od_list) = c("commute", "school", "shopping", "visiting", "leisure")
+od_summary = purrr::map_dfr(od_list, ~{
+    data.frame(
+        nrow = nrow(.x),
+        trips = round(sum(.x$all)),
+        mean_lenth = as.numeric(round(mean(sf::st_length(.x))))
+    )
+}) |>
+  mutate(
+    dataset = names(od_list),
+    trips_per_row = round(trips / nrow)
+  ) |>
+  select(dataset, everything())
+# # dput(od_summary)
+# structure(list(dataset = c("commute", "school", "shopping", "visiting", 
+# "leisure"), nrow = c(433259L, 55975L, 94474L, 28538L, 124168L
+# ), trips = c(1271788, 321955, 2675530, 1205857, 679334), mean_lenth = c(7064, 
+# 3574, 2898, 2764, 3056), trips_per_row = c(3, 6, 28, 42, 5)), class = "data.frame", row.names = c(NA, 
+# -5L))
+od_summary |>
+  knitr::kable()
+```
+
+Their distance-frequency distributions are presented below:
+
+```{r}
+od_list_selected = map(
+    od_list,
+    ~{
+        .x |>
+            transmute(
+                all,
+                dataset = "dataset"
+            )
+    }
+) 
+od_all = bind_rows(
+    od_list_selected,
+    .id = "dataset"
+)
+table(od_all$dataset)
+od_all$length_euclidean = sf::st_length(od_all) |> as.numeric()
+od_all = od_all |>
+  mutate(
+    length_bin = cut(
+        length_euclidean,
+        breaks = c(0, 1, 2, 5, 10, 20, 30, 100) * 1000,
+        labels = c("0-1", "1-2", "2-5", "5-10", "10-20", "20-30", "30-100")
+    )
+)
+
+od_all_df = od_all |>
+  sf::st_drop_geometry() |>
+  group_by(dataset, length_bin) |>
+  summarise(
+        n = n(),
+        n_trips = sum(all),
+        .groups = "drop"
+    )
+od_all_df |>
+  ggplot(aes(x = length_bin, y = n, fill = dataset)) +
+    geom_bar(stat = "identity") +
+    theme_minimal() +
+    labs(
+        x = "Distance (km)",
+        y = "Frequency",
+        fill = "Dataset"
+    ) +
+    theme(
+        legend.position = "bottom"
+    )
+```
+
+In terms of number of trips:
+
+```{r}
+od_all_df |>
+    ggplot(aes(x = length_bin, y = n_trips, fill = dataset)) +
+        geom_bar(stat = "identity") +
+        theme_minimal() +
+        labs(
+            x = "Distance (km)",
+            y = "Frequency",
+            fill = "Dataset"
+        ) +
+        theme(
+            legend.position = "bottom"
+        )
+
+```
+
+# Proposed set-up
+
+We should generate the desired number of trips and associated number of OD pairs *per distance band* based on analysis of available datasets before generating desire lines.
+
+That will provide a good sanity check before routing.
