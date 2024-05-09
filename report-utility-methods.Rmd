@@ -49,6 +49,7 @@ nts0403_length = pivot_longer(nts0403_length_raw, -1) |>
   # Remove the space and everything after it:
     mutate(Year = str_remove(Year, " .+")) 
 nts0403_length_subset = nts0403_length |>
+  filter(Year > "2011") |>
   filter(str_detect(name, "Commute|Shop|Visit|Entertainment")) 
 ```
 
