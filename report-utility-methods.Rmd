@@ -94,6 +94,11 @@ We used a spatial interaction model to pair trip origins and destinations and th
 These are assigned according to a distance decay equation, which has been derived from distances of travel to work.
 This may introduce bias if in reality typical trip distances for these other everyday purposes are different from the trip distances for commuting.
 
+See NTS0403e for mean trip lengths by purpose
+- shopping
+- visiting friends at private home
+- entertainment or public activity
+
 ## Disaggregating and filtering desire lines
 
 The resulting desire lines are put through a jittering process.
