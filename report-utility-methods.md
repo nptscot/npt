@@ -48,7 +48,9 @@ National Travel Survey
 ``` r
 nts0403_length_subset |>
   ggplot() +
-  geom_line(aes(x = Year, y = value, color = name, group = name)) 
+  geom_line(aes(x = Year, y = value, color = name, group = name)) +
+  # x label at 45 degrees:
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))
 ```
 
 ![](report-utility-methods_files/figure-gfm/unnamed-chunk-2-1.png)<!-- -->
