@@ -13,15 +13,15 @@ rnet_combined = readRDS(paste0(directory, "/rnet_combined_after_overline.Rds"))
 
 rnet_combined = rnet_combined %>% 
   rowwise() %>% 
-  mutate(Gradient = max(fastest_Gradient, balanced_Gradient, quietest_Gradient, ebike_Gradient)) %>% 
-  mutate(Quietness = max(fastest_Quietness, balanced_Quietness, quietest_Quietness, ebike_Quietness)) 
+  mutate(gradient = max(fastest_gradient, balanced_gradient, quietest_gradient, ebike_gradient)) %>% 
+  mutate(quietness = max(fastest_quietness, balanced_quietness, quietest_quietness, ebike_quietness)) 
 
 rnet = rnet_combined %>% 
   select(-matches("_Q|_Gr")) %>% 
   mutate(across(matches("bicycle", round))) %>% 
-  mutate(Gradient = round(Gradient, digits = 1))
+  mutate(gradient = round(gradient, digits = 1))
 # # TODO: check gradients
-# table(rnet_combined$Gradient)
+# table(rnet_combined$gradient)
 
 rnet = rnet %>%
   rowwise() %>%

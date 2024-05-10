@@ -12,7 +12,13 @@ get_routes = function(od, plans, purpose = "work", folder = ".", batch = TRUE, b
       routes_filtered = readRDS(savename_f)
     } else {
       if(batch && !batch_save) {
+        # One-off saving of pre-computed routes:
+        id = NULL
+        # if (as.character(Sys.Date()) == "2024-04-24" && plan == "quietest") {
+        #   id = 8995
+        # }
         routes_raw = cyclestreets::batch(
+          id = id,
           desire_lines = od,
           wait = TRUE,
           maxDistance = 30000,

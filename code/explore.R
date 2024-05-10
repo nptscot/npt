@@ -11,7 +11,7 @@ tar_load(subpoints_origins)
 tar_load(subpoints_destinations)
 
 tm_shape(rnet_ed) +
-  tm_lines(lwd = "bicycle_go_dutch", scale = 19, col = "Quietness", palette = "magma") 
+  tm_lines(lwd = "bicycle_go_dutch", scale = 19, col = "quietness", palette = "magma") 
 # tm_shape(ed) +
 #   tm_borders(col = "red") +
 #   tm_shape(subpoints_origins) +

@@ -8,18 +8,18 @@
 
 make_rnets = function(r, ncores = 1, regionalise = 1e5){
   r = r[r$bicycle_go_dutch > 0 | r$bicycle > 0 | r$bicycle_ebike > 0,]
-  #r$Gradient = round(r$gradient_smooth * 100)
-  #r$Quietness = round(r$quietness)
+  #r$gradient = round(r$gradient_smooth * 100)
+  #r$quietness = round(r$quietness)
   
   rnet = stplanr::overline2(r, 
-                            #attrib = c("bicycle","bicycle_go_dutch","bicycle_ebike","Quietness","Gradient"),
+                            #attrib = c("bicycle","bicycle_go_dutch","bicycle_ebike","quietness","gradient"),
                             attrib = c("bicycle","bicycle_go_dutch","bicycle_ebike"),
                             #fun = list(sum = sum, max = first),
                             fun = sum,
                             ncores = ncores,
                             regionalise = regionalise)
   
-  #rnet = rnet[,c("bicycle_sum","bicycle_go_dutch_sum","bicycle_ebike_sum","Gradient_max","Quietness_max")]
+  #rnet = rnet[,c("bicycle_sum","bicycle_go_dutch_sum","bicycle_ebike_sum","gradient_max","quietness_max")]
   #names(rnet) = gsub("_sum$","",names(rnet))
   #names(rnet) = gsub("_max$","",names(rnet))
   
@@ -38,7 +38,7 @@ make_rnets = function(r, ncores = 1, regionalise = 1e5){
 # Takes a list of rnets and combines into a single rnet
 # Names of the list are appended to the start of column names
 # e.g. "commute_fastest_" is addeded to "bicycle_go_dutch"
-# Gradient & Quietness are not renamed
+# gradient & quietness are not renamed
 
 combine_rnets = function(rnl, ncores = 1, regionalise = 1e5, add_all = TRUE){
   
@@ -49,7 +49,7 @@ combine_rnets = function(rnl, ncores = 1, regionalise = 1e5, add_all = TRUE){
   
   # Append rnet type to column names
   for(i in seq_along(rnl)){
-    names(rnl[[i]]) = ifelse(names(rnl[[i]]) %in% c("Gradient","Quietness","geometry"),
+    names(rnl[[i]]) = ifelse(names(rnl[[i]]) %in% c("gradient","quietness","geometry"),
                               names(rnl[[i]]),
                               paste0(names(rnl)[i],"_",names(rnl[[i]]))
                               )
@@ -59,7 +59,7 @@ combine_rnets = function(rnl, ncores = 1, regionalise = 1e5, add_all = TRUE){
   # only gradient and quietness should be in all rnets
   
   nms = sapply(rnl, names)
-  nms = nms[!nms %in% c("Gradient","Quietness","geometry")]
+  nms = nms[!nms %in% c("gradient","quietness","geometry")]
   if(any(duplicated(nms))){
     stop("Duplicated column names in rnets")
   }
@@ -83,9 +83,9 @@ combine_rnets = function(rnl, ncores = 1, regionalise = 1e5, add_all = TRUE){
                            ncores = ncores)
   
   # Drop unneeded columns
-  rnet_combined = rnet_combined[,!names(rnet_combined) %in% c("Gradient_sum","Quietness_sum")]
+  rnet_combined = rnet_combined[,!names(rnet_combined) %in% c("gradient_sum","quietness_sum")]
   rnet_combined = rnet_combined[,!grepl("_max$",names(rnet_combined)) | 
-                                  names(rnet_combined) %in% c("Gradient_max","Quietness_max"),]
+                                  names(rnet_combined) %in% c("gradient_max","quietness_max"),]
   # Rename columns
   names(rnet_combined) = gsub("_sum$","",names(rnet_combined))
   names(rnet_combined) = gsub("_max$","",names(rnet_combined))
@@ -104,11 +104,11 @@ combine_rnets = function(rnl, ncores = 1, regionalise = 1e5, add_all = TRUE){
     # Structure is purpose_route_variable
     purps = strsplit(names(rnet_combined),"_")
     purps = unique(sapply(purps, function(x){x[1]}))
-    purps = purps[!purps %in% c("Gradient","Quietness","geometry")]
+    purps = purps[!purps %in% c("gradient","quietness","geometry")]
     purps = paste0(purps,"_")
     
     vars = names(rnet_combined)
-    vars = vars[!vars %in% c("Gradient","Quietness","geometry")]
+    vars = vars[!vars %in% c("gradient","quietness","geometry")]
     for(i in seq_along(purps)){
       vars = gsub(purps[i],"",vars)
     }
@@ -141,9 +141,9 @@ first = function(x){
 
 #' Convert segments into an rnet
 segments2rnet = function(segments){
-  segments$Gradient = round(segments$gradient_smooth * 100)
-  segments$Quietness = round(segments$quietness)
-  segments = stplanr::overline2(segments, c("Quietness","Gradient"), fun = first)
+  segments$gradient = round(segments$gradient_smooth * 100)
+  segments$quietness = round(segments$quietness)
+  segments = stplanr::overline2(segments, c("quietness","gradient"), fun = first)
   segments
 }
 

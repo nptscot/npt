@@ -16,25 +16,25 @@ if(class(rnet) == "list"){
   
   rnet_fast$balance_bicycle <- 0
   rnet_fast$balance_bicycle_go_dutch <- 0
-  rnet_fast$balance_Gradient <- 0
-  rnet_fast$balance_Quietness <- 0
+  rnet_fast$balance_gradient <- 0
+  rnet_fast$balance_quietness <- 0
   
   rnet_bal$fast_bicycle <- 0
   rnet_bal$fast_bicycle_go_dutch <- 0
-  rnet_bal$fast_Gradient <- 0
-  rnet_bal$fast_Quietness <- 0
+  rnet_bal$fast_gradient <- 0
+  rnet_bal$fast_quietness <- 0
   
   rnet_bal <- rnet_bal[,names(rnet_fast)]
   rnet <- rbind(rnet_fast, rnet_bal)
-  rnet <- stplanr::overline2(rnet, attrib = c("balance_bicycle","balance_bicycle_go_dutch","balance_Gradient","balance_Quietness",
-                                              "fast_bicycle","fast_bicycle_go_dutch","fast_Gradient","fast_Quietness"))
+  rnet <- stplanr::overline2(rnet, attrib = c("balance_bicycle","balance_bicycle_go_dutch","balance_gradient","balance_quietness",
+                                              "fast_bicycle","fast_bicycle_go_dutch","fast_gradient","fast_quietness"))
   
-  rnet$Gradient <- ifelse(rnet$balance_Gradient > rnet$balance_Gradient, rnet$balance_Gradient, rnet$fast_Gradient)
-  rnet$Quietness <- ifelse(rnet$balance_Quietness > rnet$balance_Quietness, rnet$balance_Quietness, rnet$fast_Quietness)
+  rnet$gradient <- ifelse(rnet$balance_gradient > rnet$balance_gradient, rnet$balance_gradient, rnet$fast_gradient)
+  rnet$quietness <- ifelse(rnet$balance_quietness > rnet$balance_quietness, rnet$balance_quietness, rnet$fast_quietness)
   
   rnet <- rnet[,c("balance_bicycle","balance_bicycle_go_dutch",
                   "fast_bicycle","fast_bicycle_go_dutch",
-                  "Gradient","Quietness",
+                  "gradient","quietness",
                   "geometry")]
   
   rnet$balance_bicycle <- round(rnet$balance_bicycle)
