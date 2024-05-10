@@ -5,7 +5,8 @@ pkgs  = c(
   "readr",
   "bs4Dash", "DT", "gt", "pingr", "shinybusy", "shinyWidgets","geos",
   "cyclestreets" ,"stplanr", "simodels",
-  "geojsonsf","lwgeom","targets","tidyverse", "crew"
+  "geojsonsf","lwgeom","targets","tidyverse", "crew",
+  "snakecase"
 )
 
 #Do you want to reinstall github packages, set to TRUE for first run
