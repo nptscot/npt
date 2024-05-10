@@ -1,0 +1,315 @@
+---
+format: gfm
+execute: 
+  cache: false
+  message: false
+---
+
+```{r}
+library(sf)
+library(tidyverse)
+library(targets)
+```
+
+```{r}
+if (!dir.exists("_targets")) {
+  setwd("../..")
+}
+tar_load(parameters)
+tar_load(uptake_utility_fastest)
+tar_load(uptake_commute_fastest)
+# names(uptake_utility_fastest)
+#  [1] "route_number"              "distances"                
+#  [3] "quietness"                 "gradient_smooth"          
+#  [5] "geo_code1"                 "geo_code2"                
+#  [7] "car"                       "foot"                     
+#  [9] "bicycle"                   "all"                      
+# [11] "dist_euclidean"            "public_transport"         
+# [13] "taxi"                      "dist_euclidean_jittered"  
+# [15] "purpose"                   "endDZ"                    
+# [17] "startDZ"                   "geometry"                 
+# [19] "route_hilliness"           "length_route"             
+# [21] "pcycle_go_dutch"           "pcycle_ebike"             
+# [23] "bicycle_go_dutch"          "bicycle_ebike"            
+# [25] "mode_ratio_baseline"       "mode_ratio_go_dutch"      
+# [27] "mode_ratio_ebike"          "car_go_dutch"             
+# [29] "public_transport_go_dutch" "foot_go_dutch"            
+# [31] "taxi_go_dutch"             "car_ebike"                
+# [33] "public_transport_ebike"    "foot_ebike"               
+# [35] "taxi_ebike"   
+head(uptake_utility_fastest)
+```
+
+Let's start by exploring the number of cycling trips in utility and commuting trips:
+
+```{r}
+sum(uptake_utility_fastest$all) /
+sum(uptake_commute_fastest$all)
+```
+
+Let's look at the numbers by distance:
+
+```{r}
+uptake_combined = bind_rows(
+    uptake_utility_fastest |>
+        sf::st_drop_geometry() |>
+        transmute(
+            purpose,
+            all,
+            bicycle,
+            bicycle_go_dutch,
+            length_route,
+            route_hilliness
+            ),
+    uptake_commute_fastest |>
+        sf::st_drop_geometry() |>
+        transmute(
+            purpose = "commute",
+            all,
+            bicycle,
+            bicycle_go_dutch,
+            length_route,
+            route_hilliness
+            )
+)
+distance_bins = c(0, 2, 5, 10, 15, 20, 30)
+distance_bin_labels = c("0-2", "2-5", "5-10", "10-15", "15-20", "20-30")
+uptake_combined = uptake_combined |>
+    mutate(
+        distance_bin = cut(length_route, distance_bins * 1000, labels = distance_bin_labels, right = FALSE)
+    ) |>
+  # pivot longer to get n trips by mode and purpose
+  pivot_longer(
+    cols = c(all, bicycle, bicycle_go_dutch),
+    names_to = "mode",
+    values_to = "n"
+  ) 
+# Barplot with n trips by mode and purpose:
+uptake_combined |>
+    # count by distance bin, mode and purpose
+    group_by(distance_bin, mode, purpose) |>
+    summarise(n = sum(n)) |>
+    # plot
+    ggplot(aes(x = distance_bin, y = n, fill = mode)) +
+    geom_bar(stat = "identity") +
+    facet_wrap(~purpose)
+```
+
+The same data can be presented as a table:
+
+```{r}
+uptake_combined |>
+    # # Only bicycle and bicycle_go_dutch
+    # filter(mode %in% c("bicycle", "bicycle_go_dutch")) |>
+    group_by(purpose, mode) |>
+    summarise(n = sum(n)) |>
+    pivot_wider(names_from = mode, values_from = n) |>
+    mutate(
+      go_dutch_ratio = bicycle_go_dutch / bicycle,
+      perc_bicycle = bicycle / all * 100,
+      perc_bicycle_go_dutch = bicycle_go_dutch / all * 100
+    ) |>
+    knitr::kable(digits = 0)
+```
+
+The numbers presented don't represent the percent of *total* trips cycled but the percent of trips *of the trips included in the OD data*. 
+
+Estimates of the number of trips cycled for different modes, based on 2024 [mid year estimates from the England National Travel Survey](https://www.gov.uk/government/statistical-data-sets/national-travel-survey-mid-year-estimates), are as follows, in units of average number of trips per person per year:
+
+```{r}
+#| echo: false
+u = "https://assets.publishing.service.gov.uk/media/6628b56cb0ace32985a7e4fd/ntsmy0409.ods"
+f = basename(u)
+
+if (!file.exists(f)) {
+  download.file(u, f)
+}
+remotes::install_cran("readODS")
+res = readODS::read_ods(f, sheet = 4, skip = 5)
+nts_summary = res |>
+  filter(str_detect(`Main mode`, "Pedal|All")) |>
+  select(matches("mode|Commut|Shop|Pers|Leis"))
+#   # A tibble: 2 × 4
+#   `Main mode`          Shopping `Personal business` `Leisure [note 2]`
+#   <chr>                   <dbl>               <dbl>              <dbl>
+# 1 Pedal cycle [note 4]     2.77                2.87               24.3
+# 2 All modes              615.                376.               2565.
+# pivot so modes are columns
+names(nts_summary) = c("mode", "commute", "shop", "personal", "leisure")
+nts_summary$mode = c("cycling", "all")
+nts_summary_wide = t(nts_summary) |>
+  as.data.frame() |>
+  slice(-1) |>
+  rename(cycling = V1, all = V2) |>
+  mutate(across(cycling:all, as.numeric)) 
+nts_summary_wide |>
+  mutate(percent_cycling = cycling / all * 100) |>
+  knitr::kable(digits = 1)
+# |         | cycling|   all| percent_cycling|
+# |:--------|-------:|-----:|---------------:|
+# |commute  |     5.0| 118.9|             4.2|
+# |shop     |     1.6| 165.4|             0.9|
+# |personal |     0.9|  73.1|             1.2|
+# |leisure  |     5.8| 228.4|             2.5|
+```
+
+Multiplying these numbers by the population of Scotland (5.4m) and dividing by 365, we get the following estimates for the number of trips cycled in Scotland in 2024:
+
+```{r}
+pop_scotland = 5.4e6
+nts_summary_scotland = nts_summary_wide |>
+  mutate(across(cycling:all, ~ . * pop_scotland / 365)) |>
+  select(all, cycling) 
+nts_summary_scotland |>
+  knitr::kable(digits = 0)
+```
+
+The equivalent table from the uptake data is:
+
+```{r}
+uptake_summary = uptake_combined |>
+    # Only all and bicycle
+    filter(mode %in% c("all", "bicycle")) |>
+    group_by(purpose, mode) |>
+    summarise(n = sum(n)) |>
+    pivot_wider(names_from = mode, values_from = n) |>
+    select(all = all, cycling = bicycle)
+uptake_summary |>
+    knitr::kable(digits = 0)
+
+```
+
+We can compare these two sets of results graphically as follows:
+
+```{r}
+#| echo: false
+npt_nts = left_join(
+    nts_summary_scotland |>
+        mutate(purpose = c("commute", "leisure", "shopping", "visiting")) |>
+        pivot_longer(cols = c(all, cycling), names_to = "mode", values_to = "n_nts"),
+    uptake_summary |>
+        pivot_longer(cols = c(all, cycling), names_to = "mode", values_to = "n_uptake")
+) 
+# # A tibble: 8 × 4
+#   purpose  mode       n_nts n_uptake
+#   <chr>    <chr>      <dbl>    <dbl>
+# 1 commute  all     1759363. 1236922.
+# 2 commute  cycling   74324.   26172.
+# 3 leisure  all     2447636.  675697.
+# 4 leisure  cycling   23030.    8108.
+# 5 shopping all     1081343. 2663263.
+# 6 shopping cycling   12922.   15980.
+# 7 visiting all     3379664. 1202229.
+# 8 visiting cycling   85096.   14427.
+npt_nts |>
+    ggplot(aes(x = n_nts, y = n_uptake, color = purpose, shape = mode)) +
+    geom_point() +
+    geom_abline() +
+    scale_x_log10() +
+    scale_y_log10()
+
+```
+
+Note: these are not intended to be directly comparable as one dataset includes long trips and the other does not.
+
+# Geo
+
+```{r}
+edinburgh = zonebuilder::zb_zone("edinburgh")
+edinburgh_1km = edinburgh |>
+  slice(1)
+uptake_sample = uptake_utility_fastest[edinburgh_1km,]
+uptake_sample |>
+  select(1) |>
+  plot()
+uptake_1 = uptake_sample |>
+  ungroup() |>
+  slice(1)
+plot(uptake_1)
+sf::st_length(uptake_1)
+summary(sf::st_length(uptake_sample))
+# for all utility routes:
+uptake_utility_fastest |>
+  st_length() |>
+  summary()
+pcycle_utility = pct::uptake_pct_godutch_2020(
+    distance = sf::st_length(uptake_utility_fastest) |> as.numeric(),
+    gradient = uptake_utility_fastest$route_hilliness
+)
+summary(pcycle_utility)
+mean(pcycle_utility)
+mean(uptake_utility_fastest$pcycle_go_dutch) # supressed due to shopping
+```
+
+Same for all commutes:
+
+```{r}
+uptake_commute_fastest |>
+  st_length() |>
+  summary()
+pcycle_commute = pct::uptake_pct_godutch_2020(
+    distance = sf::st_length(uptake_commute_fastest) |> as.numeric(),
+    gradient = uptake_commute_fastest$route_hilliness
+)
+summary(pcycle_commute)
+mean(pcycle_commute)
+mean(uptake_commute_fastest$pcycle_go_dutch) 
+```
+
+Exploring current % cycling:
+
+```{r}
+#| echo: false
+#| eval: false
+uptake_utility_fastest |>
+  ggplot(aes(x = pcycle_go_dutch)) +
+  geom_histogram() +
+  # Consistent x axis
+  scale_x_continuous(limits = c(0, 1))
+uptake_commute_fastest |>
+    ggplot(aes(x = pcycle_go_dutch)) +
+    geom_histogram() +
+    # Consistent x axis
+    scale_x_continuous(limits = c(0, 1))
+```
+
+```{r}
+uptake_combined = bind_rows(
+    uptake_utility_fastest |>
+        sf::st_drop_geometry() |>
+        transmute(
+            route_type = "utility",
+            pcycle_go_dutch,
+            length_route,
+            route_hilliness
+            ),
+    uptake_commute_fastest |>
+        sf::st_drop_geometry() |>
+        transmute(
+            route_type = "commute",
+            pcycle_go_dutch,
+            length_route,
+            route_hilliness
+            )
+)
+# Plot length vs % cycling
+uptake_combined |>
+    ggplot(aes(x = length_route, y = pcycle_go_dutch, color = route_type)) +
+    geom_point(alpha = 0.01) +
+    geom_smooth() +
+    xlim(0, 10000)
+```
+
+The above plot shows that the uptake model is working correctly for utility trips, with cycling potential slightly below cycling potential for commute trips, for OD pairs with equivalent lengths and distances.
+
+Let's look at the distribution of trip lengths:
+
+```{r}
+uptake_combined |>
+    ggplot(aes(x = length_route, fill = route_type)) +
+    geom_histogram(bins = 100) +
+    xlim(0, 20000)
+```
+
+This shows that utility trips are much shorter than commute trips.
+The average commute trip is `r round(mean(uptake_combined$length_route[uptake_combined$route_type == "commute"]), 0)` meters long, while the average utility trip is `r round(mean(uptake_combined$length_route[uptake_combined$route_type == "utility"]), 0)` meters long.

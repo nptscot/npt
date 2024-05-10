@@ -1,12 +1,14 @@
 ---
 title: "Utility trips methodology"
-output: word_document
+# output: github_document
+output: github_document
 date: "Last updated: `r Sys.Date()`"
-author: "Joey Talbot"
+author: "Joey Talbot and Robin Lovelace"
 ---
 
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
+library(tidyverse)
 ```
 
 ## Trip numbers and purposes
@@ -23,12 +25,41 @@ We used data from England's National Travel Survey 2019 to estimate the total nu
 This gives an average of 953 trips per person per year, which equates to 2.61 trips per person per day. 
 A trip is defined as a one-way course of travel from one place to another (https://www.gov.uk/government/statistics/national-travel-survey-2022-technical-report/national-travel-survey-2022-technical-report-glossary#trip).
 
-Data on the number of trips per person per year has not been collected in Scotland since 2012, and the Scottish Household Survey only records travel on the day before the survey, while the National Travel Survey records travel patterns over an entire week.
+Data on the number of trips per person per year is not available for Scotland after 2012 as far as we can tell.
+The Scottish Household Survey only records travel on the day before the survey.
+The National Travel Survey records travel patterns over an entire week.
 However, for the ten year period from 2002/03 to 2011/12, the National Travel Survey recorded a mean of 995 trips per person per year by Scottish residents. 
 In England, during 2002 to 2012, there were 1023 trips per person per year (https://assets.publishing.service.gov.uk/media/64e8b00063587000141dbfa6/nts0303.ods)
 
-The number of daily trips for each purpose was determined using the trip purpose percentage breakdown from the Scottish Household Survey, Table TD3 of Transport and Travel in Scotland 2019 travel diary tables (after adjusting these percentages to remove the 'Go Home' category).
-This resulted in 25.1% of trips being assigned for shopping, 11.7% for social, and 6.3% for leisure (https://www.transport.gov.scot/media/51346/transport-and-travel-in-scotland-2019-travel-diary-tables.xlsx).
+The number of daily trips for each purpose is available in the trip purpose percentage breakdown from the Scottish Household Survey, Table TD3 of Transport and Travel in Scotland 2019 travel diary tables (after adjusting these percentages to remove the 'Go Home' category).
+That table shows 25.1% of trips being assigned for shopping, 11.7% for social, and 6.3% for leisure, compared with 23.3% for commuting (https://www.transport.gov.scot/media/51346/transport-and-travel-in-scotland-2019-travel-diary-tables.xlsx).
+
+## Trip distances by purpose
+
+Data on the distribution of trip distances (what % of trips are 0-2, 2-5 km etc) is important for the uptake model.
+We took data from the National Travel Survey
+
+```{r, include=FALSE}
+u = "https://assets.publishing.service.gov.uk/media/64e8b433635870000d1dbfbc/nts0403.ods"
+f = basename(u)
+if (!file.exists(f)) download.file(u, f)
+readODS::ods_sheets(f)
+nts0403_length_raw = readODS::read_ods(f, sheet = "NTS0403e_trip_length", skip = 5)
+nts0403_length = pivot_longer(nts0403_length_raw, -1) |>
+  # Remove the space and everything after it:
+    mutate(Year = str_remove(Year, " .+")) 
+nts0403_length_subset = nts0403_length |>
+  filter(Year > "2011") |>
+  filter(str_detect(name, "Commut|Shop|Visit|Entertainment")) 
+```
+
+```{r}
+nts0403_length_subset |>
+  ggplot() +
+  geom_line(aes(x = Year, y = value, color = name, group = name)) +
+  # x label at 45 degrees:
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))
+```
 
 ## Mode share
 
@@ -62,6 +93,11 @@ For social trips, the destinations were people's homes, so the number of trips a
 We used a spatial interaction model to pair trip origins and destinations and thus create desire lines.
 These are assigned according to a distance decay equation, which has been derived from distances of travel to work.
 This may introduce bias if in reality typical trip distances for these other everyday purposes are different from the trip distances for commuting.
+
+See NTS0403e for mean trip lengths by purpose
+- shopping
+- visiting friends at private home
+- entertainment or public activity
 
 ## Disaggregating and filtering desire lines
 

@@ -18,6 +18,7 @@ pkgs  = c(
   "geojsonsf","lwgeom","targets","tidyverse", "crew", "snakecase","osmextract"
 )
 
+
 #Do you want to reinstall github packages, set to TRUE for first run
 update_github_packages = TRUE
 
@@ -33,7 +34,7 @@ library(magrittr) # Light load of %>%
 library(sf) # Needed for sf support
 
 tar_option_set(
-  controller = crew::crew_controller_local(workers = 4),
+  controller = crew::crew_controller_local(workers = 1),
   memory = "transient", 
   garbage_collection = TRUE,
   storage = "worker", 
@@ -45,6 +46,9 @@ tar_option_set(
 tar_source()
 
 # Targets -----------------------------------------------------------------
+if(!file.exists("outputdata")){
+  stop("You don't have the outputdata folder")
+}
 
 list(
   # Detect when parameter file has changed:
@@ -57,14 +61,9 @@ list(
     }
     # Refactor this bit:
     p = jsonlite::read_json(param_file, simplifyVector = T)
-    if (!is_bin_on_path("odjitter")) {
-      old_path = Sys.getenv("PATH")
-      Sys.setenv(PATH = paste(old_path, "/root/.cargo/bin", sep = ":"))
-      odjitter_location = "/root/.cargo/bin/odjitter"
-    } else {
-      odjitter_location = "odjitter"
-    }
-    p$odjitter_location = odjitter_location
+    p$dir_local = paste0("outputdata/", p$date_routing)
+    dir.create(p$dir_local, showWarnings = FALSE)
+    p$odjitter_location = find_odjitter_location()
     p 
   }),
   tar_target(
@@ -239,7 +238,7 @@ tar_target(rs_school_fastest, {
   rs = get_routes(od = od_school %>% slice_max(n = parameters$max_to_route, order_by = all, with_ties = FALSE),
                   plans = "fastest", 
                   purpose = "school",
-                  folder = output_folder,
+                  folder = parameters$dir_local,
                   date = parameters$date_routing,
                   segments = "both")
   rs
@@ -254,7 +253,7 @@ tar_target(rs_school_quietest, {
   rs = get_routes(od = od_school %>% slice_max(n = parameters$max_to_route, order_by = all, with_ties = FALSE),
                   plans = "quietest", 
                   purpose = "school",
-                  folder = output_folder,
+                  folder = parameters$dir_local,
                   date = parameters$date_routing,
                   segments = "both")
   rs
@@ -270,7 +269,7 @@ tar_target(rs_school_balanced, {
   rs = get_routes(od = od_school %>% slice_max(n = parameters$max_to_route, order_by = all, with_ties = FALSE),
                   plans = "balanced", 
                   purpose = "school",
-                  folder = output_folder,
+                  folder = parameters$dir_local,
                   date = parameters$date_routing,
                   segments = "both")
   rs
@@ -285,7 +284,7 @@ tar_target(rs_school_ebike, {
   rs = get_routes(od = od_school %>% slice_max(n = parameters$max_to_route, order_by = all, with_ties = FALSE),
                   plans = "ebike", 
                   purpose = "school",
-                  folder = output_folder,
+                  folder = parameters$dir_local,
                   date = parameters$date_routing,
                   segments = "both")
   rs
@@ -302,7 +301,7 @@ tar_target(rs_commute_fastest, {
   rs = get_routes(od = od_commute_subset,
                   plans = "fastest", 
                   purpose = "commute",
-                  folder = output_folder,
+                  folder = parameters$dir_local,
                   date = parameters$date_routing,
                   segments = "both")
   rs
@@ -332,7 +331,7 @@ tar_target(rs_commute_quietest, {
   rs = get_routes(od = od_commute_subset,
                   plans = "quietest", 
                   purpose = "commute",
-                  folder = output_folder,
+                  folder = parameters$dir_local,
                   date = parameters$date_routing,
                   segments = "both")
   rs
@@ -347,7 +346,7 @@ tar_target(rs_commute_ebike, {
   rs = get_routes(od = od_commute_subset,
                   plans = "ebike", 
                   purpose = "commute",
-                  folder = output_folder,
+                  folder = parameters$dir_local,
                   date = parameters$date_routing,
                   segments = "both")
   rs
@@ -356,6 +355,22 @@ tar_target(rs_commute_ebike, {
 tar_target(done_commute_ebike, {
   length(rs_commute_ebike) #Hack for scheduling
 }),
+
+tar_target(rs_commute_balanced, {
+  length(done_school_balanced)
+  rs = get_routes(od = od_commute_subset,
+                  plans = "balanced", 
+                  purpose = "commute",
+                  folder = parameters$dir_local,
+                  date = parameters$date_routing,
+                  segments = "both")
+  rs
+}),
+
+tar_target(done_commute_balanced, {
+  length(rs_commute_balanced) #Hack for scheduling
+}),
+
 
 # Commute routing post-processing -----------------------------------------
 
@@ -429,35 +444,27 @@ tar_target(rnet_gq_school_balanced, {
 # Commute Uptake ----------------------------------------------------------
 
   tar_target(uptake_commute_fastest, {
-    routes = r_commute_fastest %>%
+    r_commute_fastest %>%
       aadt_adjust(purpose = "commute", aadt_parameters = aadt_parameters) %>%
       get_uptake_scenarios()
-    saveRDS(routes, file.path(output_folder, "routes_commute_fastest.Rds"))
-    routes
   }),
   
   tar_target(uptake_commute_quietest, {
-    routes = r_commute_quietest %>%
+    r_commute_quietest %>%
       aadt_adjust(purpose = "commute", aadt_parameters = aadt_parameters) %>%
       get_uptake_scenarios()
-    saveRDS(routes, file.path(output_folder, "routes_commute_quietest.Rds"))
-    routes
   }),
   
   tar_target(uptake_commute_ebike, {
-    routes = r_commute_ebike %>%
+    r_commute_ebike %>%
       aadt_adjust(purpose = "commute", aadt_parameters = aadt_parameters) %>%
       get_uptake_scenarios()
-    saveRDS(routes, paste0(output_folder, "/routes_commute_ebike.Rds"))
-    routes
   }),
   
   tar_target(uptake_commute_balanced, {
-    routes = r_commute_balanced %>%
+    r_commute_balanced %>%
       aadt_adjust(purpose = "commute", aadt_parameters = aadt_parameters) %>%
       get_uptake_scenarios()
-    saveRDS(routes, paste0(output_folder, "/routes_commute_balanced.Rds"))
-    routes
   }),
   
 # School Uptake ----------------------------------------------------------
@@ -812,21 +819,7 @@ tar_target(oas,{
 }),
 
 tar_target(intermediate_zones,{
-  if (!file.exists("./data-raw/SG_IntermediateZone_Bdry_2011.shp")) {
-    u = "https://maps.gov.scot/ATOM/shapefiles/SG_IntermediateZoneBdry_2011.zip"
-    f = basename(u)
-    download.file(u, f)
-    unzip(f, exdir = "./data-raw")
-    # # Upload to v0.02 the .zip file:
-    # system("gh release upload v0.02 SG_IntermediateZoneBdry_2011.zip")
-  }
-  intermediate_zones = st_read("./data-raw/SG_IntermediateZone_Bdry_2011.shp")
-  sf::sf_use_s2(FALSE)
-  iz_centroids = sf::st_point_on_surface(intermediate_zones)
-  iz_centroids = sf::st_transform(iz_centroids, sf::st_crs(region_boundary))
-  # TODO: buffered boundary?
-  iz_centroids_within = iz_centroids[region_boundary, ]
-  intermediate_zones[intermediate_zones[[1]] %in% iz_centroids_within[[1]], ]
+  sf::read_sf("inputdata/SG_IntermediateZone_Bdry_2011.gpkg")
 }),
 
 # Utility OD -------------------------------------------------------------
@@ -881,7 +874,7 @@ tar_target(rs_utility_fastest, {
   rs = get_routes(od = od_utility_combined |> dplyr::slice_max(n = parameters$max_to_route, order_by = all, with_ties = FALSE),
                   plans = "fastest", 
                   purpose = "utility",
-                  folder = output_folder,
+                  folder = parameters$dir_local,
                   date = parameters$date_routing,
                   segments = "both")
   rs
@@ -897,7 +890,7 @@ tar_target(rs_utility_quietest, {
   rs = get_routes(od = od_utility_combined,
                   plans = "quietest", 
                   purpose = "utility",
-                  folder = output_folder,
+                  folder = parameters$dir_local,
                   date = parameters$date_routing,
                   segments = "both")
   rs
@@ -912,7 +905,7 @@ tar_target(rs_utility_ebike, {
   rs = get_routes(od = od_utility_combined,
                   plans = "ebike", 
                   purpose = "utility",
-                  folder = output_folder,
+                  folder = parameters$dir_local,
                   date = parameters$date_routing,
                   segments = "both")
   rs
@@ -927,7 +920,7 @@ tar_target(rs_utility_balanced, {
   rs = get_routes(od = od_utility_combined,
                   plans = "balanced", 
                   purpose = "utility",
-                  folder = output_folder,
+                  folder = parameters$dir_local,
                   date = parameters$date_routing,
                   segments = "both")
   rs
@@ -978,7 +971,6 @@ tar_target(uptake_utility_fastest, {
   routes = r_utility_fastest %>%
     filter(distances < 10000) %>%
     get_uptake_scenarios(purpose = "utility")
-  saveRDS(routes, paste0(output_folder, "/routes_utility_fastest.Rds"))
   routes
 }),
 
@@ -986,7 +978,6 @@ tar_target(uptake_utility_quietest, {
   routes = r_utility_quietest %>%
     filter(distances < 10000) %>%
     get_uptake_scenarios(purpose = "utility")
-  saveRDS(routes, paste0(output_folder, "/routes_utility_quietest.Rds"))
   routes
 }),
 
@@ -994,7 +985,6 @@ tar_target(uptake_utility_ebike, {
   routes = r_utility_ebike %>%
     filter(distances < 10000) %>%
     get_uptake_scenarios(purpose = "utility")
-  saveRDS(routes, paste0(output_folder, "/routes_utility_ebike.Rds"))
   routes
 }),
 
@@ -1002,7 +992,6 @@ tar_target(uptake_utility_balanced, {
   routes = r_utility_balanced %>%
     filter(distances < 10000) %>%
     get_uptake_scenarios(purpose = "utility")
-  saveRDS(routes, paste0(output_folder, "/routes_utility_balanced.Rds"))
   routes
 }),
 
@@ -1122,14 +1111,14 @@ tar_target(zones_contextual, {
     message("SIMD data not found, skipping this target")
     return(NULL)
   }
-  dir.create(file.path(tempdir(),"SIMD"))
-  unzip(f_simd, exdir = file.path(tempdir(),"SIMD"))
-  files = list.files(file.path(tempdir(),"SIMD/simd2020_withgeog"), full.names = TRUE)
+  dir.create(file.path(parameters$dir_local,"SIMD"), recursive = TRUE, showWarnings = FALSE)
+  unzip(f_simd, exdir = file.path(parameters$dir_local,"SIMD"))
+  files = list.files(file.path(parameters$dir_local,"SIMD/simd2020_withgeog"), full.names = TRUE)
   
-  zones = sf::read_sf(file.path(tempdir(),"SIMD/simd2020_withgeog/sc_dz_11.shp"))
-  simd = readr::read_csv(file.path(tempdir(),"SIMD/simd2020_withgeog/simd2020_withinds.csv"))
+  zones = sf::read_sf(file.path(parameters$dir_local,"SIMD/simd2020_withgeog/sc_dz_11.shp"))
+  simd = readr::read_csv(file.path(parameters$dir_local,"SIMD/simd2020_withgeog/simd2020_withinds.csv"))
   
-  unlink(file.path(tempdir(),"SIMD"), recursive = TRUE)
+  unlink(file.path(parameters$dir_local,"SIMD"), recursive = TRUE)
   
   zones = zones[,c("DataZone","Name","TotPop2011","ResPop2011","HHCnt2011")]
   simd$Intermediate_Zone = NULL
@@ -1174,14 +1163,39 @@ tar_target(zones_tile, {
   z$population_density = round(z$Total_population / z$area)
   z$area = NULL
   
-  make_geojson_zones(z, file.path(output_folder, "data_zones.geojson"))
-  
+  make_geojson_zones(z, file.path(parameters$dir_local, "data_zones.geojson"))  
   z
 }),
 
+tar_target(zones_dasymetric_tile, {
+  
+  if (parameters$open_data_build){
+    NULL
+  } else {
+    b_verylow = read_TEAMS("open_data/os_buildings/buildings_low_nat_lsoa_split.Rds")
+    b_low = read_TEAMS("open_data/os_buildings/buildings_low_reg_lsoa_split.Rds")
+    b_med = read_TEAMS("open_data/os_buildings/buildings_med_lsoa_split.Rds")
+    b_high = read_TEAMS("open_data/os_buildings/buildings_high_lsoa_split.Rds")
+    
+    zones = sf::st_drop_geometry(zones_tile)
+    
+    b_verylow = dplyr::left_join(b_verylow, zones, by = c("geo_code" = "DataZone"))
+    b_low = dplyr::left_join(b_low, zones, by = c("geo_code" = "DataZone"))
+    b_med = dplyr::left_join(b_med, zones, by = c("geo_code" = "DataZone"))
+    b_high = dplyr::left_join(b_high, zones, by = c("geo_code" = "DataZone"))
+    
+    make_geojson_zones(b_verylow, file.path("outputdata", "dasymetric_verylow.geojson"))
+    make_geojson_zones(b_low, file.path("outputdata", "dasymetric_low.geojson"))
+    make_geojson_zones(b_med, file.path("outputdata", "dasymetric_med.geojson"))
+    make_geojson_zones(b_high, file.path("outputdata", "dasymetric_high.geojson"))
+  }
+  TRUE
+}),
+
+
 tar_target(school_points, {
   schools = sf::read_sf("inputdata/Schools/school_locations.geojson")
-  # make_geojson_zones(schools, file.path(output_folder, "school_locations.geojson"))
+  make_geojson_zones(schools, file.path("outputdata", "school_locations.geojson"))
   schools
 }),
 
@@ -1269,97 +1283,6 @@ tar_target(simplified_network, {
   rnet_simple
 }),
 
-  
-# tar_target(
-#   coherent_network, {
-#     # Prepare cohesive network
-#     NPT_MM_OSM = cohesive_network_prep(combined_network_tile, crs = "EPSG:27700", parameters = parameters)
-
-#     NPT_MM_OSM_CITY =  NPT_MM_OSM$cohesive_network
-
-#     NPT_MM_OSM_ZONE =  NPT_MM_OSM$cohesive_zone
-
-#     all_city_coherent_networks = list()
-
-#     # Define folder path using parameters for date_routing and region
-#     folder_path = paste0("outputdata/", parameters$date_routing,"/",  snakecase::to_snake_case(parameters$region), "/", "coherent_networks/")
-#     if(!dir.exists(folder_path)) {
-#       dir.create(folder_path, recursive = TRUE)
-#     }
-#     for(city in parameters$coherent_area) {
-        
-#         city_coherent_networks = list()
-
-#         city_filename = gsub(" ", "_", city)
-
-#         CITY = NPT_MM_OSM_CITY[[city]]
-#         ZONE = NPT_MM_OSM_ZONE[[city]]
-
-#         # Loop through percentiles and process each network
-#         for (percentile in parameters$coherent_percentile) {
-#           print(paste0("Processing coherent network for ", city, " at percentile ", percentile))
-#           percentile_factor = percentile / 100
-#           grouped_net = coherent_network_group(CITY, ZONE, percentile_factor, arterial = FALSE)
-
-#           # Updated file path to include dynamic folder path
-#           file_path = paste0(folder_path, city_filename, "_coherent_network_", percentile, ".geojson")
-#           make_geojson_zones(grouped_net, file_path)
-
-#           city_coherent_networks[[paste0("percentile_", percentile)]] = grouped_net
-#         }
-  
-#         # Store the networks in the list, organized by city
-#         all_city_coherent_networks[[city]] = city_coherent_networks
-#     }
-
-#     all_city_coherent_networks
-#   },
-#   cue = tar_cue(mode = "always")
-# ),
-
-
-# # Make PMTiles for website ------------------------------------------------
-# tar_target(
-#   pmtiles_coherent,
-#   {
-#     # Define folder path using parameters for date_routing and region
-#     folder_path = paste0("outputdata/", parameters$date_routing,"/",  snakecase::to_snake_case(parameters$region), "/", "coherent_networks/") 
-    
-#     # Loop over every city
-#     for (city in parameters$coherent_area) {
-#       # Sanitize city name for filenames
-#       city_filename = gsub(" ", "_", city)
-
-#       # Loop through each specified percentile
-#       for (percentile in parameters$coherent_percentile) {
-#         # Generate filenames for GeoJSON and PMTiles using city name and percentile
-#         coherent_geojson_filename = paste0(folder_path, city_filename, "_coherent_network_", percentile, ".geojson")
-#         coherent_pmtiles_filename = paste0(folder_path, city_filename, "_coherent_network_", percentile, ".pmtiles")
-
-#         # Construct the Tippecanoe command
-#         command_tippecanoe = paste0(
-#           'tippecanoe -o ', coherent_pmtiles_filename,
-#           ' --name="', city_filename, '_coherent_network_', percentile, '"',
-#           ' --layer=cohesivenetwork',
-#           ' --attribution="University of Leeds"',
-#           ' --minimum-zoom=6',
-#           ' --maximum-zoom=13',
-#           ' --maximum-tile-bytes=5000000',
-#           ' --simplification=10',
-#           ' --buffer=5',
-#           ' -rg',
-#           ' --force ',
-#           coherent_geojson_filename
-#         )
-
-#         # Execute the command and capture output
-#         system_output = system(command_tippecanoe, intern = TRUE)
-#       }
-#     }
-#   },
-#   cue = tar_cue(mode = "always")
-# ),
-
 tar_target(pmtiles_school, {
   check = length(school_points)
   command_tippecanoe = paste('tippecanoe -o schools.pmtiles',
@@ -1381,7 +1304,7 @@ tar_target(pmtiles_school, {
     # Using WSL
     dir = getwd()
     command_start = 'bash -c '
-    command_cd = paste0('cd /mnt/',tolower(substr(dir,1,1)),substr(dir,3,nchar(dir)),'/outputs')
+    command_cd = paste0('cd /mnt/',tolower(substr(dir,1,1)),substr(dir,3,nchar(dir)),'/outputdata')
     command_all = paste(c(command_cd, command_tippecanoe), collapse = "; ")
     command_all = paste0(command_start,'"',command_all,'"')
   }
@@ -1413,7 +1336,123 @@ tar_target(pmtiles_zones, {
     # Using WSL
     dir = getwd()
     command_start = 'bash -c '
-    command_cd = paste0('cd /mnt/',tolower(substr(dir,1,1)),substr(dir,3,nchar(dir)),'/outputs')
+    command_cd = paste0('cd /mnt/',tolower(substr(dir,1,1)),substr(dir,3,nchar(dir)),'/outputdata')
+    command_all = paste(c(command_cd, command_tippecanoe), collapse = "; ")
+    command_all = paste0(command_start,'"',command_all,'"')
+  }
+  responce = system(command_all, intern = TRUE)
+  responce
+}),
+
+tar_target(pmtiles_buildings, {
+  check = length(zones_dasymetric_tile)
+ 
+  tippecanoe_verylow = paste('tippecanoe -o dasymetric_verylow.pmtiles',
+                             '--name=dasymetric',
+                             '--layer=dasymetric',
+                             '--attribution=OS',
+                             '--minimum-zoom=4',
+                             '--maximum-zoom=6',
+                             '--coalesce-smallest-as-needed',
+                             '--detect-shared-borders',
+                             '--maximum-tile-bytes=5000000',
+                             '--simplification=1',
+                             '--buffer=5',
+                             '--force dasymetric_verylow.geojson', 
+                             collapse = " ")
+  
+  tippecanoe_low = paste('tippecanoe -o dasymetric_low.pmtiles',
+                         '--name=dasymetric',
+                         '--layer=dasymetric',
+                         '--attribution=OS',
+                         '--minimum-zoom=7',
+                         '--maximum-zoom=9',
+                         '--coalesce-smallest-as-needed',
+                         '--detect-shared-borders',
+                         '--maximum-tile-bytes=5000000',
+                         '--simplification=1',
+                         '--buffer=5',
+                         '--force dasymetric_low.geojson', 
+                         collapse = " ")
+  
+  tippecanoe_med = paste('tippecanoe -o dasymetric_med.pmtiles',
+                         '--name=dasymetric',
+                         '--layer=dasymetric',
+                         '--attribution=OS',
+                         '--minimum-zoom=10',
+                         '--maximum-zoom=14',
+                         '--coalesce-smallest-as-needed',
+                         '--detect-shared-borders',
+                         '--maximum-tile-bytes=5000000',
+                         '--simplification=2',
+                         '--buffer=5',
+                         '--force dasymetric_med.geojson', 
+                         collapse = " ")
+  
+  tippecanoe_high = paste('tippecanoe -o dasymetric_high.pmtiles',
+                          '--name=dasymetric',
+                          '--layer=dasymetric',
+                          '--attribution=OS',
+                          '-zg',
+                          '--minimum-zoom=15',
+                          '--extend-zooms-if-still-dropping',
+                          '--coalesce-smallest-as-needed',
+                          '--detect-shared-borders',
+                          '--maximum-tile-bytes=5000000',
+                          '--simplification=5',
+                          '--buffer=5',
+                          '--force dasymetric_high.geojson', 
+                          collapse = " ")
+  
+  tippecanoe_join = paste('tile-join -o dasymetric.pmtiles -pk --force',
+                          'dasymetric_verylow.pmtiles',
+                          'dasymetric_low.pmtiles',
+                          'dasymetric_med.pmtiles',
+                          'dasymetric_high.pmtiles', 
+                          collapse = " ")
+  
+  
+  
+  if(.Platform$OS.type == "unix") {
+    command_cd = 'cd outputdata'
+    command_all = paste(c(command_cd, tippecanoe_verylow, tippecanoe_low, 
+                          tippecanoe_med, tippecanoe_high, tippecanoe_join), collapse = "; ")
+  } else {
+    # Using WSL
+    dir = getwd()
+    command_start = 'bash -c '
+    command_cd = paste0('cd /mnt/',tolower(substr(dir,1,1)),substr(dir,3,nchar(dir)),'/outputdata')
+    command_all = paste(c(command_cd, tippecanoe_verylow, tippecanoe_low, 
+                          tippecanoe_med, tippecanoe_high, tippecanoe_join), collapse = "; ")
+    command_all = paste0(command_start,'"',command_all,'"')
+  }
+  responce = system(command_all, intern = TRUE)
+  responce
+}),
+
+tar_target(pmtiles_rnet, {
+  check = length(combined_network_tile)
+  command_tippecanoe = paste('tippecanoe -o rnet.pmtiles',
+                             '--name=rnet',
+                             '--layer=rnet',
+                             '--attribution=UniverstyofLeeds',
+                             '--minimum-zoom=6',
+                             '--maximum-zoom=13',
+                             '--drop-smallest-as-needed',
+                             '--maximum-tile-bytes=5000000',
+                             '--simplification=10',
+                             '--buffer=5',
+                             '--force  combined_network_tile.geojson', collapse = " ")
+  
+  if(.Platform$OS.type == "unix") {
+    command_cd = 'cd outputdata'
+    command_all = paste(c(command_cd, command_tippecanoe), collapse = "; ")
+  } else {
+    # Using WSL
+    dir = getwd()
+    command_start = 'bash -c '
+    command_cd = paste0('cd /mnt/',tolower(substr(dir,1,1)),substr(dir,3,nchar(dir)),'/outputdata')
+    
     command_all = paste(c(command_cd, command_tippecanoe), collapse = "; ")
     command_all = paste0(command_start,'"',command_all,'"')
   }
@@ -1458,16 +1497,86 @@ tar_target(pmtiles_rnet_simplified, {
 
     message("Saving outputs for ", parameters$date_routing)
     
-    saveRDS(od_commute_subset, paste0(output_folder, "/od_commute_subset.Rds"))
-    saveRDS(zones_stats, paste0(output_folder, "/zones_stats.Rds"))
-    saveRDS(school_stats, paste0(output_folder, "/school_stats.Rds"))
-    sf::write_sf(combined_network_tile, paste0(output_folder, "/combined_network_tile.geojson"), delete_dsn = TRUE)    
-    sys_time = Sys.time()
-    zip(
-      zipfile = paste0(output_folder, "/combined_network_tile.zip"),
-      paste0(output_folder, "/combined_network_tile.geojson")
+    saveRDS(od_commute_subset, "outputdata/od_commute_subset.Rds")
+    saveRDS(zones_stats, "outputdata/zones_stats.Rds")
+    saveRDS(school_stats, "outputdata/school_stats.Rds")
+    
+    # Save GeoPackage versions (just fastest for now):
+    sf::write_sf(rnet_commute_fastest, "outputdata/rnet_commute_fastest.gpkg")
+    sf::write_sf(rnet_primary_fastest, "outputdata/rnet_primary_fastest.gpkg")
+    sf::write_sf(rnet_secondary_fastest, "outputdata/rnet_secondary_fastest.gpkg")
+    sf::write_sf(rnet_utility_fastest, "outputdata/rnet_utility_fastest.gpkg")
+    sf::write_sf(combined_network, "outputdata/combined_network.gpkg", delete_dsn = TRUE)
+    as.character(Sys.Date())
+  }),
+  
+  # tar_target(visualise_rnet, {
+  #   # tar_source("code/vis_network.R")
+  #   # tarchetypes::tar_
+  # }),
+  # tarchetypes::tar_render(visualise_rnet, path = "code/vis_network.Rmd", params = list(rnet_commute_list)),
+  
+  # tarchetypes::tar_render(report, path = "README.Rmd", params = list(zones, rnet)),
+  tar_target(upload_data, {
+    
+    # Ensure the target runs after
+    check = length(save_outputs)
+
+    commit = gert::git_log(max = 1)
+    message("Commit: ", commit)
+    full_build = 
+      # isFALSE(parameters$geo_subset) &&     
+      isFALSE(parameters$open_data_build) &&
+      parameters$max_to_route > 20e3
+    is_linux = Sys.info()[['sysname']] == "Linux"
+    if(full_build) {
+    v = paste0("v", save_outputs, "_commit_", commit$commit)
+    v = gsub(pattern = " |:", replacement = "-", x = v)
+    setwd("outputdata")
+    f = list.files(path = ".", pattern = "Rds|zip|pmtiles|json|gpkg")
+    f = f[!grepl(".geojson", f)] # Remove .geojsons
+    # piggyback::pb_upload(f)
+    msg = glue::glue("gh release create {v} --generate-notes")
+    message("Creating new release and folder to save the files: ", v)
+    dir.create(v)
+    message("Going to try to upload the following files: ", paste0(f, collapse = ", "))
+    message("With sizes: ", paste0(fs::file_size(f), collapse = ", "))
+    system(msg)
+    for(i in f) {
+      gh_release_upload(file = i, tag = v)
+      # Move into a new directory
+      file.copy(from = i, to = file.path(v, i))
+    }
+    message("Files stored in output folder: ", v)
+    message("Which contains: ", paste0(list.files(v), collapse = ", "))
+    # For specific version:
+    # system("gh release create v0.0.1 --generate-notes")
+    file.remove(f)
+    setwd("..")
+  }  else {
+    message("Not full build or gh command line tool not available")
+    message("Not uploading files: manually move contents of outputdata (see upload_data target for details)")
+  }
+  Sys.Date()
+  }),
+  
+  tar_target(metadata, {
+    # TODO: generate build summary
+    # metadata_all = tar_meta()
+    # metadata_targets = metadata_all %>% 
+    #   filter(type == "stem")
+    # readr::write_csv(metadata_targets, "outputdata/metadata_targets.csv")
+    build_summary = tibble::tibble(
+      n_segment_cells = nrow(combined_network) * ncol(combined_network),
+      min_flow = parameters$min_flow,
+      max_to_route = parameters$max_to_route,
+      # time_total_mins = round(sum(metadata_targets$seconds) / 60, digits = 2),
+      routing_date = get_routing_date()
     )
-    combined_network_tile_file_path = paste0(output_folder, "/combined_network_tile.geojson")
-    sys_time
+    upload_data
   })
+
 )
+# # Download a snapshot of the data:
+# setwd("outputdata")
+# system("gh release download v2023-03-24-22-28-51_commit_e2a60d0f06e6ddbf768382b19dc524cb3824c0c4 ")

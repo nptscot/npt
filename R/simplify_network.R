@@ -10,35 +10,20 @@ simplify_network = function(rnet_y, parameters){
     region_snake_case = snakecase::to_snake_case(parameters$region[[1]])
     base_name = paste("OS_Scotland_Network", region_snake_case, sep = "_")
   } else {
-    base_name = "OS_Scotland_Network"
+    # URL for the original route network
+    url_rnet_x = "https://github.com/nptscot/networkmerge/releases/download/v0.1/OS_Scotland_Network.geojson"
+    f_rnet_x = basename(url_rnet_x)
+    if (!file.exists(f_rnet_x)) {
+      download.file(url_rnet_x, f_rnet_x)
+    }
+    if (file.exists(f_rnet_x) && file.size(f_rnet_x) > 0) {
+      rnet_x = geojsonsf::geojson_sf(f_rnet_x)
+    } else {
+      stop("File download failed or file is empty for rnet_x")
+    }
+    
   }
   
-  file_path = paste0("inputdata/", base_name, ".geojson")
-  url_rnet_x = paste0("https://github.com/nptscot/inputdata/releases/download/OS_network/", base_name, ".geojson")
-  
-  # Check if the file exists locally
-  if (!file.exists(file_path) || file.size(file_path) <= 0) {
-    message(paste("Local file", file_path, "not found or is empty. Attempting to download from URL..."))
-    message("Download the file from https://github.com/nptscot/inputdata/releases/tag/OS_network")
-    message("Attempting to do that with the following command in bash:")
-    old_wd = setwd("inputdata")
-    msg = "gh release download OS_network --pattern '*.geojson'"
-    message(msg)
-    system(command = msg)
-    setwd(old_wd)
-  }
-  
-  # After attempting download, check again if the file exists and is valid
-  if (file.exists(file_path) && file.size(file_path) > 0) {
-    rnet_x = geojsonsf::geojson_sf(file_path)
-  } else {
-    stop(paste("File download failed or file is empty for", base_name))
-  }
-
-  lads = sf::read_sf("inputdata/boundaries/la_regions_2023.geojson")
-
-  zone = lads[lads$Region == parameters$region[[1]],]
-  zone = sf::st_transform(zone, "EPSG:27700")
   # Transform the spatial data to a different coordinate reference system (EPSG:27700)
   # TODO: uncomment:
   rnet_xp = sf::st_transform(rnet_x, "EPSG:27700")
