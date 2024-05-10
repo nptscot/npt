@@ -8,7 +8,13 @@
 		// Configure properties specific to VS Code.
 		"vscode": {
 		  // Add the IDs of extensions you want installed when the container is created.
-		  "extensions": ["reditorsupport.r"]
+		  "extensions": ["reditorsupport.r",
+		  "GitHub.copilot-chat",
+		  "GitHub.copilot-labs",
+		  "GitHub.copilot",
+		  "yzhang.markdown-all-in-one",
+		  "quarto.quarto"
+		   ]
 		}
 	  },
 
@@ -25,6 +31,6 @@
 	// "remoteUser": "root"
 
 	// Run the script install-additional-dependencies.sh:
-	"postCreateCommand": "bash .devcontainer/install-additional-dependencies.sh"
+	"postCreateCommand": "bash .devcontainer/postCreateCommand.sh"
 
 }
