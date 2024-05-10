@@ -44,5 +44,9 @@ make -j$(nproc)
 sudo make install
 tippecanoe --version
 
+# Add local instance of odjitter to the /usr/local/bin directory:
+which odjitter
+sudo ln -s ~/.cargo/bin/odjitter /usr/local/bin/odjitter
+
 # Make sure there's a newline at the end of the script
 echo "Script execution completed successfully."
