@@ -803,7 +803,10 @@ tar_target(oas,{
 }),
 
 tar_target(intermediate_zones,{
-  sf::read_sf("inputdata/SG_IntermediateZone_Bdry_2011.gpkg")
+  izs = sf::read_sf("inputdata/SG_IntermediateZone_Bdry_2011.gpkg")
+  izs_centroids = sf::st_centroid(izs)
+  izs_centroids_within = izs_centroids[region_boundary |> sf::st_transform(27700), ]
+  izs[izs[[1]] %in% izs_centroids_within[[1]], ]
 }),
 
 # Utility OD -------------------------------------------------------------

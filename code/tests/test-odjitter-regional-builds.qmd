@@ -60,6 +60,8 @@ tar_load(grid)
 tar_load(trip_purposes)
 tar_load(intermediate_zones)
 tar_load(region_boundary_buffered)
+tar_load(zones)
+tar_load(zones_boundary_buffered)
 ```
 
 Let's give it a go:
@@ -344,4 +346,42 @@ plot(sf::st_geometry(zones_with_subpoints), add = TRUE, col = "red")
 ```
 
 The results show that the zones with no subpoints are on the edge of the study area.
-The solution therefore is simply to increase the bounding box from which the `oas` are generated.
+
+Let's take a look at the zone datasets used:
+
+
+```{r}
+tar_load(zones)
+waldo::compare(names(zones), names(zones_shopping))
+summary(sf::st_area(zones)) /
+summary(sf::st_area(zones_shopping))
+```
+
+The `zones_shopping` areas are much (~10x) bigger.
+We just need to ensure that shopping trips are taken only from the study area and go to the surroundings.
+
+```{r}
+izs = sf::read_sf("inputdata/SG_IntermediateZone_Bdry_2011.gpkg")
+sf::st_crs(izs)
+izs_centroids = sf::st_centroid(izs)
+zones_projected = sf::st_transform(zones, 27700)
+izs_centroids_within = izs_centroids[zones_projected, ]
+izs = izs |>
+  filter(InterZone %in% izs_centroids_within$InterZone)
+```
+
+Now let's try jittering again:
+
+```{r}
+#| echo: false
+od_adjusted_jittered = odjitter::jitter(
+  od = od_adjusted,
+  zones = izs |> sf::st_transform(4326),
+  zones_d = shopping_polygons, # each polygon is a single grid point, so destinations are kept the same
+  subpoints_origins = oas,
+  subpoints_destinations = shopping_grid,
+  disaggregation_key = "shopping_all_modes",
+  disaggregation_threshold = parameters$disag_threshold,
+  deduplicate_pairs = FALSE
+)
+```
