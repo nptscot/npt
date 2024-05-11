@@ -803,7 +803,10 @@ tar_target(oas,{
 }),
 
 tar_target(intermediate_zones,{
-  sf::read_sf("inputdata/SG_IntermediateZone_Bdry_2011.gpkg")
+  izs = sf::read_sf("inputdata/SG_IntermediateZone_Bdry_2011.gpkg")
+  izs_centroids = sf::st_centroid(izs)
+  izs_centroids_within = izs_centroids[region_boundary |> sf::st_transform(27700), ]
+  izs[izs[[1]] %in% izs_centroids_within[[1]], ]
 }),
 
 # Utility OD -------------------------------------------------------------
@@ -1262,7 +1265,7 @@ tar_target(combined_network, {
 
 tar_target(simplified_network, {
   cue = tar_cue(mode = "always")
-  rnet_simple = simplify_network(combined_network_tile, parameters)
+  rnet_simple = simplify_network(combined_network_tile, parameters, region_boundary)
   make_geojson_zones(rnet_simple, paste0(output_folder, "/simplified_network.geojson"))
   rnet_simple
 }),
