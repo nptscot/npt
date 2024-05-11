@@ -1265,7 +1265,7 @@ tar_target(combined_network, {
 
 tar_target(simplified_network, {
   cue = tar_cue(mode = "always")
-  rnet_simple = simplify_network(combined_network_tile, parameters)
+  rnet_simple = simplify_network(combined_network_tile, parameters, region_boundary)
   make_geojson_zones(rnet_simple, paste0(output_folder, "/simplified_network.geojson"))
   rnet_simple
 }),

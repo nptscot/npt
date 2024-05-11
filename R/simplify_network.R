@@ -2,36 +2,24 @@
 #' @param combined_network combined_network
 #' @param parameters parameters
 
-simplify_network = function(rnet_y, parameters){
+simplify_network = function(rnet_y, parameters, region_boundary){
   # Read spatial data directly from URLs into sf objects
     # Build file path and URL based on parameters$region
-
-  if (!is.null(parameters$region)) {
-    region_snake_case = snakecase::to_snake_case(parameters$region[[1]])
-    base_name = paste("OS_Scotland_Network", region_snake_case, sep = "_")
-  } else {
-    # URL for the original route network
-    url_rnet_x = "https://github.com/nptscot/networkmerge/releases/download/v0.1/OS_Scotland_Network.geojson"
-    f_rnet_x = basename(url_rnet_x)
-    if (!file.exists(f_rnet_x)) {
-      download.file(url_rnet_x, f_rnet_x)
-    }
-    if (file.exists(f_rnet_x) && file.size(f_rnet_x) > 0) {
-      rnet_x = geojsonsf::geojson_sf(f_rnet_x)
-    } else {
-      stop("File download failed or file is empty for rnet_x")
-    }
-    
-  }
+  region_snake_case = snakecase::to_snake_case(parameters$region[[1]])
+  base_name = paste0("OS_Scotland_Network_", region_snake_case, ".geojson")
+  rnet_x_f = file.path("inputdata", base_name)
+  rnet_x = sf::read_sf(rnet_x_f)
+  # rnet_x = geojsonsf::geojson_sf(rnet_x_f) # bit faster
   
   # Transform the spatial data to a different coordinate reference system (EPSG:27700)
   # TODO: uncomment:
+  rnet_x = rnet_x[region_boundary, ] # TODO: is this needed? Can remove if not
   rnet_xp = sf::st_transform(rnet_x, "EPSG:27700")
   rnet_yp = sf::st_transform(rnet_y, "EPSG:27700")
 
+  # TODO: do we need to do the step mentioned in the comment below?:
   # Subsetting 'rnet_xp' to include only those features that are within the buffer created around 'rnet_yp'.
-  rnet_xp = rnet_xp[zone, , op = sf::st_within]
-  rnet_yp = rnet_yp[zone, , op = sf::st_within]
+
   # Extract column names from the rnet_yp
   name_list = names(rnet_yp)
   
