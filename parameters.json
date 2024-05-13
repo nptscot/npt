@@ -8,7 +8,7 @@
   "disag_threshold": [100],
   "min_distance_meters": [500],
   "region_buffer_distance_meters": [5000],
-  "region": ["Edinburgh and Lothians"],
-  "coherent_area": ["East Lothian", "Midlothian", "City of Edinburgh", "West Lothian"],
+  "region": ["Tayside, Central and Fife"],
+  "coherent_area": ["Clackmannanshire", "Falkirk", "Stirling", "Angus", "Dundee City", "Fife", "Perth and Kinross"],
   "coherent_percentile": [75]
 }
