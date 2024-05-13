@@ -70,7 +70,7 @@ list(
     }
   )
   tar_target(
-    output_folder,
+    region_folder,
     {
       region_name_lower = snakecase::to_snake_case(parameters$region)
       folder_name = file.path(dir_local, region_name_lower)
@@ -105,7 +105,7 @@ list(
     {
       local_authorities_region = local_authorities |>
         filter(Region == parameters$region)
-      sf::write_sf(local_authorities_region, file.path(output_folder, "local_authorities_region.geojson"), delete_dsn = TRUE)
+      sf::write_sf(local_authorities_region, file.path(region_folder, "local_authorities_region.geojson"), delete_dsn = TRUE)
       local_authorities_region
     }
   ),
@@ -241,7 +241,7 @@ tar_target(rs_school_fastest, {
   rs = get_routes(od = od_school %>% slice_max(n = parameters$max_to_route, order_by = all, with_ties = FALSE),
                   plans = "fastest", 
                   purpose = "school",
-                  folder = output_folder,
+                  folder = region_folder,
                   date = parameters$date_routing,
                   segments = "both")
   rs
@@ -256,7 +256,7 @@ tar_target(rs_school_quietest, {
   rs = get_routes(od = od_school %>% slice_max(n = parameters$max_to_route, order_by = all, with_ties = FALSE),
                   plans = "quietest", 
                   purpose = "school",
-                  folder = output_folder,
+                  folder = region_folder,
                   date = parameters$date_routing,
                   segments = "both")
   rs
@@ -272,7 +272,7 @@ tar_target(rs_school_balanced, {
   rs = get_routes(od = od_school %>% slice_max(n = parameters$max_to_route, order_by = all, with_ties = FALSE),
                   plans = "balanced", 
                   purpose = "school",
-                  folder = output_folder,
+                  folder = region_folder,
                   date = parameters$date_routing,
                   segments = "both")
   rs
@@ -287,7 +287,7 @@ tar_target(rs_school_ebike, {
   rs = get_routes(od = od_school %>% slice_max(n = parameters$max_to_route, order_by = all, with_ties = FALSE),
                   plans = "ebike", 
                   purpose = "school",
-                  folder = output_folder,
+                  folder = region_folder,
                   date = parameters$date_routing,
                   segments = "both")
   rs
@@ -304,7 +304,7 @@ tar_target(rs_commute_fastest, {
   rs = get_routes(od = od_commute_subset,
                   plans = "fastest", 
                   purpose = "commute",
-                  folder = output_folder,
+                  folder = region_folder,
                   date = parameters$date_routing,
                   segments = "both")
   rs
@@ -319,7 +319,7 @@ tar_target(rs_commute_balanced, {
   rs = get_routes(od = od_commute_subset,
                   plans = "balanced", 
                   purpose = "commute",
-                  folder = output_folder,
+                  folder = region_folder,
                   date = parameters$date_routing,
                   segments = "both")
   rs
@@ -334,7 +334,7 @@ tar_target(rs_commute_quietest, {
   rs = get_routes(od = od_commute_subset,
                   plans = "quietest", 
                   purpose = "commute",
-                  folder = output_folder,
+                  folder = region_folder,
                   date = parameters$date_routing,
                   segments = "both")
   rs
@@ -349,7 +349,7 @@ tar_target(rs_commute_ebike, {
   rs = get_routes(od = od_commute_subset,
                   plans = "ebike", 
                   purpose = "commute",
-                  folder = output_folder,
+                  folder = region_folder,
                   date = parameters$date_routing,
                   segments = "both")
   rs
@@ -510,7 +510,7 @@ tar_target(rnet_primary_fastest, {
   rnet = uptake_school_fastest
   rnet = rnet[rnet$schooltype == "primary",]
   rnet = stplanr::overline2(rnet, c("bicycle","bicycle_go_dutch","bicycle_ebike"))
-  saveRDS(rnet, paste0(output_folder, "/rnet_primary_school_fastest.Rds"))
+  saveRDS(rnet, paste0(region_folder, "/rnet_primary_school_fastest.Rds"))
   rnet
 }),
 
@@ -518,7 +518,7 @@ tar_target(rnet_primary_quietest, {
   rnet = uptake_school_quietest
   rnet = rnet[rnet$schooltype == "primary",]
   rnet = stplanr::overline2(rnet, c("bicycle","bicycle_go_dutch","bicycle_ebike"))
-  saveRDS(rnet, paste0(output_folder, "/rnet_primary_school_quietest.Rds"))
+  saveRDS(rnet, paste0(region_folder, "/rnet_primary_school_quietest.Rds"))
   rnet
 }),
 
@@ -526,7 +526,7 @@ tar_target(rnet_primary_ebike, {
   rnet = uptake_school_ebike
   rnet = rnet[rnet$schooltype == "primary",]
   rnet = stplanr::overline2(rnet, c("bicycle","bicycle_go_dutch","bicycle_ebike"))
-  saveRDS(rnet, paste0(output_folder, "/rnet_primary_school_ebike.Rds"))
+  saveRDS(rnet, paste0(region_folder, "/rnet_primary_school_ebike.Rds"))
   rnet
 }),
 
@@ -534,7 +534,7 @@ tar_target(rnet_primary_balanced, {
   rnet = uptake_school_balanced
   rnet = rnet[rnet$schooltype == "primary",]
   rnet = stplanr::overline2(rnet, c("bicycle","bicycle_go_dutch","bicycle_ebike"))
-  saveRDS(rnet, paste0(output_folder, "/rnet_primary_school_balanced.Rds"))
+  saveRDS(rnet, paste0(region_folder, "/rnet_primary_school_balanced.Rds"))
   rnet
 }),
 
@@ -544,7 +544,7 @@ tar_target(rnet_secondary_fastest, {
   rnet = uptake_school_fastest
   rnet = rnet[rnet$schooltype == "secondary",]
   rnet = stplanr::overline2(rnet, c("bicycle","bicycle_go_dutch","bicycle_ebike"))
-  saveRDS(rnet, paste0(output_folder, "/rnet_primary_school_fastest.Rds"))
+  saveRDS(rnet, paste0(region_folder, "/rnet_primary_school_fastest.Rds"))
   rnet
 }),
 
@@ -552,7 +552,7 @@ tar_target(rnet_secondary_quietest, {
   rnet = uptake_school_quietest
   rnet = rnet[rnet$schooltype == "secondary",]
   rnet = stplanr::overline2(rnet, c("bicycle","bicycle_go_dutch","bicycle_ebike"))
-  saveRDS(rnet, paste0(output_folder, "/rnet_primary_school_quietest.Rds"))
+  saveRDS(rnet, paste0(region_folder, "/rnet_primary_school_quietest.Rds"))
   rnet
 }),
 
@@ -560,7 +560,7 @@ tar_target(rnet_secondary_ebike, {
   rnet = uptake_school_ebike
   rnet = rnet[rnet$schooltype == "secondary",]
   rnet = stplanr::overline2(rnet, c("bicycle","bicycle_go_dutch","bicycle_ebike"))
-  saveRDS(rnet, paste0(output_folder, "/rnet_primary_school_ebike.Rds"))
+  saveRDS(rnet, paste0(region_folder, "/rnet_primary_school_ebike.Rds"))
   rnet
 }),
 
@@ -568,7 +568,7 @@ tar_target(rnet_secondary_balanced, {
   rnet = uptake_school_balanced
   rnet = rnet[rnet$schooltype == "secondary",]
   rnet = stplanr::overline2(rnet, c("bicycle","bicycle_go_dutch","bicycle_ebike"))
-  saveRDS(rnet, paste0(output_folder, "/rnet_primary_school_balanced.Rds"))
+  saveRDS(rnet, paste0(region_folder, "/rnet_primary_school_balanced.Rds"))
   rnet
 }),
 
@@ -753,11 +753,11 @@ tar_target(zones_stats, {
 
 # Now covered in build.R:
 # tar_target(zones_stats_json, {
-#   export_zone_json(zones_stats, "DataZone", path = output_folder)
+#   export_zone_json(zones_stats, "DataZone", path = region_folder)
 # }),
 
 # tar_target(school_stats_json, {
-#   export_zone_json(school_stats, "SeedCode", path = output_folder)
+#   export_zone_json(school_stats, "SeedCode", path = region_folder)
 # }),
 
 # Shopping OD ---------------------------------------------------------
@@ -864,7 +864,7 @@ tar_target(rs_utility_fastest, {
   rs = get_routes(od = od_utility_combined |> dplyr::slice_max(n = parameters$max_to_route, order_by = all, with_ties = FALSE),
                   plans = "fastest", 
                   purpose = "utility",
-                  folder = output_folder,
+                  folder = region_folder,
                   date = parameters$date_routing,
                   segments = "both")
   rs
@@ -880,7 +880,7 @@ tar_target(rs_utility_quietest, {
   rs = get_routes(od = od_utility_combined,
                   plans = "quietest", 
                   purpose = "utility",
-                  folder = output_folder,
+                  folder = region_folder,
                   date = parameters$date_routing,
                   segments = "both")
   rs
@@ -895,7 +895,7 @@ tar_target(rs_utility_ebike, {
   rs = get_routes(od = od_utility_combined,
                   plans = "ebike", 
                   purpose = "utility",
-                  folder = output_folder,
+                  folder = region_folder,
                   date = parameters$date_routing,
                   segments = "both")
   rs
@@ -910,7 +910,7 @@ tar_target(rs_utility_balanced, {
   rs = get_routes(od = od_utility_combined,
                   plans = "balanced", 
                   purpose = "utility",
-                  folder = output_folder,
+                  folder = region_folder,
                   date = parameters$date_routing,
                   segments = "both")
   rs
@@ -1261,7 +1261,7 @@ tar_target(combined_network, {
     nms = names(rnet_tile)[!names(rnet_tile) %in% nms_end]
     rnet_tile = rnet_tile[c(nms[order(nms)], nms_end)]
     
-    make_geojson_zones(rnet_tile, paste0(output_folder, "/combined_network_tile.geojson"))
+    make_geojson_zones(rnet_tile, paste0(region_folder, "/combined_network_tile.geojson"))
     
     rnet_tile
   }),
@@ -1269,7 +1269,7 @@ tar_target(combined_network, {
 tar_target(simplified_network, {
   cue = tar_cue(mode = "always")
   rnet_simple = simplify_network(combined_network_tile, parameters, region_boundary)
-  make_geojson_zones(rnet_simple, paste0(output_folder, "/simplified_network.geojson"))
+  make_geojson_zones(rnet_simple, paste0(region_folder, "/simplified_network.geojson"))
   rnet_simple
 }),
 
