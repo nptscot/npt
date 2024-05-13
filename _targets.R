@@ -68,7 +68,7 @@ list(
       dir.create(dir_local, showWarnings = FALSE)
       dir_local
     }
-  )
+  ),
   tar_target(
     region_folder,
     {
