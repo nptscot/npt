@@ -30,6 +30,8 @@ region_names_lowercase
 # Initialize a vector to hold the names of regions that fail in the first attempt
 failed_regions = character()
 
+# Set the region to process (for testing)
+region = region_names[4]
 # First loop: Attempt to process each region and capture any failures
 for (region in region_names[3:4]) {
   tryCatch({
