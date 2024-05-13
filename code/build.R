@@ -92,61 +92,56 @@ for (region in region_names[1:6]) {
     message("Processing coherent network for region: ", region)
     parameters$region = region
     parameters$coherent_area = cities_region_names[[region]]
-    jsonlite::write_json(parameters, "parameters.json", pretty = TRUE)
+    parameters$date_routing = "2024-05-11"
+    # jsonlite::write_json(parameters, "parameters.json", pretty = TRUE)
 
     combined_network_tile_path = paste0("outputdata/", parameters$date_routing,"/",  snakecase::to_snake_case(parameters$region), "/", "combined_network_tile.geojson")
-    combined_network_tile = sf::read_sf(combined_network_tile_path)
-
-    NPT_MM_OSM = cohesive_network_prep(combined_network_tile, crs = "EPSG:27700", parameters = parameters)
-
-    NPT_MM_OSM_CITY =  NPT_MM_OSM$cohesive_network
-
-    NPT_MM_OSM_ZONE =  NPT_MM_OSM$cohesive_zone
+    NPT = sf::read_sf(combined_network_tile_path) |>
+      sf::st_transform(crs = "EPSG:27700")
 
     folder_path = paste0("outputdata/", parameters$date_routing,"/",  snakecase::to_snake_case(parameters$region), "/", "coherent_networks/")
 
     if(!dir.exists(folder_path)) {
       dir.create(folder_path, recursive = TRUE)
     }
-    for(city in parameters$coherent_area) {
-     
-        city_filename = gsub(" ", "_", city)
 
-        CITY = NPT_MM_OSM_CITY[[city]]
-        ZONE = NPT_MM_OSM_ZONE[[city]]
+    for (city in parameters$coherent_area) { 
+      city_filename = snakecase::to_snake_case(city)
+      tryCatch({
+        message("Generating coherent network for: ", city)
+        zone = filter(lads, LAD23NM == city) |>
+          sf::st_transform(crs = "EPSG:27700")
 
-        # Loop through percentiles and process each network
-        for (percentile in parameters$coherent_percentile) {
-          print(paste0("Processing coherent network for ", city, " at percentile ", percentile))
-          percentile_factor = percentile / 100
-          grouped_net = coherent_network_group(CITY, ZONE, percentile_factor, arterial = FALSE)
+        NPT_zone = NPT[sf::st_union(zone), , op = sf::st_intersects]
 
-          # Updated file path to include dynamic folder path
-          coherent_geojson_filename = paste0(folder_path, city_filename, "_coherent_network_", percentile, ".geojson")
-          make_geojson_zones(grouped_net, coherent_geojson_filename)
+        min_percentile_value = stats::quantile(NPT_zone$all_fastest_bicycle_go_dutch, probs = 0.938, na.rm = TRUE)
 
-          coherent_pmtiles_filename = paste0(folder_path, city_filename, "_coherent_network_", percentile, ".pmtiles")
+        open_roads_national_zone = open_roads_national[sf::st_union(zone), , op = sf::st_intersects]
 
-          # Construct the Tippecanoe command
-          command_tippecanoe = paste0(
-            'tippecanoe -o ', coherent_pmtiles_filename,
-            ' --name="', city_filename, '_coherent_network_', percentile, '"',
-            ' --layer=cohesivenetwork',
-            ' --attribution="University of Leeds"',
-            ' --minimum-zoom=6',
-            ' --maximum-zoom=13',
-            ' --maximum-tile-bytes=5000000',
-            ' --simplification=10',
-            ' --buffer=5',
-            ' -rg',
-            ' --force ',
-            coherent_geojson_filename
-          )
-          # Execute the command and capture output
-          system_output = system(command_tippecanoe, intern = TRUE)          
-        }
-  }   
-}
+        OS_NPT_zone = corenet::cohesive_network_prep(base_network = open_roads_national_zone, 
+                                            influence_network = NPT_zone, 
+                                            zone, 
+                                            crs = "EPSG:27700", 
+                                            key_attribute = "road_function", 
+                                            attribute_values = c("A Road", "B Road", "Minor Road"))
+
+        cohesive_network_zone = corenet::corenet(NPT_zone, OS_NPT_zone, zone, 
+                                          key_attribute = "all_fastest_bicycle_go_dutch", 
+                                          crs = "EPSG:27700", dist = 10, threshold = min_percentile_value, 
+                                          road_scores = list("A Road" = 1, "B Road" = 1, "Minor Road" = 10000000))
+
+        grouped_network = corenet::coherent_network_group(cohesive_network_zone, key_attribute = "all_fastest_bicycle_go_dutch")
+
+        # Use city name in the filename
+        corenet::create_coherent_network_PMtiles(folder_path = folder_path, city_filename = city_filename, cohesive_network = grouped_network)
+
+        message("Coherent network for: ", city, " generated successfully")
+
+      }, error = function(e) {
+        message(sprintf("An error occurred with %s: %s", city, e$message))
+      })  
+    }
+}   
 
 output_folders = list.dirs(file.path("outputdata", parameters$date_routing))[-1]
 regional_output_files = list.files(output_folders[1])
