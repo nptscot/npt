@@ -59,18 +59,21 @@ list(
     if(!renviron_exists) {
       warning("No .Renviron file, routing may not work")
     }
-    # Refactor this bit:
-    p = jsonlite::read_json(param_file, simplifyVector = T)
-    p$dir_local = paste0("outputdata/", p$date_routing)
-    dir.create(p$dir_local, showWarnings = FALSE)
-    p$odjitter_location = find_odjitter_location()
-    p 
+    jsonlite::read_json(param_file, simplifyVector = TRUE)
   }),
+  tar_target(
+    dir_local,
+    {
+      dir_local = paste0("outputdata/", parameters$date_routing)
+      dir.create(dir_local, showWarnings = FALSE)
+      dir_local
+    }
+  )
   tar_target(
     output_folder,
     {
       region_name_lower = snakecase::to_snake_case(parameters$region)
-      folder_name = file.path("outputdata", parameters$date_routing, region_name_lower)
+      folder_name = file.path(dir_local, region_name_lower)
       dir.create(file.path(folder_name), recursive = TRUE, showWarnings = FALSE)
       folder_name
     }
@@ -238,7 +241,7 @@ tar_target(rs_school_fastest, {
   rs = get_routes(od = od_school %>% slice_max(n = parameters$max_to_route, order_by = all, with_ties = FALSE),
                   plans = "fastest", 
                   purpose = "school",
-                  folder = parameters$dir_local,
+                  folder = output_folder,
                   date = parameters$date_routing,
                   segments = "both")
   rs
@@ -253,7 +256,7 @@ tar_target(rs_school_quietest, {
   rs = get_routes(od = od_school %>% slice_max(n = parameters$max_to_route, order_by = all, with_ties = FALSE),
                   plans = "quietest", 
                   purpose = "school",
-                  folder = parameters$dir_local,
+                  folder = output_folder,
                   date = parameters$date_routing,
                   segments = "both")
   rs
@@ -269,7 +272,7 @@ tar_target(rs_school_balanced, {
   rs = get_routes(od = od_school %>% slice_max(n = parameters$max_to_route, order_by = all, with_ties = FALSE),
                   plans = "balanced", 
                   purpose = "school",
-                  folder = parameters$dir_local,
+                  folder = output_folder,
                   date = parameters$date_routing,
                   segments = "both")
   rs
@@ -284,7 +287,7 @@ tar_target(rs_school_ebike, {
   rs = get_routes(od = od_school %>% slice_max(n = parameters$max_to_route, order_by = all, with_ties = FALSE),
                   plans = "ebike", 
                   purpose = "school",
-                  folder = parameters$dir_local,
+                  folder = output_folder,
                   date = parameters$date_routing,
                   segments = "both")
   rs
@@ -301,7 +304,7 @@ tar_target(rs_commute_fastest, {
   rs = get_routes(od = od_commute_subset,
                   plans = "fastest", 
                   purpose = "commute",
-                  folder = parameters$dir_local,
+                  folder = output_folder,
                   date = parameters$date_routing,
                   segments = "both")
   rs
@@ -331,7 +334,7 @@ tar_target(rs_commute_quietest, {
   rs = get_routes(od = od_commute_subset,
                   plans = "quietest", 
                   purpose = "commute",
-                  folder = parameters$dir_local,
+                  folder = output_folder,
                   date = parameters$date_routing,
                   segments = "both")
   rs
@@ -346,7 +349,7 @@ tar_target(rs_commute_ebike, {
   rs = get_routes(od = od_commute_subset,
                   plans = "ebike", 
                   purpose = "commute",
-                  folder = parameters$dir_local,
+                  folder = output_folder,
                   date = parameters$date_routing,
                   segments = "both")
   rs
@@ -861,7 +864,7 @@ tar_target(rs_utility_fastest, {
   rs = get_routes(od = od_utility_combined |> dplyr::slice_max(n = parameters$max_to_route, order_by = all, with_ties = FALSE),
                   plans = "fastest", 
                   purpose = "utility",
-                  folder = parameters$dir_local,
+                  folder = output_folder,
                   date = parameters$date_routing,
                   segments = "both")
   rs
@@ -877,7 +880,7 @@ tar_target(rs_utility_quietest, {
   rs = get_routes(od = od_utility_combined,
                   plans = "quietest", 
                   purpose = "utility",
-                  folder = parameters$dir_local,
+                  folder = output_folder,
                   date = parameters$date_routing,
                   segments = "both")
   rs
@@ -892,7 +895,7 @@ tar_target(rs_utility_ebike, {
   rs = get_routes(od = od_utility_combined,
                   plans = "ebike", 
                   purpose = "utility",
-                  folder = parameters$dir_local,
+                  folder = output_folder,
                   date = parameters$date_routing,
                   segments = "both")
   rs
@@ -907,7 +910,7 @@ tar_target(rs_utility_balanced, {
   rs = get_routes(od = od_utility_combined,
                   plans = "balanced", 
                   purpose = "utility",
-                  folder = parameters$dir_local,
+                  folder = output_folder,
                   date = parameters$date_routing,
                   segments = "both")
   rs
@@ -1098,14 +1101,14 @@ tar_target(zones_contextual, {
     message("SIMD data not found, skipping this target")
     return(NULL)
   }
-  dir.create(file.path(parameters$dir_local,"SIMD"), recursive = TRUE, showWarnings = FALSE)
-  unzip(f_simd, exdir = file.path(parameters$dir_local,"SIMD"))
-  files = list.files(file.path(parameters$dir_local,"SIMD/simd2020_withgeog"), full.names = TRUE)
+  dir.create(file.path(dir_local,"SIMD"), recursive = TRUE, showWarnings = FALSE)
+  unzip(f_simd, exdir = file.path(dir_local,"SIMD"))
+  files = list.files(file.path(dir_local,"SIMD/simd2020_withgeog"), full.names = TRUE)
   
-  zones = sf::read_sf(file.path(parameters$dir_local,"SIMD/simd2020_withgeog/sc_dz_11.shp"))
-  simd = readr::read_csv(file.path(parameters$dir_local,"SIMD/simd2020_withgeog/simd2020_withinds.csv"))
+  zones = sf::read_sf(file.path(dir_local,"SIMD/simd2020_withgeog/sc_dz_11.shp"))
+  simd = readr::read_csv(file.path(dir_local,"SIMD/simd2020_withgeog/simd2020_withinds.csv"))
   
-  unlink(file.path(parameters$dir_local,"SIMD"), recursive = TRUE)
+  unlink(file.path(dir_local,"SIMD"), recursive = TRUE)
   
   zones = zones[,c("DataZone","Name","TotPop2011","ResPop2011","HHCnt2011")]
   simd$Intermediate_Zone = NULL
@@ -1150,7 +1153,7 @@ tar_target(zones_tile, {
   z$population_density = round(z$Total_population / z$area)
   z$area = NULL
   
-  make_geojson_zones(z, file.path(parameters$dir_local, "data_zones.geojson"))  
+  make_geojson_zones(z, file.path(dir_local, "data_zones.geojson"))  
   z
 }),
 
