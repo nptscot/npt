@@ -24,16 +24,12 @@ for (region in region_names) {
 }
 
 region_names_lowercase = snakecase::to_snake_case(region_names)
-region = region_names[4]
-region_names_lowercase
 
 # Initialize a vector to hold the names of regions that fail in the first attempt
 failed_regions = character()
 
-# Set the region to process (for testing)
-region = region_names[4]
 # First loop: Attempt to process each region and capture any failures
-for (region in region_names[3:4]) {
+for (region in region_names[1:6]) {
   tryCatch({
     message("Processing region: ", region)
     parameters$region = region
@@ -71,31 +67,33 @@ if (length(failed_regions) > 0) {
 output_folder = file.path("outputdata", parameters$date_routing)
 list.files(output_folder)
 setwd("outputdata")
-zip_file = paste0(parameters$date_routing, "2.zip")
+zip_file = paste0(parameters$date_routing, ".zip")
 zip(zipfile = zip_file, parameters$date_routing, extras = "-x *.Rds")
-dir.create("2024-03-14-geojson")
-for(i in list.dirs("2024-03-14")) {
-  r = gsub(pattern = "2024-03-14/", replacement = "", x = i)
+
+date_folder = parameters$date_routing
+
+dir.create(paste0(date_folder, "-geojson"))
+
+for(i in list.dirs(date_folder)) {
+  r = gsub(pattern = paste0(date_folder, "/"), replacement = "", x = i)
   f = list.files(i, pattern = "geojson", full.names = TRUE)
-  f_new = file.path("2024-03-14-geojson", paste0(r, "_", basename(f)))
+  f_new = file.path(paste0(date_folder, "-geojson"), paste0(r, "_", basename(f)))
   message(paste(f, collapse = "\n"))
   message(paste(f_new, collapse = "\n"))
   file.copy(f, f_new)
 }
 
-zip("2024-03-14-geojson.zip", files = "2024-03-14-geojson")
-fs::file_size("2024-03-14-geojson.zip")
+zip(paste0(date_folder, "-geojson.zip"), files = paste0(date_folder, "-geojson"))
+fs::file_size(paste0(date_folder, "-geojson.zip"))
 system("gh release list")
-system("gh release create 2024-03-14-geojson")
-system("gh release upload 2024-03-14-geojson 2024-03-14-geojson.zip")
+system(paste0("gh release create ", date_folder, "-geojson"))
+system(paste0("gh release upload ", date_folder, "-geojson ", date_folder, "-geojson.zip"))
 
 # Generate coherent network
 for (region in region_names[1:6]) {
     message("Processing coherent network for region: ", region)
     parameters$region = region
     parameters$coherent_area = cities_region_names[[region]]
-    parameters$date_routing = "2024-05-11"
-    # jsonlite::write_json(parameters, "parameters.json", pretty = TRUE)
 
     combined_network_tile_path = paste0("outputdata/", parameters$date_routing,"/",  snakecase::to_snake_case(parameters$region), "/", "combined_network_tile.geojson")
     NPT = sf::read_sf(combined_network_tile_path) |>
@@ -116,7 +114,7 @@ for (region in region_names[1:6]) {
 
         NPT_zone = NPT[sf::st_union(zone), , op = sf::st_intersects]
 
-        min_percentile_value = stats::quantile(NPT_zone$all_fastest_bicycle_go_dutch, probs = 0.938, na.rm = TRUE)
+        min_percentile_value = stats::quantile(NPT_zone$all_fastest_bicycle_go_dutch, probs = parameters$coherent_percentile, na.rm = TRUE)
 
         open_roads_national_zone = open_roads_national[sf::st_union(zone), , op = sf::st_intersects]
 
@@ -145,6 +143,7 @@ for (region in region_names[1:6]) {
     }
 }   
 
+setwd("..")
 output_folders = list.dirs(file.path("outputdata", parameters$date_routing))[-1]
 regional_output_files = list.files(output_folders[1])
 regional_output_files
@@ -179,51 +178,37 @@ sf::write_sf(simplified_network, file.path("outputdata", "simplified_network.geo
 
 # Combine zones data:
 # DataZones file path: data_zones.geojson
-zones_tile_list = lapply(output_folders, function(folder) {
-  zones_tile_file = paste0(folder, "/data_zones.geojson")
-  if (file.exists(zones_tile_file)) {
-    zones_tile = sf::read_sf(zones_tile_file)
-  }
-})
-# # Plot 1st:
-# zones_tile_list[[1]] |>
-#   sample_n(1000) |>
-#   select(1) |>
-#   plot()
-zones_tile = dplyr::bind_rows(zones_tile_list)
+
+zones_tile_file = paste0("outputdata/", parameters$date_routing, "/data_zones.geojson")
+if (file.exists(zones_tile_file)) {
+  zones_tile = sf::read_sf(zones_tile_file)
+}
+
 sf::write_sf(zones_tile, file.path("outputdata", "zones_tile.geojson"), delete_dsn = TRUE)
 
 # Same for school_locations.geojson
-school_locations_list = lapply(output_folders, function(folder) {
-  school_locations_file = paste0(folder, "/school_locations.geojson")
-  if (file.exists(school_locations_file)) {
-    school_locations = sf::read_sf(school_locations_file)
-  }
-})
-# # Plot 1st:
-school_locations_list[[1]] |>
-  sample_n(1000) |>
-  select(1) |>
-  plot()
+
+school_locations_file = "outputdata/school_locations.geojson"
+if (file.exists(school_locations_file)) {
+  school_locations = sf::read_sf(school_locations_file)
+}
 
 # Export SchoolStats:
-school_stats_list = lapply(output_folders, function(folder) {
-  school_stats_file = paste0(folder, "/school_stats.Rds")
-  if (file.exists(school_stats_file)) {
-    school_stats = readRDS(school_stats_file)
-  }
-})
-school_stats = dplyr::bind_rows(school_stats_list)
+
+school_stats_file = "outputdata/school_stats.Rds"
+if (file.exists(school_stats_file)) {
+  school_stats = readRDS(school_stats_file)
+}
+
 export_zone_json(school_stats, "SeedCode", path = "outputdata")
 
 # Same for zones_stats.Rds
-zones_stats_list = lapply(output_folders, function(folder) {
-  zones_stats_file = paste0(folder, "/zones_stats.Rds")
-  if (file.exists(zones_stats_file)) {
-    zones_stats = readRDS(zones_stats_file)
-  }
-})
-zones_stats = dplyr::bind_rows(zones_stats_list)
+
+zones_stats_file = "outputdata/zones_stats.Rds"
+if (file.exists(zones_stats_file)) {
+  zones_stats = readRDS(zones_stats_file)
+}
+
 export_zone_json(zones_stats, "DataZone", path = "outputdata")
 
 #Combined network tiling
@@ -242,7 +227,7 @@ command_tippecanoe = paste('tippecanoe -o rnet.pmtiles',
                            '--buffer=5',
                            '--force  combined_network_tile.geojson', collapse = " ")
 
-responce = system(command_all, intern = TRUE)
+responce = system(command_tippecanoe, intern = TRUE)
 
 # Re-set working directory:
 setwd("..")
