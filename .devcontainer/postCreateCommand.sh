@@ -50,3 +50,9 @@ sudo ln -s ~/.cargo/bin/odjitter /usr/local/bin/odjitter
 
 # Make sure there's a newline at the end of the script
 echo "Script execution completed successfully."
+
+ls -hal ~/.cargo/bin/odjitter
+
+sudo ln -s ~/.cargo/bin/odjitter /usr/local/bin/odjitter
+
+sudo apt install gh

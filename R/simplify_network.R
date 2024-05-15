@@ -2,44 +2,23 @@
 #' @param combined_network combined_network
 #' @param parameters parameters
 
-simplify_network = function(rnet_y, parameters){
+simplify_network = function(rnet_y, parameters, region_boundary){
   # Read spatial data directly from URLs into sf objects
-  # TODO: use small dataset if open data build is TRUE
-  if (parameters$open_data_build) {
-    rnet_x = geojsonsf::geojson_sf("https://github.com/ropensci/stplanr/releases/download/v1.0.2/rnet_x_ed.geojson")
-    rnet_x_buffers = sf::st_buffer(rnet_x, dist = 20, endCapStyle = "FLAT")
-    single_rnet_x_buffer = sf::st_union(rnet_x_buffers)
-    rnet_x_buffer = sf::st_sf(geometry = single_rnet_x_buffer)
-    rnet_x_buffer = sf::st_make_valid(rnet_x_buffer)
-  } else {
-    # URL for the original route network
-    url_rnet_x = "https://github.com/nptscot/networkmerge/releases/download/v0.1/OS_Scotland_Network.geojson"
-    f_rnet_x = basename(url_rnet_x)
-    if (!file.exists(f_rnet_x)) {
-      download.file(url_rnet_x, f_rnet_x)
-    }
-    if (file.exists(f_rnet_x) && file.size(f_rnet_x) > 0) {
-      rnet_x = geojsonsf::geojson_sf(f_rnet_x)
-    } else {
-      stop("File download failed or file is empty for rnet_x")
-    }
-    
-  }
+    # Build file path and URL based on parameters$region
+  region_snake_case = snakecase::to_snake_case(parameters$region[[1]])
+  base_name = paste0("OS_Scotland_Network_", region_snake_case, ".geojson")
+  rnet_x_f = file.path("inputdata", base_name)
+  rnet_x = sf::read_sf(rnet_x_f)
+  # rnet_x = geojsonsf::geojson_sf(rnet_x_f) # bit faster
   
   # Transform the spatial data to a different coordinate reference system (EPSG:27700)
   # TODO: uncomment:
+  rnet_x = rnet_x[region_boundary, ] # TODO: is this needed? Can remove if not
   rnet_xp = sf::st_transform(rnet_x, "EPSG:27700")
   rnet_yp = sf::st_transform(rnet_y, "EPSG:27700")
 
-  # Removing lines that not exist in combined_network_tile
-  # Creating a buffer around the GEOS geometry 'rnet_yp'. This expands the geometry by a specified distance (15 meters in this case).
-  rnet_yp_buffer = geos::geos_buffer(rnet_yp, distance = 15, params = geos::geos_buffer_params(quad_segs = 4))
-
-  # Converting the buffer created above into an 'sf' (simple features) object. This is necessary because the buffer created by 'geos_buffer'
-  rnet_yp_buffer = sf::st_as_sf(rnet_yp_buffer)
-
+  # TODO: do we need to do the step mentioned in the comment below?:
   # Subsetting 'rnet_xp' to include only those features that are within the buffer created around 'rnet_yp'.
-  rnet_xp = rnet_xp[rnet_yp_buffer, , op = sf::st_within]
 
   # Extract column names from the rnet_yp
   name_list = names(rnet_yp)
@@ -61,7 +40,7 @@ simplify_network = function(rnet_y, parameters){
   # Merge the spatial objects rnet_xp and rnet_yp based on specified parameters
   dist = 20
   angle = 15
-  rnet_merged_all = stplanr::rnet_merge(rnet_xp, rnet_yp, dist = dist, funs = funs, max_angle_diff = angle)  #segment_length = 20
+  rnet_merged_all = stplanr::rnet_merge(rnet_xp, rnet_yp, dist = dist, funs = funs, max_angle_diff = angle, segment_length = 20) 
   
   # Remove unnecessary columns from the merged spatial object
   rnet_merged_all = rnet_merged_all[ , !(names(rnet_merged_all) %in% c('identifier','length_x'))]

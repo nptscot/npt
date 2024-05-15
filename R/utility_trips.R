@@ -48,10 +48,6 @@ make_od_shopping = function(oas, os_pois, grid, trip_purposes, intermediate_zone
   zones_shopping = sf::st_transform(zones_shopping, 4326)
   zones_shopping = sf::st_make_valid(zones_shopping)
   
-  if(parameters$geo_subset) {
-    zones_shopping = zones_shopping[study_area, op = sf::st_within]
-  }
-  
   # Spatial interaction model of journeys
   # We could validate this SIM using the Scottish data on mean km travelled 
   max_length_euclidean_km = 5
@@ -217,10 +213,6 @@ make_od_leisure = function(oas, os_pois, grid, trip_purposes, intermediate_zones
   zones_leisure = sf::st_transform(zones_leisure, 4326)
   zones_leisure = sf::st_make_valid(zones_leisure)
   
-  if(parameters$geo_subset) {
-    zones_leisure = zones_leisure[study_area, op = sf::st_within]
-  }
-  
   # Spatial interaction model of journeys
   # We could validate this SIM using the Scottish data on mean km travelled 
   max_length_euclidean_km = 5
@@ -258,7 +250,7 @@ make_od_leisure = function(oas, os_pois, grid, trip_purposes, intermediate_zones
     odjitter_location = odjitter_location
   )
   
-  # Get mode shares
+  # Get mode shares: TODO: move to parameters
   mode_shares = data_frame(
     bicycle = 0.012,
     foot = 0.221,
@@ -298,7 +290,12 @@ make_od_leisure = function(oas, os_pois, grid, trip_purposes, intermediate_zones
       all = leisure_all_modes
     ) %>% 
     dplyr::mutate(purpose = "leisure")
-  
+
+  # Remove "output_col" column if it exists (TODO: fix upstream):
+  if ("output_col" %in% colnames(od_leisure_subset)) {
+    od_leisure_subset = od_leisure_subset %>% 
+      dplyr::select(-output_col)
+  }  
   od_leisure_subset
   
   
@@ -328,10 +325,6 @@ make_od_visiting = function(oas, os_pois, grid, trip_purposes, intermediate_zone
     dplyr::select(-ResPop2011)
   zones_visiting = sf::st_transform(zones_visiting, 4326)
   zones_visiting = sf::st_make_valid(zones_visiting)
-  
-  if(parameters$geo_subset) {
-    zones_visiting = zones_visiting[study_area, op = sf::st_within]
-  }
   
   # Spatial interaction model of journeys
   max_length_euclidean_km = 5

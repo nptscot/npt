@@ -25,7 +25,8 @@ get_routes = function(od, plans, purpose = "work", folder = ".", batch = TRUE, b
           username = "robinlovelace",
           strategies = plan,
           cols_to_keep = c("id","distances","quietness","gradient_smooth"),
-          segments = segments
+          segments = segments,
+          delete_job = FALSE
         )
       } else {
         if(batch_save) {
