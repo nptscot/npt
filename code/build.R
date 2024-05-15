@@ -64,17 +64,17 @@ if (length(failed_regions) > 0) {
 
 
 # Zip and upload outputs ----
-setwd("outputdata") # Temporarily change working directory
-date_folder = parameters$date_routing
-list.files(date_folder)
-zip_file = paste0(date_folder, ".zip")
-zip(zipfile = zip_file, date_folder, extras = "-x *.Rds")
-zip(paste0(date_folder, "-geojson.zip"), files = paste0(date_folder, "-geojson"))
-fs::file_size(paste0(date_folder, "-geojson.zip"))
-system("gh release list")
-system(paste0("gh release create ", date_folder, "-geojson"))
-system(paste0("gh release upload ", date_folder, "-geojson ", date_folder, "-geojson.zip"))
-setwd("..")
+# setwd("outputdata") # Temporarily change working directory
+# date_folder = parameters$date_routing
+# list.files(date_folder)
+# zip_file = paste0(date_folder, ".zip")
+# zip(zipfile = zip_file, date_folder, extras = "-x *.Rds")
+# zip(paste0(date_folder, "-geojson.zip"), files = paste0(date_folder, "-geojson"))
+# fs::file_size(paste0(date_folder, "-geojson.zip"))
+# system("gh release list")
+# system(paste0("gh release create ", date_folder, "-geojson"))
+# system(paste0("gh release upload ", date_folder, "-geojson ", date_folder, "-geojson.zip"))
+# setwd("..")
 
 
 # CbD classification of networks ---------------------------------------------
