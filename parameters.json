@@ -1,14 +1,14 @@
 {
   "plans": ["fastest", "balanced", "quietest", "ebike"],
   "min_flow": [1],
-  "max_to_route": [250],
-  "date_routing": ["2024-05-30"],
+  "max_to_route": [500],
+  "date_routing": ["2024-05-15"],
   "geo_subset": [false],
   "open_data_build": [false],
   "disag_threshold": [100],
   "min_distance_meters": [500],
   "region_buffer_distance_meters": [5000],
-  "region": ["Aberdeen and North East"],
-  "coherent_area": ["Moray", "Aberdeen City", "Aberdeenshire"],
+  "region": ["Glasgow and Strathclyde"],
+  "coherent_area": ["East Ayrshire", "East Renfrewshire", "Inverclyde", "North Ayrshire", "South Ayrshire", "South Lanarkshire", "Renfrewshire", "West Dunbartonshire", "East Dunbartonshire", "Glasgow City", "North Lanarkshire"],
   "coherent_percentile": [0.938]
 }
