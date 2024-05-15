@@ -76,7 +76,6 @@ system(paste0("gh release create ", date_folder, "-geojson"))
 system(paste0("gh release upload ", date_folder, "-geojson ", date_folder, "-geojson.zip"))
 setwd("..")
 
-region = region_names[1] # for testing
 
 # CbD classification of networks ---------------------------------------------
 
@@ -301,6 +300,7 @@ system("gh release upload 2024-05-30-geojson cbd_layer.pmtiles")
 
 # Read the open roads data outside the loop for only once
 # Define the path to the file
+setwd("..")
 file_path = "inputdata/open_roads_scotland.gpkg"
 if(!file.exists(file_path)) {
   setwd("inputdata")
@@ -308,6 +308,9 @@ if(!file.exists(file_path)) {
   setwd("..")
 }
 open_roads_scotland = sf::read_sf(file_path)
+sf::st_geometry(open_roads_scotland) = "geometry"
+
+output_folder = file.path("outputdata", date_folder)
 
 # Generate the coherent network for the region
 for (region in region_names[1:6]) {
@@ -315,16 +318,16 @@ for (region in region_names[1:6]) {
     region_snake = snakecase::to_snake_case(region)
     coherent_area = cities_region_names[[region]]
 
-    cnet_path = paste0("outputdata/", date_folder,"/",  region_snake, "/", "combined_network_tile.geojson")
+    cnet_path = file.path(output_folder, region_snake, "combined_network_tile.geojson")
     combined_net = sf::read_sf(cnet_path) |>
       sf::st_transform(crs = "EPSG:27700")
 
-    folder_path = paste0("outputdata/", date_folder,"/",  region_snake, "/", "coherent_networks/")
+    folder_path = file.path(output_folder, region_snake, "coherent_networks/")
 
     if(!dir.exists(folder_path)) {
       dir.create(folder_path, recursive = TRUE)
     }
-    city = coherent_area[1] # For testing, can be removed (TODO)
+
     for (city in coherent_area) { 
       city_filename = snakecase::to_snake_case(city)
       tryCatch({
