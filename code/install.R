@@ -1,12 +1,30 @@
-pkgs  = c(
-  "tibble","zonebuilder","dplyr","lubridate",
-  "stringr","sf","tidyr","data.table", "targets",
-  "glue","zip","jsonlite","remotes","gert","collapse","pct",
+pkgs = c(
+  "bs4Dash",
+  "collapse",
+  "crew",
+  "cyclestreets",
+  "data.table",
+  "dplyr",
+  "geojsonsf",
+  "geos",
+  "gert",
+  "glue",
+  "jsonlite",
+  "lubridate",
+  "lwgeom",
+  "osmextract",
+  "pct",
   "readr",
-  "bs4Dash", "DT", "gt", "pingr", "shinybusy", "shinyWidgets","geos",
-  "cyclestreets" ,"stplanr", "simodels",
-  "geojsonsf","lwgeom","targets","tidyverse", "crew",
-  "snakecase"
+  "remotes",
+  "sf",
+  "shinyWidgets",
+  "simodels",
+  "snakecase",
+  "stplanr",
+  "stringr",
+  "targets",
+  "tidyverse",      # Includes dplyr, ggplot2, tidyr, stringr etc.
+  "zonebuilder"
 )
 
 #Do you want to reinstall github packages, set to TRUE for first run
