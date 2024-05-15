@@ -30,7 +30,7 @@ if (!"zonebuilder" %in% installed.packages()) {
 
 # Load minimum of libraries (Should use package::function in most cases)
 library(targets) # Needed to make targets work
-library(magrittr) # Light load of %>%
+library(magrittr) # Light load of |>
 library(sf) # Needed for sf support
 
 tar_option_set(
@@ -137,12 +137,12 @@ list(
       desire_lines_raw = read_TEAMS("secure_data/commute/commute_dl_sub30km.Rds")
       od_raw = as_tibble(sf::st_drop_geometry(desire_lines_raw))
     }
-    od_subset = od_raw %>%
-      filter(geo_code1 %in% zones$DataZone) %>%
-      filter(geo_code2 %in% zones$DataZone) %>%
-      filter(dist_euclidean < 20000) %>%
-      filter(dist_euclidean > 1000) %>%
-      filter(all >= parameters$min_flow) %>%
+    od_subset = od_raw |>
+      filter(geo_code1 %in% zones$DataZone) |>
+      filter(geo_code2 %in% zones$DataZone) |>
+      filter(dist_euclidean < 20000) |>
+      filter(dist_euclidean > 1000) |>
+      filter(all >= parameters$min_flow) |>
       mutate_od_commute()
     od_subset
   }),
@@ -199,9 +199,9 @@ list(
     odj
   }),
   tar_target(od_commute_subset, {
-    odcs = od_commute_jittered %>%
-      filter(dist_euclidean_jittered < 16000) %>%
-      filter(dist_euclidean_jittered > 1000) %>%
+    odcs = od_commute_jittered |>
+      filter(dist_euclidean_jittered < 16000) |>
+      filter(dist_euclidean_jittered > 1000) |>
       slice_max(n = parameters$max_to_route, order_by = all, with_ties = FALSE)
     odcs
   }),
@@ -218,10 +218,10 @@ list(
     }
     schools_dl = schools_dl[region_boundary_buffered, op = sf::st_within]
     schools_dl$dist_euclidean_jittered = round(as.numeric(sf::st_length(schools_dl)))
-    schools_dl = schools_dl %>%
-      filter(dist_euclidean_jittered < 10000) %>%
-      filter(dist_euclidean_jittered > 1000) %>%
-      slice_max(order_by = all, n = parameters$max_to_route, with_ties = FALSE) %>%
+    schools_dl = schools_dl |>
+      filter(dist_euclidean_jittered < 10000) |>
+      filter(dist_euclidean_jittered > 1000) |>
+      slice_max(order_by = all, n = parameters$max_to_route, with_ties = FALSE) |>
       mutate_od_school()
     schools_dl
   }),
@@ -230,7 +230,7 @@ list(
 
   tar_target(rs_school_fastest, {
     rs = get_routes(
-      od = od_school %>% slice_max(n = parameters$max_to_route, order_by = all, with_ties = FALSE),
+      od = od_school |> slice_max(n = parameters$max_to_route, order_by = all, with_ties = FALSE),
       plans = "fastest",
       purpose = "school",
       folder = region_folder,
@@ -245,7 +245,7 @@ list(
   tar_target(rs_school_quietest, {
     length(done_school_fastest)
     rs = get_routes(
-      od = od_school %>% slice_max(n = parameters$max_to_route, order_by = all, with_ties = FALSE),
+      od = od_school |> slice_max(n = parameters$max_to_route, order_by = all, with_ties = FALSE),
       plans = "quietest",
       purpose = "school",
       folder = region_folder,
@@ -262,7 +262,7 @@ list(
   tar_target(rs_school_balanced, {
     length(done_school_quietest)
     rs = get_routes(
-      od = od_school %>% slice_max(n = parameters$max_to_route, order_by = all, with_ties = FALSE),
+      od = od_school |> slice_max(n = parameters$max_to_route, order_by = all, with_ties = FALSE),
       plans = "balanced",
       purpose = "school",
       folder = region_folder,
@@ -277,7 +277,7 @@ list(
   tar_target(rs_school_ebike, {
     length(done_school_quietest)
     rs = get_routes(
-      od = od_school %>% slice_max(n = parameters$max_to_route, order_by = all, with_ties = FALSE),
+      od = od_school |> slice_max(n = parameters$max_to_route, order_by = all, with_ties = FALSE),
       plans = "ebike",
       purpose = "school",
       folder = region_folder,
@@ -411,49 +411,49 @@ list(
   # Commute Uptake ----------------------------------------------------------
 
   tar_target(uptake_commute_fastest, {
-    r_commute_fastest %>%
-      aadt_adjust(purpose = "commute", aadt_parameters = aadt_parameters) %>%
+    r_commute_fastest |>
+      aadt_adjust(purpose = "commute", aadt_parameters = aadt_parameters) |>
       get_uptake_scenarios()
   }),
   tar_target(uptake_commute_quietest, {
-    r_commute_quietest %>%
-      aadt_adjust(purpose = "commute", aadt_parameters = aadt_parameters) %>%
+    r_commute_quietest |>
+      aadt_adjust(purpose = "commute", aadt_parameters = aadt_parameters) |>
       get_uptake_scenarios()
   }),
   tar_target(uptake_commute_ebike, {
-    r_commute_ebike %>%
-      aadt_adjust(purpose = "commute", aadt_parameters = aadt_parameters) %>%
+    r_commute_ebike |>
+      aadt_adjust(purpose = "commute", aadt_parameters = aadt_parameters) |>
       get_uptake_scenarios()
   }),
   tar_target(uptake_commute_balanced, {
-    r_commute_balanced %>%
-      aadt_adjust(purpose = "commute", aadt_parameters = aadt_parameters) %>%
+    r_commute_balanced |>
+      aadt_adjust(purpose = "commute", aadt_parameters = aadt_parameters) |>
       get_uptake_scenarios()
   }),
 
   # School Uptake ----------------------------------------------------------
 
   tar_target(uptake_school_fastest, {
-    routes = r_school_fastest %>%
-      aadt_adjust(purpose = "school", aadt_parameters = aadt_parameters) %>%
+    routes = r_school_fastest |>
+      aadt_adjust(purpose = "school", aadt_parameters = aadt_parameters) |>
       get_uptake_scenarios(purpose = "school")
     routes
   }),
   tar_target(uptake_school_quietest, {
-    routes = r_school_quietest %>%
-      aadt_adjust(purpose = "school", aadt_parameters = aadt_parameters) %>%
+    routes = r_school_quietest |>
+      aadt_adjust(purpose = "school", aadt_parameters = aadt_parameters) |>
       get_uptake_scenarios(purpose = "school")
     routes
   }),
   tar_target(uptake_school_ebike, {
-    routes = r_school_ebike %>%
-      aadt_adjust(purpose = "school", aadt_parameters = aadt_parameters) %>%
+    routes = r_school_ebike |>
+      aadt_adjust(purpose = "school", aadt_parameters = aadt_parameters) |>
       get_uptake_scenarios(purpose = "school")
     routes
   }),
   tar_target(uptake_school_balanced, {
-    routes = r_school_balanced %>%
-      aadt_adjust(purpose = "school", aadt_parameters = aadt_parameters) %>%
+    routes = r_school_balanced |>
+      aadt_adjust(purpose = "school", aadt_parameters = aadt_parameters) |>
       get_uptake_scenarios(purpose = "school")
     routes
   }),
@@ -542,7 +542,7 @@ list(
   tar_target(commute_stats_baseline, {
     stats = sf::st_drop_geometry(od_commute_subset)
     stats = aadt_adjust(stats, purpose = "commute", aadt_parameters = aadt_parameters)
-    stats_from = dplyr::group_by(stats, geo_code1) %>%
+    stats_from = dplyr::group_by(stats, geo_code1) |>
       dplyr::summarise(
         all = sum(all, na.rm = TRUE),
         bicycle = sum(bicycle, na.rm = TRUE),
@@ -551,7 +551,7 @@ list(
         public_transport = sum(public_transport, na.rm = TRUE),
         taxi = sum(taxi, na.rm = TRUE)
       )
-    stats_to = dplyr::group_by(stats, geo_code2) %>%
+    stats_to = dplyr::group_by(stats, geo_code2) |>
       dplyr::summarise(
         all = sum(all, na.rm = TRUE),
         bicycle = sum(bicycle, na.rm = TRUE),
@@ -588,7 +588,7 @@ list(
   tar_target(school_stats_baseline, {
     stats = sf::st_drop_geometry(od_school)
     stats = aadt_adjust(stats, purpose = "school", aadt_parameters = aadt_parameters)
-    stats = dplyr::group_by(stats, SeedCode, schooltype) %>%
+    stats = dplyr::group_by(stats, SeedCode, schooltype) |>
       dplyr::summarise(
         all = sum(all, na.rm = TRUE),
         bicycle = sum(bicycle, na.rm = TRUE),
@@ -612,7 +612,7 @@ list(
   tar_target(school_stats_from_baseline, {
     stats = sf::st_drop_geometry(od_school)
     stats = aadt_adjust(stats, purpose = "school", aadt_parameters = aadt_parameters)
-    stats = dplyr::group_by(stats, DataZone, schooltype) %>%
+    stats = dplyr::group_by(stats, DataZone, schooltype) |>
       dplyr::summarise(
         all = sum(all, na.rm = TRUE),
         bicycle = sum(bicycle, na.rm = TRUE),
@@ -723,8 +723,8 @@ list(
   tar_target(trip_purposes, {
     trip_purposes = read.csv("./data-raw/scottish-household-survey-2012-19.csv")
     go_home = trip_purposes$Mean[trip_purposes$Purpose == "Go Home"]
-    trip_purposes = trip_purposes %>%
-      filter(Purpose != "Sample size (=100%)") %>%
+    trip_purposes = trip_purposes |>
+      filter(Purpose != "Sample size (=100%)") |>
       mutate(adjusted_mean = Mean / (sum(Mean) - go_home) * sum(Mean))
     trip_purposes
   }),
@@ -734,7 +734,7 @@ list(
     # Get shopping destinations from secure OS data
     path_teams = Sys.getenv("NPT_TEAMS_PATH")
     os_pois_raw = readRDS(file.path(path_teams, "secure_data/OS/os_poi.Rds"))
-    os_pois_subset = os_pois_raw %>%
+    os_pois_subset = os_pois_raw |>
       mutate(groupname = as.character(groupname))
     os_pois_subset[region_boundary_buffered, ] |>
       sf::st_transform("EPSG:27700")
@@ -793,16 +793,16 @@ list(
   # Combined utility trip purposes --------------------------------------------
 
   tar_target(od_utility_combined, {
-    od_utility_combined = rbind(od_shopping, od_visiting, od_leisure) %>%
+    od_utility_combined = rbind(od_shopping, od_visiting, od_leisure) |>
       dplyr::slice_max(n = parameters$max_to_route, order_by = all, with_ties = FALSE)
 
     # Ensure the columns and distance units are identical to the other routing types
     # (apart from the additional trip purpose column)
-    od_utility_combined = od_utility_combined %>%
+    od_utility_combined = od_utility_combined |>
       dplyr::mutate(
         dist_euclidean = length_euclidean_unjittered * 1000,
         dist_euclidean_jittered = length_euclidean_jittered * 1000
-      ) %>%
+      ) |>
       dplyr::select(
         geo_code1, geo_code2, car, foot, bicycle, all,
         dist_euclidean, public_transport, taxi, geometry,
@@ -913,26 +913,26 @@ list(
   # Utility Uptake ----------------------------------------------------------
 
   tar_target(uptake_utility_fastest, {
-    routes = r_utility_fastest %>%
-      filter(distances < 10000) %>%
+    routes = r_utility_fastest |>
+      filter(distances < 10000) |>
       get_uptake_scenarios(purpose = "utility")
     routes
   }),
   tar_target(uptake_utility_quietest, {
-    routes = r_utility_quietest %>%
-      filter(distances < 10000) %>%
+    routes = r_utility_quietest |>
+      filter(distances < 10000) |>
       get_uptake_scenarios(purpose = "utility")
     routes
   }),
   tar_target(uptake_utility_ebike, {
-    routes = r_utility_ebike %>%
-      filter(distances < 10000) %>%
+    routes = r_utility_ebike |>
+      filter(distances < 10000) |>
       get_uptake_scenarios(purpose = "utility")
     routes
   }),
   tar_target(uptake_utility_balanced, {
-    routes = r_utility_balanced %>%
-      filter(distances < 10000) %>%
+    routes = r_utility_balanced |>
+      filter(distances < 10000) |>
       get_uptake_scenarios(purpose = "utility")
     routes
   }),
@@ -984,14 +984,14 @@ list(
 
     stats = rbind(stats_shopping, stats_leisure, stats_visiting)
 
-    stats_orig = stats %>%
-      dplyr::select(!endDZ) %>%
-      dplyr::group_by(startDZ, purpose) %>%
+    stats_orig = stats |>
+      dplyr::select(!endDZ) |>
+      dplyr::group_by(startDZ, purpose) |>
       dplyr::summarise_all(sum, na.rm = TRUE)
 
-    stats_dest = stats %>%
-      dplyr::select(!startDZ) %>%
-      dplyr::group_by(endDZ, purpose) %>%
+    stats_dest = stats |>
+      dplyr::select(!startDZ) |>
+      dplyr::group_by(endDZ, purpose) |>
       dplyr::summarise_all(sum, na.rm = TRUE)
 
     stats_orig$purpose = paste0(stats_orig$purpose, "_orig")
@@ -1521,7 +1521,7 @@ list(
   tar_target(metadata, {
     # TODO: generate build summary
     # metadata_all = tar_meta()
-    # metadata_targets = metadata_all %>%
+    # metadata_targets = metadata_all |>
     #   filter(type == "stem")
     # readr::write_csv(metadata_targets, "outputdata/metadata_targets.csv")
     build_summary = tibble::tibble(
