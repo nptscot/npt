@@ -723,14 +723,6 @@ list(
       sf::st_transform("EPSG:27700")
   }),
 
-  # tar_target(mode_shares, {
-  #   mode_shares = list(
-  #     mode = c("bicycle", "foot", "car", "public_transport", "taxi"),
-  #     share = c(0.012, 0.221, 0.652, 0.093, 0.022)
-  #   )
-  #   mode_shares
-  # }),
-
   tar_target(grid, {
     readRDS("./inputdata/grid_scot.Rds")
   }),
@@ -934,15 +926,7 @@ list(
 
   tar_target(utility_stats_baseline, {
     stats = sf::st_drop_geometry(od_utility_combined)
-    # end_point = lwgeom::st_endpoint(od_utility_combined)
-    # end_point = sf::st_join(sf::st_as_sf(end_point), zones)
-    # stats$endDZ = end_point$DataZone
-
-    # start_point = lwgeom::st_startpoint(od_utility_combined)
-    # start_point = sf::st_join(sf::st_as_sf(start_point), zones)
-    # stats$startDZ = start_point$DataZone
-
-    stats = stats[, c(
+     stats = stats[, c(
       "startDZ", "endDZ", "purpose", "all", "car",
       "foot", "bicycle", "public_transport", "taxi"
     )]
@@ -1171,7 +1155,6 @@ list(
     # Round values
     rnet_combined[grepl("bicycle", names(rnet_combined))] = lapply(sf::st_drop_geometry(rnet_combined[grepl("bicycle", names(rnet_combined))]), round)
 
-
     # Sort rnet for tiling, low values drawn first
     rnet_combined = rnet_combined[order(
       rnet_combined$all_fastest_bicycle_go_dutch,
@@ -1343,8 +1326,6 @@ list(
       collapse = " "
     )
 
-
-
     if (.Platform$OS.type == "unix") {
       command_cd = "cd outputdata"
       command_all = paste(c(
@@ -1462,6 +1443,3 @@ list(
     save_outputs
   })
 )
-# # Download a snapshot of the data:
-# setwd("outputdata")
-# system("gh release download v2023-03-24-22-28-51_commit_e2a60d0f06e6ddbf768382b19dc524cb3824c0c4 ")
