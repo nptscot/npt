@@ -105,7 +105,7 @@ for (region in region_names[1:6]) {
     if(!dir.exists(folder_path)) {
       dir.create(folder_path, recursive = TRUE)
     }
-
+    city = coherent_area[1] # For testing, can be removed (TODO)
     for (city in coherent_area) { 
       city_filename = snakecase::to_snake_case(city)
       tryCatch({
