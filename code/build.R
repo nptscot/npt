@@ -330,28 +330,28 @@ for (region in region_names[1:6]) {
       city_filename = snakecase::to_snake_case(city)
       tryCatch({
         message("Generating coherent network for: ", city)
-        zone = filter(lads, LAD23NM == city) |>
+        city_boundary  = filter(lads, LAD23NM == city) |>
           sf::st_transform(crs = "EPSG:27700")
 
-        combined_net_zone = combined_net[sf::st_union(zone), , op = sf::st_intersects]
+        combined_net_city_boundary  = combined_net[sf::st_union(city_boundary ), , op = sf::st_intersects]
 
-        min_percentile_value = stats::quantile(combined_net_zone$all_fastest_bicycle_go_dutch, probs = 0.938, na.rm = TRUE)
+        min_percentile_value = stats::quantile(combined_net_city_boundary $all_fastest_bicycle_go_dutch, probs = 0.938, na.rm = TRUE)
 
-        open_roads_scotland_zone = open_roads_scotland[sf::st_union(zone), , op = sf::st_intersects]
+        open_roads_scotland_city_boundary  = open_roads_scotland[sf::st_union(city_boundary ), , op = sf::st_intersects]
 
-        OS_combined_net_zone = corenet::cohesive_network_prep(base_network = open_roads_scotland_zone, 
-                                            influence_network = combined_net_zone, 
-                                            zone, 
+        OS_combined_net_city_boundary  = corenet::cohesive_network_prep(base_network = open_roads_scotland_city_boundary , 
+                                            influence_network = combined_net_city_boundary , 
+                                            city_boundary , 
                                             crs = "EPSG:27700", 
                                             key_attribute = "road_function", 
                                             attribute_values = c("A Road", "B Road", "Minor Road"))
 
-        cohesive_network_zone = corenet::corenet(combined_net_zone, OS_combined_net_zone, zone, 
+        cohesive_network_city_boundary  = corenet::corenet(combined_net_city_boundary , OS_combined_net_city_boundary , city_boundary , 
                                           key_attribute = "all_fastest_bicycle_go_dutch", 
                                           crs = "EPSG:27700", dist = 10, threshold = min_percentile_value, 
                                           road_scores = list("A Road" = 1, "B Road" = 1, "Minor Road" = 10000000))
 
-        grouped_network = corenet::coherent_network_group(cohesive_network_zone, key_attribute = "all_fastest_bicycle_go_dutch")
+        grouped_network = corenet::coherent_network_group(cohesive_network_city_boundary , key_attribute = "all_fastest_bicycle_go_dutch")
 
         # Use city name in the filename
         corenet::create_coherent_network_PMtiles(folder_path = folder_path, city_filename = city_filename, cohesive_network = grouped_network)
