@@ -39,7 +39,7 @@ for (region in region_names[1:6]) {
     message(paste("Error encountered in region", region, ". Error details: ", e$message))
     # Add the failed region to the vector for later retry
     print(paste("Adding", region, "to failed_regions"))
-    failed_regions <<- c(failed_regions, region)
+    failed_regions <= c(failed_regions, region)
   })
 }
 
@@ -81,43 +81,55 @@ region = region_names[1] # for testing
 # Generate coherent network ---------------------------------------------------
 remotes::install_github("nptscot/corenet")
 
+# Read the open roads data outside the loop, to read only once
+# Define the path to the file
+file_path = "inputdata/open_roads_scotland.gpkg"
+url = "https://github.com/nptscot/inputdata/releases/download/OS_network/open_roads_scotland.gpkg"
+
+# Check if the file exists
+if (!file.exists(file_path)) {
+  # Create the directory if it doesn't exist
+  dir.create("inputdata", recursive = TRUE, showWarnings = FALSE)
+  
+  # Download the file
+  download.file(url, destfile = file_path, mode = "wb")
+}
+
+# Load and transform the geojson file
+open_roads_scotland = sf::read_sf(file_path) |>
+  sf::st_transform(crs = "EPSG:27700")
+
+# Generate the coherent network for the region
 for (region in region_names[1:6]) {
     message("Processing coherent network for region: ", region)
     region_snake = snakecase::to_snake_case(region)
     coherent_area = cities_region_names[[region]]
+    date_folder = parameters$date_routing
 
-    cnet_path = file.path(output_folder, region_snake, "combined_network_tile.geojson")
+    cnet_path = paste0("outputdata/", date_folder,"/",  region_snake, "/", "combined_network_tile.geojson")
     combined_net = sf::read_sf(cnet_path) |>
       sf::st_transform(crs = "EPSG:27700")
 
-    folder_path = file.path(output_folder, region_snake, "coherent_networks")
+    folder_path = paste0("outputdata/", date_folder,"/",  region_snake, "/", "coherent_networks/")
 
     if(!dir.exists(folder_path)) {
       dir.create(folder_path, recursive = TRUE)
     }
-    
-    open_roads_path = paste0("inputdata/OS_Scotland_Network_", region_snake, ".geojson")
-    open_roads_unprojected = sf::read_sf(open_roads_path)
-    open_roads = sf::st_transform(open_roads_unprojected, "EPSG:27700")
-    
-    city = coherent_area[1]
+
     for (city in coherent_area) { 
       city_filename = snakecase::to_snake_case(city)
       tryCatch({
         message("Generating coherent network for: ", city)
-        city_boundary = filter(lads, LAD23NM == city) |>
+        zone = filter(lads, LAD23NM == city) |>
           sf::st_transform(crs = "EPSG:27700")
 
-        combined_net_zone = combined_net[city_boundary, ]
-        min_percentile_value = stats::quantile(
-          combined_net_zone$all_fastest_bicycle_go_dutch,
-          probs = parameters$coherent_percentile,
-          na.rm = TRUE
-        )
+        combined_net_zone = combined_net[sf::st_union(zone), , op = sf::st_intersects]
 
-        open_roads_zone = open_roads[city_boundary, ]
+        min_percentile_value = stats::quantile(combined_net_zone$all_fastest_bicycle_go_dutch, probs = 0.938, na.rm = TRUE)
 
-        OS_combined_net_zone = corenet::cohesive_network_prep(base_network = open_roads_zone, 
+        open_roads_scotland_zone = open_roads_scotland[sf::st_union(zone), , op = sf::st_intersects]
+
+        OS_combined_net_zone = corenet::cohesive_network_prep(base_network = open_roads_scotland_zone, 
                                             influence_network = combined_net_zone, 
                                             zone, 
                                             crs = "EPSG:27700", 
@@ -142,7 +154,7 @@ for (region in region_names[1:6]) {
     }
 }   
 
-setwd("..")
+# Combine regional outputs ---------------------------------------------------
 output_folders = list.dirs(file.path("outputdata", date_folder))[-1]
 regional_output_files = list.files(output_folders[1])
 regional_output_files

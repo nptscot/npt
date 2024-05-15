@@ -1,0 +1,81 @@
+---
+format: gfm
+---
+
+
+
+# read shp file 
+```{r}
+remotes::install_dev("stplanr")
+install.packages("zonebuilder")
+library(tidyverse)
+
+crs = "EPSG:27700"
+MM = sf::st_read("MM data/NT_RoadLink.shp") |> sf::st_transform(crs = crs)
+
+NPT = sf::st_read("outputdata/combined_network_tile.geojson")|> sf::st_transform(crs = crs)
+
+zones = zonebuilder::zb_zone("Edinburgh", n_circles = 2) |> sf::st_transform(crs = crs)
+
+MM_zones = MM[sf::st_union(zones), , op = sf::st_intersects]
+NPT_zones = NPT[sf::st_union(zones), , op = sf::st_intersects]
+
+
+rnet_x = MM_zones |>
+  dplyr::select(identifier)
+rnet_y = NPT_zones |>
+  dplyr::select(all_fastest_bicycle_go_dutch)
+
+rnet_joined = stplanr::rnet_join(rnet_x, rnet_y, segment_length = 20)
+
+summary(rnet_joined$all_fastest_bicycle_go_dutch)
+summary(duplicated(rnet_joined$identifier))
+
+
+plot(rnet_joined[1:30, ])
+
+most_common_id = rnet_joined |>
+  group_by(identifier) |>
+  sf::st_drop_geometry() |>
+  summarise(n = n()) |>
+  arrange(desc(n)) |>
+  slice(1) 
+
+rnet_joined_longest = rnet_joined |>
+  filter(identifier == most_common_id$identifier)
+
+mapview::mapview(rnet_joined_longest)
+```
+
+The aggregation of repeated 'y' values is done in the tidyverse as follows:
+
+```{r}
+rnet_joined_values = rnet_joined |>
+  sf::st_drop_geometry() |>
+  group_by(identifier) |>
+  mutate(flow_distance = all_fastest_bicycle_go_dutch * length_y) |>
+  summarise(flow_distance = sum(flow_distance, na.rm = TRUE))
+
+summary(rnet_joined_values$flow_distance)
+
+
+rnet_joined_1 = left_join(rnet_x, rnet_joined_values, by = "identifier")
+rnet_joined_1$length <- as.numeric(sf::st_length(rnet_joined_1))
+# re-caluclate total flow
+rnet_joined_1 = rnet_joined_1 |>
+  mutate(flow = flow_distance / length) 
+summary(rnet_joined_1$flow)
+
+# Drop z
+rnet_joined_1 = rnet_joined_1 |>
+  sf::st_zm()
+
+mapview::mapview(rnet_joined_1, zcol = "flow") + mapview::mapview(rnet_y)
+#change rnet_joined_1 as sf
+rnet_joined_1 = sf::st_as_sf(rnet_joined_1)
+unique(sf::st_geometry_type(rnet_joined_1))
+par(mfrow = c(1, 1))
+
+plot(rnet_joined_1$geometry, col = rnet_joined_1$flow, lwd = 2)
+
+```
