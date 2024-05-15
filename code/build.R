@@ -83,7 +83,14 @@ region = region_names[1] # for testing
 # Read the open roads data outside the loop for only once
 # Define the path to the file
 file_path = "inputdata/open_roads_scotland.gpkg"
+if(!file.exists(file_path)) {
+  setwd("inputdata")
+  system("gh release download OS_network --skip-existing")
+  setwd("..")
+}
 url = "https://github.com/nptscot/inputdata/releases/download/OS_network/open_roads_scotland.gpkg"
+# Load and transform the geojson file
+open_roads_scotland = sf::read_sf(file_path)
 
 # Check if the file exists
 if (!file.exists(file_path)) {
@@ -93,10 +100,6 @@ if (!file.exists(file_path)) {
   # Download the file
   download.file(url, destfile = file_path, mode = "wb")
 }
-
-# Load and transform the geojson file
-open_roads_scotland = sf::read_sf(file_path) |>
-  sf::st_transform(crs = "EPSG:27700")
 
 # Generate the coherent network for the region
 for (region in region_names[1:6]) {
