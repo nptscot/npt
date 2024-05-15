@@ -78,7 +78,227 @@ setwd("..")
 
 region = region_names[1] # for testing
 
-# Generate coherent network ---------------------------------------------------
+# CbD classification of networks ---------------------------------------------
+
+remotes::install_github("nptscot/osmactive")
+library(osmactive)
+# See https://github.com/nptscot/osmactive/blob/main/code/classify-roads.R and traffic-volumes.R
+f_traffic = "scottraffic/final_estimates_Scotland.gpkg"
+if (!file.exists(f_traffic)) {
+  system("gh repo clone nptscot/scottraffic")
+  setwd("scottraffic")
+  system("gh release download v4")
+  setwd("..")
+}
+traffic_volumes_scotland = sf::read_sf(f_traffic)
+
+# Generate cycle_net
+osm_national = get_travel_network("Scotland")
+
+# Test for Edinburgh region (TODO: remove so the code runs nationally): ---
+edinburgh_region = lads |> 
+  filter(str_detect(LAD23NM, "Edinburgh")) 
+osm = osm_national[edinburgh_region, ]
+nrow(osm) / nrow(osm_national)
+# 6% network, could be 20x+ slower for Scotland
+# # # ---
+
+cycle_net = osmactive::get_cycling_network(osm)
+drive_net = get_driving_network_major(osm)
+cycle_net = distance_to_road(cycle_net, drive_net)
+cycle_net = classify_cycle_infrastructure(cycle_net)
+# m = plot_osm_tmap(cycle_net)
+# m
+
+drive_net = clean_speeds(drive_net)
+cycle_net = clean_speeds(cycle_net)
+
+# Add assumed traffic volumes
+cycle_net = cycle_net %>% 
+  mutate(assumed_volume = case_when(
+    highway == "primary" ~ 6000,
+    highway == "primary_link" ~ 6000,
+    highway == "secondary" ~ 5000,
+    highway == "secondary_link" ~ 5000,
+    highway == "tertiary" ~ 3000,
+    highway == "tertiary_link" ~ 3000,
+    highway == "residential" ~ 1000,
+    highway == "service" ~ 500,
+    highway == "unclassified" ~ 1000
+  ))
+
+
+# See tutorial: https://github.com/acteng/network-join-demos
+cycle_net_joined_polygons = stplanr::rnet_join(
+  rnet_x = cycle_net,
+  rnet_y = drive_net %>% 
+    transmute(
+      maxspeed_road = maxspeed_clean,
+      highway_join = highway
+    ) %>% 
+    sf::st_cast(to = "LINESTRING"),
+  dist = 20,
+  segment_length = 10
+)
+
+# group by + summarise stage
+cycleways_with_road_speeds_df = cycle_net_joined_polygons %>% 
+  sf::st_drop_geometry() %>% 
+  group_by(osm_id) %>% 
+  summarise(
+    maxspeed_road = osmactive:::most_common_value(maxspeed_road),
+    highway_join = osmactive:::most_common_value(highway_join)
+  ) %>% 
+  mutate(maxspeed_road = as.numeric(maxspeed_road))
+
+# join back onto cycle_net
+cycle_net_joined = left_join(cycle_net, cycleways_with_road_speeds_df)
+
+cycle_net_joined = cycle_net_joined %>% 
+  mutate(join_volume = case_when(
+    highway_join == "primary" ~ 6000,
+    highway_join == "primary_link" ~ 6000,
+    highway_join == "secondary" ~ 5000,
+    highway_join == "secondary_link" ~ 5000,
+    highway_join == "tertiary" ~ 3000,
+    highway_join == "tertiary_link" ~ 3000,
+    highway_join == "residential" ~ 1000,
+    highway_join == "service" ~ 500,
+    highway_join == "unclassified" ~ 1000
+  ))
+
+cycle_net_joined = cycle_net_joined %>% 
+  mutate(
+    final_speed = case_when(
+      !is.na(maxspeed_clean) ~ maxspeed_clean,
+      TRUE ~ maxspeed_road),
+    final_volume = case_when(
+      !is.na(assumed_volume) ~ assumed_volume,
+      TRUE ~ join_volume)
+  )
+
+traffic_volumes_edinburgh = traffic_volumes_scotland[edinburgh_region, ]
+cycle_net_traffic_polygons = stplanr::rnet_join(
+  max_angle_diff = 30,
+  rnet_x = cycle_net_joined,
+  rnet_y = traffic_volumes_edinburgh %>% 
+    transmute(
+      name_1, road_classification, pred_flows
+    ) %>% 
+    sf::st_cast(to = "LINESTRING"),
+  dist = 15,
+  segment_length = 10
+)
+
+# group by + summarise stage
+cycleways_with_traffic_df = cycle_net_traffic_polygons %>% 
+  st_drop_geometry() %>% 
+  group_by(osm_id) %>% 
+  summarise(
+    pred_flows = median(pred_flows),
+    road_classification = osmactive:::most_common_value(road_classification),
+    name_1 = osmactive:::most_common_value(name_1)
+  )
+
+# join back onto cycle_net
+cycle_net_traffic = left_join(cycle_net_joined, cycleways_with_traffic_df)
+
+# TODO: Add code to filter out misclassified roads
+# See https://github.com/nptscot/osmactive/issues/41
+# Use original traffic estimates in some cases
+cycle_net_traffic = cycle_net_traffic %>% 
+  mutate(
+    final_traffic = case_when(
+      detailed_segregation == "Cycle track" ~ 0,
+      highway %in% c("residential", "service") & pred_flows >= 4000 ~ final_volume,
+      !is.na(pred_flows) ~ pred_flows,
+      TRUE ~ final_volume)
+    )
+
+# Check results
+
+cycle_net_traffic = cycle_net_traffic %>% 
+  mutate(`Level of Service` = case_when(
+    detailed_segregation == "Cycle track" ~ "High",
+    detailed_segregation == "Level track" & final_speed <= 30 ~ "High",
+    detailed_segregation == "Stepped or footway" & final_speed <= 20 ~ "High",
+    detailed_segregation == "Stepped or footway" & final_speed == 30 & final_traffic < 4000 ~ "High",
+    detailed_segregation == "Light segregation" & final_speed <= 20 ~ "High",
+    detailed_segregation == "Light segregation" & final_speed == 30 & final_traffic < 4000 ~ "High",
+    detailed_segregation == "Cycle lane" & final_speed <= 20 & final_traffic < 4000 ~ "High",
+    detailed_segregation == "Cycle lane" & final_speed == 30 & final_traffic < 1000 ~ "High",
+    detailed_segregation == "Mixed traffic" & final_speed <= 20 & final_traffic < 2000 ~ "High",
+    detailed_segregation == "Mixed traffic" & final_speed == 30 & final_traffic < 1000 ~ "High",
+    
+    detailed_segregation == "Level track" & final_speed == 40 ~ "Medium",
+    detailed_segregation == "Level track" & final_speed == 50 & final_traffic < 1000 ~ "Medium",
+    detailed_segregation == "Stepped or footway" & final_speed <= 40 ~ "Medium",
+    detailed_segregation == "Stepped or footway" & final_speed == 50 & final_traffic < 1000 ~ "Medium",
+    detailed_segregation == "Light segregation" & final_speed == 30 ~ "Medium",
+    detailed_segregation == "Light segregation" & final_speed == 40 & final_traffic < 2000 ~ "Medium",
+    detailed_segregation == "Light segregation" & final_speed == 50 & final_traffic < 1000 ~ "Medium",
+    detailed_segregation == "Cycle lane" & final_speed <= 20 ~ "Medium",
+    detailed_segregation == "Cycle lane" & final_speed == 30 & final_traffic < 4000 ~ "Medium",
+    detailed_segregation == "Cycle lane" & final_speed == 40 & final_traffic < 1000 ~ "Medium",
+    detailed_segregation == "Mixed traffic" & final_speed <= 20 & final_traffic < 4000 ~ "Medium",
+    detailed_segregation == "Mixed traffic" & final_speed == 30 & final_traffic < 2000 ~ "Medium",
+    detailed_segregation == "Mixed traffic" & final_speed == 40 & final_traffic < 1000 ~ "Medium",
+    
+    
+    detailed_segregation == "Level track" ~ "Low",
+    detailed_segregation == "Stepped or footway" ~ "Low",
+    detailed_segregation == "Light segregation" & final_speed <= 50 ~ "Low",
+    detailed_segregation == "Light segregation" & final_speed == 60 & final_traffic < 1000 ~ "Low",
+    detailed_segregation == "Cycle lane" & final_speed <= 50 ~ "Low",
+    detailed_segregation == "Cycle lane" & final_speed == 60 & final_traffic < 1000 ~ "Low",
+    detailed_segregation == "Mixed traffic" & final_speed <= 30 ~ "Low",
+    detailed_segregation == "Mixed traffic" & final_speed == 40 & final_traffic < 2000 ~ "Low",
+    detailed_segregation == "Mixed traffic" & final_speed == 60 & final_traffic < 1000 ~ "Low",
+    
+    detailed_segregation == "Light segregation" ~ "Should not be used",
+    detailed_segregation == "Cycle lane" ~ "Should not be used",
+    detailed_segregation == "Mixed traffic" ~ "Should not be used",
+    TRUE ~ "Unknown"
+  )) %>% 
+  dplyr::mutate(`Level of Service` = factor(
+    `Level of Service`,
+    levels = c("High", "Medium", "Low", "Should not be used"),
+    ordered = TRUE
+  ))
+
+cbd_layer = cycle_net_traffic |>
+  transmute(
+    osm_id,
+    `Traffic volume` = final_traffic,
+    `Speed limit` = final_speed,
+    `Infrastructure type` = cycle_segregation,
+    `Infrastructure type (detailed)` = detailed_segregation,
+    `Level of Service`
+  )
+
+sf::write_sf(cbd_layer, "cbd_layer.geojson", delete_dsn = TRUE)
+
+# PMTiles:
+pmtiles_msg = paste('tippecanoe -o cbd_layer.pmtiles',
+                     '--name=cbd_layer',
+                     '--layer=cbd_layer',
+                     '--attribution=UniversityofLeeds',
+                     '--minimum-zoom=6',
+                     '--maximum-zoom=13',
+                     '--drop-smallest-as-needed',
+                     '--maximum-tile-bytes=5000000',
+                     '--simplification=10',
+                     '--buffer=5',
+                     '--force  cbd_layer.geojson', collapse = " ")
+system(pmtiles_msg)
+# Rename and upload:
+file.rename("cbd_layer.pmtiles", "outputdata/cbd_layer.pmtiles")
+setwd("outputdata")
+system("gh release list")
+system("gh release upload 2024-05-30-geojson cbd_layer.pmtiles")
+
+# Generate coherent network 
+---------------------------------------------------
 
 # Read the open roads data outside the loop for only once
 # Define the path to the file
