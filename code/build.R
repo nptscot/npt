@@ -81,8 +81,8 @@ region = region_names[1] # for testing
 # CbD classification of networks ---------------------------------------------
 
 remotes::install_github("nptscot/osmactive")
+library(osmactive)
 # See https://github.com/nptscot/osmactive/blob/main/code/classify-roads.R and traffic-volumes.R
-cycle_net_joined = readRDS("data/cycle-net-joined.Rds")
 f_traffic = "scottraffic/final_estimates_Scotland.gpkg"
 if (!file.exists(f_traffic)) {
   system("gh repo clone nptscot/scottraffic")
@@ -90,51 +90,30 @@ if (!file.exists(f_traffic)) {
   system("gh release download v4")
   setwd("..")
 }
-traffic_volumes_scotland = read_sf(f_traffic)
+traffic_volumes_scotland = sf::read_sf(f_traffic)
 
 # Generate cycle_net
-osm = osmactive::get_travel_network("Scotland")
+osm_national = get_travel_network("Scotland")
+
+# Test for Edinburgh region (TODO: remove so the code runs nationally): ---
+edinburgh_region = lads |> 
+  filter(str_detect(LAD23NM, "Edinburgh")) 
+osm = osm_national[edinburgh_region, ]
+nrow(osm) / nrow(osm_national)
+# 6% network, could be 20x+ slower for Scotland
+# # # ---
+
 cycle_net = osmactive::get_cycling_network(osm)
+drive_net = get_driving_network_major(osm)
+cycle_net = distance_to_road(cycle_net, drive_net)
+cycle_net = classify_cycle_infrastructure(cycle_net)
+# m = plot_osm_tmap(cycle_net)
+# m
 
-osm <- get_travel_network("Scotland", boundary = edinburgh_3km, boundary_type = "clipsrc")
-cycle_net <- get_cycling_network(osm)
-drive_net <- get_driving_network_major(osm)
-cycle_net <- distance_to_road(cycle_net, drive_net)
-cycle_net <- classify_cycle_infrastructure(cycle_net)
-m <- plot_osm_tmap(cycle_net)
-m
-
-tm_shape(drive_net) + tm_lines("highway", lwd = 2)
-
-# Clean speeds in drive_net
 drive_net = clean_speeds(drive_net)
-
-# table(drive_net$maxspeed_clean, useNA = "always")
-# # 20   30   40 <NA> 
-# #   860  152    9    0 
-
-# Check and clean cycle_net
-# table(cycle_net$cycle_segregation, useNA = "always")
-# # Cycle track Roadside cycle track        Mixed traffic 
-# # 267                  257                 5394
-# 
-# # Check with roads are missing speed limits
-# nospeed = cycle_net %>% 
-#   filter(is.na(maxspeed))
-# table(nospeed$highway, useNA = "always")
-# # cycleway          path    pedestrian   residential       service tertiary_link  unclassified          <NA> 
-# #   306            69            68            27          1775             2             6             0 
-
-# First clean cycle_net speed limits
-# Functions here derived from https://github.com/udsleeds/openinfra/blob/main/R/oi_clean_maxspeed_uk.R
 cycle_net = clean_speeds(cycle_net)
 
-# table(cycle_net$maxspeed_clean, useNA = "always")
-# # 5   10   20   30   40 <NA> 
-# #   20   71 5137  205    9  443
-
 # Add assumed traffic volumes
-# Use Juan's estimates instead where possible
 cycle_net = cycle_net %>% 
   mutate(assumed_volume = case_when(
     highway == "primary" ~ 6000,
@@ -148,11 +127,7 @@ cycle_net = cycle_net %>%
     highway == "unclassified" ~ 1000
   ))
 
-# table(cycle_net$assumed_volume, useNA = "always")
-# # 500 1000 3000 5000 6000 <NA> 
-# #   2085 2311  576   79  365  466
 
-# Join cycle_net and drive_net
 # See tutorial: https://github.com/acteng/network-join-demos
 cycle_net_joined_polygons = stplanr::rnet_join(
   rnet_x = cycle_net,
@@ -166,28 +141,18 @@ cycle_net_joined_polygons = stplanr::rnet_join(
   segment_length = 10
 )
 
-# # Check results:
-# cycle_net_joined_polygons %>% 
-#   select(maxspeed_road) %>% 
-#   plot()
-
 # group by + summarise stage
 cycleways_with_road_speeds_df = cycle_net_joined_polygons %>% 
-  st_drop_geometry() %>% 
+  sf::st_drop_geometry() %>% 
   group_by(osm_id) %>% 
   summarise(
-    maxspeed_road = most_common_value(maxspeed_road),
-    highway_join = most_common_value(highway_join)
+    maxspeed_road = osmactive:::most_common_value(maxspeed_road),
+    highway_join = osmactive:::most_common_value(highway_join)
   ) %>% 
   mutate(maxspeed_road = as.numeric(maxspeed_road))
 
 # join back onto cycle_net
-
 cycle_net_joined = left_join(cycle_net, cycleways_with_road_speeds_df)
-
-# table(cycle_net_joined$maxspeed_road, useNA = "always")
-# # 20 mph 30 mph 40 mph   <NA> 
-# #   1683    334     18   3847 
 
 cycle_net_joined = cycle_net_joined %>% 
   mutate(join_volume = case_when(
@@ -212,22 +177,6 @@ cycle_net_joined = cycle_net_joined %>%
       TRUE ~ join_volume)
   )
 
-table(cycle_net_joined$final_speed, useNA = "always")
-# 5   10   20   30   40 <NA> 
-#   20   71 5271  227   10  286
-
-roadside = cycle_net_joined %>%
-  filter(cycle_segregation == "Roadside cycle track")
-
-# There are some roadside cycle tracks that still aren't linked to roads
-table(roadside$final_speed, useNA = "always")
-# 20 mph 30 mph   <NA>
-#   200     38     19
-table(roadside$highway, useNA = "always")
-# cycleway         path   pedestrian      primary  residential    secondary     tertiary unclassified         <NA>
-#   98           14            6           94            7            8           23            7            0
-
-table(roadside$final_volume, useNA = "always")
 
 
 
