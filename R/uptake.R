@@ -1,21 +1,21 @@
 get_uptake_scenarios = function(routes, purpose = "work") {
-  routes = routes %>% dplyr::group_by(route_number)
+  routes = routes |> dplyr::group_by(route_number)
   if(purpose == "work") {
-    routes = routes %>%
+    routes = routes |>
       mutate(pcycle_go_dutch = pct::uptake_pct_godutch_2020(
         # Prevent incorrect uptake values #491
         case_when(length_route > 30000 ~ 30000, TRUE ~ length_route),
         route_hilliness
       ))
     
-    routes = routes %>%
+    routes = routes |>
       mutate(pcycle_ebike = pct::uptake_pct_ebike_2020(
         # Prevent incorrect uptake values #491
         case_when(length_route > 30000 ~ 30000, TRUE ~ length_route),
         route_hilliness
       ))
     
-    routes = routes %>%
+    routes = routes |>
       mutate(
         bicycle_go_dutch = max(c(pcycle_go_dutch * all, bicycle)),
         bicycle_ebike = max(c(pcycle_ebike * all, bicycle)),
@@ -39,14 +39,14 @@ get_uptake_scenarios = function(routes, purpose = "work") {
       )
     
   } else if(purpose == "school") {
-    routes = routes %>%
+    routes = routes |>
       mutate(pcycle_go_dutch = pct::uptake_pct_godutch_school2(
         # Prevent incorrect uptake values #491
         case_when(length_route > 30000 ~ 30000, TRUE ~ length_route),
         route_hilliness
       ))
     
-    routes = routes %>%
+    routes = routes |>
       mutate(pcycle_ebike = pct::uptake_pct_ebike_2020(
         # Prevent incorrect uptake values #491
         case_when(length_route > 30000 ~ 30000, TRUE ~ length_route),
@@ -54,7 +54,7 @@ get_uptake_scenarios = function(routes, purpose = "work") {
       ))
     
     
-    routes = routes %>%
+    routes = routes |>
       mutate(
         bicycle_go_dutch = max(c(pcycle_go_dutch * all, bicycle)),
         bicycle_ebike = max(c(pcycle_ebike * all, bicycle)),
@@ -78,21 +78,21 @@ get_uptake_scenarios = function(routes, purpose = "work") {
       )
     
   } else if (purpose == "utility") {
-    routes = routes %>%
+    routes = routes |>
       mutate(pcycle_go_dutch = pct::uptake_pct_godutch_2020(
         # Prevent incorrect uptake values #491
         case_when(length_route > 30000 ~ 30000, TRUE ~ length_route),
         route_hilliness
       ))
     
-    routes = routes %>%
+    routes = routes |>
       mutate(pcycle_ebike = pct::uptake_pct_ebike_2020(
         # Prevent incorrect uptake values #491
         case_when(length_route > 30000 ~ 30000, TRUE ~ length_route),
         route_hilliness
       ))
     
-    routes = routes %>%
+    routes = routes |>
       dplyr::mutate(
         bicycle_unchanged = bicycle,
         bicycle = case_when(
@@ -134,7 +134,7 @@ get_uptake_scenarios = function(routes, purpose = "work") {
         public_transport_ebike = public_transport * mode_ratio_ebike,
         foot_ebike = foot * mode_ratio_ebike,
         taxi_ebike = taxi * mode_ratio_ebike,
-      ) %>% 
+      ) |> 
       select(-bicycle_unchanged)
     
   } else {

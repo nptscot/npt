@@ -10,8 +10,8 @@ ds = readr::read_csv("test-large-batch-dataset.csv.gz")
 # Starting routing
 # POSTing the request to create and start the job
 # Job id: 4667
-ds_issue = ds %>%
-  # head() %>% 
+ds_issue = ds |>
+  # head() |> 
   filter(str_detect(json, pattern = '\\"type'))
 jsonlite::fromJSON(ds$json[1])
 RcppSimdJson::fparse(ds$json[1])

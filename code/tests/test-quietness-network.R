@@ -32,13 +32,13 @@ names(rcl$fastest)[1:4] = paste0("fastest_", names(rcl$fastest)[1:4])
 names(rcl$quietest)[1:4] = paste0("quietest_", names(rcl$quietest)[1:4])
 # names(rcl$ebike)[1:4] = paste0("ebike_", names(rcl$ebike)[1:4])
 
-names_combined = lapply(rcl, names) %>% unlist(use.names = FALSE)
+names_combined = lapply(rcl, names) |> unlist(use.names = FALSE)
 names_combined = names_combined[names_combined != "geometry"]
 
 # Saved lots of lines of code and faster:
 rnet_long = data.table::rbindlist(rcl, fill = TRUE)
-rnet_long = rnet_long %>% 
-  mutate(across(fastest_bicycle:quietest_quietness, function(x) tidyr::replace_na(x, 0))) %>% 
+rnet_long = rnet_long |> 
+  mutate(across(fastest_bicycle:quietest_quietness, function(x) tidyr::replace_na(x, 0))) |> 
   as_tibble()
 
 rnet_long$geometry = sf::st_sfc(rnet_long$geometry, recompute_bbox = TRUE)
@@ -58,17 +58,17 @@ mapview::mapview(rnet_combined, zcol = "quietest_bicycle_go_dutch")
 # saveRDS(rnet_combined, "/tmp/rnet_combined_after_overline.Rds")
 # # Testing outputs
 # rnet_combined = readRDS("outputdata/rnet_combined_after_overline.Rds")
-rnet_combined = rnet_combined %>% 
-  rowwise() %>% 
-  mutate(gradient = max(fastest_gradient, quietest_gradient)) %>% 
+rnet_combined = rnet_combined |> 
+  rowwise() |> 
+  mutate(gradient = max(fastest_gradient, quietest_gradient)) |> 
   mutate(quietness = max(fastest_quietness, quietest_quietness)) 
 
 # Values on Mercury Way still correct:
 mapview::mapview(rnet_combined, zcol = "quietest_bicycle_go_dutch")
 
-rnet = rnet_combined %>% 
-  select(-matches("_Q|_Gr")) %>% 
-  mutate(across(matches("bicycle", round))) %>% 
+rnet = rnet_combined |> 
+  select(-matches("_Q|_Gr")) |> 
+  mutate(across(matches("bicycle", round))) |> 
   mutate(gradient = round(gradient, digits = 1))
 # # TODO: check gradients
 # table(rnet_combined$gradient)
@@ -76,15 +76,15 @@ rnet = rnet_combined %>%
 # Values on Mercury Way still correct:
 mapview::mapview(rnet, zcol = "quietest_bicycle_go_dutch")
 
-rnet = rnet %>%
-  rowwise() %>%
+rnet = rnet |>
+  rowwise() |>
   mutate(total_cyclists = sum(fastest_bicycle:quietest_bicycle_go_dutch))
 
 mapview::mapview(rnet, zcol = "total_cyclists")
 
 # Base R implementation
-rnet_bicycle = rnet %>% 
-  select(matches("bicycle")) %>% 
+rnet_bicycle = rnet |> 
+  select(matches("bicycle")) |> 
   sf::st_drop_geometry()
 head(rnet_bicycle)
 rnet$total_cyclists_segment = rowSums(rnet_bicycle)
@@ -99,10 +99,10 @@ summary(rnet$total_cyclists)
 mapview::mapview(rnet, zcol = "total_cyclists")
 
 names(rnet)[1:4] = paste0("commute_", names(rnet))[1:4]
-rnet = rnet %>% 
-  filter(total_cyclists_segment > 0) %>% 
-  select(-total_cyclists_segment) %>% 
-  as.data.frame() %>% 
+rnet = rnet |> 
+  filter(total_cyclists_segment > 0) |> 
+  select(-total_cyclists_segment) |> 
+  as.data.frame() |> 
   sf::st_as_sf()
 
 # Values on Mercury Way still correct:

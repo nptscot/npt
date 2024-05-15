@@ -10,8 +10,8 @@ rnet_long = list(rnet_school, rnet_commute)
 
 rnet_long = data.table::rbindlist(rnet_long, fill = TRUE)
 rnet_long = rnet_long[,c(1:8,10:19,9)]
-rnet_long = rnet_long %>% 
-  mutate(across(school_fastest_bicycle:commute_ebike_bicycle_go_dutch, function(x) tidyr::replace_na(x, 0))) %>% 
+rnet_long = rnet_long |> 
+  mutate(across(school_fastest_bicycle:commute_ebike_bicycle_go_dutch, function(x) tidyr::replace_na(x, 0))) |> 
   as_tibble()
 
 rnet_long$geometry = sf::st_sfc(rnet_long$geometry, recompute_bbox = TRUE)

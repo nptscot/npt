@@ -26,7 +26,7 @@ library(sf)
 library(targets)
 setwd("~/../github/nptscot/npt")
 tar_load(combined_network)
-example_network = combined_network %>% 
+example_network = combined_network |> 
   sample_n(1000)
 plot(example_network)
 ```

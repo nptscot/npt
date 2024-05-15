@@ -1,6 +1,6 @@
 
 # Original from get_routes:
-# routes_filtered = routes_filtered %>% 
+# routes_filtered = routes_filtered |> 
 #   mutate(routing_integer = stringr::str_sub(edition, start = -6),
 #          routing_date = lubridate::ymd(routing_integer))
 

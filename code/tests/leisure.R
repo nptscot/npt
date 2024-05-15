@@ -16,13 +16,13 @@ osm_highways = readRDS("./inputdata/osm_highways_2023-08-09.Rds")
 # Get leisure destinations from secure OS data
 path_teams = Sys.getenv("NPT_TEAMS_PATH")
 os_pois = readRDS(file.path(path_teams, "secure_data/OS/os_poi.Rds"))
-os_leisure = os_pois %>% 
+os_leisure = os_pois |> 
   filter(groupname == "Sport and Entertainment") # 20524 points
 
 # unique(os_leisure$categoryname)
 # mapview::mapview(os_leisure)
 
-os_leisure = os_leisure %>% 
+os_leisure = os_leisure |> 
   st_transform(27700)
 
 # create 500m grid covering whole of scotland
@@ -33,13 +33,13 @@ grid = st_make_grid(scot_zones, cellsize = 500, what = "centers")
 grid_df = data.frame(grid)
 grid_df = tibble::rowid_to_column(grid_df, "grid_id")
 
-leisure = os_leisure %>% 
+leisure = os_leisure |> 
   mutate(grid_id = st_nearest_feature(os_leisure, grid))
 
 # calculate weighting of each grid point
-leisure_grid = leisure %>% 
-  st_drop_geometry() %>% 
-  group_by(grid_id) %>% 
+leisure_grid = leisure |> 
+  st_drop_geometry() |> 
+  group_by(grid_id) |> 
   summarise(size = n())
 
 # assign grid geometry
@@ -57,52 +57,52 @@ leisure_grid = readRDS("./inputdata/leisure_grid.Rds")
 # Calculate number of trips / number of cyclists
 trip_purposes = read.csv("./data-raw/scottish-household-survey-2012-19.csv")
 go_home = trip_purposes$Mean[trip_purposes$Purpose == "Go Home"]
-trip_purposes = trip_purposes %>% 
-  filter(Purpose != "Sample size (=100%)") %>% 
+trip_purposes = trip_purposes |> 
+  filter(Purpose != "Sample size (=100%)") |> 
   mutate(adjusted_mean = Mean/(sum(Mean)-go_home)*sum(Mean)
   )
-leisure_percent = trip_purposes %>% 
-  filter(Purpose =="Sport/Entertainment") %>% 
+leisure_percent = trip_purposes |> 
+  filter(Purpose =="Sport/Entertainment") |> 
   select(adjusted_mean)
 leisure_percent = leisure_percent[[1]]/100
 
 # need to improve on this figure:
 # from NTS 2019 (England) average 953 trips/person/year divided by 365 = 2.61 trips/day
 zones = readRDS("inputdata/DataZones.Rds")
-zones_leisure = zones %>%
+zones_leisure = zones |>
   mutate(leisure_trips = ResPop2011 * 2.61 * leisure_percent) # resident population (should use 18+ only) * trips per person (from NTS 2019 England) * percent of trips that are for leisure
 
 # # Missing zone 
 # (could find a more systematic way to do this)
-# missing_zone =  zones %>% filter(DataZone == "S01010206")
+# missing_zone =  zones |> filter(DataZone == "S01010206")
 # mapview::mapview(missing_zone) # The entire zone sits within a building site so it has no public road within it
-zones_leisure = zones_leisure %>% 
+zones_leisure = zones_leisure |> 
   filter(DataZone != "S01010206")
 
 # Spatial interaction model of journeys
 # We could validate this SIM using the Scottish data on mean km travelled 
 max_length_euclidean_km = 5
 od_leisure = si_to_od(zones_leisure, leisure_grid, max_dist = max_length_euclidean_km * 1000)
-od_interaction = od_leisure %>% 
+od_interaction = od_leisure |> 
   si_calculate(fun = gravity_model, 
                m = origin_leisure_trips,
                n = destination_size,
                d = distance_euclidean,
                beta = 0.5,
                constraint_production = origin_leisure_trips)
-od_interaction = od_interaction %>% 
+od_interaction = od_interaction |> 
   filter(quantile(interaction, 0.9) < interaction)
 
 saveRDS(od_interaction, "./inputdata/leisure_interaction.Rds")
 od_interaction = readRDS("./inputdata/leisure_interaction.Rds")
 
 # Need to correct the number of trips, in accordance with origin_leisure_trips
-od_adjusted = od_interaction %>% 
-  group_by(O) %>% 
+od_adjusted = od_interaction |> 
+  group_by(O) |> 
   mutate(
     proportion = interaction / sum(interaction),
     leisure_all_modes = origin_leisure_trips * proportion
-  ) %>% 
+  ) |> 
   ungroup()
 
 # Jittering
@@ -133,19 +133,19 @@ cycle_mode_share = 0.012
 # but table 16 in transport-and-travel-in-scotland-2019-local-authority-tables.xlsx
 # is not accurate enough (no decimal places for the cycle % mode shares)
 
-od_leisure_jittered = od_adjusted_jittered %>% 
+od_leisure_jittered = od_adjusted_jittered |> 
   rename(
     geo_code1 = O,
     geo_code2 = D
-  ) %>% 
+  ) |> 
   mutate(leisure_cycle = leisure_all_modes * cycle_mode_share)
 
-od_leisure_jittered_updated = od_leisure_jittered %>% 
-  rename(length_euclidean_unjittered = distance_euclidean) %>% 
+od_leisure_jittered_updated = od_leisure_jittered |> 
+  rename(length_euclidean_unjittered = distance_euclidean) |> 
   mutate(
     length_euclidean_unjittered = length_euclidean_unjittered/1000,
     length_euclidean_jittered = units::drop_units(st_length(od_leisure_jittered))/1000
-  ) %>%
+  ) |>
   filter(
     length_euclidean_jittered > (min_distance_meters/1000),
     length_euclidean_jittered < max_length_euclidean_km

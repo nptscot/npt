@@ -58,7 +58,7 @@ simplify_network = function(rnet_y, parameters, region_boundary){
   rnet_merged_all$geometry = sf::st_set_precision(rnet_merged_all$geometry, 1e3)
   
   # Round all numeric columns in 'rnet_merged_all' to 0 decimal places
-  rnet_merged_all = rnet_merged_all %>%
+  rnet_merged_all = rnet_merged_all |>
     mutate(across(where(is.numeric), ~ round(.x, 0)))
   
   # Prepare a list of columns to check for NA, excluding 'geometry'
@@ -66,11 +66,11 @@ simplify_network = function(rnet_y, parameters, region_boundary){
   columns_to_check = unlist(rnet_yp_list[rnet_yp_list != "geometry"])
   
   # Filter out rows in 'rnet_merged_all' where all specified are NA
-  rnet_merged_all = rnet_merged_all %>%
+  rnet_merged_all = rnet_merged_all |>
     dplyr::filter_at(columns_to_check, any_vars(!is.na(.)))
       
   # Selecting only the geometry column from the 'rnet_merged_all' dataset.
-  rnet_merged_all_only_geometry = rnet_merged_all %>% dplyr::select(geometry)
+  rnet_merged_all_only_geometry = rnet_merged_all |> dplyr::select(geometry)
   
   # Merging all geometries into a single geometry using st_union from the sf package.
   rnet_merged_all_union = sf::st_union(rnet_merged_all_only_geometry)

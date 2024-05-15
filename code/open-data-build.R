@@ -37,7 +37,7 @@ if(file.exists(file.path(path_teams,"secure_data/schools/school_dl_sub30km.Rds")
 if(parameters$geo_subset) {
   schools_dl = schools_dl[study_area, op = sf::st_within]
 }
-schools_dl = schools_dl %>%
+schools_dl = schools_dl |>
   slice_max(order_by = all, n = parameters$max_to_route, with_ties = FALSE) |>
   mutate(across(where(is.numeric), add_normally_distributed_noise)) 
 summary(schools_dl)

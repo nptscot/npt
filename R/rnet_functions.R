@@ -91,8 +91,8 @@ combine_rnets = function(rnl, ncores = 1, regionalise = 1e5, add_all = TRUE){
   names(rnet_combined) = gsub("_max$","",names(rnet_combined))
   
   # Drop any roads with no cycling
-  rnet_total = rnet_combined %>% 
-      select(matches("bicycle")) %>%
+  rnet_total = rnet_combined |> 
+      select(matches("bicycle")) |>
       sf::st_drop_geometry()
   rnet_combined$total_cyclists_segment = rowSums(rnet_total)
   

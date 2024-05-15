@@ -11,9 +11,9 @@ p = "balanced"
 uptake_list_school = lapply(parameters$plan, function(p) {
   message("Uptake for ", p, " school routes")
   names(r_school[[1]])
-  routes = r_school[[p]] %>%
-    mutate(all = count) %>% 
-    get_uptake_scenarios(purpose = "school") %>%
+  routes = r_school[[p]] |>
+    mutate(all = count) |> 
+    get_uptake_scenarios(purpose = "school") |>
     as_tibble()
   routes[["geometry"]] = st_sfc(routes[["geometry"]], recompute_bbox = TRUE)
   routes = st_as_sf(routes)

@@ -3,7 +3,7 @@
 usethis::use_data(od_jittered_demo, overwrite = TRUE)
 targets::tar_load(od_jittered)
 set.seed(2022)
-od_jittered_demo = od_jittered %>% 
+od_jittered_demo = od_jittered |> 
   filter(all > 18) 
 od_jittered_demo = od_jittered[sample(nrow(od_jittered_demo), size = 100), ]
 usethis::use_data(od_jittered_demo)

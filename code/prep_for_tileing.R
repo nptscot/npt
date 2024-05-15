@@ -64,8 +64,8 @@ routes <- routes[,c("geo_code1","geo_code2",
                     "plan","length_route","grammesCO2saved","calories",
                     "geometry")]
 
-routes_single <- routes %>%
-  group_by(geo_code1,geo_code2,route_number) %>%
+routes_single <- routes |>
+  group_by(geo_code1,geo_code2,route_number) |>
   summarise(all = round(all[1],1),
             train = round(train[1],1),
             bus = round(bus[1],1),

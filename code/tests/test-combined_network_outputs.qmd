@@ -10,7 +10,7 @@ library(sf)
 library(targets)
 setwd("~/../github/nptscot/npt")
 tar_load(combined_network)
-example_network = combined_network %>% 
+example_network = combined_network |> 
   sample_n(1000)
 plot(example_network)
 example_network_buffer = sf::st_buffer(sf::st_union(example_network), dist = 20, max_cells = 100000)

@@ -119,7 +119,7 @@ drive_net = clean_speeds(drive_net)
 cycle_net = clean_speeds(cycle_net)
 
 # Add assumed traffic volumes
-cycle_net = cycle_net %>%
+cycle_net = cycle_net |>
   mutate(assumed_volume = case_when(
     highway == "primary" ~ 6000,
     highway == "primary_link" ~ 6000,
@@ -136,30 +136,30 @@ cycle_net = cycle_net %>%
 # See tutorial: https://github.com/acteng/network-join-demos
 cycle_net_joined_polygons = stplanr::rnet_join(
   rnet_x = cycle_net,
-  rnet_y = drive_net %>%
+  rnet_y = drive_net |>
     transmute(
       maxspeed_road = maxspeed_clean,
       highway_join = highway
-    ) %>%
+    ) |>
     sf::st_cast(to = "LINESTRING"),
   dist = 20,
   segment_length = 10
 )
 
 # group by + summarise stage
-cycleways_with_road_speeds_df = cycle_net_joined_polygons %>%
-  sf::st_drop_geometry() %>%
-  group_by(osm_id) %>%
+cycleways_with_road_speeds_df = cycle_net_joined_polygons |>
+  sf::st_drop_geometry() |>
+  group_by(osm_id) |>
   summarise(
     maxspeed_road = osmactive:::most_common_value(maxspeed_road),
     highway_join = osmactive:::most_common_value(highway_join)
-  ) %>%
+  ) |>
   mutate(maxspeed_road = as.numeric(maxspeed_road))
 
 # join back onto cycle_net
 cycle_net_joined = left_join(cycle_net, cycleways_with_road_speeds_df)
 
-cycle_net_joined = cycle_net_joined %>%
+cycle_net_joined = cycle_net_joined |>
   mutate(join_volume = case_when(
     highway_join == "primary" ~ 6000,
     highway_join == "primary_link" ~ 6000,
@@ -172,7 +172,7 @@ cycle_net_joined = cycle_net_joined %>%
     highway_join == "unclassified" ~ 1000
   ))
 
-cycle_net_joined = cycle_net_joined %>%
+cycle_net_joined = cycle_net_joined |>
   mutate(
     final_speed = case_when(
       !is.na(maxspeed_clean) ~ maxspeed_clean,
@@ -188,19 +188,19 @@ traffic_volumes_edinburgh = traffic_volumes_scotland[edinburgh_region, ]
 cycle_net_traffic_polygons = stplanr::rnet_join(
   max_angle_diff = 30,
   rnet_x = cycle_net_joined,
-  rnet_y = traffic_volumes_edinburgh %>%
+  rnet_y = traffic_volumes_edinburgh |>
     transmute(
       name_1, road_classification, pred_flows
-    ) %>%
+    ) |>
     sf::st_cast(to = "LINESTRING"),
   dist = 15,
   segment_length = 10
 )
 
 # group by + summarise stage
-cycleways_with_traffic_df = cycle_net_traffic_polygons %>%
-  st_drop_geometry() %>%
-  group_by(osm_id) %>%
+cycleways_with_traffic_df = cycle_net_traffic_polygons |>
+  st_drop_geometry() |>
+  group_by(osm_id) |>
   summarise(
     pred_flows = median(pred_flows),
     road_classification = osmactive:::most_common_value(road_classification),
@@ -213,7 +213,7 @@ cycle_net_traffic = left_join(cycle_net_joined, cycleways_with_traffic_df)
 # TODO: Add code to filter out misclassified roads
 # See https://github.com/nptscot/osmactive/issues/41
 # Use original traffic estimates in some cases
-cycle_net_traffic = cycle_net_traffic %>%
+cycle_net_traffic = cycle_net_traffic |>
   mutate(
     final_traffic = case_when(
       detailed_segregation == "Cycle track" ~ 0,
@@ -225,7 +225,7 @@ cycle_net_traffic = cycle_net_traffic %>%
 
 # Check results
 
-cycle_net_traffic = cycle_net_traffic %>%
+cycle_net_traffic = cycle_net_traffic |>
   mutate(`Level of Service` = case_when(
     detailed_segregation == "Cycle track" ~ "High",
     detailed_segregation == "Level track" & final_speed <= 30 ~ "High",
@@ -263,7 +263,7 @@ cycle_net_traffic = cycle_net_traffic %>%
     detailed_segregation == "Cycle lane" ~ "Should not be used",
     detailed_segregation == "Mixed traffic" ~ "Should not be used",
     TRUE ~ "Unknown"
-  )) %>%
+  )) |>
   dplyr::mutate(`Level of Service` = factor(
     `Level of Service`,
     levels = c("High", "Medium", "Low", "Should not be used"),

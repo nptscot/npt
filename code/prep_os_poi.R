@@ -22,7 +22,7 @@ scot = st_transform(scot, 27700)
 poi_scot = poi[scot,]
 
 # types = group_by(st_drop_geometry(poi_scot), 
-#                  groupname,categoryname,classname) %>%
+#                  groupname,categoryname,classname) |>
 #   summarise(count = n())
 # types = types[order(types$groupname, types$categoryname),]
 # write.csv(types,"inputdata/poi_types.csv", row.names = FALSE)
