@@ -297,8 +297,7 @@ setwd("outputdata")
 system("gh release list")
 system("gh release upload 2024-05-30-geojson cbd_layer.pmtiles")
 
-# Generate coherent network 
----------------------------------------------------
+# Generate coherent network ---------------------------------------------------
 
 # Read the open roads data outside the loop for only once
 # Define the path to the file
