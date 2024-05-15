@@ -11,8 +11,7 @@
 update_github_packages = TRUE
 
 # Run the install script
-# Run this line if zonebuilder isn't available
-if (!"zonebuilder" %in% installed.packages()) {
+if (!"corenet" %in% installed.packages()) {
   source("code/install.R")
 }
 
@@ -181,9 +180,6 @@ list(
       deduplicate_pairs = FALSE
     )
     odj$dist_euclidean_jittered = as.numeric(sf::st_length(odj))
-    # saveRDS(odj, "inputdata/od_commute_jittered.Rds")
-    # Read in test OD dataset for package development:
-    # sf::read_sf("https://github.com/nptscot/npt/releases/download/v1/od_jittered_demo.geojson")
     odj
   }),
   tar_target(od_commute_subset, {
@@ -367,7 +363,6 @@ list(
   tar_target(rnet_gq_commute_balanced, {
     segments2rnet(rs_commute_balanced[[1]]$segments)
   }),
-
 
   # School routing post-processing -----------------------------------------
 
@@ -737,11 +732,6 @@ list(
   # }),
 
   tar_target(grid, {
-    # # Ensure the file is on your computer, run this in shell:
-    # cd inputdata
-    # gh release list
-    # # gh release upload v1 grid_scot.Rds
-    # gh release download v1 --pattern grid_scot.Rds
     readRDS("./inputdata/grid_scot.Rds")
   }),
   tar_target(oas, {
@@ -1455,56 +1445,6 @@ list(
     sf::write_sf(combined_network, "outputdata/combined_network.gpkg", delete_dsn = TRUE)
     as.character(Sys.Date())
   }),
-
-  # tar_target(visualise_rnet, {
-  #   # tar_source("code/vis_network.R")
-  #   # tarchetypes::tar_
-  # }),
-  # tarchetypes::tar_render(visualise_rnet, path = "code/vis_network.Rmd", params = list(rnet_commute_list)),
-
-  # # tarchetypes::tar_render(report, path = "README.Rmd", params = list(zones, rnet)),
-  # tar_target(upload_data, {
-
-  #   # Ensure the target runs after
-  #   check = length(save_outputs)
-
-  #   commit = gert::git_log(max = 1)
-  #   message("Commit: ", commit)
-  #   full_build =
-  #     # isFALSE(parameters$geo_subset) &&
-  #     isFALSE(parameters$open_data_build) &&
-  #     parameters$max_to_route > 20e3
-  #   is_linux = Sys.info()[['sysname']] == "Linux"
-  #   if(full_build) {
-  #   v = paste0("v", save_outputs, "_commit_", commit$commit)
-  #   v = gsub(pattern = " |:", replacement = "-", x = v)
-  #   setwd("outputdata")
-  #   f = list.files(path = ".", pattern = "Rds|zip|pmtiles|json|gpkg")
-  #   f = f[!grepl(".geojson", f)] # Remove .geojsons
-  #   # piggyback::pb_upload(f)
-  #   msg = glue::glue("gh release create {v} --generate-notes")
-  #   message("Creating new release and folder to save the files: ", v)
-  #   dir.create(v)
-  #   message("Going to try to upload the following files: ", paste0(f, collapse = ", "))
-  #   message("With sizes: ", paste0(fs::file_size(f), collapse = ", "))
-  #   system(msg)
-  #   for(i in f) {
-  #     gh_release_upload(file = i, tag = v)
-  #     # Move into a new directory
-  #     file.copy(from = i, to = file.path(v, i))
-  #   }
-  #   message("Files stored in output folder: ", v)
-  #   message("Which contains: ", paste0(list.files(v), collapse = ", "))
-  #   # For specific version:
-  #   # system("gh release create v0.0.1 --generate-notes")
-  #   file.remove(f)
-  #   setwd("..")
-  # }  else {
-  #   message("Not full build or gh command line tool not available")
-  #   message("Not uploading files: manually move contents of outputdata (see upload_data target for details)")
-  # }
-  # Sys.Date()
-  # }),
 
   tar_target(metadata, {
     # TODO: generate build summary
