@@ -6,8 +6,6 @@ library(tidygraph)
 library(osmextract)
 tar_source()
 
-
-
 parameters = jsonlite::read_json("parameters.json", simplifyVector = T)
 lads = sf::read_sf("inputdata/boundaries/la_regions_2023.geojson")
 region_names = unique(lads$Region)[c(3, 2, 1, 4, 5, 6)] # Start with Glasgow
@@ -118,6 +116,8 @@ cycle_net = clean_speeds(cycle_net)
 # Add assumed traffic volumes
 cycle_net = cycle_net %>% 
   mutate(assumed_volume = case_when(
+    highway == "trunk" ~ 8000,
+    highway == "trunk_link" ~ 8000,
     highway == "primary" ~ 6000,
     highway == "primary_link" ~ 6000,
     highway == "secondary" ~ 5000,
@@ -158,6 +158,8 @@ cycle_net_joined = left_join(cycle_net, cycleways_with_road_speeds_df)
 
 cycle_net_joined = cycle_net_joined %>% 
   mutate(join_volume = case_when(
+    highway_join == "trunk" ~ 8000,
+    highway_join == "trunk_link" ~ 8000,
     highway_join == "primary" ~ 6000,
     highway_join == "primary_link" ~ 6000,
     highway_join == "secondary" ~ 5000,
@@ -205,14 +207,15 @@ cycleways_with_traffic_df = cycle_net_traffic_polygons %>%
 # join back onto cycle_net
 cycle_net_traffic = left_join(cycle_net_joined, cycleways_with_traffic_df)
 
-# TODO: Add code to filter out misclassified roads
-# See https://github.com/nptscot/osmactive/issues/41
 # Use original traffic estimates in some cases
+# e.g. where residential/service roads have been misclassified as A/B/C roads
 cycle_net_traffic = cycle_net_traffic %>% 
   mutate(
     final_traffic = case_when(
       detailed_segregation == "Cycle track" ~ 0,
-      highway %in% c("residential", "service") & pred_flows >= 4000 ~ final_volume,
+      highway %in% c("residential", "service") & 
+        road_classification %in% c("A Road", "B Road", "Classified Unnumbered") & 
+        pred_flows >= 4000 ~ final_volume,
       !is.na(pred_flows) ~ pred_flows,
       TRUE ~ final_volume)
     )
