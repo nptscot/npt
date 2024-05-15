@@ -88,18 +88,7 @@ if(!file.exists(file_path)) {
   system("gh release download OS_network --skip-existing")
   setwd("..")
 }
-url = "https://github.com/nptscot/inputdata/releases/download/OS_network/open_roads_scotland.gpkg"
-# Load and transform the geojson file
 open_roads_scotland = sf::read_sf(file_path)
-
-# Check if the file exists
-if (!file.exists(file_path)) {
-  # Create the directory if it doesn't exist
-  dir.create("inputdata", recursive = TRUE, showWarnings = FALSE)
-  
-  # Download the file
-  download.file(url, destfile = file_path, mode = "wb")
-}
 
 # Generate the coherent network for the region
 for (region in region_names[1:6]) {
