@@ -3,15 +3,15 @@ get_routes = function(od, plans, purpose = "work", folder = ".", batch = TRUE, b
     batch = FALSE
   }
   route_list = sapply(plans, function(x) NULL)
-  for(plan in plans) {
+  for (plan in plans) {
     message("Getting the ", plan, " routes for ", purpose, " journeys")
-    file_name = paste0("routes_max_dist_", purpose, "_", plan, ".Rds") 
+    file_name = paste0("routes_max_dist_", purpose, "_", plan, ".Rds")
     savename_f = file.path(folder, file_name)
-    if(file.exists(savename_f)) {
+    if (file.exists(savename_f)) {
       message("Routes already exist: reading from file: ", savename_f)
       routes_filtered = readRDS(savename_f)
     } else {
-      if(batch && !batch_save) {
+      if (batch && !batch_save) {
         # One-off saving of pre-computed routes:
         id = NULL
         # if (as.character(Sys.Date()) == "2024-04-24" && plan == "quietest") {
@@ -24,15 +24,19 @@ get_routes = function(od, plans, purpose = "work", folder = ".", batch = TRUE, b
           maxDistance = 30000,
           username = "robinlovelace",
           strategies = plan,
-          cols_to_keep = c("id","distances","quietness","gradient_smooth"),
+          cols_to_keep = c("id", "distances", "quietness", "gradient_smooth"),
           segments = segments,
           delete_job = FALSE
         )
       } else {
-        if(batch_save) {
-          if(!dir.exists("tmp")){dir.create("tmp")}
+        if (batch_save) {
+          if (!dir.exists("tmp")) {
+            dir.create("tmp")
+          }
           tmp_path = file.path("tmp", date)
-          if(!dir.exists(tmp_path)){dir.create(tmp_path)}
+          if (!dir.exists(tmp_path)) {
+            dir.create(tmp_path)
+          }
           routes_raw = batch_routes(
             od,
             fun = stplanr::route,
@@ -64,22 +68,21 @@ get_routes = function(od, plans, purpose = "work", folder = ".", batch = TRUE, b
           )
         }
       }
-      
-      if(is.character(segments) && !is(routes_raw, "sf")){
-        r_filtered = routes_raw$routes |> 
-          group_by(route_number) |> 
-          mutate(route_hilliness = mean(gradient_smooth)) |> 
-          mutate(length_route = sum(distances)) |> 
+
+      if (is.character(segments) && !is(routes_raw, "sf")) {
+        r_filtered = routes_raw$routes |>
+          group_by(route_number) |>
+          mutate(route_hilliness = mean(gradient_smooth)) |>
+          mutate(length_route = sum(distances)) |>
           ungroup()
-        
+
         routes_filtered = list(routes = r_filtered, segments = routes_raw$segments)
       } else {
-        routes_filtered = routes_raw |> 
-          group_by(route_number) |> 
-          mutate(route_hilliness = mean(gradient_smooth)) |> 
-          mutate(length_route = sum(distances)) |> 
+        routes_filtered = routes_raw |>
+          group_by(route_number) |>
+          mutate(route_hilliness = mean(gradient_smooth)) |>
+          mutate(length_route = sum(distances)) |>
           ungroup()
-        
       }
       rm(routes_raw)
       message("Saving ", savename_f)
@@ -91,10 +94,10 @@ get_routes = function(od, plans, purpose = "work", folder = ".", batch = TRUE, b
 }
 
 #' Save routes in batches before returning the result
-#' 
+#'
 #' An alternative to routing functions
-#' 
-#' @examples 
+#'
+#' @examples
 # tar_load(od_commute_subset)
 # od = od_commute_subset
 # fun = stplanr::route
@@ -102,27 +105,26 @@ get_routes = function(od, plans, purpose = "work", folder = ".", batch = TRUE, b
 # plan = "fastest"
 # purpose = "work"
 batch_routes = function(od, fun, nrow_batch = 100, plan = "fastest", purpose, ..., temp_folder = tempdir()) {
-  
-  nrow_od = nrow(od)  
-  #Split up into list
-  od$splittingID <- ceiling(seq_len(nrow(od)) / nrow_batch)
-  od <- dplyr::group_by(od, splittingID)
-  od <- dplyr::group_split(od)
-  
-  max_pad <- nchar(as.character(length(od)))
-  
-  results <- list()
-  for(i in seq_len(length(od))){
+  nrow_od = nrow(od)
+  # Split up into list
+  od$splittingID = ceiling(seq_len(nrow(od)) / nrow_batch)
+  od = dplyr::group_by(od, splittingID)
+  od = dplyr::group_split(od)
+
+  max_pad = nchar(as.character(length(od)))
+
+  results = list()
+  for (i in seq_len(length(od))) {
     od_to_route = od[[i]]
     id = stringr::str_pad(i, max_pad, pad = "0")
     f = paste0("batch_", plan, "_", purpose, "_", id, "_with_", nrow(od_to_route), "_routes_of_", nrow_od, "_rows.Rds")
     f = file.path(temp_folder, f)
-    message(Sys.time()," doing batch ", id, " of ", length(od))
+    message(Sys.time(), " doing batch ", id, " of ", length(od))
     message("Number of rows in batch: ", nrow(od_to_route))
     message("Looking in the file: ", f)
-    
+
     # results[[i]] <- fun(od_to_route, ...)
-    if(file.exists(f)) {
+    if (file.exists(f)) {
       message("File exists")
       results[[i]] = readRDS(f)
     } else {
@@ -130,11 +132,11 @@ batch_routes = function(od, fun, nrow_batch = 100, plan = "fastest", purpose, ..
       # Retry failing batches
       # Source: https://stackoverflow.com/questions/31999808/retry-for-loop-r-loop-if-error
       # results = as.list(1:100) # for testing
-      while(TRUE){
+      while (TRUE) {
         message("Starting routing")
-        
+
         id_batch = NULL
-        
+
         # Recover routes:
         # if(plan == "balanced") {
         #   id_batch = as.numeric(id) + 3809 - 10
@@ -142,9 +144,9 @@ batch_routes = function(od, fun, nrow_batch = 100, plan = "fastest", purpose, ..
         # } else {
         #   id_batch = NULL
         # }
-        
-        results[[i]] <- try(
-          
+
+        results[[i]] = try(
+
           # standard routing:
           # fun(
           #   l = od_to_route,
@@ -156,7 +158,6 @@ batch_routes = function(od, fun, nrow_batch = 100, plan = "fastest", purpose, ..
           #   # pat = Sys.getenv("CYCLESTREETS_BATCH")
           # )
           # batch routing:
-
           cyclestreets::batch(
             desire_lines = od_to_route,
             id = id_batch,
@@ -165,9 +166,8 @@ batch_routes = function(od, fun, nrow_batch = 100, plan = "fastest", purpose, ..
             strategies = plan,
             wait = TRUE
           )
-        
         )
-        if(!is(results[[i]], 'try-error')) break
+        if (!is(results[[i]], "try-error")) break
       }
       message("Saving ", f, " to ", temp_folder)
       saveRDS(results[[i]], f)

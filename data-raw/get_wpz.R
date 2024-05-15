@@ -4,7 +4,7 @@ library(tidyverse)
 # IZ zones 2011 -----------------------------------------------------------
 
 lads_scot = readRDS("inputdata/lads_scotland.Rds")
-boundary_edinburgh = lads_scot |> 
+boundary_edinburgh = lads_scot |>
   filter(str_detect(lau118nm, "Edinb"))
 
 od_data = readRDS("inputdata/od_izo.Rds")
@@ -17,7 +17,7 @@ saveRDS(zones_national, "inputdata/zones_national_simple.Rds")
 summary(zones_national$InterZone %in% od_data$geo_code1)
 zones_national_on_surface = zones_national |> sf::st_point_on_surface()
 points_edinburgh = zones_national_on_surface[boundary_edinburgh, ]
-zones_edinburgh = zones_national |> 
+zones_edinburgh = zones_national |>
   filter(InterZone %in% points_edinburgh$InterZone)
 sf::write_sf(zones_edinburgh, "data-raw/zones_edinburgh.geojson", delete_dsn = TRUE)
 
@@ -59,10 +59,9 @@ f = basename(u)
 download.file(u, f)
 unzip(f)
 oas = sf::read_sf("OutputArea2011_PWC.shp")
-oas = oas |> 
-  transmute(code = code) |> 
+oas = oas |>
+  transmute(code = code) |>
   sf::st_transform("EPSG:4326")
 saveRDS(oas, "inputdata/oas.Rds")
 oas = oas[zones, ]
 sf::write_sf(oas, "data-raw/oas.geojson")
-

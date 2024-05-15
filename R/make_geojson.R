@@ -1,7 +1,7 @@
 #' Function to make geojson for tippecanoe (zones)
 #' @param z sf data frame with zones
 #' @param path folder to save results
-#' @example 
+#' @example
 # z_stats <- routes_to_zone_stats(r_fast, "fastest", "commute")
 # zones <- readRDS("./inputdata/iz_scotlands_uk.Rds")
 # zones <- zones[,c("InterZone","TotPop2011","geometry")]
@@ -20,20 +20,15 @@
 #           "orig_hilliness_mean_fastest_commute",
 #           "dest_quietness_mean_fastest_commute",
 #           "dest_hilliness_mean_fastest_commute"
-# 
+#
 # )]
 # make_geojson_zones(z, "outputs/zones.geojson")
 
-make_geojson_zones <- function(z, path = "outputs/zones.geojson"){
-  
-  if(ncol(z) > 15){
+make_geojson_zones = function(z, path = "outputs/zones.geojson") {
+  if (ncol(z) > 15) {
     warning("Thats a lot of columns for the GeoJSON, are they all needed?")
   }
-  z <- sf::st_transform(z, 4326)
-  sf::st_precision(z) <- 1000000
-  sf::st_write(z,path, delete_dsn = TRUE)
-  
+  z = sf::st_transform(z, 4326)
+  sf::st_precision(z) = 1000000
+  sf::st_write(z, path, delete_dsn = TRUE)
 }
-
-
-
