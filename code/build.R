@@ -80,7 +80,7 @@ region = region_names[1] # for testing
 
 # Generate coherent network ---------------------------------------------------
 remotes::install_github("nptscot/corenet")
-devtools::load_all("../coherentnet/")
+
 for (region in region_names[1:6]) {
     message("Processing coherent network for region: ", region)
     region_snake = snakecase::to_snake_case(region)
@@ -117,7 +117,7 @@ for (region in region_names[1:6]) {
 
         open_roads_zone = open_roads[city_boundary, ]
 
-        OS_combined_net_zone = corenet::cohesive_network_prep(open_roads_zone, 
+        OS_combined_net_zone = corenet::cohesive_network_prep(base_network = open_roads_zone, 
                                             influence_network = combined_net_zone, 
                                             zone, 
                                             crs = "EPSG:27700", 
