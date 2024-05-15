@@ -23,4 +23,5 @@ if(update_github_packages){
   remotes::install_dev("rsgeo")
   remotes::install_dev("od")
   remotes::install_dev("osmextract")
+  remotes::install_github("nptscot/corenet")
 }

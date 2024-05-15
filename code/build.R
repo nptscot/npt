@@ -79,9 +79,8 @@ setwd("..")
 region = region_names[1] # for testing
 
 # Generate coherent network ---------------------------------------------------
-remotes::install_github("nptscot/corenet")
 
-# Read the open roads data outside the loop, to read only once
+# Read the open roads data outside the loop for only once
 # Define the path to the file
 file_path = "inputdata/open_roads_scotland.gpkg"
 url = "https://github.com/nptscot/inputdata/releases/download/OS_network/open_roads_scotland.gpkg"
@@ -104,7 +103,6 @@ for (region in region_names[1:6]) {
     message("Processing coherent network for region: ", region)
     region_snake = snakecase::to_snake_case(region)
     coherent_area = cities_region_names[[region]]
-    date_folder = parameters$date_routing
 
     cnet_path = paste0("outputdata/", date_folder,"/",  region_snake, "/", "combined_network_tile.geojson")
     combined_net = sf::read_sf(cnet_path) |>
