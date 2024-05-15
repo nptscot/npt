@@ -1505,49 +1505,49 @@ tar_target(pmtiles_rnet_simplified, {
   # }),
   # tarchetypes::tar_render(visualise_rnet, path = "code/vis_network.Rmd", params = list(rnet_commute_list)),
   
-  # tarchetypes::tar_render(report, path = "README.Rmd", params = list(zones, rnet)),
-  tar_target(upload_data, {
+  # # tarchetypes::tar_render(report, path = "README.Rmd", params = list(zones, rnet)),
+  # tar_target(upload_data, {
     
-    # Ensure the target runs after
-    check = length(save_outputs)
+  #   # Ensure the target runs after
+  #   check = length(save_outputs)
 
-    commit = gert::git_log(max = 1)
-    message("Commit: ", commit)
-    full_build = 
-      # isFALSE(parameters$geo_subset) &&     
-      isFALSE(parameters$open_data_build) &&
-      parameters$max_to_route > 20e3
-    is_linux = Sys.info()[['sysname']] == "Linux"
-    if(full_build) {
-    v = paste0("v", save_outputs, "_commit_", commit$commit)
-    v = gsub(pattern = " |:", replacement = "-", x = v)
-    setwd("outputdata")
-    f = list.files(path = ".", pattern = "Rds|zip|pmtiles|json|gpkg")
-    f = f[!grepl(".geojson", f)] # Remove .geojsons
-    # piggyback::pb_upload(f)
-    msg = glue::glue("gh release create {v} --generate-notes")
-    message("Creating new release and folder to save the files: ", v)
-    dir.create(v)
-    message("Going to try to upload the following files: ", paste0(f, collapse = ", "))
-    message("With sizes: ", paste0(fs::file_size(f), collapse = ", "))
-    system(msg)
-    for(i in f) {
-      gh_release_upload(file = i, tag = v)
-      # Move into a new directory
-      file.copy(from = i, to = file.path(v, i))
-    }
-    message("Files stored in output folder: ", v)
-    message("Which contains: ", paste0(list.files(v), collapse = ", "))
-    # For specific version:
-    # system("gh release create v0.0.1 --generate-notes")
-    file.remove(f)
-    setwd("..")
-  }  else {
-    message("Not full build or gh command line tool not available")
-    message("Not uploading files: manually move contents of outputdata (see upload_data target for details)")
-  }
-  Sys.Date()
-  }),
+  #   commit = gert::git_log(max = 1)
+  #   message("Commit: ", commit)
+  #   full_build = 
+  #     # isFALSE(parameters$geo_subset) &&     
+  #     isFALSE(parameters$open_data_build) &&
+  #     parameters$max_to_route > 20e3
+  #   is_linux = Sys.info()[['sysname']] == "Linux"
+  #   if(full_build) {
+  #   v = paste0("v", save_outputs, "_commit_", commit$commit)
+  #   v = gsub(pattern = " |:", replacement = "-", x = v)
+  #   setwd("outputdata")
+  #   f = list.files(path = ".", pattern = "Rds|zip|pmtiles|json|gpkg")
+  #   f = f[!grepl(".geojson", f)] # Remove .geojsons
+  #   # piggyback::pb_upload(f)
+  #   msg = glue::glue("gh release create {v} --generate-notes")
+  #   message("Creating new release and folder to save the files: ", v)
+  #   dir.create(v)
+  #   message("Going to try to upload the following files: ", paste0(f, collapse = ", "))
+  #   message("With sizes: ", paste0(fs::file_size(f), collapse = ", "))
+  #   system(msg)
+  #   for(i in f) {
+  #     gh_release_upload(file = i, tag = v)
+  #     # Move into a new directory
+  #     file.copy(from = i, to = file.path(v, i))
+  #   }
+  #   message("Files stored in output folder: ", v)
+  #   message("Which contains: ", paste0(list.files(v), collapse = ", "))
+  #   # For specific version:
+  #   # system("gh release create v0.0.1 --generate-notes")
+  #   file.remove(f)
+  #   setwd("..")
+  # }  else {
+  #   message("Not full build or gh command line tool not available")
+  #   message("Not uploading files: manually move contents of outputdata (see upload_data target for details)")
+  # }
+  # Sys.Date()
+  # }),
   
   tar_target(metadata, {
     # TODO: generate build summary
@@ -1562,7 +1562,7 @@ tar_target(pmtiles_rnet_simplified, {
       # time_total_mins = round(sum(metadata_targets$seconds) / 60, digits = 2),
       routing_date = get_routing_date()
     )
-    upload_data
+    save_outputs
   })
 
 )

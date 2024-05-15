@@ -4,7 +4,6 @@ library(tidyverse)
 library(targets)
 library(tidygraph)
 library(osmextract)
-devtools::load_all()
 tar_source()
 
 parameters = jsonlite::read_json("parameters.json", simplifyVector = T)
@@ -63,69 +62,69 @@ if (length(failed_regions) > 0) {
   message("All regions processed successfully on the first attempt.")
 }
 
-# Zip the contents of the outputdata folder
-output_folder = file.path("outputdata", parameters$date_routing)
-list.files(output_folder)
-setwd("outputdata")
-zip_file = paste0(parameters$date_routing, ".zip")
-zip(zipfile = zip_file, parameters$date_routing, extras = "-x *.Rds")
 
+# Zip and upload outputs ----
+setwd("outputdata") # Temporarily change working directory
 date_folder = parameters$date_routing
-
-dir.create(paste0(date_folder, "-geojson"))
-
-for(i in list.dirs(date_folder)) {
-  r = gsub(pattern = paste0(date_folder, "/"), replacement = "", x = i)
-  f = list.files(i, pattern = "geojson", full.names = TRUE)
-  f_new = file.path(paste0(date_folder, "-geojson"), paste0(r, "_", basename(f)))
-  message(paste(f, collapse = "\n"))
-  message(paste(f_new, collapse = "\n"))
-  file.copy(f, f_new)
-}
-
+list.files(date_folder)
+zip_file = paste0(date_folder, ".zip")
+zip(zipfile = zip_file, date_folder, extras = "-x *.Rds")
 zip(paste0(date_folder, "-geojson.zip"), files = paste0(date_folder, "-geojson"))
 fs::file_size(paste0(date_folder, "-geojson.zip"))
 system("gh release list")
 system(paste0("gh release create ", date_folder, "-geojson"))
 system(paste0("gh release upload ", date_folder, "-geojson ", date_folder, "-geojson.zip"))
+setwd("..")
 
-# Generate coherent network
+region = region_names[1] # for testing
+
+# Generate coherent network ---------------------------------------------------
+remotes::install_github("nptscot/corenet")
+
 for (region in region_names[1:6]) {
     message("Processing coherent network for region: ", region)
-    parameters$region = region
-    parameters$coherent_area = cities_region_names[[region]]
+    region_snake = snakecase::to_snake_case(region)
+    coherent_area = cities_region_names[[region]]
 
-    combined_network_tile_path = paste0("outputdata/", parameters$date_routing,"/",  snakecase::to_snake_case(parameters$region), "/", "combined_network_tile.geojson")
-    NPT = sf::read_sf(combined_network_tile_path) |>
+    cnet_path = file.path(output_folder, region_snake, "combined_network_tile.geojson")
+    combined_net = sf::read_sf(cnet_path) |>
       sf::st_transform(crs = "EPSG:27700")
 
-    folder_path = paste0("outputdata/", parameters$date_routing,"/",  snakecase::to_snake_case(parameters$region), "/", "coherent_networks/")
+    folder_path = file.path(output_folder, region_snake, "coherent_networks")
 
     if(!dir.exists(folder_path)) {
       dir.create(folder_path, recursive = TRUE)
     }
-
-    for (city in parameters$coherent_area) { 
+    
+    open_roads_path = paste0("inputdata/OS_Scotland_Network_", region_snake, ".geojson")
+    open_roads_unprojected = sf::read_sf(open_roads_path)
+    open_roads = sf::st_transform(open_roads_unprojected, "EPSG:27700")
+    
+    city = coherent_area[1]
+    for (city in coherent_area) { 
       city_filename = snakecase::to_snake_case(city)
       tryCatch({
         message("Generating coherent network for: ", city)
-        zone = filter(lads, LAD23NM == city) |>
+        city_boundary = filter(lads, LAD23NM == city) |>
           sf::st_transform(crs = "EPSG:27700")
 
-        NPT_zone = NPT[sf::st_union(zone), , op = sf::st_intersects]
+        combined_net_zone = combined_net[city_boundary, ]
+        min_percentile_value = stats::quantile(
+          combined_net_zone$all_fastest_bicycle_go_dutch,
+          probs = parameters$coherent_percentile,
+          na.rm = TRUE
+        )
 
-        min_percentile_value = stats::quantile(NPT_zone$all_fastest_bicycle_go_dutch, probs = parameters$coherent_percentile, na.rm = TRUE)
+        open_roads_zone = open_roads[city_boundary, ]
 
-        open_roads_national_zone = open_roads_national[sf::st_union(zone), , op = sf::st_intersects]
-
-        OS_NPT_zone = corenet::cohesive_network_prep(base_network = open_roads_national_zone, 
-                                            influence_network = NPT_zone, 
+        OS_combined_net_zone = corenet::cohesive_network_prep(base_network = open_roads_zone, 
+                                            influence_network = combined_net_zone, 
                                             zone, 
                                             crs = "EPSG:27700", 
                                             key_attribute = "road_function", 
                                             attribute_values = c("A Road", "B Road", "Minor Road"))
 
-        cohesive_network_zone = corenet::corenet(NPT_zone, OS_NPT_zone, zone, 
+        cohesive_network_zone = corenet::corenet(combined_net_zone, OS_combined_net_zone, zone, 
                                           key_attribute = "all_fastest_bicycle_go_dutch", 
                                           crs = "EPSG:27700", dist = 10, threshold = min_percentile_value, 
                                           road_scores = list("A Road" = 1, "B Road" = 1, "Minor Road" = 10000000))
@@ -144,7 +143,7 @@ for (region in region_names[1:6]) {
 }   
 
 setwd("..")
-output_folders = list.dirs(file.path("outputdata", parameters$date_routing))[-1]
+output_folders = list.dirs(file.path("outputdata", date_folder))[-1]
 regional_output_files = list.files(output_folders[1])
 regional_output_files
 
@@ -179,7 +178,7 @@ sf::write_sf(simplified_network, file.path("outputdata", "simplified_network.geo
 # Combine zones data:
 # DataZones file path: data_zones.geojson
 
-zones_tile_file = paste0("outputdata/", parameters$date_routing, "/data_zones.geojson")
+zones_tile_file = paste0("outputdata/", date_folder, "/data_zones.geojson")
 if (file.exists(zones_tile_file)) {
   zones_tile = sf::read_sf(zones_tile_file)
 }
