@@ -4,11 +4,62 @@ title: "Utility trips methodology"
 output: github_document
 date: "Last updated: `r Sys.Date()`"
 author: "Joey Talbot and Robin Lovelace"
+execute: 
+  echo: false
+  message: false
 ---
 
 ```{r setup, include=FALSE}
-knitr::opts_chunk$set(echo = TRUE)
 library(tidyverse)
+```
+
+```{r}
+#| include: false
+#| label: import-nts
+u = "https://assets.publishing.service.gov.uk/media/64e8b433635870000d1dbfbc/nts0403.ods"
+f = basename(u)
+if (!file.exists(f)) download.file(u, f)
+readODS::ods_sheets(f)
+nts0403_trips_excl_sw = readODS::read_ods(f, sheet = "NTS0403b_trips_excl_sw", skip = 5)
+names(nts0403_trips_excl_sw)
+#  [1] "Year"                                     
+#  [2] "Commuting"                                
+#  [3] "Business"                                 
+#  [4] "Education"                                
+#  [5] "Escort education"                         
+#  [6] "Shopping"                                 
+#  [7] "Other escort"                             
+#  [8] "Personal business"                        
+#  [9] "Visiting friends at private home"         
+# [10] "Visiting friends elsewhere"               
+# [11] "Entertainment or public activity"         
+# [12] "Sport: participate"                       
+# [13] "Holiday: base"                            
+# [14] "Day trip"                                 
+# [15] "Other including just walk"                
+# [16] "All purposes"                             
+# [17] "Unweighted sample size: individuals"      
+# [18] "Unweighted sample size: trips (thousands)"
+nts0403_length_raw = readODS::read_ods(f, sheet = "NTS0403e_trip_length", skip = 5)
+names(nts0403_length_raw)
+#  [1] "Year"                                     
+#  [2] "Commuting"                                
+#  [3] "Business"                                 
+#  [4] "Education"                                
+#  [5] "Escort education"                         
+#  [6] "Shopping"                                 
+#  [7] "Other escort"                             
+#  [8] "Personal business"                        
+#  [9] "Visiting friends at private home"         
+# [10] "Visiting friends elsewhere"               
+# [11] "Entertainment or public activity"         
+# [12] "Sport: participate"                       
+# [13] "Holiday: base"                            
+# [14] "Day trip"                                 
+# [15] "Other including just walk"                
+# [16] "All purposes"                             
+# [17] "Unweighted sample size: individuals"      
+# [18] "Unweighted sample size: trips (thousands)"
 ```
 
 ## Trip numbers and purposes
@@ -34,31 +85,117 @@ In England, during 2002 to 2012, there were 1023 trips per person per year (http
 We assigned daily trips to trip purposes using the trip purpose percentage breakdown from the Scottish Household Survey, Table TD3 of the Transport and Travel in Scotland 2019 travel diary tables (after adjusting these percentages to remove the 'Go Home' category).
 This results in 25.1% of trips being assigned for shopping, 11.7% for social, and 6.3% for leisure, compared with 23.3% for commuting (https://www.transport.gov.scot/media/51346/transport-and-travel-in-scotland-2019-travel-diary-tables.xlsx).
 
+The roughly equivalent purposes in the National Travel Survey for 2022 are as follows:
+
+
+```{r}
+npt_nts_purpose_categories = tibble::tribble(
+  ~`NPT purpose`, ~`NTS purpose`,
+  "Shopping", "Shopping",
+  "Social", "Visiting friends at private home",
+  "Social", "Visiting friends elsewhere",
+  "Leisure", "Entertainment or public activity",
+  "Leisure", "Sport: participate"
+)
+npt_proportions = tibble::tribble(
+  ~`NPT purpose`, ~Proportion,
+  "Shopping", 0.251,
+  "Social", 0.117,
+  "Leisure", 0.063
+)
+# Get subset of NTS trip data from 2011 onwards:
+nts0403_trips_percent = nts0403_trips_excl_sw |>
+  select(Year:`All purposes`) |>
+  # Convert to proportions of All purposes:
+  mutate(across(-Year, ~ . / `All purposes`)) |>
+  filter(Year > "2011") |>
+  pivot_longer(-Year, names_to = "NTS purpose", values_to = "Proportion") |>
+   filter(str_detect(`NTS purpose`, "Shop|Visit|Entertain"))
+trips_percent_2022 = nts0403_trips_percent |>
+  # Convert to % with scales::percent_format():
+  filter(Year == "2022") |>
+  select(`NTS purpose`, Proportion) |>
+  left_join(npt_nts_purpose_categories, by = "NTS purpose")
+trips_percent_2022 |>
+  mutate(Proportion = scales::percent(Proportion, accuracy = 0.1)) |>
+  knitr::kable()
+```
+
+Aggregating the NTS purposes to match the NPT purposes, we find that the mode split for the three everyday purposes in 2022 is as follows:
+
+```{r}
+trips_percent_2022 |>
+  group_by(`NPT purpose`) |>
+  summarise(`Proportion (NTS)` = sum(as.numeric(Proportion))) |>
+  left_join(npt_proportions, by = "NPT purpose") |>
+  transmute(
+    `NPT purpose`,
+    `Proportion (NTS)` = scales::percent(`Proportion (NTS)`, accuracy = 0.1),
+    `Proportion (NPT)` = scales::percent(Proportion, accuracy = 0.1)
+  ) |>
+  knitr::kable()
+```
+
+The evolution of overall mode split from 2012 to 2022 in England is shown below:
+
+```{r}
+#| label: nts-trips-mode-split-time
+# Line graph of trip purposes:
+nts0403_trips_percent |>
+  ggplot() +
+  geom_line(aes(x = Year, y = Proportion, color = `NTS purpose`, group = `NTS purpose`)) +
+  # x label at 45 degrees:
+  theme(axis.text.x = element_text(angle = 45, hjust = 1)) +
+  # integer x axis labels:
+  scale_x_continuous(breaks = scales::pretty_breaks(n = 10)) +
+  # % y axis labels:
+  scale_y_continuous(labels = scales::percent_format(), limits = c(0, NA)) 
+```
+
 ## Trip distances by purpose
 
 Data on the distribution of trip distances (what % of trips are 0-2, 2-5 km etc) is important for the uptake model.
-We took data from the National Travel Survey
+We took data from the National Travel Survey, shown below, as the basis of average trip lengths for the three everyday purposes, as shown in the table below.
 
 ```{r, include=FALSE}
-u = "https://assets.publishing.service.gov.uk/media/64e8b433635870000d1dbfbc/nts0403.ods"
-f = basename(u)
-if (!file.exists(f)) download.file(u, f)
-readODS::ods_sheets(f)
-nts0403_length_raw = readODS::read_ods(f, sheet = "NTS0403e_trip_length", skip = 5)
-nts0403_length = pivot_longer(nts0403_length_raw, -1) |>
+nts0403_length = pivot_longer(nts0403_length_raw, -1, values_to = "Length (miles)", names_to = "NTS purpose") |>
   # Remove the space and everything after it:
     mutate(Year = str_remove(Year, " .+")) 
 nts0403_length_subset = nts0403_length |>
   filter(Year > "2011") |>
-  filter(str_detect(name, "Commut|Shop|Visit|Entertainment")) 
+  filter(str_detect(`NTS purpose`, "Commut|Shop|Visit|Edu|Entertain")) 
 ```
 
 ```{r}
-nts0403_length_subset |>
+#| label: nts-trips-length-time
+plot_NTS_categories = nts0403_length_subset |>
   ggplot() +
-  geom_line(aes(x = Year, y = value, color = name, group = name)) +
+  geom_line(aes(x = Year, y = `Length (miles)`, color = `NTS purpose`, group = `NTS purpose`)) +
   # x label at 45 degrees:
-  theme(axis.text.x = element_text(angle = 45, hjust = 1))
+  theme(axis.text.x = element_text(angle = 45, hjust = 1)) +
+  ylim(c(0, NA))
+lengths_npt = nts0403_length_subset |>
+  filter(Year == "2022") |>
+  left_join(npt_nts_purpose_categories, by = "NTS purpose") |>
+  mutate(`NPT purpose` = case_when(
+    is.na(`NPT purpose`) ~ `NTS purpose`,
+    TRUE ~ `NPT purpose`
+  ))
+# Join with % trips:
+lengths_npt = left_join(
+  lengths_npt,
+  trips_percent_2022 |> select(`NTS purpose`, Proportion),
+  by = "NTS purpose"
+) |>
+  mutate(Proportion = case_when(
+    is.na(Proportion) ~ 1,
+    TRUE ~ `Length (miles)`
+  )) |>
+  group_by(`NPT purpose`) |>
+  summarise(`Length (miles)` = weighted.mean(`Length (miles)`, Proportion)) 
+lengths_npt |>
+  mutate(`Length (miles)` = scales::number(`Length (miles)`, accuracy = 0.1)) |>
+  knitr::kable()
 ```
 
 ## Mode share
