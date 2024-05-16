@@ -1,16 +1,15 @@
-Utility trips methodology
-================
+# Utility trips methodology
 Joey Talbot and Robin Lovelace
-Last updated: 2024-05-09
+2024-05-16
 
 ## Trip numbers and purposes
 
 We estimated trips for three everyday purposes (in addition to commuting
 and travel to school):
 
-  - shopping
-  - social (visiting friends and family)
-  - leisure
+- shopping
+- social (visiting friends and family)
+- leisure
 
 These are presented in a single network layer under the joint category
 of ‘Other Everyday’ trips.
@@ -20,7 +19,7 @@ total number of trips undertaken per person per day, as AADT. This gives
 an average of 953 trips per person per year, which equates to 2.61 trips
 per person per day. A trip is defined as a one-way course of travel from
 one place to another
-(<https://www.gov.uk/government/statistics/national-travel-survey-2022-technical-report/national-travel-survey-2022-technical-report-glossary#trip>).
+(https://www.gov.uk/government/statistics/national-travel-survey-2022-technical-report/national-travel-survey-2022-technical-report-glossary#trip).
 
 Data on the number of trips per person per year is not available for
 Scotland after 2012 as far as we can tell. The Scottish Household Survey
@@ -29,38 +28,61 @@ Survey records travel patterns over an entire week. However, for the ten
 year period from 2002/03 to 2011/12, the National Travel Survey recorded
 a mean of 995 trips per person per year by Scottish residents. In
 England, during 2002 to 2012, there were 1023 trips per person per year
-(<https://assets.publishing.service.gov.uk/media/64e8b00063587000141dbfa6/nts0303.ods>)
+(https://assets.publishing.service.gov.uk/media/64e8b00063587000141dbfa6/nts0303.ods)
 
-The number of daily trips for each purpose is available in the trip
-purpose percentage breakdown from the Scottish Household Survey, Table
-TD3 of Transport and Travel in Scotland 2019 travel diary tables (after
-adjusting these percentages to remove the ‘Go Home’ category). That
-table shows 25.1% of trips being assigned for shopping, 11.7% for
-social, and 6.3% for leisure, compared with 23.3% for commuting
-(<https://www.transport.gov.scot/media/51346/transport-and-travel-in-scotland-2019-travel-diary-tables.xlsx>).
+We assigned daily trips to trip purposes using the trip purpose
+percentage breakdown from the Scottish Household Survey, Table TD3 of
+the Transport and Travel in Scotland 2019 travel diary tables (after
+adjusting these percentages to remove the ‘Go Home’ category). This
+results in 25.1% of trips being assigned for shopping, 11.7% for social,
+and 6.3% for leisure, compared with 23.3% for commuting
+(https://www.transport.gov.scot/media/51346/transport-and-travel-in-scotland-2019-travel-diary-tables.xlsx).
+
+The roughly equivalent purposes in the National Travel Survey for 2022
+are as follows:
+
+| NTS purpose                      | Proportion | NPT purpose |
+|:---------------------------------|:-----------|:------------|
+| Shopping                         | 17.5%      | Shopping    |
+| Visiting friends at private home | 9.6%       | Social      |
+| Visiting friends elsewhere       | 4.7%       | Social      |
+| Entertainment or public activity | 6.7%       | Leisure     |
+
+Aggregating the NTS purposes to match the NPT purposes, we find that the
+mode split for the three everyday purposes in 2022 is as follows:
+
+| NPT purpose | Proportion (NTS) | Proportion (NPT) |
+|:------------|:-----------------|:-----------------|
+| Leisure     | 6.7%             | 6.3%             |
+| Shopping    | 17.5%            | 25.1%            |
+| Social      | 14.3%            | 11.7%            |
+
+The evolution of overall mode split from 2012 to 2022 in England is
+shown below:
+
+![](report-utility-methods_files/figure-commonmark/nts-trips-mode-split-time-1.png)
 
 ## Trip distances by purpose
 
 Data on the distribution of trip distances (what % of trips are 0-2, 2-5
 km etc) is important for the uptake model. We took data from the
-National Travel Survey
+National Travel Survey, shown below, as the basis of average trip
+lengths for the three everyday purposes, as shown in the table below.
 
-``` r
-nts0403_length_subset |>
-  ggplot() +
-  geom_line(aes(x = Year, y = value, color = name, group = name)) +
-  # x label at 45 degrees:
-  theme(axis.text.x = element_text(angle = 45, hjust = 1))
-```
-
-![](report-utility-methods_files/figure-gfm/unnamed-chunk-2-1.png)<!-- -->
+| NPT purpose | Length (miles) |
+|:------------|:---------------|
+| Commuting   | 8.5            |
+| Education   | 2.9            |
+| Leisure     | 7.2            |
+| Shopping    | 3.8            |
+| Social      | 8.9            |
 
 ## Mode share
 
 The mode shares were estimated using the mean mode shares from the
 Scottish Household Survey travel diaries in Table TD2 of Transport and
 Travel in Scotland 2019
-(<https://www.transport.gov.scot/media/51346/transport-and-travel-in-scotland-2019-travel-diary-tables.xlsx>).
+(https://www.transport.gov.scot/media/51346/transport-and-travel-in-scotland-2019-travel-diary-tables.xlsx).
 This gives mode shares (for social and leisure trips) of 1.2% for
 cycling, 22.1% for walking, 65.2% for car, 9.3% for public transport,
 and 2.2% for taxi/other.
@@ -106,6 +128,9 @@ to a distance decay equation, which has been derived from distances of
 travel to work. This may introduce bias if in reality typical trip
 distances for these other everyday purposes are different from the trip
 distances for commuting.
+
+See NTS0403e for mean trip lengths by purpose - shopping - visiting
+friends at private home - entertainment or public activity
 
 ## Disaggregating and filtering desire lines
 

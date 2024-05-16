@@ -1,9 +1,8 @@
 ---
 title: "Utility trips methodology"
-# output: github_document
-output: github_document
 date: "Last updated: `r Sys.Date()`"
 author: "Joey Talbot and Robin Lovelace"
+format: gfm
 execute: 
   echo: false
   message: false
