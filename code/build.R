@@ -109,17 +109,17 @@ nrow(osm) / nrow(osm_national)
 # # # ---
 
 cycle_net = osmactive::get_cycling_network(osm)
-drive_net = get_driving_network_major(osm)
-cycle_net = distance_to_road(cycle_net, drive_net)
-cycle_net = classify_cycle_infrastructure(cycle_net)
+drive_net = osmactive::get_driving_network_major(osm)
+cycle_net = osmactive::distance_to_road(cycle_net, drive_net)
+cycle_net = osmactive::classify_cycle_infrastructure(cycle_net)
 # m = plot_osm_tmap(cycle_net)
 # m
 
-drive_net = clean_speeds(drive_net)
-cycle_net = clean_speeds(cycle_net)
+drive_net = osmactive::clean_speeds(drive_net)
+cycle_net = osmactive::clean_speeds(cycle_net)
 
-drive_net = estimate_traffic(drive_net)
-cycle_net = estimate_traffic(cycle_net)
+drive_net = osmactive::estimate_traffic(drive_net)
+cycle_net = osmactive::estimate_traffic(cycle_net)
 
 # See tutorial: https://github.com/acteng/network-join-demos
 cycle_net_joined_polygons = stplanr::rnet_join(
@@ -202,52 +202,54 @@ cycle_net_traffic = cycle_net_traffic |>
     )
   )
 
-# Check results
+cycle_net_traffic = osmactive::level_of_service(cycle_net_traffic)
 
-cycle_net_traffic = cycle_net_traffic |>
-  mutate(`Level of Service` = case_when(
-    detailed_segregation == "Cycle track" ~ "High",
-    detailed_segregation == "Level track" & final_speed <= 30 ~ "High",
-    detailed_segregation == "Stepped or footway" & final_speed <= 20 ~ "High",
-    detailed_segregation == "Stepped or footway" & final_speed == 30 & final_traffic < 4000 ~ "High",
-    detailed_segregation == "Light segregation" & final_speed <= 20 ~ "High",
-    detailed_segregation == "Light segregation" & final_speed == 30 & final_traffic < 4000 ~ "High",
-    detailed_segregation == "Cycle lane" & final_speed <= 20 & final_traffic < 4000 ~ "High",
-    detailed_segregation == "Cycle lane" & final_speed == 30 & final_traffic < 1000 ~ "High",
-    detailed_segregation == "Mixed traffic" & final_speed <= 20 & final_traffic < 2000 ~ "High",
-    detailed_segregation == "Mixed traffic" & final_speed == 30 & final_traffic < 1000 ~ "High",
-    detailed_segregation == "Level track" & final_speed == 40 ~ "Medium",
-    detailed_segregation == "Level track" & final_speed == 50 & final_traffic < 1000 ~ "Medium",
-    detailed_segregation == "Stepped or footway" & final_speed <= 40 ~ "Medium",
-    detailed_segregation == "Stepped or footway" & final_speed == 50 & final_traffic < 1000 ~ "Medium",
-    detailed_segregation == "Light segregation" & final_speed == 30 ~ "Medium",
-    detailed_segregation == "Light segregation" & final_speed == 40 & final_traffic < 2000 ~ "Medium",
-    detailed_segregation == "Light segregation" & final_speed == 50 & final_traffic < 1000 ~ "Medium",
-    detailed_segregation == "Cycle lane" & final_speed <= 20 ~ "Medium",
-    detailed_segregation == "Cycle lane" & final_speed == 30 & final_traffic < 4000 ~ "Medium",
-    detailed_segregation == "Cycle lane" & final_speed == 40 & final_traffic < 1000 ~ "Medium",
-    detailed_segregation == "Mixed traffic" & final_speed <= 20 & final_traffic < 4000 ~ "Medium",
-    detailed_segregation == "Mixed traffic" & final_speed == 30 & final_traffic < 2000 ~ "Medium",
-    detailed_segregation == "Mixed traffic" & final_speed == 40 & final_traffic < 1000 ~ "Medium",
-    detailed_segregation == "Level track" ~ "Low",
-    detailed_segregation == "Stepped or footway" ~ "Low",
-    detailed_segregation == "Light segregation" & final_speed <= 50 ~ "Low",
-    detailed_segregation == "Light segregation" & final_speed == 60 & final_traffic < 1000 ~ "Low",
-    detailed_segregation == "Cycle lane" & final_speed <= 50 ~ "Low",
-    detailed_segregation == "Cycle lane" & final_speed == 60 & final_traffic < 1000 ~ "Low",
-    detailed_segregation == "Mixed traffic" & final_speed <= 30 ~ "Low",
-    detailed_segregation == "Mixed traffic" & final_speed == 40 & final_traffic < 2000 ~ "Low",
-    detailed_segregation == "Mixed traffic" & final_speed == 60 & final_traffic < 1000 ~ "Low",
-    detailed_segregation == "Light segregation" ~ "Should not be used",
-    detailed_segregation == "Cycle lane" ~ "Should not be used",
-    detailed_segregation == "Mixed traffic" ~ "Should not be used",
-    TRUE ~ "Unknown"
-  )) |>
-  dplyr::mutate(`Level of Service` = factor(
-    `Level of Service`,
-    levels = c("High", "Medium", "Low", "Should not be used"),
-    ordered = TRUE
-  ))
+# # Check results
+# 
+# cycle_net_traffic = cycle_net_traffic |>
+#   mutate(`Level of Service` = case_when(
+#     detailed_segregation == "Cycle track" ~ "High",
+#     detailed_segregation == "Level track" & final_speed <= 30 ~ "High",
+#     detailed_segregation == "Stepped or footway" & final_speed <= 20 ~ "High",
+#     detailed_segregation == "Stepped or footway" & final_speed == 30 & final_traffic < 4000 ~ "High",
+#     detailed_segregation == "Light segregation" & final_speed <= 20 ~ "High",
+#     detailed_segregation == "Light segregation" & final_speed == 30 & final_traffic < 4000 ~ "High",
+#     detailed_segregation == "Cycle lane" & final_speed <= 20 & final_traffic < 4000 ~ "High",
+#     detailed_segregation == "Cycle lane" & final_speed == 30 & final_traffic < 1000 ~ "High",
+#     detailed_segregation == "Mixed traffic" & final_speed <= 20 & final_traffic < 2000 ~ "High",
+#     detailed_segregation == "Mixed traffic" & final_speed == 30 & final_traffic < 1000 ~ "High",
+#     detailed_segregation == "Level track" & final_speed == 40 ~ "Medium",
+#     detailed_segregation == "Level track" & final_speed == 50 & final_traffic < 1000 ~ "Medium",
+#     detailed_segregation == "Stepped or footway" & final_speed <= 40 ~ "Medium",
+#     detailed_segregation == "Stepped or footway" & final_speed == 50 & final_traffic < 1000 ~ "Medium",
+#     detailed_segregation == "Light segregation" & final_speed == 30 ~ "Medium",
+#     detailed_segregation == "Light segregation" & final_speed == 40 & final_traffic < 2000 ~ "Medium",
+#     detailed_segregation == "Light segregation" & final_speed == 50 & final_traffic < 1000 ~ "Medium",
+#     detailed_segregation == "Cycle lane" & final_speed <= 20 ~ "Medium",
+#     detailed_segregation == "Cycle lane" & final_speed == 30 & final_traffic < 4000 ~ "Medium",
+#     detailed_segregation == "Cycle lane" & final_speed == 40 & final_traffic < 1000 ~ "Medium",
+#     detailed_segregation == "Mixed traffic" & final_speed <= 20 & final_traffic < 4000 ~ "Medium",
+#     detailed_segregation == "Mixed traffic" & final_speed == 30 & final_traffic < 2000 ~ "Medium",
+#     detailed_segregation == "Mixed traffic" & final_speed == 40 & final_traffic < 1000 ~ "Medium",
+#     detailed_segregation == "Level track" ~ "Low",
+#     detailed_segregation == "Stepped or footway" ~ "Low",
+#     detailed_segregation == "Light segregation" & final_speed <= 50 ~ "Low",
+#     detailed_segregation == "Light segregation" & final_speed == 60 & final_traffic < 1000 ~ "Low",
+#     detailed_segregation == "Cycle lane" & final_speed <= 50 ~ "Low",
+#     detailed_segregation == "Cycle lane" & final_speed == 60 & final_traffic < 1000 ~ "Low",
+#     detailed_segregation == "Mixed traffic" & final_speed <= 30 ~ "Low",
+#     detailed_segregation == "Mixed traffic" & final_speed == 40 & final_traffic < 2000 ~ "Low",
+#     detailed_segregation == "Mixed traffic" & final_speed == 60 & final_traffic < 1000 ~ "Low",
+#     detailed_segregation == "Light segregation" ~ "Should not be used",
+#     detailed_segregation == "Cycle lane" ~ "Should not be used",
+#     detailed_segregation == "Mixed traffic" ~ "Should not be used",
+#     TRUE ~ "Unknown"
+#   )) |>
+#   dplyr::mutate(`Level of Service` = factor(
+#     `Level of Service`,
+#     levels = c("High", "Medium", "Low", "Should not be used"),
+#     ordered = TRUE
+#   ))
 
 cbd_layer = cycle_net_traffic |>
   transmute(
