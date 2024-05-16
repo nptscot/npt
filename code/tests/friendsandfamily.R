@@ -16,21 +16,21 @@ osm_highways = readRDS("./inputdata/osm_highways_2023-08-09.Rds")
 
 trip_purposes = read.csv("./data-raw/scottish-household-survey-2012-19.csv")
 go_home = trip_purposes$Mean[trip_purposes$Purpose == "Go Home"]
-trip_purposes = trip_purposes %>% 
-  filter(Purpose != "Sample size (=100%)") %>% 
+trip_purposes = trip_purposes |> 
+  filter(Purpose != "Sample size (=100%)") |> 
   mutate(adjusted_mean = Mean/(sum(Mean)-go_home)*sum(Mean)
   )
-visiting_percent = trip_purposes %>% 
-  filter(Purpose == "Visiting friends or relatives") %>% 
+visiting_percent = trip_purposes |> 
+  filter(Purpose == "Visiting friends or relatives") |> 
   select(adjusted_mean)
 visiting_percent = visiting_percent[[1]]/100
 
 # zones = readRDS("inputdata/DataZones.Rds")
-# zones_visiting = zones %>%
+# zones_visiting = zones |>
 #   mutate(visiting_trips = ResPop2011 * 2.61 * visiting_percent) # resident population (should use 18+ only) * trips per person (from NTS 2019 England) * percent of trips that are for visiting
-# zones_visiting = zones_visiting %>% 
+# zones_visiting = zones_visiting |> 
 #   filter(DataZone != "S01010206")
-# zones_visiting = zones_visiting %>% 
+# zones_visiting = zones_visiting |> 
 #   select(-TotPop2011, -HHCnt2011)
 if (!file.exists("./data-raw/SG_IntermediateZone_Bdry_2011.shp")) {
   u = "https://maps.gov.scot/ATOM/shapefiles/SG_IntermediateZoneBdry_2011.zip"
@@ -39,17 +39,17 @@ if (!file.exists("./data-raw/SG_IntermediateZone_Bdry_2011.shp")) {
   unzip(f, exdir = "./data-raw")
 }
 intermediate_zones = st_read("./data-raw/SG_IntermediateZone_Bdry_2011.shp")
-zones_visiting = intermediate_zones %>% 
+zones_visiting = intermediate_zones |> 
   select(InterZone, ResPop2011)
-zones_visiting = zones_visiting %>% 
+zones_visiting = zones_visiting |> 
   mutate(visiting_trips = ResPop2011 * 2.61 * visiting_percent)
 zones_visiting = st_transform(zones_visiting, 4326)
 zones_visiting = st_make_valid(zones_visiting)
 
 # Edinburgh sample
 scot_zones = sf::st_read("./data-raw/Scottish_Parliamentary_Constituencies_December_2022_Boundaries_SC_BGC_-9179620948196964406.gpkg")
-edinburgh_zones = scot_zones %>% 
-  mutate(city = substr(SPC22NM, 1, 9)) %>% 
+edinburgh_zones = scot_zones |> 
+  mutate(city = substr(SPC22NM, 1, 9)) |> 
   filter(city %in% "Edinburgh")
 edinburgh_zones = sf::st_transform(edinburgh_zones, 4326)
 library(tmap)
@@ -65,14 +65,14 @@ tmap::tm_shape(zones_sample) + tm_polygons()
 # Spatial interaction model of journeys
 max_length_euclidean_km = 5
 od_visiting = si_to_od(zones_visiting, zones_visiting, max_dist = max_length_euclidean_km * 1000)
-od_interaction = od_visiting %>% 
+od_interaction = od_visiting |> 
   si_calculate(fun = gravity_model, 
                m = origin_visiting_trips,
                n = destination_ResPop2011,
                d = distance_euclidean,
                beta = 0.5,
                constraint_production = origin_visiting_trips)
-# od_interaction = od_interaction %>% 
+# od_interaction = od_interaction |> 
 #   filter(quantile(interaction, 0.9) < interaction)
 
 saveRDS(od_interaction, "./inputdata/visiting_interaction.Rds")
@@ -80,12 +80,12 @@ od_interaction = readRDS("./inputdata/visiting_interaction.Rds")
 
 
 # Need to correct the number of trips, in accordance with origin_visiting_trips
-od_adjusted = od_interaction %>% 
-  group_by(O) %>% 
+od_adjusted = od_interaction |> 
+  group_by(O) |> 
   mutate(
     proportion = interaction / sum(interaction),
     visiting_all_modes = origin_visiting_trips * proportion
-  ) %>% 
+  ) |> 
   ungroup()
 
 # why does distance_euclidean drop so dramatically when we go from od_interaction to od_adjusted_jittered? 
@@ -110,19 +110,19 @@ cycle_mode_share = 0.012
 # but table 16 in transport-and-travel-in-scotland-2019-local-authority-tables.xlsx
 # is not accurate enough (no decimal places for the cycle % mode shares)
 
-od_visiting_jittered = od_adjusted_jittered %>% 
+od_visiting_jittered = od_adjusted_jittered |> 
   rename(
     geo_code1 = O,
     geo_code2 = D
-  ) %>% 
+  ) |> 
   mutate(visiting_cycle = visiting_all_modes * cycle_mode_share)
 
-od_visiting_jittered_updated = od_visiting_jittered %>% 
-  rename(length_euclidean_unjittered = distance_euclidean) %>% 
+od_visiting_jittered_updated = od_visiting_jittered |> 
+  rename(length_euclidean_unjittered = distance_euclidean) |> 
   mutate(
     length_euclidean_unjittered = length_euclidean_unjittered/1000,
     length_euclidean_jittered = units::drop_units(st_length(od_visiting_jittered))/1000
-  ) %>%
+  ) |>
   filter(
     length_euclidean_jittered > (min_distance_meters/1000),
     length_euclidean_jittered < max_length_euclidean_km

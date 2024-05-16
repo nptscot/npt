@@ -11,20 +11,22 @@ upload_tiles("overline.mbtiles", username = "robinlovelacep")
 # clb9aw5ph14u823qe3foh98z1
 
 # Test with Leaflet
-leaflet() %>%
+leaflet() |>
   addTiles()
 
 scotland_lads = readRDS("inputdata/lads_scotland.Rds")
-edinburgh_boundary = scotland_lads %>% 
+edinburgh_boundary = scotland_lads |>
   filter(str_detect(lau118nm, "Edin"))
 edinburgh_bb = sf::st_bbox(edinburgh_boundary)
 bb = as.numeric(edinburgh_bb)
 
-m1 = leaflet() %>%
-  # addTiles() %>% 
-  # addPolylines(data = scotland_lads, color = "white", opacity = 0.2, weight = 2) %>% 
-  addMapboxTiles(username = "robinlovelacep", layerId = "clb9bp00i0plf21ouq9hlds5m",
-                 style_url = "mapbox://styles/robinlovelacep/clb9b4nbh001v14ticxn7p6sn") %>% 
+m1 = leaflet() |>
+  # addTiles() |>
+  # addPolylines(data = scotland_lads, color = "white", opacity = 0.2, weight = 2) |>
+  addMapboxTiles(
+    username = "robinlovelacep", layerId = "clb9bp00i0plf21ouq9hlds5m",
+    style_url = "mapbox://styles/robinlovelacep/clb9b4nbh001v14ticxn7p6sn"
+  ) |>
   flyToBounds(lng1 = bb[1], lat1 = bb[2], lng2 = bb[3], lat2 = bb[4])
 m1
 

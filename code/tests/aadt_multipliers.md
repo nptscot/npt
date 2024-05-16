@@ -50,8 +50,8 @@ https://github.com/nptscot/TT\_-Scottish_Household_Survey#commute for
 details.
 
 ``` r
-aadt_multiplier_commute = aadt_original %>%
-  filter(NPT_purpose == "Commute") %>%
+aadt_multiplier_commute = aadt_original |>
+  filter(NPT_purpose == "Commute") |>
   pull(AADT_all)
 ```
 
@@ -99,7 +99,7 @@ at 1.
 Updating the table presented above, we have:
 
 ``` r
-aadt_updated = aadt_original %>%
+aadt_updated = aadt_original |>
   mutate(AADT_multiplier = case_when(
     NPT_purpose == "Commute" ~ aadt_multiplier_commute,
     NPT_purpose == "School" ~ aadt_multiplier_school,

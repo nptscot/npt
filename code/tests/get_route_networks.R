@@ -28,7 +28,7 @@ for(p in plans) {
     attrib = c("bicycle", "bicycle_go_dutch", "quietness", "gradient_smooth"), # todo: add other modes
     fun = list(sum = sum, mean = mean)
   )
-  rnet = rnet_raw %>%
+  rnet = rnet_raw |>
     transmute(
       bicycle = round(bicycle_sum),
       # `Bicycle (Near Market)` = round(cyclists_near_sum),
@@ -37,7 +37,7 @@ for(p in plans) {
       gradient = round(gradient_smooth_mean * 100),
       quietness = round(quietness_mean)
       # col = cut(quietness, quietness_breaks, labels = pal_quietness, right = FALSE)
-    ) %>% 
+    ) |> 
     dplyr::arrange(bicycle)
   rnet_commute_list[[p]] = rnet
 }

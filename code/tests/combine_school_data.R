@@ -20,16 +20,16 @@ flow_ebike = left_join(st_drop_geometry(flow), school_ebike, by = c("route_numbe
 
 calc_flows = function(r){
   r = r[!is.na(r$length),]
-  r = r %>% 
-    rename(length_route = length) %>%
-    rename(gradient = gradient_smooth) %>% 
-    rename(all = count) %>% 
-    group_by(route_number) %>% 
-    mutate(route_hilliness = mean(gradient)) %>% 
+  r = r |> 
+    rename(length_route = length) |>
+    rename(gradient = gradient_smooth) |> 
+    rename(all = count) |> 
+    group_by(route_number) |> 
+    mutate(route_hilliness = mean(gradient)) |> 
     ungroup()
   
-  r = r %>% 
-    mutate(bicycle = round(all/50,1)) %>% 
+  r = r |> 
+    mutate(bicycle = round(all/50,1)) |> 
     mutate(bicycle_go_dutch = round(pct::uptake_pct_godutch_2020(length_route,route_hilliness) * all,1)) 
   
   r = st_as_sf(r)
@@ -59,8 +59,8 @@ rnet_long = list(rnet_fast, rnet_quiet, rnet_balanced, rnet_ebike)
 
 rnet_long = data.table::rbindlist(rnet_long, fill = TRUE)
 rnet_long = rnet_long[,c(1:4,6:11,5)]
-rnet_long = rnet_long %>% 
-  mutate(across(school_fastest_bicycle:school_ebike_bicycle_go_dutch, function(x) tidyr::replace_na(x, 0))) %>% 
+rnet_long = rnet_long |> 
+  mutate(across(school_fastest_bicycle:school_ebike_bicycle_go_dutch, function(x) tidyr::replace_na(x, 0))) |> 
   as_tibble()
 
 rnet_long$geometry = sf::st_sfc(rnet_long$geometry, recompute_bbox = TRUE)
@@ -112,12 +112,12 @@ saveRDS(rnet_combined, "D:/University of Leeds/TEAM - Network Planning Tool - Ge
 # flow_fast$length <- as.numeric(flow_fast$length)
 # flow_fast$gradient_smooth <- as.numeric(flow_fast$gradient_smooth)
 # 
-# flow_fast = flow_fast %>% 
-#   rename(route_number = id) %>%
-#   rename(length_route = length) %>%
-#   rename(gradient = gradient_smooth) %>% 
-#   group_by(route_number) %>% 
-#   mutate(route_hilliness = mean(gradient)) %>% 
+# flow_fast = flow_fast |> 
+#   rename(route_number = id) |>
+#   rename(length_route = length) |>
+#   rename(gradient = gradient_smooth) |> 
+#   group_by(route_number) |> 
+#   mutate(route_hilliness = mean(gradient)) |> 
 #   ungroup()
 # 
 # flow_fast$count_go_dutch = round(pct::uptake_pct_godutch_2020(flow_fast$length_route,  flow_fast$route_hilliness) * flow_fast$count)

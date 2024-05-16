@@ -69,9 +69,9 @@ res_all = res_all[,c("Local Authority","SEED No.","School Name","Year",
                      "taxi","other")]
 
 # Fill in missing data
-res_summary <- res_all %>%
- filter(!is.na(Total)) %>%
- group_by(`Local Authority`, `type`) %>%
+res_summary <- res_all |>
+ filter(!is.na(Total)) |>
+ group_by(`Local Authority`, `type`) |>
  summarise(walk = median(walk, na.rm = TRUE),
            bicycle = median(bicycle, na.rm = TRUE),
            public_transport = median(public_transport, na.rm = TRUE),

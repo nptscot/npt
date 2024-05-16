@@ -32,24 +32,24 @@ osm_lines = osmextract::oe_get_network(
 
 # Simple exploratory analysis
 # identify services, these are service stations, not realistic cycle trip start/end points
-osm_lines %>%
-  filter(highway == "services") %>%
+osm_lines |>
+  filter(highway == "services") |>
   qtm()
-osm_lines %>%
-  filter(highway == "rest_area") %>%
+osm_lines |>
+  filter(highway == "rest_area") |>
   qtm()
-osm_lines %>%
-  filter(highway == "track") %>%
-  sample_n(200) %>% 
+osm_lines |>
+  filter(highway == "track") |>
+  sample_n(200) |> 
   qtm()
-osm_lines %>%
-  filter(highway == "trunk") %>%
-  sample_n(500) %>% 
+osm_lines |>
+  filter(highway == "trunk") |>
+  sample_n(500) |> 
   qtm()
 
 to_exclude = "motorway|services|bridleway|disused|emergency|escap|far|foot|path|rest|road|track"
 
-osm_highways = osm_lines %>%
+osm_highways = osm_lines |>
   filter(!str_detect(string = highway, pattern = to_exclude),
          is.na(bicycle)|!str_detect(string = bicycle, pattern = "mtb|discouraged|unknown"),
          !(str_detect(string = highway, pattern = "pedestrian")& !str_detect(string = bicycle, pattern = "designated")))

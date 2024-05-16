@@ -18,5 +18,5 @@ gh_installed = function() {
   #   }
   # }
   sysoutput = processx::run("gh", error_on_status = FALSE)
-  if(sysoutput$stdout == 0) message("gh exists")
+  if (sysoutput$stdout == 0) message("gh exists")
 }

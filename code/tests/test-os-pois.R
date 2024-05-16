@@ -13,7 +13,7 @@ tar_load(parameters)
 tar_load(study_area)
 
 odjitter_location = parameters$odjitter_location
-os_retail = os_pois %>% 
+os_retail = os_pois |> 
   dplyr::filter(groupname == "Retail") # 26279 points
 
 # # Clip to geo_subset (now done in target os_pois)
@@ -21,15 +21,15 @@ os_retail = os_pois %>%
 #   os_retail = os_retail[study_area, op = sf::st_within]
 # }
 
-os_retail = os_retail %>% 
+os_retail = os_retail |> 
   sf::st_transform(27700)
 
-shopping = os_retail %>% 
+shopping = os_retail |> 
   dplyr::mutate(grid_id = sf::st_nearest_feature(os_retail, grid))
 # calculate weighting of each grid point
-shopping_grid = shopping %>% 
-  sf::st_drop_geometry() %>% 
-  dplyr::group_by(grid_id) %>% 
+shopping_grid = shopping |> 
+  sf::st_drop_geometry() |> 
+  dplyr::group_by(grid_id) |> 
   dplyr::summarise(size = n())
 grid_df = data.frame(grid)
 grid_df = tibble::rowid_to_column(grid_df, "grid_id")

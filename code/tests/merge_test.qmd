@@ -111,7 +111,7 @@ rnet_merged_all = rnet_merged_all[ , !(names(rnet_merged_all) %in% c('identifier
 # Remove Z and M dimensions (if they exist) and set geometry precision
 rnet_merged_all = st_zm(rnet_merged_all, what = "ZM")
 rnet_merged_all$geometry = st_set_precision(rnet_merged_all$geometry, 1e3)
-rnet_merged_all = rnet_merged_all %>%
+rnet_merged_all = rnet_merged_all |>
   mutate(across(where(is.numeric), ~ round(.x, 0)))      
 
 # Define columns to check for NA values
@@ -121,7 +121,7 @@ rnet_yp_list = as.list(names(rnet_yp))
 columns_to_check = unlist(rnet_yp_list[rnet_yp_list != "geometry"])
 
 # Remove rows where all specified columns are NA using dplyr's select and filter functions
-rnet_merged_all <- rnet_merged_all %>%
+rnet_merged_all <- rnet_merged_all |>
   filter(rowSums(is.na(select(., all_of(columns_to_check)))) != length(columns_to_check))
   
 timestamp <- format(Sys.time(), "%Y%m%d_%H%M%S")
@@ -165,7 +165,7 @@ within_join <- st_join(rnet_yp, single_rnet_merged_all_buffer_gdf, join = st_wit
 # Filtering geometries not within the buffer
 rnet_yp_rest <- rnet_yp[!rnet_yp$geometry %in% within_join$geometry, ]
 
-rnet_merged_all <- rnet_merged_all %>%
+rnet_merged_all <- rnet_merged_all |>
   rename(geometry = geom)
 
 # Concatenation (vertical stacking)

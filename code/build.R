@@ -12,13 +12,13 @@ region_names = unique(lads$Region)[c(3, 2, 1, 4, 5, 6)] # Start with Glasgow
 cities_region_names = list()
 
 for (region in region_names) {
-# Assuming 'CityName' is the column that holds the names of cities or localities
-  cities_in_region = lads |> 
-    filter(Region == region) |> 
-    pull(LAD23NM) |> 
+  # Assuming 'CityName' is the column that holds the names of cities or localities
+  cities_in_region = lads |>
+    filter(Region == region) |>
+    pull(LAD23NM) |>
     unique() # Ensure unique city names
 
-# Add the city names to the list under the region name
+  # Add the city names to the list under the region name
   cities_region_names[[region]] = cities_in_region
 }
 
@@ -29,34 +29,40 @@ failed_regions = character()
 
 # First loop: Attempt to process each region and capture any failures
 for (region in region_names[1:6]) {
-  tryCatch({
-    message("Processing region: ", region)
-    parameters$region = region
-    parameters$coherent_area = cities_region_names[[region]]
-    jsonlite::write_json(parameters, "parameters.json", pretty = TRUE)
-    targets::tar_make()
-  }, error = function(e) {
-    message(paste("Error encountered in region", region, ". Error details: ", e$message))
-    # Add the failed region to the vector for later retry
-    print(paste("Adding", region, "to failed_regions"))
-    failed_regions <= c(failed_regions, region)
-  })
+  tryCatch(
+    {
+      message("Processing region: ", region)
+      parameters$region = region
+      parameters$coherent_area = cities_region_names[[region]]
+      jsonlite::write_json(parameters, "parameters.json", pretty = TRUE)
+      targets::tar_make()
+    },
+    error = function(e) {
+      message(paste("Error encountered in region", region, ". Error details: ", e$message))
+      # Add the failed region to the vector for later retry
+      print(paste("Adding", region, "to failed_regions"))
+      failed_regions <= c(failed_regions, region)
+    }
+  )
 }
 
 # Second loop: Attempt to reprocess any regions that failed in the first attempt
 if (length(failed_regions) > 0) {
   message("Attempting to reprocess failed regions...")
   for (region in failed_regions) {
-    tryCatch({
-      message("Reprocessing region: ", region)
-      parameters$region = region
-      parameters$coherent_area = cities_region_names[[region]]
-      jsonlite::write_json(parameters, "parameters.json", pretty = TRUE)
-      targets::tar_make()
-    }, error = function(e) {
-      message(paste("Failed again in region", region, ". Error details: ", e$message))
-      # Here you could log the failure or take additional recovery actions
-    })
+    tryCatch(
+      {
+        message("Reprocessing region: ", region)
+        parameters$region = region
+        parameters$coherent_area = cities_region_names[[region]]
+        jsonlite::write_json(parameters, "parameters.json", pretty = TRUE)
+        targets::tar_make()
+      },
+      error = function(e) {
+        message(paste("Failed again in region", region, ". Error details: ", e$message))
+        # Here you could log the failure or take additional recovery actions
+      }
+    )
   }
 } else {
   message("All regions processed successfully on the first attempt.")
@@ -95,8 +101,8 @@ traffic_volumes_scotland = sf::read_sf(f_traffic)
 osm_national = get_travel_network("Scotland")
 
 # Test for Edinburgh region (TODO: remove so the code runs nationally): ---
-edinburgh_region = lads |> 
-  filter(str_detect(LAD23NM, "Edinburgh")) 
+edinburgh_region = lads |>
+  filter(str_detect(LAD23NM, "Edinburgh"))
 osm = osm_national[edinburgh_region, ]
 nrow(osm) / nrow(osm_national)
 # 6% network, could be 20x+ slower for Scotland
@@ -113,7 +119,7 @@ drive_net = clean_speeds(drive_net)
 cycle_net = clean_speeds(cycle_net)
 
 # Add assumed traffic volumes
-cycle_net = cycle_net %>% 
+cycle_net = cycle_net |>
   mutate(assumed_volume = case_when(
     highway == "primary" ~ 6000,
     highway == "primary_link" ~ 6000,
@@ -130,30 +136,30 @@ cycle_net = cycle_net %>%
 # See tutorial: https://github.com/acteng/network-join-demos
 cycle_net_joined_polygons = stplanr::rnet_join(
   rnet_x = cycle_net,
-  rnet_y = drive_net %>% 
+  rnet_y = drive_net |>
     transmute(
       maxspeed_road = maxspeed_clean,
       highway_join = highway
-    ) %>% 
+    ) |>
     sf::st_cast(to = "LINESTRING"),
   dist = 20,
   segment_length = 10
 )
 
 # group by + summarise stage
-cycleways_with_road_speeds_df = cycle_net_joined_polygons %>% 
-  sf::st_drop_geometry() %>% 
-  group_by(osm_id) %>% 
+cycleways_with_road_speeds_df = cycle_net_joined_polygons |>
+  sf::st_drop_geometry() |>
+  group_by(osm_id) |>
   summarise(
     maxspeed_road = osmactive:::most_common_value(maxspeed_road),
     highway_join = osmactive:::most_common_value(highway_join)
-  ) %>% 
+  ) |>
   mutate(maxspeed_road = as.numeric(maxspeed_road))
 
 # join back onto cycle_net
 cycle_net_joined = left_join(cycle_net, cycleways_with_road_speeds_df)
 
-cycle_net_joined = cycle_net_joined %>% 
+cycle_net_joined = cycle_net_joined |>
   mutate(join_volume = case_when(
     highway_join == "primary" ~ 6000,
     highway_join == "primary_link" ~ 6000,
@@ -166,33 +172,35 @@ cycle_net_joined = cycle_net_joined %>%
     highway_join == "unclassified" ~ 1000
   ))
 
-cycle_net_joined = cycle_net_joined %>% 
+cycle_net_joined = cycle_net_joined |>
   mutate(
     final_speed = case_when(
       !is.na(maxspeed_clean) ~ maxspeed_clean,
-      TRUE ~ maxspeed_road),
+      TRUE ~ maxspeed_road
+    ),
     final_volume = case_when(
       !is.na(assumed_volume) ~ assumed_volume,
-      TRUE ~ join_volume)
+      TRUE ~ join_volume
+    )
   )
 
 traffic_volumes_edinburgh = traffic_volumes_scotland[edinburgh_region, ]
 cycle_net_traffic_polygons = stplanr::rnet_join(
   max_angle_diff = 30,
   rnet_x = cycle_net_joined,
-  rnet_y = traffic_volumes_edinburgh %>% 
+  rnet_y = traffic_volumes_edinburgh |>
     transmute(
       name_1, road_classification, pred_flows
-    ) %>% 
+    ) |>
     sf::st_cast(to = "LINESTRING"),
   dist = 15,
   segment_length = 10
 )
 
 # group by + summarise stage
-cycleways_with_traffic_df = cycle_net_traffic_polygons %>% 
-  st_drop_geometry() %>% 
-  group_by(osm_id) %>% 
+cycleways_with_traffic_df = cycle_net_traffic_polygons |>
+  st_drop_geometry() |>
+  group_by(osm_id) |>
   summarise(
     pred_flows = median(pred_flows),
     road_classification = osmactive:::most_common_value(road_classification),
@@ -205,18 +213,19 @@ cycle_net_traffic = left_join(cycle_net_joined, cycleways_with_traffic_df)
 # TODO: Add code to filter out misclassified roads
 # See https://github.com/nptscot/osmactive/issues/41
 # Use original traffic estimates in some cases
-cycle_net_traffic = cycle_net_traffic %>% 
+cycle_net_traffic = cycle_net_traffic |>
   mutate(
     final_traffic = case_when(
       detailed_segregation == "Cycle track" ~ 0,
       highway %in% c("residential", "service") & pred_flows >= 4000 ~ final_volume,
       !is.na(pred_flows) ~ pred_flows,
-      TRUE ~ final_volume)
+      TRUE ~ final_volume
     )
+  )
 
 # Check results
 
-cycle_net_traffic = cycle_net_traffic %>% 
+cycle_net_traffic = cycle_net_traffic |>
   mutate(`Level of Service` = case_when(
     detailed_segregation == "Cycle track" ~ "High",
     detailed_segregation == "Level track" & final_speed <= 30 ~ "High",
@@ -228,7 +237,6 @@ cycle_net_traffic = cycle_net_traffic %>%
     detailed_segregation == "Cycle lane" & final_speed == 30 & final_traffic < 1000 ~ "High",
     detailed_segregation == "Mixed traffic" & final_speed <= 20 & final_traffic < 2000 ~ "High",
     detailed_segregation == "Mixed traffic" & final_speed == 30 & final_traffic < 1000 ~ "High",
-    
     detailed_segregation == "Level track" & final_speed == 40 ~ "Medium",
     detailed_segregation == "Level track" & final_speed == 50 & final_traffic < 1000 ~ "Medium",
     detailed_segregation == "Stepped or footway" & final_speed <= 40 ~ "Medium",
@@ -242,8 +250,6 @@ cycle_net_traffic = cycle_net_traffic %>%
     detailed_segregation == "Mixed traffic" & final_speed <= 20 & final_traffic < 4000 ~ "Medium",
     detailed_segregation == "Mixed traffic" & final_speed == 30 & final_traffic < 2000 ~ "Medium",
     detailed_segregation == "Mixed traffic" & final_speed == 40 & final_traffic < 1000 ~ "Medium",
-    
-    
     detailed_segregation == "Level track" ~ "Low",
     detailed_segregation == "Stepped or footway" ~ "Low",
     detailed_segregation == "Light segregation" & final_speed <= 50 ~ "Low",
@@ -253,12 +259,11 @@ cycle_net_traffic = cycle_net_traffic %>%
     detailed_segregation == "Mixed traffic" & final_speed <= 30 ~ "Low",
     detailed_segregation == "Mixed traffic" & final_speed == 40 & final_traffic < 2000 ~ "Low",
     detailed_segregation == "Mixed traffic" & final_speed == 60 & final_traffic < 1000 ~ "Low",
-    
     detailed_segregation == "Light segregation" ~ "Should not be used",
     detailed_segregation == "Cycle lane" ~ "Should not be used",
     detailed_segregation == "Mixed traffic" ~ "Should not be used",
     TRUE ~ "Unknown"
-  )) %>% 
+  )) |>
   dplyr::mutate(`Level of Service` = factor(
     `Level of Service`,
     levels = c("High", "Medium", "Low", "Should not be used"),
@@ -278,17 +283,19 @@ cbd_layer = cycle_net_traffic |>
 sf::write_sf(cbd_layer, "cbd_layer.geojson", delete_dsn = TRUE)
 
 # PMTiles:
-pmtiles_msg = paste('tippecanoe -o cbd_layer.pmtiles',
-                     '--name=cbd_layer',
-                     '--layer=cbd_layer',
-                     '--attribution=UniversityofLeeds',
-                     '--minimum-zoom=6',
-                     '--maximum-zoom=13',
-                     '--drop-smallest-as-needed',
-                     '--maximum-tile-bytes=5000000',
-                     '--simplification=10',
-                     '--buffer=5',
-                     '--force  cbd_layer.geojson', collapse = " ")
+pmtiles_msg = paste("tippecanoe -o cbd_layer.pmtiles",
+  "--name=cbd_layer",
+  "--layer=cbd_layer",
+  "--attribution=UniversityofLeeds",
+  "--minimum-zoom=6",
+  "--maximum-zoom=13",
+  "--drop-smallest-as-needed",
+  "--maximum-tile-bytes=5000000",
+  "--simplification=10",
+  "--buffer=5",
+  "--force  cbd_layer.geojson",
+  collapse = " "
+)
 system(pmtiles_msg)
 # Rename and upload:
 file.rename("cbd_layer.pmtiles", "outputdata/cbd_layer.pmtiles")
@@ -302,7 +309,7 @@ system("gh release upload 2024-05-30-geojson cbd_layer.pmtiles")
 # Define the path to the file
 setwd("..")
 file_path = "inputdata/open_roads_scotland.gpkg"
-if(!file.exists(file_path)) {
+if (!file.exists(file_path)) {
   setwd("inputdata")
   system("gh release download OS_network --skip-existing")
   setwd("..")
@@ -314,57 +321,62 @@ output_folder = file.path("outputdata", date_folder)
 
 # Generate the coherent network for the region
 for (region in region_names[1:6]) {
-    message("Processing coherent network for region: ", region)
-    region_snake = snakecase::to_snake_case(region)
-    coherent_area = cities_region_names[[region]]
+  message("Processing coherent network for region: ", region)
+  region_snake = snakecase::to_snake_case(region)
+  coherent_area = cities_region_names[[region]]
 
-    cnet_path = file.path(output_folder, region_snake, "combined_network_tile.geojson")
-    combined_net = sf::read_sf(cnet_path) |>
-      sf::st_transform(crs = "EPSG:27700")
+  cnet_path = file.path(output_folder, region_snake, "combined_network_tile.geojson")
+  combined_net = sf::read_sf(cnet_path) |>
+    sf::st_transform(crs = "EPSG:27700")
 
-    folder_path = file.path(output_folder, region_snake, "coherent_networks/")
+  folder_path = file.path(output_folder, region_snake, "coherent_networks/")
 
-    if(!dir.exists(folder_path)) {
-      dir.create(folder_path, recursive = TRUE)
-    }
+  if (!dir.exists(folder_path)) {
+    dir.create(folder_path, recursive = TRUE)
+  }
 
-    for (city in coherent_area) { 
-      city_filename = snakecase::to_snake_case(city)
-      tryCatch({
+  for (city in coherent_area) {
+    city_filename = snakecase::to_snake_case(city)
+    tryCatch(
+      {
         message("Generating coherent network for: ", city)
-        city_boundary  = filter(lads, LAD23NM == city) |>
+        city_boundary = filter(lads, LAD23NM == city) |>
           sf::st_transform(crs = "EPSG:27700")
 
-        combined_net_city_boundary  = combined_net[sf::st_union(city_boundary ), , op = sf::st_intersects]
+        combined_net_city_boundary = combined_net[sf::st_union(city_boundary), , op = sf::st_intersects]
 
-        min_percentile_value = stats::quantile(combined_net_city_boundary $all_fastest_bicycle_go_dutch, probs = 0.938, na.rm = TRUE)
+        min_percentile_value = stats::quantile(combined_net_city_boundary$all_fastest_bicycle_go_dutch, probs = 0.938, na.rm = TRUE)
 
-        open_roads_scotland_city_boundary  = open_roads_scotland[sf::st_union(city_boundary ), , op = sf::st_intersects]
+        open_roads_scotland_city_boundary = open_roads_scotland[sf::st_union(city_boundary), , op = sf::st_intersects]
 
-        OS_combined_net_city_boundary  = corenet::cohesive_network_prep(base_network = open_roads_scotland_city_boundary , 
-                                            influence_network = combined_net_city_boundary , 
-                                            city_boundary , 
-                                            crs = "EPSG:27700", 
-                                            key_attribute = "road_function", 
-                                            attribute_values = c("A Road", "B Road", "Minor Road"))
+        OS_combined_net_city_boundary = corenet::cohesive_network_prep(
+          base_network = open_roads_scotland_city_boundary,
+          influence_network = combined_net_city_boundary,
+          city_boundary,
+          crs = "EPSG:27700",
+          key_attribute = "road_function",
+          attribute_values = c("A Road", "B Road", "Minor Road")
+        )
 
-        cohesive_network_city_boundary  = corenet::corenet(combined_net_city_boundary , OS_combined_net_city_boundary , city_boundary , 
-                                          key_attribute = "all_fastest_bicycle_go_dutch", 
-                                          crs = "EPSG:27700", dist = 10, threshold = min_percentile_value, 
-                                          road_scores = list("A Road" = 1, "B Road" = 1, "Minor Road" = 10000000))
+        cohesive_network_city_boundary = corenet::corenet(combined_net_city_boundary, OS_combined_net_city_boundary, city_boundary,
+          key_attribute = "all_fastest_bicycle_go_dutch",
+          crs = "EPSG:27700", dist = 10, threshold = min_percentile_value,
+          road_scores = list("A Road" = 1, "B Road" = 1, "Minor Road" = 10000000)
+        )
 
-        grouped_network = corenet::coherent_network_group(cohesive_network_city_boundary , key_attribute = "all_fastest_bicycle_go_dutch")
+        grouped_network = corenet::coherent_network_group(cohesive_network_city_boundary, key_attribute = "all_fastest_bicycle_go_dutch")
 
         # Use city name in the filename
         corenet::create_coherent_network_PMtiles(folder_path = folder_path, city_filename = city_filename, cohesive_network = grouped_network)
 
         message("Coherent network for: ", city, " generated successfully")
-
-      }, error = function(e) {
+      },
+      error = function(e) {
         message(sprintf("An error occurred with %s: %s", city, e$message))
-      })  
-    }
-}   
+      }
+    )
+  }
+}
 
 # Combine regional outputs ---------------------------------------------------
 output_folders = list.dirs(file.path("outputdata", date_folder))[-1]
@@ -434,21 +446,23 @@ if (file.exists(zones_stats_file)) {
 
 export_zone_json(zones_stats, "DataZone", path = "outputdata")
 
-#Combined network tiling
+# Combined network tiling
 setwd("outputdata")
 # Check the combined_network_tile.geojson file is there:
 file.exists("combined_network_tile.geojson")
-command_tippecanoe = paste('tippecanoe -o rnet.pmtiles',
-                           '--name=rnet',
-                           '--layer=rnet',
-                           '--attribution=UniverstyofLeeds',
-                           '--minimum-zoom=6',
-                           '--maximum-zoom=13',
-                           '--drop-smallest-as-needed',
-                           '--maximum-tile-bytes=5000000',
-                           '--simplification=10',
-                           '--buffer=5',
-                           '--force  combined_network_tile.geojson', collapse = " ")
+command_tippecanoe = paste("tippecanoe -o rnet.pmtiles",
+  "--name=rnet",
+  "--layer=rnet",
+  "--attribution=UniverstyofLeeds",
+  "--minimum-zoom=6",
+  "--maximum-zoom=13",
+  "--drop-smallest-as-needed",
+  "--maximum-tile-bytes=5000000",
+  "--simplification=10",
+  "--buffer=5",
+  "--force  combined_network_tile.geojson",
+  collapse = " "
+)
 
 responce = system(command_tippecanoe, intern = TRUE)
 
@@ -470,84 +484,93 @@ make_geojson_zones(b_low, file.path("outputdata", "dasymetric_low.geojson"))
 make_geojson_zones(b_med, file.path("outputdata", "dasymetric_med.geojson"))
 make_geojson_zones(b_high, file.path("outputdata", "dasymetric_high.geojson"))
 
-tippecanoe_verylow = paste('tippecanoe -o dasymetric_verylow.pmtiles',
-                           '--name=dasymetric',
-                           '--layer=dasymetric',
-                           '--attribution=OS',
-                           '--minimum-zoom=4',
-                           '--maximum-zoom=6',
-                           '--coalesce-smallest-as-needed',
-                           '--detect-shared-borders',
-                           '--maximum-tile-bytes=5000000',
-                           '--simplification=1',
-                           '--buffer=5',
-                           '--force dasymetric_verylow.geojson', 
-                           collapse = " ")
+tippecanoe_verylow = paste("tippecanoe -o dasymetric_verylow.pmtiles",
+  "--name=dasymetric",
+  "--layer=dasymetric",
+  "--attribution=OS",
+  "--minimum-zoom=4",
+  "--maximum-zoom=6",
+  "--coalesce-smallest-as-needed",
+  "--detect-shared-borders",
+  "--maximum-tile-bytes=5000000",
+  "--simplification=1",
+  "--buffer=5",
+  "--force dasymetric_verylow.geojson",
+  collapse = " "
+)
 
-tippecanoe_low = paste('tippecanoe -o dasymetric_low.pmtiles',
-                       '--name=dasymetric',
-                       '--layer=dasymetric',
-                       '--attribution=OS',
-                       '--minimum-zoom=7',
-                       '--maximum-zoom=9',
-                       '--coalesce-smallest-as-needed',
-                       '--detect-shared-borders',
-                       '--maximum-tile-bytes=5000000',
-                       '--simplification=1',
-                       '--buffer=5',
-                       '--force dasymetric_low.geojson', 
-                       collapse = " ")
+tippecanoe_low = paste("tippecanoe -o dasymetric_low.pmtiles",
+  "--name=dasymetric",
+  "--layer=dasymetric",
+  "--attribution=OS",
+  "--minimum-zoom=7",
+  "--maximum-zoom=9",
+  "--coalesce-smallest-as-needed",
+  "--detect-shared-borders",
+  "--maximum-tile-bytes=5000000",
+  "--simplification=1",
+  "--buffer=5",
+  "--force dasymetric_low.geojson",
+  collapse = " "
+)
 
-tippecanoe_med = paste('tippecanoe -o dasymetric_med.pmtiles',
-                       '--name=dasymetric',
-                       '--layer=dasymetric',
-                       '--attribution=OS',
-                       '--minimum-zoom=10',
-                       '--maximum-zoom=14',
-                       '--coalesce-smallest-as-needed',
-                       '--detect-shared-borders',
-                       '--maximum-tile-bytes=5000000',
-                       '--simplification=2',
-                       '--buffer=5',
-                       '--force dasymetric_med.geojson', 
-                       collapse = " ")
+tippecanoe_med = paste("tippecanoe -o dasymetric_med.pmtiles",
+  "--name=dasymetric",
+  "--layer=dasymetric",
+  "--attribution=OS",
+  "--minimum-zoom=10",
+  "--maximum-zoom=14",
+  "--coalesce-smallest-as-needed",
+  "--detect-shared-borders",
+  "--maximum-tile-bytes=5000000",
+  "--simplification=2",
+  "--buffer=5",
+  "--force dasymetric_med.geojson",
+  collapse = " "
+)
 
-tippecanoe_high = paste('tippecanoe -o dasymetric_high.pmtiles',
-                        '--name=dasymetric',
-                        '--layer=dasymetric',
-                        '--attribution=OS',
-                        '-zg',
-                        '--minimum-zoom=15',
-                        '--extend-zooms-if-still-dropping',
-                        '--coalesce-smallest-as-needed',
-                        '--detect-shared-borders',
-                        '--maximum-tile-bytes=5000000',
-                        '--simplification=5',
-                        '--buffer=5',
-                        '--force dasymetric_high.geojson', 
-                        collapse = " ")
+tippecanoe_high = paste("tippecanoe -o dasymetric_high.pmtiles",
+  "--name=dasymetric",
+  "--layer=dasymetric",
+  "--attribution=OS",
+  "-zg",
+  "--minimum-zoom=15",
+  "--extend-zooms-if-still-dropping",
+  "--coalesce-smallest-as-needed",
+  "--detect-shared-borders",
+  "--maximum-tile-bytes=5000000",
+  "--simplification=5",
+  "--buffer=5",
+  "--force dasymetric_high.geojson",
+  collapse = " "
+)
 
-tippecanoe_join = paste('tile-join -o dasymetric.pmtiles -pk --force',
-                        'dasymetric_verylow.pmtiles',
-                        'dasymetric_low.pmtiles',
-                        'dasymetric_med.pmtiles',
-                        'dasymetric_high.pmtiles', 
-                        collapse = " ")
+tippecanoe_join = paste("tile-join -o dasymetric.pmtiles -pk --force",
+  "dasymetric_verylow.pmtiles",
+  "dasymetric_low.pmtiles",
+  "dasymetric_med.pmtiles",
+  "dasymetric_high.pmtiles",
+  collapse = " "
+)
 
 
 
-if(.Platform$OS.type == "unix") {
-  command_cd = 'cd outputdata'
-  command_all = paste(c(command_cd, tippecanoe_verylow, tippecanoe_low, 
-                        tippecanoe_med, tippecanoe_high, tippecanoe_join), collapse = "; ")
+if (.Platform$OS.type == "unix") {
+  command_cd = "cd outputdata"
+  command_all = paste(c(
+    command_cd, tippecanoe_verylow, tippecanoe_low,
+    tippecanoe_med, tippecanoe_high, tippecanoe_join
+  ), collapse = "; ")
 } else {
   # Using WSL
   dir = getwd()
-  command_start = 'bash -c '
-  command_cd = paste0('cd /mnt/',tolower(substr(dir,1,1)),substr(dir,3,nchar(dir)),'/outputs')
-  command_all = paste(c(command_cd, tippecanoe_verylow, tippecanoe_low, 
-                        tippecanoe_med, tippecanoe_high, tippecanoe_join), collapse = "; ")
-  command_all = paste0(command_start,'"',command_all,'"')
+  command_start = "bash -c "
+  command_cd = paste0("cd /mnt/", tolower(substr(dir, 1, 1)), substr(dir, 3, nchar(dir)), "/outputs")
+  command_all = paste(c(
+    command_cd, tippecanoe_verylow, tippecanoe_low,
+    tippecanoe_med, tippecanoe_high, tippecanoe_join
+  ), collapse = "; ")
+  command_all = paste0(command_start, '"', command_all, '"')
 }
 responce = system(command_all, intern = TRUE)
 
@@ -556,7 +579,7 @@ app_tiles_directory = "../nptscot.github.io/tiles"
 list.files(app_tiles_directory) # list current files
 pmtiles = list.files("outputdata", pattern = "pmtiles", full.names = TRUE)
 pmtiles_new = file.path(app_tiles_directory, basename(pmtiles))
-file.copy(pmtiles, pmtiles_new,  overwrite = TRUE)
+file.copy(pmtiles, pmtiles_new, overwrite = TRUE)
 
 # Check contents of outputdata folder:
 outputdata_files = list.files("outputdata")
@@ -603,3 +626,43 @@ edinburgh_central = zonebuilder::zb_zone("Edinburgh", n_circles = 2)
 tar_load(simplified_network)
 simplified_central = simplified_network[edinburgh_central, ]
 mapview::mapview(simplified_central)
+
+# Upload stage:
+
+#   # Ensure the target runs after
+#   check = length(save_outputs)
+
+#   commit = gert::git_log(max = 1)
+#   message("Commit: ", commit)
+#   full_build =
+#     # isFALSE(parameters$geo_subset) &&
+#     isFALSE(parameters$open_data_build) &&
+#     parameters$max_to_route > 20e3
+#   is_linux = Sys.info()[['sysname']] == "Linux"
+#   if(full_build) {
+#   v = paste0("v", save_outputs, "_commit_", commit$commit)
+#   v = gsub(pattern = " |:", replacement = "-", x = v)
+#   setwd("outputdata")
+#   f = list.files(path = ".", pattern = "Rds|zip|pmtiles|json|gpkg")
+#   f = f[!grepl(".geojson", f)] # Remove .geojsons
+#   # piggyback::pb_upload(f)
+#   msg = glue::glue("gh release create {v} --generate-notes")
+#   message("Creating new release and folder to save the files: ", v)
+#   dir.create(v)
+#   message("Going to try to upload the following files: ", paste0(f, collapse = ", "))
+#   message("With sizes: ", paste0(fs::file_size(f), collapse = ", "))
+#   system(msg)
+#   for(i in f) {
+#     gh_release_upload(file = i, tag = v)
+#     # Move into a new directory
+#     file.copy(from = i, to = file.path(v, i))
+#   }
+#   message("Files stored in output folder: ", v)
+#   message("Which contains: ", paste0(list.files(v), collapse = ", "))
+#   # For specific version:
+#   # system("gh release create v0.0.1 --generate-notes")
+#   file.remove(f)
+#   setwd("..")
+# }  else {
+#   message("Not full build or gh command line tool not available")
+#   message("Not uploading files: manually move contents of outputdata (see upload_data target for details)")
