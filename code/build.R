@@ -118,20 +118,8 @@ cycle_net = classify_cycle_infrastructure(cycle_net)
 drive_net = clean_speeds(drive_net)
 cycle_net = clean_speeds(cycle_net)
 
-# Add assumed traffic volumes
-cycle_net = cycle_net |>
-  mutate(assumed_volume = case_when(
-    highway == "primary" ~ 6000,
-    highway == "primary_link" ~ 6000,
-    highway == "secondary" ~ 5000,
-    highway == "secondary_link" ~ 5000,
-    highway == "tertiary" ~ 3000,
-    highway == "tertiary_link" ~ 3000,
-    highway == "residential" ~ 1000,
-    highway == "service" ~ 500,
-    highway == "unclassified" ~ 1000
-  ))
-
+drive_net = estimate_traffic(drive_net)
+cycle_net = estimate_traffic(cycle_net)
 
 # See tutorial: https://github.com/acteng/network-join-demos
 cycle_net_joined_polygons = stplanr::rnet_join(
@@ -139,7 +127,8 @@ cycle_net_joined_polygons = stplanr::rnet_join(
   rnet_y = drive_net |>
     transmute(
       maxspeed_road = maxspeed_clean,
-      highway_join = highway
+      highway_join = highway,
+      volume_join = assumed_volume
     ) |>
     sf::st_cast(to = "LINESTRING"),
   dist = 20,
@@ -152,25 +141,16 @@ cycleways_with_road_speeds_df = cycle_net_joined_polygons |>
   group_by(osm_id) |>
   summarise(
     maxspeed_road = osmactive:::most_common_value(maxspeed_road),
-    highway_join = osmactive:::most_common_value(highway_join)
+    highway_join = osmactive:::most_common_value(highway_join),
+    volume_join = most_common_value(volume_join)
   ) |>
-  mutate(maxspeed_road = as.numeric(maxspeed_road))
+  mutate(
+    maxspeed_road = as.numeric(maxspeed_road),
+    volume_join = as.numeric(volume_join)
+  )
 
 # join back onto cycle_net
 cycle_net_joined = left_join(cycle_net, cycleways_with_road_speeds_df)
-
-cycle_net_joined = cycle_net_joined |>
-  mutate(join_volume = case_when(
-    highway_join == "primary" ~ 6000,
-    highway_join == "primary_link" ~ 6000,
-    highway_join == "secondary" ~ 5000,
-    highway_join == "secondary_link" ~ 5000,
-    highway_join == "tertiary" ~ 3000,
-    highway_join == "tertiary_link" ~ 3000,
-    highway_join == "residential" ~ 1000,
-    highway_join == "service" ~ 500,
-    highway_join == "unclassified" ~ 1000
-  ))
 
 cycle_net_joined = cycle_net_joined |>
   mutate(
@@ -180,7 +160,7 @@ cycle_net_joined = cycle_net_joined |>
     ),
     final_volume = case_when(
       !is.na(assumed_volume) ~ assumed_volume,
-      TRUE ~ join_volume
+      TRUE ~ volume_join
     )
   )
 
@@ -210,14 +190,13 @@ cycleways_with_traffic_df = cycle_net_traffic_polygons |>
 # join back onto cycle_net
 cycle_net_traffic = left_join(cycle_net_joined, cycleways_with_traffic_df)
 
-# TODO: Add code to filter out misclassified roads
-# See https://github.com/nptscot/osmactive/issues/41
 # Use original traffic estimates in some cases
+# e.g. where residential/service roads have been misclassified as A/B/C roads
 cycle_net_traffic = cycle_net_traffic |>
   mutate(
     final_traffic = case_when(
       detailed_segregation == "Cycle track" ~ 0,
-      highway %in% c("residential", "service") & pred_flows >= 4000 ~ final_volume,
+      highway %in% c("residential", "service") & road_classification %in% c("A Road", "B Road", "Classified Unnumbered") & pred_flows >= 4000 ~ final_volume,
       !is.na(pred_flows) ~ pred_flows,
       TRUE ~ final_volume
     )
