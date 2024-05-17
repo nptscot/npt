@@ -485,7 +485,7 @@ scatter_dist_number_beta_1 = distance_frequency_beta_1 |>
   geom_point(aes(x = average_distance, y = p_est), color = "blue") +
   labs(
     x = "Trip distance (km)",
-    y = "Proportion of trips"
+    y = "Relative number of trips"
   ) +
   theme(axis.text.x = element_text(angle = 45, hjust = 1)) +
   scale_y_continuous(labels = scales::percent_format())
@@ -494,7 +494,10 @@ distance_frequency_beta = map_dfr(
   beta_values, ~ dd_data |>
     mutate(p_est = exp(m1_coef[1] + average_distance * .x), beta = .x),
   .id = "n"
-)
+) |>
+  # Scale so p_est adds up to 1 for every group:
+  group_by(n) |>
+  mutate(p_est = p_est / sum(p_est))
 distance_frequency_beta_summary = distance_frequency_beta |>
   group_by(beta) |>
   summarise(
@@ -513,10 +516,10 @@ scatter_dist_number_sample = distance_frequency_beta_sample |>
   geom_point(aes(x = average_distance, y = p_est, color = beta)) +
   labs(
     x = "Trip distance (km)",
-    y = "Proportion of trips"
+    y = "Relative number of trips"
   ) +
   theme(axis.text.x = element_text(angle = 45, hjust = 1)) +
-  scale_y_continuous(labels = scales::percent_format()) 
+  scale_y_continuous(labels = scales::percent_format())
 scatter_dist_number_sample
 ```
 
@@ -591,6 +594,25 @@ Target average trip lengths, and associated $\beta$ values, are shown in the tab
 lengths_npt_beta |>
   mutate(`Average route distance km` = round(`Average route distance km`, 2), beta = round(beta, 3)) |>
   knitr::kable(digits = 3)
+```
+
+The resulting trip distance distributions for the three everyday purposes are shown in the graph below:
+
+```{r}
+#| label: desire-lines-dist-final
+# Plot the final distance frequency distributions:
+distance_frequency_final = distance_frequency_beta |>
+  filter(beta %in% lengths_npt_beta$beta) |>
+  left_join(lengths_npt_beta, by = c("beta" = "beta")) |>
+  ggplot() +
+  geom_line(aes(x = average_distance, y = p_est, color = `NPT purpose`)) +
+  labs(
+    x = "Trip distance (km)",
+    y = "Relative number of trips"
+  ) +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1)) +
+  scale_y_continuous(labels = scales::percent_format())
+distance_frequency_final
 ```
 
 ## Mode share

@@ -173,6 +173,11 @@ the table below:
 | Shopping    |                                  0.445 |                      5.20 | -0.195 |
 | Social      |                                  1.046 |                     12.23 | -0.082 |
 
+The resulting trip distance distributions for the three everyday
+purposes are shown in the graph below:
+
+![](report-utility-methods_files/figure-commonmark/desire-lines-dist-final-1.png)
+
 ## Mode share
 
 The mode shares were estimated using the mean mode shares from the
