@@ -149,7 +149,7 @@ We fitted $\beta$ parameters to ensure that the relative average trip
 lengths matched the relative average trip lengths for the three everyday
 purposes. Summary visualisations of the fitting process are shown below.
 
-![](report-utility-methods_files/figure-commonmark/unnamed-chunk-13-1.png)
+![](report-utility-methods_files/figure-commonmark/summary-fit-1.png)
 
 ![](report-utility-methods_files/figure-commonmark/desire-lines-dist-modelled-beta-1.png)
 

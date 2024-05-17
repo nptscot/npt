@@ -448,6 +448,7 @@ We fitted $\beta$ parameters to ensure that the relative average trip lengths ma
 Summary visualisations of the fitting process are shown below.
 
 ```{r}
+#| label: summary-fit
 # Estimate beta for shopping trips as a starter:
 mean_distance_shopping = lengths_npt |>
   filter(`NPT purpose` == "Shopping") |>
