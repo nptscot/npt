@@ -1,6 +1,6 @@
 # Utility trips methodology
 Joey Talbot and Robin Lovelace
-2024-05-16
+2024-05-17
 
 ## Trip numbers and purposes
 
@@ -69,13 +69,50 @@ km etc) is important for the uptake model. We took data from the
 National Travel Survey, shown below, as the basis of average trip
 lengths for the three everyday purposes, as shown in the table below.
 
-| NPT purpose | Length (miles) |
-|:------------|:---------------|
-| Commuting   | 8.5            |
-| Education   | 2.9            |
-| Leisure     | 7.2            |
-| Shopping    | 3.8            |
-| Social      | 8.9            |
+| NPT purpose | Average length (miles) | Average length (relative to commuting) |
+|:------------|-----------------------:|---------------------------------------:|
+| Commuting   |                   8.47 |                                   1.00 |
+| Education   |                   2.91 |                                   0.34 |
+| Leisure     |                   7.22 |                                   0.85 |
+| Shopping    |                   3.77 |                                   0.44 |
+| Social      |                   8.86 |                                   1.05 |
+
+Lengths are expressed relative to the average commuting trip, the trip
+purpose for which we have the best data, allowing us to more effectively
+model trip distance distributions in different places (rural areas will
+tend to have longer trips for all trip purposes, for example), and
+allowing for the fact that absolute trip lengths vary. Note: the
+assumption that the relative trip lengths are the same in Scotland as in
+England is a simplification and can be tested when more detailed data is
+available.
+
+### Trip distance bands
+
+Trip distance distributions by purpose are not available in open
+summaries of the Scottish Household Survey or National Travel Survey
+that we have seen. We therefore use trip distance-frequency
+distributions for known commuting trips in Scotland, and adjust them
+based on the relative average trip lengths for the other purposes
+outlined above, to ensure realistic trip distance distributions for the
+other purposes.
+
+The approach is illustrated in the graphs of trip distance distributions
+below:
+
+    Warning: Removed 29809 rows containing non-finite outside the scale range
+    (`stat_bin()`).
+
+    Warning: Removed 12 rows containing missing values or values outside the scale range
+    (`geom_bar()`).
+
+![](report-utility-methods_files/figure-commonmark/desire-lines-dist-plot-1.png)
+
+![](report-utility-methods_files/figure-commonmark/desire-lines-dist-plot-2.png)
+
+We will model the number of trips as a function of distance using
+exponential decay.
+
+![](report-utility-methods_files/figure-commonmark/desire-lines-dist-exp-decay-1.png)
 
 ## Mode share
 

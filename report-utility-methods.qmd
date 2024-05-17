@@ -10,6 +10,7 @@ execute:
 
 ```{r setup, include=FALSE}
 library(tidyverse)
+library(sf)
 ```
 
 ```{r}
@@ -193,8 +194,197 @@ lengths_npt = left_join(
   group_by(`NPT purpose`) |>
   summarise(`Length (miles)` = weighted.mean(`Length (miles)`, Proportion)) 
 lengths_npt |>
-  mutate(`Length (miles)` = scales::number(`Length (miles)`, accuracy = 0.1)) |>
-  knitr::kable()
+    transmute(
+      `NPT purpose`,
+      `Average length (miles)` = `Length (miles)`,
+      `Average length (relative to commuting)` = `Length (miles)` / lengths_npt$`Length (miles)`[1]
+      ) |>
+  knitr::kable(digits = 2)
+```
+
+Lengths are expressed relative to the average commuting trip, the trip purpose for which we have the best data, allowing us to more effectively model trip distance distributions in different places (rural areas will tend to have longer trips for all trip purposes, for example), and allowing for the fact that absolute trip lengths vary.
+Note: the assumption that the relative trip lengths are the same in Scotland as in England is a simplification and can be tested when more detailed data is available.
+
+### Trip distance bands
+
+Trip distance distributions by purpose are not available in open summaries of the Scottish Household Survey or National Travel Survey that we have seen.
+We therefore use trip distance-frequency distributions for known commuting trips in Scotland, and adjust them based on the relative average trip lengths for the other purposes outlined above, to ensure realistic trip distance distributions for the other purposes.
+
+The approach is illustrated in the graphs of trip distance distributions below:
+
+```{r}
+#| label: desire-lines-setup
+#| include: false
+targets::tar_source()
+desire_lines_raw = read_TEAMS("secure_data/commute/commute_dl_sub30km.Rds")
+breaks_dist = c(
+  0,
+  1,
+  2,
+  5,
+  10,
+  15,
+  20,
+  200
+)
+breaks_dist_labels = c(
+  "0-1 km",
+  "1-2 km",
+  "2-5 km",
+  "5-10 km",
+  "10-15 km",
+  "15-20 km",
+  "20+ km"
+)
+breaks_dist_euclidean = breaks_dist / 
+  1.3 # Assuming average circuity of 1.3
+names(desire_lines_raw)
+#  [1] "geo_code1"        "geo_code2"        "car"              "taxi"            
+#  [5] "foot"             "bicycle"          "public_transport" "all"             
+#  [9] "geometry"         "dist_euclidean" 
+desire_lines = desire_lines_raw |>
+  mutate(
+    dist_euclidean = dist_euclidean / 1000,
+    dist_band = cut(
+      dist_euclidean,
+      breaks = breaks_dist_euclidean,
+      labels = breaks_dist_labels
+    )
+  )
+
+# Check desire lines with NA dist_band:
+sum(is.na(desire_lines$dist_band))
+# # Look at them (they have distance of 0)
+# desire_lines |>
+#   filter(is.na(dist_band)) |>
+#   pull(dist_euclidean) |>
+#   head()
+
+# Remove them:
+desire_lines = desire_lines |>
+  filter(!is.na(dist_band))
+```
+
+```{r}
+#| label: desire-lines-dist-plot
+
+# plot histogram of trip distances:
+histogram_dist = desire_lines |>
+  ggplot() +
+  geom_histogram(aes(x = dist_euclidean, fill = dist_band), bins = 30) +
+  scale_fill_viridis_d() +
+  labs(
+    x = "Trip distance (km)",
+    y = "Number of desire lines"
+  ) +
+  xlim(c(1, 30))
+
+histogram_dist
+
+desire_line_summary = desire_lines |>
+  group_by(dist_band) |>
+  sf::st_drop_geometry() |>
+  summarise(
+    `Number of desire lines` = n(),
+    `Number of trips (all)` = sum(all),
+    `Proportion of trips` = sum(all) / sum(desire_lines$all),
+    `Average distance (km)` = mean(dist_euclidean)
+  ) 
+# Barplot of the summary:
+barplot_dist = desire_line_summary |>
+  ggplot() +
+  geom_col(aes(x = dist_band, y = `Proportion of trips`, fill = dist_band)) +
+  scale_fill_viridis_d() +
+  labs(
+    x = "Trip distance band",
+    y = "Proportion of trips"
+  ) +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1)) +
+  scale_y_continuous(labels = scales::percent_format())
+barplot_dist
+
+# With 1 km bins:
+desire_line_summary_1km = desire_lines |>
+  mutate(dist_band = cut(
+    dist_euclidean,
+    breaks = seq(0, 30, 1),
+    labels = paste0(seq(0, 29), "-", seq(1, 30))
+  )) |>
+  group_by(dist_band) |>
+  sf::st_drop_geometry() |>
+  summarise(
+    `Number of desire lines` = n(),
+    `Number of trips (all)` = sum(all),
+    `Proportion of trips` = sum(all) / sum(desire_lines$all),
+    `Average distance (km)` = mean(dist_euclidean)
+  )
+
+# with number of trips from the all column of desire_lines:
+# barplot_dist_number = desire_line_summary |>
+#   ggplot() +
+#   geom_col(aes(x = dist_band, y = `Number of trips (all)`, fill = dist_band)) +
+#   scale_fill_viridis_d() +
+#   labs(
+#     x = "Trip distance band",
+#     y = "Number of trips"
+#   ) +
+#   theme(axis.text.x = element_text(angle = 45, hjust = 1))
+
+# # barplot_dist_number
+
+# Expand the summary so the number of observations is proportional to the number of trips, with a total of 100 rows:
+n_observations_per_band = round(desire_line_summary$`Proportion of trips` * 100)
+expanded_summary = desire_line_summary |>
+  slice(rep(1:n(), n_observations_per_band)) |>
+  select(dist_band, `Average distance (km)`)
+# tail(expanded_summary)
+# table(expanded_summary$dist_band)
+# table(expanded_summary$`Average distance (km)`)
+
+# Histogram with Number of trips and distance bands
+histogram_dist_number = expanded_summary |>
+  ggplot() +
+  geom_histogram(aes(x = `Average distance (km)`), breaks = breaks_dist_euclidean, fill = "blue") +
+  labs(
+    x = "Average trip distance (km)",
+    y = "Number of trips"
+  ) +
+  xlim(c(0, 20))
+# histogram_dist_number
+
+```
+
+We will model the number of trips as a function of distance using exponential decay.
+
+```{r}
+dd_data = desire_line_summary_1km |>
+  filter(`Average distance (km)` > 1) |>
+  transmute(
+    average_distance = `Average distance (km)`,
+    number_of_trips = `Number of trips (all)`
+  )
+dd_data$log_n = log(dd_data$number_of_trips)
+# With lm function:
+m1 = lm(log_n ~ average_distance, weights = number_of_trips, data = dd_data)
+dd_data$m1 = predict(m1, newdata = dd_data) |>
+  exp()
+```
+
+```{r}
+#| label: desire-lines-dist-exp-decay
+# Plot the number of trips with 1 km bins as scatter plot:
+scatter_dist_number = desire_line_summary_1km |>
+  filter(`Average distance (km)` > 1) |>
+  ggplot() +
+  geom_point(aes(x = `Average distance (km)`, y = `Number of trips (all)`), color = "blue") +
+  labs(
+    x = "Trip distance band",
+    y = "Number of trips"
+  ) +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1)) +
+  geom_line(aes(x = average_distance, y = m1), data = dd_data, color = "red")
+
+scatter_dist_number
 ```
 
 ## Mode share
