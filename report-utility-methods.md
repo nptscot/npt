@@ -69,13 +69,13 @@ km etc) is important for the uptake model. We took data from the
 National Travel Survey, shown below, as the basis of average trip
 lengths for the three everyday purposes, as shown in the table below.
 
-| NPT purpose | Average length (miles) | Average length (relative to commuting) |
-|:------------|-----------------------:|---------------------------------------:|
-| Commuting   |                   8.47 |                                   1.00 |
-| Education   |                   2.91 |                                   0.34 |
-| Leisure     |                   7.22 |                                   0.85 |
-| Shopping    |                   3.77 |                                   0.44 |
-| Social      |                   8.86 |                                   1.05 |
+| NPT purpose | Average length (miles) | Av (km) | Average length (relative to commuting) |
+|:------------|-----------------------:|--------:|---------------------------------------:|
+| Commuting   |                   8.47 |   13.64 |                                   1.00 |
+| Education   |                   2.91 |    4.68 |                                   0.34 |
+| Leisure     |                   7.22 |   11.62 |                                   0.85 |
+| Shopping    |                   3.77 |    6.07 |                                   0.44 |
+| Social      |                   8.86 |   14.27 |                                   1.05 |
 
 Lengths are expressed relative to the average commuting trip, the trip
 purpose for which we have the best data, allowing us to more effectively
@@ -110,9 +110,46 @@ below:
 ![](report-utility-methods_files/figure-commonmark/desire-lines-dist-plot-2.png)
 
 We will model the number of trips as a function of distance using
-exponential decay.
+exponential decay, with the following functional form:
+
+$$
+N = \alpha \exp(d \beta)
+$$
+
+where $N$ is the number of trips, $d$ is the distance, and $\alpha$ and
+$\beta$ are parameters to be estimated.
+
+Taking the log of both sides gives:
+
+$$
+\log(N) = \log(\alpha) + d \beta
+$$
+
+This allows us to model the number of trips as a linear function of
+distance, to estimate the decay parameter $\alpha$. As shown in the
+graph below, this approach fits the data well:
 
 ![](report-utility-methods_files/figure-commonmark/desire-lines-dist-exp-decay-1.png)
+
+The value of $log(\alpha)$ and $\beta$ are estimated as follows:
+
+         (Intercept) average_distance 
+           -2.147943        -0.111602 
+
+Knowing the relative average trip lengths for the three everyday
+purposes, we can adjust the decay parameter $\beta$ to reflect the
+different trip lengths for the different purposes. The modelled and
+empirical mean distances implied from the Scottish commute data above
+are shown in the table below:
+
+| NPT purpose          | Average distance (km) | %1-2 | %2-5 |
+|:---------------------|----------------------:|-----:|-----:|
+| Commuting (observed) |                 10.26 | 0.12 | 0.18 |
+| Commuting (modelled) |                 10.27 | 0.10 | 0.17 |
+
+After fitting $\beta$ parameters to ensure that the relative average
+trip lengths, the equivalent table, expanded for all trip purposes, is
+shown below:
 
 ## Mode share
 
