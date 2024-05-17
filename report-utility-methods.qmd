@@ -380,7 +380,7 @@ $$
 $$
 
 This allows us to model the number of trips as a linear function of distance, to estimate the decay parameter $\alpha$.
-As shown in the graph below, this approach fits the data well:
+As shown in the graph below, this approach fits the data well (note: the observed commute data only goes to 30 km as this was the cutoff used when processing the raw origin-destination data and converting to geographic desire lines from which distances can be calculated):
 
 ```{r}
 dd_data = desire_line_summary_1km |>
@@ -421,6 +421,7 @@ The value of $log(\alpha)$ and $\beta$ are estimated as follows:
 ```{r}
 m1_coef = m1 |>
   coef()
+m1_coef
 ```
 
 Knowing the relative average trip lengths for the three everyday purposes, we can adjust the decay parameter $\beta$ to reflect the different trip lengths for the different purposes.

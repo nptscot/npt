@@ -133,6 +133,9 @@ graph below, this approach fits the data well:
 
 The value of $log(\alpha)$ and $\beta$ are estimated as follows:
 
+         (Intercept) average_distance 
+          -2.1483091       -0.1115544 
+
 Knowing the relative average trip lengths for the three everyday
 purposes, we can adjust the decay parameter $\beta$ to reflect the
 different trip lengths for the different purposes. The modelled and
