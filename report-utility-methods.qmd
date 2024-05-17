@@ -11,6 +11,7 @@ execute:
 ```{r setup, include=FALSE}
 library(tidyverse)
 library(sf)
+set.seed(42)
 ```
 
 ```{r}
@@ -416,7 +417,7 @@ scatter_dist_number = desire_line_summary_1km |>
 scatter_dist_number
 ```
 
-The value of $log(\alpha)$ and $\beta$ are estimated as follows:
+The value of $log(\alpha)$ and $\beta$ for Euclidean distances (used as the basis of the spatial interaction model) are estimated as follows:
 
 ```{r}
 m1_coef = m1 |>
@@ -441,7 +442,8 @@ purpose_distance_modelled |>
   knitr::kable(digits = 2)  
 ```
 
-After fitting $\beta$ parameters to ensure that the relative average trip lengths, the equivalent table, expanded for all trip purposes, is shown below:
+We fitted $\beta$ parameters to ensure that the relative average trip lengths matched the relative average trip lengths for the three everyday purposes.
+Summary visualisations of the fitting process are shown below.
 
 ```{r}
 # Estimate beta for shopping trips as a starter:
@@ -451,7 +453,111 @@ mean_distance_shopping = lengths_npt |>
 # Create vector of values for beta, centered on the commuting value:
 beta_commuting = m1_coef[2]
 beta_values = rnorm(1000, beta_commuting, 0.1)
+# summary(beta_values)
+beta_value_1 = beta_values[1] # for testing
+distance_frequency_beta_1 = dd_data |>
+  mutate(m_beta_1 = exp(log_n + average_distance * beta_value_1)) 
+# For all beta values:
+distance_frequency_beta = map_dfr(
+  beta_values, ~ dd_data |>
+    mutate(m_beta = exp(log_n + average_distance * .x), beta = .x),
+  .id = "n"
+)
+distance_frequency_beta_summary = distance_frequency_beta |>
+  group_by(beta) |>
+  summarise(
+    `Mean distance (km)` = weighted.mean(average_distance, m_beta),
+    `Proportion 1-2 km` = sum(m_beta[average_distance <= 2]),
+    `Proportion 2-5 km` = sum(m_beta[average_distance > 2 & average_distance <= 5])
+  )
+# Plot a sample of 5 random beta values:
+values_sample = sample(unique(distance_frequency_beta_summary$beta), 5)
+distance_frequency_beta_sample = distance_frequency_beta |>
+  filter(beta %in% values_sample)
+# Plot the sample:
+scatter_dist_number_sample = distance_frequency_beta_sample |>
+  mutate(beta = as.character(round(beta, 3))) |>
+  ggplot() +
+  geom_point(aes(x = average_distance, y = m_beta, color = beta)) +
+  labs(
+    x = "Trip distance (km)",
+    y = "Proportion of trips"
+  ) +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1)) +
+  scale_y_continuous(labels = scales::percent_format()) 
+scatter_dist_number_sample
+```
 
+```{r}
+# Extract the beta value that gives the desired average distance for shopping trips:
+beta_shopping = distance_frequency_beta_summary |>
+  filter(`Mean distance (km)` > mean_distance_shopping) |>
+  slice_min(abs(`Mean distance (km)` - mean_distance_shopping)) |>
+  pull(beta)
+
+lengths_npt_beta = lengths_npt |>
+  select(`NPT purpose`, `Average length (relative to commuting)`) |>
+  mutate(
+    `Average route distance km` = NA,
+    beta = NA
+  )
+lengths_npt_beta$`Average route distance km`[1] = mean_distance_modelled
+# For loop to calculate Average distance and beta for each purpose:
+for (i in 1:nrow(lengths_npt_beta)) {
+  # Calculate average distance:
+  lengths_npt_beta$`Average route distance km`[i] = lengths_npt_beta$`Average length (relative to commuting)`[i] * mean_distance_modelled
+  # Calculate beta:
+  beta_value = distance_frequency_beta_summary |>
+    slice_min(abs(`Mean distance (km)` - lengths_npt_beta$`Average route distance km`[i])) |>
+    pull(beta)
+  lengths_npt_beta$beta[i] = beta_value
+}
+```
+
+```{r}
+#| label: desire-lines-dist-modelled-beta
+# Plot showing how av distance changes as function of beta:
+scatter_dist_number_beta = distance_frequency_beta_summary |>
+  ggplot() +
+  geom_point(aes(x = beta, y = `Mean distance (km)`), colour = "lightblue", alpha = 0.3) +
+  labs(
+    x = "Beta",
+    y = "Mean distance (km)"
+  ) +
+  # Add vlines for all purposes:
+  geom_vline(
+    data = lengths_npt_beta,
+    aes(xintercept = beta),
+    linetype = "dashed",
+    alpha = 0.8,
+    colour = "lightblue"
+  ) +
+  # Add hlines for all purposes:
+  geom_hline(
+    data = lengths_npt_beta,
+    aes(yintercept = `Average route distance km`),
+    linetype = "dashed",
+    alpha = 0.8,
+    colour = "lightblue"
+  ) +
+  # Annotate with the beta and distance for all purposes:
+  geom_text(
+    data = lengths_npt_beta,
+    aes(x = beta, y = `Average route distance km`, label = `NPT purpose`),
+    hjust = 1.1
+  ) +
+  ylim(c(0, 15)) +
+  xlim(c(-0.2, 0.1))
+scatter_dist_number_beta
+```
+
+
+Target average trip lengths, and associated $\beta$ values, are shown in the table below:
+
+```{r}
+lengths_npt_beta |>
+  mutate(`Average route distance km` = round(`Average route distance km`, 2), beta = round(beta, 3)) |>
+  knitr::kable(digits = 3)
 ```
 
 ## Mode share

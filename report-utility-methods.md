@@ -127,11 +127,15 @@ $$
 
 This allows us to model the number of trips as a linear function of
 distance, to estimate the decay parameter $\alpha$. As shown in the
-graph below, this approach fits the data well:
+graph below, this approach fits the data well (note: the observed
+commute data only goes to 30 km as this was the cutoff used when
+processing the raw origin-destination data and converting to geographic
+desire lines from which distances can be calculated):
 
 ![](report-utility-methods_files/figure-commonmark/desire-lines-dist-exp-decay-1.png)
 
-The value of $log(\alpha)$ and $\beta$ are estimated as follows:
+The value of $log(\alpha)$ and $\beta$ for Euclidean distances (used as
+the basis of the spatial interaction model) are estimated as follows:
 
          (Intercept) average_distance 
           -2.1483091       -0.1115544 
@@ -147,9 +151,27 @@ are shown in the table below:
 | Commuting (observed, up to 30km)  |                 10.78 | 0.12 | 0.18 |
 | Commuting (modelled, up to 100km) |                 11.64 | 0.10 | 0.17 |
 
-After fitting $\beta$ parameters to ensure that the relative average
-trip lengths, the equivalent table, expanded for all trip purposes, is
-shown below:
+We fitted $\beta$ parameters to ensure that the relative average trip
+lengths matched the relative average trip lengths for the three everyday
+purposes. Summary visualisations of the fitting process are shown below.
+
+![](report-utility-methods_files/figure-commonmark/unnamed-chunk-13-1.png)
+
+    Warning: Removed 254 rows containing missing values or values outside the scale range
+    (`geom_point()`).
+
+![](report-utility-methods_files/figure-commonmark/desire-lines-dist-modelled-beta-1.png)
+
+Target average trip lengths, and associated $\beta$ values, are shown in
+the table below:
+
+| NPT purpose | Average length (relative to commuting) | Average route distance km |   beta |
+|:------------|---------------------------------------:|--------------------------:|-------:|
+| Commuting   |                                  1.000 |                     11.64 |  0.026 |
+| Education   |                                  0.343 |                      4.00 | -0.131 |
+| Leisure     |                                  0.852 |                      9.92 |  0.017 |
+| Shopping    |                                  0.445 |                      5.18 | -0.073 |
+| Social      |                                  1.046 |                     12.18 |  0.028 |
 
 ## Mode share
 
