@@ -6,6 +6,7 @@ format: gfm
 execute: 
   echo: false
   message: false
+  warning: false
 ---
 
 ```{r setup, include=FALSE}
@@ -498,6 +499,10 @@ distance_frequency_beta = map_dfr(
   # Scale so p_est adds up to 1 for every group:
   group_by(n) |>
   mutate(p_est = p_est / sum(p_est))
+# # Sanity check sums of p_est for each group (all 1):
+# distance_frequency_beta |>
+#   group_by(beta) |>
+#   summarise(sum(p_est))
 distance_frequency_beta_summary = distance_frequency_beta |>
   group_by(beta) |>
   summarise(
@@ -604,6 +609,12 @@ The resulting trip distance distributions for the three everyday purposes are sh
 distance_frequency_final = distance_frequency_beta |>
   filter(beta %in% lengths_npt_beta$beta) |>
   left_join(lengths_npt_beta, by = c("beta" = "beta")) |>
+  mutate(distance_band = cut(
+    average_distance,
+    breaks = breaks_dist_euclidean,
+    labels = breaks_dist_labels
+  ))
+distance_frequency_final |>
   ggplot() +
   geom_line(aes(x = average_distance, y = p_est, color = `NPT purpose`)) +
   labs(
@@ -612,7 +623,26 @@ distance_frequency_final = distance_frequency_beta |>
   ) +
   theme(axis.text.x = element_text(angle = 45, hjust = 1)) +
   scale_y_continuous(labels = scales::percent_format())
-distance_frequency_final
+```
+
+The approach allows us to estimate the proportion and overall number of trips in every distance band of arbitrary width for each purpose.
+For the purposes of this study and to ensure the results are straightforward to interpret, we will use the same 0-1, 1-2, 2-5, 5-10, 10-15, 15-20, and 20+ km distance bands as used in the commute model, with 0-1 and 20+ km bands omitted from the routing and uptake model as they are deemed too short and too long to cycle, respectively.
+
+The results are summarised in the table below:
+
+```{r}
+distance_frequency_wide = distance_frequency_final |>
+  group_by(`NPT purpose`, distance_band) |>
+  summarise(p_est = sum(p_est)) |> 
+  pivot_wider(names_from = distance_band, values_from = p_est) |>
+  select(`NPT purpose`, `0-1 km`, `1-2 km`, `2-5 km`, `5-10 km`, `10-15 km`, `15-20 km`, `20+ km`)
+  
+distance_frequency_wide |>
+  # Add totals column at end:
+  mutate(Total = rowSums(across(`0-1 km`:`20+ km`))) |>
+  mutate(across(`0-1 km`:`Total`, ~ scales::percent(., accuracy = 0.1))) |>
+  knitr::kable(digits = 2)
+
 ```
 
 ## Mode share

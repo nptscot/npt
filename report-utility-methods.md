@@ -99,12 +99,6 @@ other purposes.
 The approach is illustrated in the graphs of trip distance distributions
 below:
 
-    Warning: Removed 29809 rows containing non-finite outside the scale range
-    (`stat_bin()`).
-
-    Warning: Removed 12 rows containing missing values or values outside the scale range
-    (`geom_bar()`).
-
 ![](report-utility-methods_files/figure-commonmark/desire-lines-dist-plot-1.png)
 
 ![](report-utility-methods_files/figure-commonmark/desire-lines-dist-plot-2.png)
@@ -157,9 +151,6 @@ purposes. Summary visualisations of the fitting process are shown below.
 
 ![](report-utility-methods_files/figure-commonmark/unnamed-chunk-13-1.png)
 
-    Warning: Removed 84 rows containing missing values or values outside the scale range
-    (`geom_point()`).
-
 ![](report-utility-methods_files/figure-commonmark/desire-lines-dist-modelled-beta-1.png)
 
 Target average trip lengths, and associated $\beta$ values, are shown in
@@ -177,6 +168,24 @@ The resulting trip distance distributions for the three everyday
 purposes are shown in the graph below:
 
 ![](report-utility-methods_files/figure-commonmark/desire-lines-dist-final-1.png)
+
+The approach allows us to estimate the proportion and overall number of
+trips in every distance band of arbitrary width for each purpose. For
+the purposes of this study and to ensure the results are straightforward
+to interpret, we will use the same 0-1, 1-2, 2-5, 5-10, 10-15, 15-20,
+and 20+ km distance bands as used in the commute model, with 0-1 and 20+
+km bands omitted from the routing and uptake model as they are deemed
+too short and too long to cycle, respectively.
+
+The results are summarised in the table below:
+
+| NPT purpose | 0-1 km | 1-2 km | 2-5 km | 5-10 km | 10-15 km | 15-20 km | 20+ km | Total  |
+|:------------|:-------|:-------|:-------|:--------|:---------|:---------|:-------|:-------|
+| Commuting   | 8.1%   | 7.5%   | 13.3%  | 20.6%   | 14.6%    | 8.1%     | 27.6%  | 100.0% |
+| Education   | 22.4%  | 17.8%  | 24.3%  | 23.0%   | 8.1%     | 2.4%     | 2.0%   | 100.0% |
+| Leisure     | 9.5%   | 8.7%   | 15.0%  | 22.2%   | 14.8%    | 7.8%     | 22.0%  | 100.0% |
+| Shopping    | 17.3%  | 14.6%  | 21.9%  | 25.0%   | 11.5%    | 4.3%     | 5.4%   | 100.0% |
+| Social      | 7.8%   | 7.2%   | 12.8%  | 20.1%   | 14.5%    | 8.2%     | 29.4%  | 100.0% |
 
 ## Mode share
 
