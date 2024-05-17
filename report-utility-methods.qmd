@@ -391,7 +391,7 @@ dd_data = desire_line_summary_1km |>
     proportion = `Proportion of trips`
   )
 dd_data_100km = tibble(average_distance = 100, number_of_trips = 1, proportion = 0)
-dd_data_30_100km = purrr::map_dfr((31:100), ~ tibble(average_distance = .x, number_of_trips = 1, proportion = 0.0001))
+dd_data_30_100km = purrr::map_dfr((31:100)-0.5, ~ tibble(average_distance = .x, number_of_trips = 1, proportion = 0.0001))
 dd_data = bind_rows(dd_data, dd_data_30_100km)
 dd_data$log_n = log(dd_data$proportion)
 # With lm function:
@@ -439,6 +439,7 @@ purpose_distance_modelled = tibble::tribble(
   "Commuting (modelled, up to 100km)", mean_distance_modelled, dd_data$m1[2], dd_data$m1[3] + dd_data$m1[4]
 )
 purpose_distance_modelled |>
+  mutate(across(starts_with("%"), ~ scales::percent(.))) |>
   knitr::kable(digits = 2)  
 ```
 
@@ -450,25 +451,56 @@ Summary visualisations of the fitting process are shown below.
 mean_distance_shopping = lengths_npt |>
   filter(`NPT purpose` == "Shopping") |>
   pull(`Average length (relative to commuting)`) * mean_distance_modelled
+
+# # Reproduce predicted values from first principles:
+# # Sanity check. Outcome: all values are the same.
+# dd_test = dd_data |>
+#   mutate(log_n_est = m1_coef[1] + average_distance * m1_coef[2]) |>
+#   mutate(m_est = exp(log_n_est))
+# # Plot the results:
+# scatter_dist_number_est = dd_test |>
+#   ggplot() +
+#   geom_point(aes(x = average_distance, y = m_est), color = "blue") +
+#   labs(
+#     x = "Trip distance (km)",
+#     y = "Proportion of trips"
+#   ) +
+#   # Add the original model:
+#   geom_line(aes(x = average_distance, y = m1), data = dd_data, color = "red") +
+#   theme(axis.text.x = element_text(angle = 45, hjust = 1)) +
+#   scale_y_continuous(labels = scales::percent_format())
+
+# cor(dd_test$m1, dd_test$m_est)
+
 # Create vector of values for beta, centered on the commuting value:
 beta_commuting = m1_coef[2]
-beta_values = rnorm(1000, beta_commuting, 0.1)
+beta_values = rnorm(500, beta_commuting, 0.05)
 # summary(beta_values)
 beta_value_1 = beta_values[1] # for testing
 distance_frequency_beta_1 = dd_data |>
-  mutate(m_beta_1 = exp(log_n + average_distance * beta_value_1)) 
+  mutate(p_est = exp(m1_coef[1] + average_distance * beta_value_1))
+# Check results with scatter plot of first beta value results:
+scatter_dist_number_beta_1 = distance_frequency_beta_1 |>
+  ggplot() +
+  geom_point(aes(x = average_distance, y = p_est), color = "blue") +
+  labs(
+    x = "Trip distance (km)",
+    y = "Proportion of trips"
+  ) +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1)) +
+  scale_y_continuous(labels = scales::percent_format())
 # For all beta values:
 distance_frequency_beta = map_dfr(
   beta_values, ~ dd_data |>
-    mutate(m_beta = exp(log_n + average_distance * .x), beta = .x),
+    mutate(p_est = exp(m1_coef[1] + average_distance * .x), beta = .x),
   .id = "n"
 )
 distance_frequency_beta_summary = distance_frequency_beta |>
   group_by(beta) |>
   summarise(
-    `Mean distance (km)` = weighted.mean(average_distance, m_beta),
-    `Proportion 1-2 km` = sum(m_beta[average_distance <= 2]),
-    `Proportion 2-5 km` = sum(m_beta[average_distance > 2 & average_distance <= 5])
+    `Mean distance (km)` = weighted.mean(average_distance, p_est),
+    `Proportion 1-2 km` = sum(p_est[average_distance <= 2]),
+    `Proportion 2-5 km` = sum(p_est[average_distance > 2 & average_distance <= 5])
   )
 # Plot a sample of 5 random beta values:
 values_sample = sample(unique(distance_frequency_beta_summary$beta), 5)
@@ -478,7 +510,7 @@ distance_frequency_beta_sample = distance_frequency_beta |>
 scatter_dist_number_sample = distance_frequency_beta_sample |>
   mutate(beta = as.character(round(beta, 3))) |>
   ggplot() +
-  geom_point(aes(x = average_distance, y = m_beta, color = beta)) +
+  geom_point(aes(x = average_distance, y = p_est, color = beta)) +
   labs(
     x = "Trip distance (km)",
     y = "Proportion of trips"
@@ -546,8 +578,9 @@ scatter_dist_number_beta = distance_frequency_beta_summary |>
     aes(x = beta, y = `Average route distance km`, label = `NPT purpose`),
     hjust = 1.1
   ) +
+  # +
   ylim(c(0, 15)) +
-  xlim(c(-0.2, 0.1))
+  xlim(c(-0.3, 0))
 scatter_dist_number_beta
 ```
 

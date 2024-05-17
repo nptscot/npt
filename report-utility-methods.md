@@ -138,7 +138,7 @@ The value of $log(\alpha)$ and $\beta$ for Euclidean distances (used as
 the basis of the spatial interaction model) are estimated as follows:
 
          (Intercept) average_distance 
-          -2.1483091       -0.1115544 
+           -2.148291        -0.111557 
 
 Knowing the relative average trip lengths for the three everyday
 purposes, we can adjust the decay parameter $\beta$ to reflect the
@@ -146,10 +146,10 @@ different trip lengths for the different purposes. The modelled and
 empirical mean distances implied from the Scottish commute data above
 are shown in the table below:
 
-| NPT purpose                       | Average distance (km) | %1-2 | %2-5 |
-|:----------------------------------|----------------------:|-----:|-----:|
-| Commuting (observed, up to 30km)  |                 10.78 | 0.12 | 0.18 |
-| Commuting (modelled, up to 100km) |                 11.64 | 0.10 | 0.17 |
+| NPT purpose                       | Average distance (km) | %1-2  | %2-5  |
+|:----------------------------------|----------------------:|:------|:------|
+| Commuting (observed, up to 30km)  |                 10.78 | 12.1% | 18.0% |
+| Commuting (modelled, up to 100km) |                 11.70 | 9.9%  | 16.7% |
 
 We fitted $\beta$ parameters to ensure that the relative average trip
 lengths matched the relative average trip lengths for the three everyday
@@ -157,7 +157,7 @@ purposes. Summary visualisations of the fitting process are shown below.
 
 ![](report-utility-methods_files/figure-commonmark/unnamed-chunk-13-1.png)
 
-    Warning: Removed 254 rows containing missing values or values outside the scale range
+    Warning: Removed 84 rows containing missing values or values outside the scale range
     (`geom_point()`).
 
 ![](report-utility-methods_files/figure-commonmark/desire-lines-dist-modelled-beta-1.png)
@@ -167,11 +167,11 @@ the table below:
 
 | NPT purpose | Average length (relative to commuting) | Average route distance km |   beta |
 |:------------|---------------------------------------:|--------------------------:|-------:|
-| Commuting   |                                  1.000 |                     11.64 |  0.026 |
-| Education   |                                  0.343 |                      4.00 | -0.131 |
-| Leisure     |                                  0.852 |                      9.92 |  0.017 |
-| Shopping    |                                  0.445 |                      5.18 | -0.073 |
-| Social      |                                  1.046 |                     12.18 |  0.028 |
+| Commuting   |                                  1.000 |                     11.70 | -0.086 |
+| Education   |                                  0.343 |                      4.02 | -0.261 |
+| Leisure     |                                  0.852 |                      9.97 | -0.101 |
+| Shopping    |                                  0.445 |                      5.20 | -0.195 |
+| Social      |                                  1.046 |                     12.23 | -0.082 |
 
 ## Mode share
 
