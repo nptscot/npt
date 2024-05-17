@@ -133,19 +133,16 @@ graph below, this approach fits the data well:
 
 The value of $log(\alpha)$ and $\beta$ are estimated as follows:
 
-         (Intercept) average_distance 
-           -2.147943        -0.111602 
-
 Knowing the relative average trip lengths for the three everyday
 purposes, we can adjust the decay parameter $\beta$ to reflect the
 different trip lengths for the different purposes. The modelled and
 empirical mean distances implied from the Scottish commute data above
 are shown in the table below:
 
-| NPT purpose          | Average distance (km) | %1-2 | %2-5 |
-|:---------------------|----------------------:|-----:|-----:|
-| Commuting (observed) |                 10.26 | 0.12 | 0.18 |
-| Commuting (modelled) |                 10.27 | 0.10 | 0.17 |
+| NPT purpose                       | Average distance (km) | %1-2 | %2-5 |
+|:----------------------------------|----------------------:|-----:|-----:|
+| Commuting (observed, up to 30km)  |                 10.78 | 0.12 | 0.18 |
+| Commuting (modelled, up to 100km) |                 11.64 | 0.10 | 0.17 |
 
 After fitting $\beta$ parameters to ensure that the relative average
 trip lengths, the equivalent table, expanded for all trip purposes, is

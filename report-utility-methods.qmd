@@ -193,6 +193,15 @@ lengths_npt = left_join(
   )) |>
   group_by(`NPT purpose`) |>
   summarise(`Length (miles)` = weighted.mean(`Length (miles)`, Proportion)) 
+
+lengths_npt = lengths_npt |>
+    transmute(
+      `NPT purpose`,
+      `Length (miles)`,
+      `Av (km)` = `Length (miles)` * 1.60934,
+      `Average length (relative to commuting)` = `Length (miles)` / lengths_npt$`Length (miles)`[1]
+      )
+
 lengths_npt |>
     transmute(
       `NPT purpose`,
@@ -380,6 +389,9 @@ dd_data = desire_line_summary_1km |>
     number_of_trips = `Number of trips (all)`,
     proportion = `Proportion of trips`
   )
+dd_data_100km = tibble(average_distance = 100, number_of_trips = 1, proportion = 0)
+dd_data_30_100km = purrr::map_dfr((31:100), ~ tibble(average_distance = .x, number_of_trips = 1, proportion = 0.0001))
+dd_data = bind_rows(dd_data, dd_data_30_100km)
 dd_data$log_n = log(dd_data$proportion)
 # With lm function:
 m1 = lm(log_n ~ average_distance, weights = number_of_trips, data = dd_data)
@@ -394,7 +406,7 @@ scatter_dist_number = desire_line_summary_1km |>
   ggplot() +
   geom_point(aes(x = `Average distance (km)`, y = `Proportion of trips`), color = "blue") +
   labs(
-    x = "Trip distance band",
+    x = "Trip distance (km)",
     y = "Proportion of trips"
   ) +
   theme(axis.text.x = element_text(angle = 45, hjust = 1)) +
@@ -407,7 +419,7 @@ scatter_dist_number
 The value of $log(\alpha)$ and $\beta$ are estimated as follows:
 
 ```{r}
-m1 |>
+m1_coef = m1 |>
   coef()
 ```
 
@@ -421,8 +433,8 @@ mean_distance_modelled = weighted.mean(dd_data$average_distance, dd_data$m1) * d
 
 purpose_distance_modelled = tibble::tribble(
   ~`NPT purpose`, ~`Average distance (km)`, ~`%1-2`, ~`%2-5`, 
-  "Commuting (observed)", mean_distance_observed, dd_data$proportion[2], dd_data$proportion[3] + dd_data$proportion[4],
-  "Commuting (modelled)", mean_distance_modelled, dd_data$m1[2], dd_data$m1[3] + dd_data$m1[4]
+  "Commuting (observed, up to 30km)", mean_distance_observed, dd_data$proportion[2], dd_data$proportion[3] + dd_data$proportion[4],
+  "Commuting (modelled, up to 100km)", mean_distance_modelled, dd_data$m1[2], dd_data$m1[3] + dd_data$m1[4]
 )
 purpose_distance_modelled |>
   knitr::kable(digits = 2)  
@@ -430,6 +442,16 @@ purpose_distance_modelled |>
 
 After fitting $\beta$ parameters to ensure that the relative average trip lengths, the equivalent table, expanded for all trip purposes, is shown below:
 
+```{r}
+# Estimate beta for shopping trips as a starter:
+mean_distance_shopping = lengths_npt |>
+  filter(`NPT purpose` == "Shopping") |>
+  pull(`Average length (relative to commuting)`) * mean_distance_modelled
+# Create vector of values for beta, centered on the commuting value:
+beta_commuting = m1_coef[2]
+beta_values = rnorm(1000, beta_commuting, 0.1)
+
+```
 
 ## Mode share
 
