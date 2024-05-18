@@ -666,11 +666,7 @@ distance_frequency_wide |>
   knitr::kable(digits = 2)
 ```
 
-### NPT route level results
-
-
-
-Let's take a look at the route level results for the three everyday purposes:
+### NPT route level results 
 
 ```{r}
 f_routes_utility = file.path(res_folder, "routes_max_dist_utility_fastest.Rds")
@@ -705,14 +701,15 @@ uptake_summary = uptake_combined |>
     # count by distance bin, mode and purpose
     group_by(distance_bin, mode, purpose) |>
     summarise(n = sum(n))
-uptake_summary |>
-    # plot
-    ggplot(aes(x = distance_bin, y = n, fill = mode)) +
-    geom_bar(stat = "identity") +
-    facet_wrap(~purpose)
+# uptake_summary |>
+#     # plot
+#     ggplot(aes(x = distance_bin, y = n, fill = mode)) +
+#     geom_bar(stat = "identity") +
+#     facet_wrap(~purpose)
 ```
 
-The results are summarised in the table below:
+Let's take a look at the route level results for the three everyday purposes.
+The numbers of trips by purpose and distance bands are summarised in the table below:
 
 ```{r}
 uptake_summary |>

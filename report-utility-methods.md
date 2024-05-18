@@ -187,8 +187,10 @@ The results are summarised in the table below:
 | Shopping    |  17.29 |  14.60 |  21.94 |   24.97 |    11.46 |     4.31 |   5.42 |   100 |
 | Social      |   7.76 |   7.23 |  12.81 |   20.13 |    14.52 |     8.17 |  29.38 |   100 |
 
-A simplified version of the previous table, focussing on the percentage
-of trips that are in our model, is shown below:
+The results were saved in a config file to form the basis of the spatial
+interaction model that generates the origin-destination data for utility
+trips. A simplified version of the previous table, focussing on the
+percentage of trips that are in our model, is shown below:
 
 | NPT purpose | Modelled cycling trips (%) | Too short (%) | Too long (%) |
 |:------------|---------------------------:|--------------:|-------------:|
@@ -201,11 +203,8 @@ of trips that are in our model, is shown below:
 ### NPT route level results
 
 Let’s take a look at the route level results for the three everyday
-purposes:
-
-![](report-utility-methods_files/figure-commonmark/unnamed-chunk-21-1.png)
-
-The results are summarised in the table below:
+purposes. The numbers of trips by purpose and distance bands are
+summarised in the table below:
 
 | purpose  |    0-1 |    1-2 |     2-5 |   5-10 | 10-15 | 15-20 | 20+ |   Total |
 |:---------|-------:|-------:|--------:|-------:|------:|------:|----:|--------:|
