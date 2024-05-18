@@ -1,6 +1,6 @@
 # Utility trips methodology
 Joey Talbot and Robin Lovelace
-2024-05-17
+2024-05-18
 
 ## Trip numbers and purposes
 
@@ -179,13 +179,52 @@ too short and too long to cycle, respectively.
 
 The results are summarised in the table below:
 
-| NPT purpose | 0-1 km | 1-2 km | 2-5 km | 5-10 km | 10-15 km | 15-20 km | 20+ km | Total  |
-|:------------|:-------|:-------|:-------|:--------|:---------|:---------|:-------|:-------|
-| Commuting   | 8.1%   | 7.5%   | 13.3%  | 20.6%   | 14.6%    | 8.1%     | 27.6%  | 100.0% |
-| Education   | 22.4%  | 17.8%  | 24.3%  | 23.0%   | 8.1%     | 2.4%     | 2.0%   | 100.0% |
-| Leisure     | 9.5%   | 8.7%   | 15.0%  | 22.2%   | 14.8%    | 7.8%     | 22.0%  | 100.0% |
-| Shopping    | 17.3%  | 14.6%  | 21.9%  | 25.0%   | 11.5%    | 4.3%     | 5.4%   | 100.0% |
-| Social      | 7.8%   | 7.2%   | 12.8%  | 20.1%   | 14.5%    | 8.2%     | 29.4%  | 100.0% |
+| NPT purpose | 0-1 km | 1-2 km | 2-5 km | 5-10 km | 10-15 km | 15-20 km | 20+ km | Total |
+|:------------|-------:|-------:|-------:|--------:|---------:|---------:|-------:|------:|
+| Commuting   |   8.13 |   7.55 |  13.29 |   20.64 |    14.64 |     8.12 |  27.63 |   100 |
+| Education   |  22.35 |  17.82 |  24.33 |   23.02 |     8.09 |     2.39 |   2.00 |   100 |
+| Leisure     |   9.47 |   8.68 |  14.95 |   22.22 |    14.84 |     7.80 |  22.04 |   100 |
+| Shopping    |  17.29 |  14.60 |  21.94 |   24.97 |    11.46 |     4.31 |   5.42 |   100 |
+| Social      |   7.76 |   7.23 |  12.81 |   20.13 |    14.52 |     8.17 |  29.38 |   100 |
+
+A simplified version of the previous table, focussing on the percentage
+of trips that are in our model, is shown below:
+
+| NPT purpose | Modelled cycling trips (%) | Too short (%) | Too long (%) |
+|:------------|---------------------------:|--------------:|-------------:|
+| Commuting   |                      64.24 |          8.13 |        27.63 |
+| Education   |                      75.64 |         22.35 |         2.00 |
+| Leisure     |                      68.48 |          9.47 |        22.04 |
+| Shopping    |                      77.29 |         17.29 |         5.42 |
+| Social      |                      62.86 |          7.76 |        29.38 |
+
+### NPT route level results
+
+Let’s take a look at the route level results for the three everyday
+purposes:
+
+![](report-utility-methods_files/figure-commonmark/unnamed-chunk-21-1.png)
+
+The results are summarised in the table below:
+
+| purpose  |    0-1 |    1-2 |     2-5 |   5-10 | 10-15 | 15-20 | 20+ |   Total |
+|:---------|-------:|-------:|--------:|-------:|------:|------:|----:|--------:|
+| leisure  |  38050 | 168973 |  354994 | 113680 |  2904 |   403 | 304 |  679307 |
+| shopping | 171623 | 679136 | 1401152 | 411352 | 10901 |   465 | 302 | 2674932 |
+| visiting |  87041 | 325668 |  606880 | 182640 |  3247 |   235 | 146 | 1205857 |
+
+Expressed as percentages of the total number of trips in each distance
+band, the results are as follows:
+
+| mode | purpose  | 0-1 | 1-2 | 2-5 | 5-10 | 10-15 | 15-20 | 20+ |
+|:-----|:---------|----:|----:|----:|-----:|------:|------:|----:|
+| all  | leisure  |   6 |  25 |  52 |   17 |     0 |     0 |   0 |
+| all  | shopping |   6 |  25 |  52 |   15 |     0 |     0 |   0 |
+| all  | visiting |   7 |  27 |  50 |   15 |     0 |     0 |   0 |
+
+Given the Scottish population of around 5.5 million, the results imply
+that 49.0909091 trips per day are made for shopping in the 0 to 10 km
+band (100% of shopping trips).
 
 ## Mode share
 
