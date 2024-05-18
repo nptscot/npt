@@ -648,8 +648,13 @@ distance_frequency_wide |>
   mutate(across(`0-1 km`:`Total`, ~ . * 100)) |>
   knitr::kable(digits = 2)
 
+betas = lengths_npt_beta |>
+  pull(beta)
+distance_frequency_wide$beta = betas
+write_csv(distance_frequency_wide, "inputdata/distance_frequency_wide.csv")
 ```
 
+The results were saved in a config file to form the basis of the spatial interaction model that generates the origin-destination data for utility trips.
 A simplified version of the previous table, focussing on the percentage of trips that are in our model, is shown below:
 
 ```{r}
@@ -733,6 +738,9 @@ uptake_summary |>
 ```
 
 Given the Scottish population of around 5.5 million, the results imply that `r round(2.7 / 5.5, 1)` trips per day are made for shopping in the 0 to 10 km band (100% of shopping trips).
+
+Given that 25.1% of trips are for shopping and the dailing number of trips per person is 2.61, this implies that `r 0.251 * 2.61` trips per person per day are for shopping *for all distances*.
+That value multiplied by 0.773 (the percent of trips in the 1-20 km range is 77.3%), gives the number of shopping trips we would expect in NPT flows: `r 0.251 * 2.61 * 0.773`.
 
 ## Mode share
 

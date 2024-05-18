@@ -223,8 +223,14 @@ band, the results are as follows:
 | all  | visiting |   7 |  27 |  50 |   15 |     0 |     0 |   0 |
 
 Given the Scottish population of around 5.5 million, the results imply
-that 49.0909091 trips per day are made for shopping in the 0 to 10 km
-band (100% of shopping trips).
+that 0.5 trips per day are made for shopping in the 0 to 10 km band
+(100% of shopping trips).
+
+Given that 25.1% of trips are for shopping and the dailing number of
+trips per person is 2.61, this implies that 0.65511 trips per person per
+day are for shopping *for all distances*. That value multiplied by 0.773
+(the percent of trips in the 1-20 km range is 77.3%), gives the number
+of shopping trips we would expect in NPT flows: 0.5064.
 
 ## Mode share
 
