@@ -7,12 +7,14 @@ execute:
   echo: false
   message: false
   warning: false
+  cache: true
 ---
 
 ```{r setup, include=FALSE}
 library(tidyverse)
 library(sf)
 set.seed(42)
+res_folder = "outputdata/2024-04-24"
 ```
 
 ```{r}
@@ -641,10 +643,96 @@ distance_frequency_wide = distance_frequency_final |>
 distance_frequency_wide |>
   # Add totals column at end:
   mutate(Total = rowSums(across(`0-1 km`:`20+ km`))) |>
-  mutate(across(`0-1 km`:`Total`, ~ scales::percent(., accuracy = 0.1))) |>
+  # mutate(across(`0-1 km`:`Total`, ~ scales::percent(., accuracy = 0.1))) |>
+  # Multiply by 100 to get percentages:
+  mutate(across(`0-1 km`:`Total`, ~ . * 100)) |>
   knitr::kable(digits = 2)
 
 ```
+
+A simplified version of the previous table, focussing on the percentage of trips that are in our model, is shown below:
+
+```{r}
+distance_frequency_wide |>
+  mutate(`Modelled cycling trips (%)` = `1-2 km` + `2-5 km` + `5-10 km` + `10-15 km` + `15-20 km`) |>
+  mutate(`Too short (%)` = `0-1 km`, `Too long (%)` = `20+ km`) |>
+  select(`NPT purpose`, `Modelled cycling trips (%)`, `Too short (%)`, `Too long (%)`) |>
+  mutate(across(`Modelled cycling trips (%)`:`Too long (%)`, ~ . * 100)) |>
+  knitr::kable(digits = 2)
+```
+
+### NPT route level results
+
+
+
+Let's take a look at the route level results for the three everyday purposes:
+
+```{r}
+f_routes_utility = file.path(res_folder, "routes_max_dist_utility_fastest.Rds")
+routes_utility = readRDS(f_routes_utility)
+# str(routes_utility)
+```
+
+```{r}
+routes_utility = routes_utility$routes |>
+    sf::st_drop_geometry() |>
+    transmute(
+        purpose,
+        all,
+        bicycle,
+        length_route,
+        route_hilliness
+        )
+distance_bins = c(0, 1, 2, 5, 10, 15, 20, 100)
+distance_bin_labels = c("0-1", "1-2", "2-5", "5-10", "10-15", "15-20", "20+")
+uptake_combined = routes_utility |>
+    mutate(
+        distance_bin = cut(length_route, distance_bins * 1000, labels = distance_bin_labels, right = FALSE)
+    ) |>
+  # pivot longer to get n trips by mode and purpose
+  pivot_longer(
+    cols = c(all, bicycle),
+    names_to = "mode",
+    values_to = "n"
+  ) 
+# Barplot with n trips by mode and purpose:
+uptake_summary = uptake_combined |>
+    # count by distance bin, mode and purpose
+    group_by(distance_bin, mode, purpose) |>
+    summarise(n = sum(n))
+uptake_summary |>
+    # plot
+    ggplot(aes(x = distance_bin, y = n, fill = mode)) +
+    geom_bar(stat = "identity") +
+    facet_wrap(~purpose)
+```
+
+The results are summarised in the table below:
+
+```{r}
+uptake_summary |>
+    filter(mode == "all") |>
+    group_by(purpose, distance_bin) |>
+    summarise(n = sum(n)) |>
+    pivot_wider(names_from = distance_bin, values_from = n) |>
+    # Add sum column:
+    mutate(Total = rowSums(across(`0-1`:`20+`))) |>
+    knitr::kable(digits = 0)
+```
+
+Expressed as percentages of the total number of trips in each distance band, the results are as follows:
+
+```{r}
+uptake_summary |>
+    ungroup() |>
+    filter(mode == "all") |>
+    group_by(purpose) |>
+    mutate(n = n / sum(n) * 100) |>
+    pivot_wider(names_from = distance_bin, values_from = n) |>
+    knitr::kable(digits = 0)
+```
+
+Given the Scottish population of around 5.5 million, the results imply that `r round(2.7 / 5.5, 1)` trips per day are made for shopping in the 0 to 10 km band (100% of shopping trips).
 
 ## Mode share
 
