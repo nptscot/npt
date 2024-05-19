@@ -323,9 +323,9 @@ Illustrations of the spatial interaction model results are shown below.
 
 Let’s create the equivalent graphs for a single origin zone.
 
-![](report-utility-methods_files/figure-commonmark/unnamed-chunk-31-1.png)
+![](report-utility-methods_files/figure-commonmark/sim-shopping-output-single-zone-1.png)
 
-![](report-utility-methods_files/figure-commonmark/unnamed-chunk-31-2.png)
+![](report-utility-methods_files/figure-commonmark/sim-shopping-output-single-zone-2.png)
 
 The results demonstrate how the previous `beta` value led to an
 over-emphasis on short trips.
@@ -345,21 +345,84 @@ numbers against the number of people making that trip, as shown below.
 
 ![](report-utility-methods_files/figure-commonmark/od-interaction-plot-3.png)
 
-## Disaggregating and filtering desire lines
+An feature of all OD datasets we use in this project, whether synthetic
+or observed, is that they are highly skewed, with a large number of OD
+pairs with very few trips. The proportion of OD pairs and trips
+associated with synthetic shopping OD pairs with a given number of trips
+is shown in the table below.
 
-The resulting desire lines are put through a jittering process. In cases
-where the trip origins or destinations were assigned based on
-Intermediate Zone populations, we disaggregate these desire lines and
-assign them to randomised points on the road network of the zone, rather
-than using a single point for each zone. The disaggregation threshold is
-100.
+|   n |  n_od | n_trips | proportion_pairs | proportion_trips |
+|----:|------:|--------:|-----------------:|-----------------:|
+|   0 | 27932 |    6537 |             0.44 |             0.06 |
+|   1 | 20213 |   18271 |             0.32 |             0.17 |
+|   2 |  6308 |   12048 |             0.10 |             0.11 |
+|   3 |  2357 |    6925 |             0.04 |             0.06 |
+|   4 |  1310 |    5194 |             0.02 |             0.05 |
+|   5 |  1088 |    5403 |             0.02 |             0.05 |
+|   6 |   741 |    4432 |             0.01 |             0.04 |
+|   7 |   585 |    4074 |             0.01 |             0.04 |
+|   8 |   378 |    3004 |             0.01 |             0.03 |
+|   9 |   290 |    2596 |             0.00 |             0.02 |
+|  10 |   216 |    2159 |             0.00 |             0.02 |
 
-We then filter the desire lines, excluding those with a Euclidean
-distance of \<500m (below this distance people are likely to walk rather
-than cycle) or \>5km (to reduce the computational time of the routing).
+The equivalent table for the observed commute OD data is shown below.
+
+|   n | n_od | n_trips | proportion_pairs | proportion_trips |
+|----:|-----:|--------:|-----------------:|-----------------:|
+|   1 | 7888 |    7888 |             0.43 |             0.10 |
+|   2 | 3496 |    6992 |             0.19 |             0.09 |
+|   3 | 1847 |    5541 |             0.10 |             0.07 |
+|   4 | 1072 |    4288 |             0.06 |             0.06 |
+|   5 |  726 |    3630 |             0.04 |             0.05 |
+|   6 |  485 |    2910 |             0.03 |             0.04 |
+|   7 |  381 |    2667 |             0.02 |             0.04 |
+|   8 |  285 |    2280 |             0.02 |             0.03 |
+|   9 |  227 |    2043 |             0.01 |             0.03 |
+|  10 |  192 |    1920 |             0.01 |             0.03 |
+
+To avoid the situation whereby a large number of relatively unimportant
+OD pairs account for the majority of the computational resources (around
+80% of OD pairs accounting for only 20% of travel in the table above),
+we will set a limit on the minimum number of trips for an OD pair to be
+included in the routing model, and re-assign the trips evenly in
+proportion to the flows on other OD pairs. Setting this value to 2.5
+will remove all OD pairs with fewer than 3 trips, to the nearest whole
+number. The updated OD data is illustrated below.
+
+![](report-utility-methods_files/figure-commonmark/od-interaction-filtered-1.png)
+
+The number of trips associated with each distance band for the case
+study area of Aberdeen is illustrated below.
+
+![](report-utility-methods_files/figure-commonmark/od-interaction-combined-1.png)
+
+# Jittering
+
+The resulting desire lines are put ‘jittered’. We then filter the desire
+lines, excluding those with a Euclidean distance of \<500m (below this
+distance people are likely to walk rather than cycle) or \>5km (to
+reduce the computational time of the routing).
 
 ## Routing
 
 Finally, the desire lines are routed on the road network, using the
 CycleStreets routing algorithms for fast and quiet routes. Individual
 routes are then combined into a route network.
+
+# Next steps
+
+The approach outlined above has been validated and quality assured, with
+reproducible code reviewed by a second analyst. There are a number of
+ways in which we can improve the accuracy of results in Phase 3, in
+rough descending order of priority:
+
+- Account for the fact that trip rates are note the same across zones:
+  rural areas are known to have lower trip rates than urban areas, and
+  longer distance trips are known to be made less frequently.
+- Refine the weighting associated with each grid point in the spatial
+  interaction model, to account for the fact that some destinations
+  (e.g. large supermarkets for shopping trips) are larger trip
+  attractors than others.
+- Revisit the grid: should a more approach e.g. involving spatial
+  clustering of points be used?
+- Use additional data to estimate mode split under the Baseline scenario

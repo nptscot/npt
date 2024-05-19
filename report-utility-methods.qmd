@@ -1016,6 +1016,7 @@ av_length_new = sf::st_length(od_interaction$geometry) |>
 Let's create the equivalent graphs for a single origin zone.
 
 ```{r}
+#| label: sim-shopping-output-single-zone
 zone_most_populous = zones_shopping |>
   dplyr::filter(shopping_trips == max(shopping_trips)) 
 od_interaction_before |>
@@ -1072,6 +1073,7 @@ od_interaction_before |>
     x = "Number of people making trip",
     y = "Number of OD pairs"
   ) +
+  ggtitle("SIM-derived OD data before beta adjustment") +
   theme_minimal()
 
 od_interaction |>
@@ -1086,6 +1088,7 @@ od_interaction |>
     x = "Number of people making trip",
     y = "Number of OD pairs"
   ) +
+  ggtitle("SIM-derived OD data after beta adjustment") +
   theme_minimal()
 
 # And for commuter trips:
@@ -1105,20 +1108,129 @@ od |>
     x = "Number of people making trip",
     y = "Number of OD pairs"
   ) +
+  ggtitle("Observed OD data (commute)") +
+  theme_minimal()
+```
+
+An feature of all OD datasets we use in this project, whether synthetic or observed, is that they are highly skewed, with a large number of OD pairs with very few trips.
+The proportion of OD pairs and trips associated with synthetic shopping OD pairs with a given number of trips is shown in the table below.
+
+```{r}
+#| label: od-interaction-summary
+n_to_show = 0:10
+od_interaction_summary = od_interaction |>
+  sf::st_drop_geometry() |>
+  dplyr::group_by(n = round(interaction)) |>
+  dplyr::summarise(n_od = n(), n_trips = round(sum(interaction))) |>
+  mutate(proportion_pairs = n_od / sum(n_od), proportion_trips = n_trips / sum(n_trips)) |>
+  filter(n %in% n_to_show)
+od_interaction_summary |>
+  knitr::kable(digits = 2)
+```
+
+The equivalent table for the observed commute OD data is shown below.
+
+```{r}
+od_summary = od |>
+  sf::st_drop_geometry() |>
+  dplyr::group_by(n = round(all)) |>
+  dplyr::summarise(n_od = n(), n_trips = round(sum(all))) |>
+  mutate(proportion_pairs = n_od / sum(n_od), proportion_trips = n_trips / sum(n_trips)) |>
+  filter(n %in% n_to_show)
+od_summary |>
+  knitr::kable(digits = 2)
+```
+
+To avoid the situation whereby a large number of relatively unimportant OD pairs account for the majority of the computational resources (around 80% of OD pairs accounting for only 20% of travel in the table above), we will set a limit on the minimum number of trips for an OD pair to be included in the routing model, and re-assign the trips evenly in proportion to the flows on other OD pairs.
+Setting this value to 2.5 will remove all OD pairs with fewer than 3 trips, to the nearest whole number.
+The updated OD data is illustrated below.
+
+```{r}
+#| label: od-interaction-filtered
+od_interaction_filtered = od_interaction |>
+  dplyr::filter(interaction >= 2.5)
+# sum(od_interaction_filtered$interaction) / sum(od_interaction$interaction) # 0.7
+od_adjusted = od_interaction_filtered |>
+  dplyr::group_by(O) |>
+  dplyr::mutate(
+    proportion = interaction / sum(interaction),
+    shopping_all_modes = origin_shopping_trips * proportion
+  ) |>
+  dplyr::ungroup()
+# sum(od_adjusted$shopping_all_modes) / sum(od_interaction$interaction) # 1
+od_adjusted |>
+  sf::st_drop_geometry() |>
+  dplyr::group_by(n = round(interaction)) |>
+  dplyr::summarise(n_od = n()) |>
+  ggplot() +
+  geom_point(aes(n, n_od)) +
+  scale_x_log10() +
+  scale_y_log10() +
+  labs(
+    x = "Number of people making trip",
+    y = "Number of OD pairs"
+  ) +
+  ggtitle("SIM-derived OD data after filtering") +
+  theme_minimal()
+```
+
+```{r}
+#| include: false
+names(od_adjusted)
+# [1] "O"                     "D"                     "distance_euclidean"   
+# [4] "origin_shopping_trips" "destination_size"      "geometry"             
+# [7] "interaction"           "proportion"            "shopping_all_modes"   
+```
+
+The number of trips associated with each distance band for the case study area of Aberdeen is illustrated below.
+
+```{r}
+#| label: od-interaction-combined
+od_interaction_combined = bind_rows(
+  od_interaction_before |>
+    dplyr::transmute(type = "Before beta adjustment", n = interaction, distance_euclidean),
+  od_interaction |>
+    dplyr::transmute(type = "After beta adjustment", n = interaction, distance_euclidean),
+  od_adjusted |>
+    dplyr::transmute(type = "After filtering", n = shopping_all_modes, distance_euclidean)
+) |>
+  sf::st_drop_geometry() |>
+  dplyr::mutate(distance_band = cut(
+    distance_euclidean,
+    breaks = breaks_dist_euclidean * 1000,
+    labels = breaks_dist_labels
+  )) |>
+  dplyr::group_by(type, distance_band) |>
+  dplyr::summarise(n = sum(n)) |>
+  dplyr::ungroup()
+# Plot the results:
+od_interaction_combined |>
+  ggplot() +
+  geom_bar(aes(x = distance_band, y = n, fill = type), stat = "identity", position = "dodge") +
+  labs(
+    x = "Distance (km)",
+    y = "Number of trips"
+  ) +
   theme_minimal()
 ```
 
 
-## Disaggregating and filtering desire lines
-
-The resulting desire lines are put through a jittering process.
-In cases where the trip origins or destinations were assigned based on Intermediate Zone populations, we disaggregate these desire lines and assign them to randomised points on the road network of the zone, rather than using a single point for each zone. 
-The disaggregation threshold is 100.
-
+# Jittering 
+The resulting desire lines are put 'jittered'.
 We then filter the desire lines, excluding those with a Euclidean distance of <500m (below this distance people are likely to walk rather than cycle) or >5km (to reduce the computational time of the routing).
 
 ## Routing
 
 Finally, the desire lines are routed on the road network, using the CycleStreets routing algorithms for fast and quiet routes.
 Individual routes are then combined into a route network.
+
+# Next steps
+
+The approach outlined above has been validated and quality assured, with reproducible code reviewed by a second analyst.
+There are a number of ways in which we can improve the accuracy of results in Phase 3, in rough descending order of priority:
+
+- Account for the fact that trip rates are note the same across zones: rural areas are known to have lower trip rates than urban areas, and longer distance trips are known to be made less frequently.
+- Refine the weighting associated with each grid point in the spatial interaction model, to account for the fact that some destinations (e.g. large supermarkets for shopping trips) are larger trip attractors than others.
+- Revisit the grid: should a more approach e.g. involving spatial clustering of points be used?
+- Use additional data to estimate mode split under the Baseline scenario
 
