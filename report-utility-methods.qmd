@@ -684,6 +684,7 @@ routes_utility = routes_utility$routes |>
         length_route,
         route_hilliness
         )
+summary(routes_utility$all)
 distance_bins = c(0, 1, 2, 5, 10, 15, 20, 100)
 distance_bin_labels = c("0-1", "1-2", "2-5", "5-10", "10-15", "15-20", "20+")
 uptake_combined = routes_utility |>
@@ -751,11 +752,14 @@ Shopping trips can be more difficult to cycle, since they require carrying large
 
 ## Trip origins and destinations
 
-Origins and destinations were assigned based on Intermediate Zones.
-The trip origins were assumed to be people's homes.
+Origins and destinations were assigned to administrative zones.
+Initially we used the larger Intermediate Zones, but we later switched to the smaller Data Zones.
+
+The trip origins were assumed to be people's homes, represented by Output Area centroids (OAs), the smallest geographical unit for which census data is available.
+
 The number of trips originating from each zone is therefore a function of the residential population of the zone, multiplied by the AADT for the given trip purpose.
 
-For shopping and leisure trips, we used Ordnance Survey Points of Interest (POIs) to identify potential trip destinations. 
+For shopping and leisure trips, we used Ordnance Survey Points of Interest (POIs) to identify trip destinations. 
 All of these POIs were assigned to the nearest point on a 500m grid, giving a density index for each grid point.
 The grid was clipped to avoid any destination points falling offshore.
 
@@ -770,12 +774,172 @@ For social trips, the destinations were people's homes, so the number of trips a
 
 We used a spatial interaction model to pair trip origins and destinations and thus create desire lines.
 These are assigned according to a distance decay equation, which has been derived from distances of travel to work.
-This may introduce bias if in reality typical trip distances for these other everyday purposes are different from the trip distances for commuting.
 
-See NTS0403e for mean trip lengths by purpose
-- shopping
-- visiting friends at private home
-- entertainment or public activity
+```{r}
+#| label: load-sim-inputs
+library(targets)
+tar_load(oas)
+tar_load(os_pois)
+tar_load(grid)
+tar_load(trip_purposes)
+tar_load(intermediate_zones)
+tar_load(parameters)
+tar_load(region_boundary_buffered)
+tar_load(zones)
+tar_source()
+lads = sf::read_sf("inputdata/boundaries/la_regions_2023.geojson")
+aberdeen = lads |>
+  filter(str_detect(LAD23NM, "Aberdeen City"))
+region_boundary_buffered = aberdeen |>
+  sf::st_buffer(5000) 
+
+```
+
+```{r}
+od_shopping = make_od_shopping(
+  oas, os_pois, grid, trip_purposes,
+  intermediate_zones, parameters, region_boundary_buffered
+)
+```
+
+The inputs for the spatial interaction model are:
+
+- `grid`: a grid of points across the region for aggregating origins
+- `oas`: Output Areas (OAs) for the region
+- `os_pois`: Points of Interest (POIs) for the region
+- `trip_purposes`: the trip purposes for which we are modelling desire lines
+- a `zones` object with known residential poulation for each zone
+- `parameters`: the parameters for the model
+- `region_boundary_buffered`: the boundary of the region, buffered to ensure that all zones are included
+
+The inputs are illustrated below for Aberdeen:
+
+```{r}
+#| label: od-shopping-map
+#| include: false
+grid = grid |> sf::st_transform("EPSG:4326")
+grid = grid[region_boundary_buffered, ]
+oas = oas[aberdeen, ]
+os_pois = sf::st_transform(os_pois, "EPSG:4326")
+os_pois = os_pois[region_boundary_buffered, ]
+zones = zones[aberdeen, ]
+
+summary(od_shopping$all)
+summary(sf::st_length(od_shopping$geometry))
+grid = grid[region_boundary_buffered, ]
+iz_wider = intermediate_zones |>
+  sf::st_transform("EPSG:4326") |>
+  sf::st_make_valid() |>
+  sf::st_filter(aberdeen)
+iz = intermediate_zones |>
+  sf::st_transform("EPSG:4326") |>
+  sf::st_make_valid() |>
+  sf::st_filter(oas)
+nrow(zones) / nrow(iz_wider) # ~5x more data zones
+
+od_shopping |>
+  ggplot() +
+  geom_histogram(aes(x = all)) +
+  theme_minimal()
+
+od_shopping |>
+  ggplot() +
+  geom_histogram(aes(x = all)) +
+  theme_minimal()
+```
+
+```{r}
+#| label: sim-shopping-inputs
+#| fig-cap: "Inputs for the spatial interaction model with the grid (black dots), Output Areas (OAs) (blue), Points of Interest (POIs) (red) and zones light blue)."
+ggplot() +
+  geom_sf(data = aberdeen) +
+  geom_sf(data = grid, fill = "grey", alpha = 0.5) +
+  geom_sf(data = iz, fill = "lightblue", alpha = 0.5) +
+  # geom_sf(data = zones, fill = "lightgreen", alpha = 0.5) +
+  geom_sf(data = os_pois, colour = "red", alpha = 0.5) +
+  geom_sf(data = oas, colour = "blue", alpha = 0.5) +
+  geom_sf(data = region_boundary_buffered, fill = NA, colour = "black", size = 1) +
+  coord_sf(xlim = sf::st_bbox(region_boundary_buffered)[c(1, 3)], ylim = sf::st_bbox(region_boundary_buffered)[c(2, 4)]) +
+  theme_void()
+
+```
+
+The output of the SIM model, for `r parameters$region` is shown below.
+
+```{r}
+#| label: sim-shopping-output-original
+# convert grid back to 27700
+grid = grid |> sf::st_transform("EPSG:27700")
+od_shopping = make_od_shopping(
+  oas,
+  os_pois,
+  grid,
+  trip_purposes,
+  iz, parameters, region_boundary_buffered
+)
+ggplot() +
+  geom_sf(data = grid, fill = "grey", alpha = 0.5) +
+  geom_sf(data = os_pois, colour = "red", alpha = 0.5) +
+  geom_sf(data = od_shopping, aes(size = all), colour = "black") +
+  geom_sf(data = oas, colour = "blue", alpha = 0.5) +
+  geom_sf(data = aberdeen |> sf::st_cast("MULTILINESTRING")) +
+  theme_void()
+
+```
+
+```{r}
+#| label: sim-shopping-line-by-line
+# Let's run through the spatial interaction model line-by-line to explain the process.
+os_retail = os_pois |>
+  dplyr::filter(groupname == "Retail") # 26279 points
+os_retail = os_retail |>
+  sf::st_transform(27700)
+shopping = os_retail |>
+  dplyr::mutate(grid_id = sf::st_nearest_feature(os_retail, grid))
+# calculate weighting of each grid point
+shopping_grid = shopping |>
+  sf::st_drop_geometry() |>
+  dplyr::group_by(grid_id) |>
+  dplyr::summarise(size = n())
+nrow(shopping_grid) / length(grid) # ~0.1, only ~10% of grid points have a POI
+summary(shopping_grid$size)
+# assign grid geometry
+grid_df = data.frame(grid)
+grid_df = tibble::rowid_to_column(grid_df, "grid_id")
+shopping_join = dplyr::inner_join(grid_df, shopping_grid)
+shopping_grid = sf::st_as_sf(shopping_join)
+shopping_grid = sf::st_transform(shopping_grid, 4326)
+# Estimate number of shopping trips from each origin zone
+# Calculate number of trips / number of cyclists
+shop_percent = trip_purposes |>
+  dplyr::filter(Purpose == "Shopping") |>
+  dplyr::select(adjusted_mean)
+shop_percent = shop_percent[[1]] / 100
+zones_shopping = intermediate_zones |>
+  dplyr::select(InterZone, ResPop2011)
+# from NTS 2019 (England) average 953 trips/person/year divided by 365 = 2.61 trips/day
+zones_shopping = zones_shopping |>
+  dplyr::mutate(shopping_trips = ResPop2011 * 2.61 * shop_percent) |>
+  dplyr::select(-ResPop2011)
+zones_shopping = sf::st_transform(zones_shopping, 4326)
+zones_shopping = sf::st_make_valid(zones_shopping)
+# Spatial interaction model of journeys
+# We could validate this SIM using the Scottish data on mean km travelled
+max_length_euclidean_km = 5
+od_shopping_initial = simodels::si_to_od(zones_shopping, shopping_grid, max_dist = max_length_euclidean_km * 1000)
+od_interaction = od_shopping_initial |>
+  simodels::si_calculate(
+    fun = gravity_model,
+    m = origin_shopping_trips,
+    n = destination_size,
+    d = distance_euclidean,
+    beta = 0.5,
+    constraint_production = origin_shopping_trips
+  )
+
+```
+
+
 
 ## Disaggregating and filtering desire lines
 

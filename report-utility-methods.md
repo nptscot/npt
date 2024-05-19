@@ -1,6 +1,6 @@
 # Utility trips methodology
 Joey Talbot and Robin Lovelace
-2024-05-18
+2024-05-19
 
 ## Trip numbers and purposes
 
@@ -202,6 +202,9 @@ percentage of trips that are in our model, is shown below:
 
 ### NPT route level results
 
+         Min.   1st Qu.    Median      Mean   3rd Qu.      Max. 
+      0.07464   1.87457   5.84856  18.45035  20.82169  99.99670 
+
 Let’s take a look at the route level results for the three everyday
 purposes. The numbers of trips by purpose and distance bands are
 summarised in the table below:
@@ -251,17 +254,23 @@ require carrying larger volumes of luggage.
 
 ## Trip origins and destinations
 
-Origins and destinations were assigned based on Intermediate Zones. The
-trip origins were assumed to be people’s homes. The number of trips
-originating from each zone is therefore a function of the residential
-population of the zone, multiplied by the AADT for the given trip
-purpose.
+Origins and destinations were assigned to administrative zones.
+Initially we used the larger Intermediate Zones, but we later switched
+to the smaller Data Zones.
+
+The trip origins were assumed to be people’s homes, represented by
+Output Area centroids (OAs), the smallest geographical unit for which
+census data is available.
+
+The number of trips originating from each zone is therefore a function
+of the residential population of the zone, multiplied by the AADT for
+the given trip purpose.
 
 For shopping and leisure trips, we used Ordnance Survey Points of
-Interest (POIs) to identify potential trip destinations. All of these
-POIs were assigned to the nearest point on a 500m grid, giving a density
-index for each grid point. The grid was clipped to avoid any destination
-points falling offshore.
+Interest (POIs) to identify trip destinations. All of these POIs were
+assigned to the nearest point on a 500m grid, giving a density index for
+each grid point. The grid was clipped to avoid any destination points
+falling offshore.
 
 The POIs for shopping comprised any location classed as ‘Retail.’ For
 leisure, they comprised locations classed as ‘Sport and Entertainment.’
@@ -279,12 +288,35 @@ population.
 We used a spatial interaction model to pair trip origins and
 destinations and thus create desire lines. These are assigned according
 to a distance decay equation, which has been derived from distances of
-travel to work. This may introduce bias if in reality typical trip
-distances for these other everyday purposes are different from the trip
-distances for commuting.
+travel to work.
 
-See NTS0403e for mean trip lengths by purpose - shopping - visiting
-friends at private home - entertainment or public activity
+The inputs for the spatial interaction model are:
+
+- `grid`: a grid of points across the region for aggregating origins
+- `oas`: Output Areas (OAs) for the region
+- `os_pois`: Points of Interest (POIs) for the region
+- `trip_purposes`: the trip purposes for which we are modelling desire
+  lines
+- a `zones` object with known residential poulation for each zone
+- `parameters`: the parameters for the model
+- `region_boundary_buffered`: the boundary of the region, buffered to
+  ensure that all zones are included
+
+The inputs are illustrated below for Aberdeen:
+
+![Inputs for the spatial interaction model with the grid (black dots),
+Output Areas (OAs) (blue), Points of Interest (POIs) (red) and zones
+light
+blue).](report-utility-methods_files/figure-commonmark/sim-shopping-inputs-1.png)
+
+The output of the SIM model, for Aberdeen and North East is shown below.
+
+![](report-utility-methods_files/figure-commonmark/sim-shopping-output-original-1.png)
+
+    [1] 0.1130604
+
+       Min. 1st Qu.  Median    Mean 3rd Qu.    Max. 
+      1.000   1.000   2.000   4.772   4.000  96.000 
 
 ## Disaggregating and filtering desire lines
 
