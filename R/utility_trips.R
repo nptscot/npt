@@ -26,37 +26,46 @@ make_od_shopping = function(oas, os_pois, grid, trip_purposes, intermediate_zone
 
   # Estimate number of shopping trips from each origin zone
   # Calculate number of trips / number of cyclists
-  shop_percent = trip_purposes |>
+  shop_proportion_all_distances = trip_purposes |>
     dplyr::filter(Purpose == "Shopping") |>
-    dplyr::select(adjusted_mean)
-  shop_percent = shop_percent[[1]] / 100
-
-
-  zones_shopping = intermediate_zones |>
-    dplyr::select(InterZone, ResPop2011)
+    dplyr::transmute(proportion = adjusted_mean / 100) |>
+    dplyr::pull(proportion)
+  zones_shopping = zones |>
+    dplyr::select(DataZone, ResPop2011)
   # from NTS 2019 (England) average 953 trips/person/year divided by 365 = 2.61 trips/day
+  total_trips_per_day = 2.61
+  distance_frequency = readr::read_csv("inputdata/distance_frequency_wide.csv")
+  proportion_in_od = distance_frequency |>
+    dplyr::filter(`NPT purpose` == "Shopping") |>
+    dplyr::select(`1-2 km`, `2-5 km`, `5-10 km`, `10-15 km`, `15-20 km`) |>
+    sum()
+  shop_proportion = shop_proportion_all_distances * proportion_in_od
   zones_shopping = zones_shopping |>
-    dplyr::mutate(shopping_trips = ResPop2011 * 2.61 * shop_percent) |>
+    dplyr::mutate(shopping_trips = ResPop2011 * total_trips_per_day * shop_proportion) |>
     dplyr::select(-ResPop2011)
   zones_shopping = sf::st_transform(zones_shopping, 4326)
   zones_shopping = sf::st_make_valid(zones_shopping)
 
+
   # Spatial interaction model of journeys
-  # We could validate this SIM using the Scottish data on mean km travelled
-  max_length_euclidean_km = 5
+  max_length_euclidean_km = 10 / 1.3
   od_shopping_initial = simodels::si_to_od(zones_shopping, shopping_grid, max_dist = max_length_euclidean_km * 1000)
+  beta_shopping = distance_frequency |>
+    dplyr::filter(`NPT purpose` == "Shopping") |>
+    dplyr::pull(beta)
   od_interaction = od_shopping_initial |>
     simodels::si_calculate(
       fun = gravity_model,
       m = origin_shopping_trips,
       n = destination_size,
       d = distance_euclidean,
-      beta = 0.5,
+      beta = beta_shopping,
       constraint_production = origin_shopping_trips
     )
 
-  # Need to correct the number of trips, in accordance with origin_shopping_trips
-  od_adjusted = od_interaction |>
+  od_interaction_filtered = od_interaction |>
+    dplyr::filter(interaction >= 2.5)
+  od_adjusted = od_interaction_filtered |>
     dplyr::group_by(O) |>
     dplyr::mutate(
       proportion = interaction / sum(interaction),
@@ -65,21 +74,26 @@ make_od_shopping = function(oas, os_pois, grid, trip_purposes, intermediate_zone
     dplyr::ungroup()
 
   # Jittering
-  shopping_polygons = sf::st_buffer(shopping_grid, dist = 0.0001)
+  using_s2 = sf::sf_use_s2()
+  sf::sf_use_s2(TRUE)
+  shopping_polygons = sf::st_buffer(shopping_grid, dist = 250)
+  sf::sf_use_s2(using_s2)
   # Workaround for #445
   sf::st_geometry(shopping_polygons) = "geom"
 
-  # why does distance_euclidean drop so dramatically when we go from od_interaction to od_adjusted_jittered?
+  shopping_grid_full = dplyr::bind_rows(
+    shopping_grid,
+    os_retail |> dplyr::transmute(grid_id = ref_no, size = 1)
+    )
   od_adjusted_jittered = odjitter::jitter(
     od = od_adjusted,
     zones = zones_shopping,
     zones_d = shopping_polygons, # each polygon is a single grid point, so destinations are kept the same
     subpoints_origins = oas,
-    subpoints_destinations = shopping_grid,
+    subpoints_destinations = shopping_grid_full,
     disaggregation_key = "shopping_all_modes",
     disaggregation_threshold = parameters$disag_threshold,
-    deduplicate_pairs = FALSE,
-    odjitter_location = odjitter_location
+    deduplicate_pairs = FALSE
   )
 
   # Get mode shares
