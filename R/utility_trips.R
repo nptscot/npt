@@ -7,7 +7,7 @@
 #' @param parameters parameters
 #' @param study_area study_area
 
-make_od_shopping = function(oas, os_pois, grid, trip_purposes, intermediate_zones, parameters, study_area, odjitter_location = "odjitter") {
+make_od_shopping = function(oas, os_pois, grid, trip_purposes, zones, parameters, study_area, odjitter_location = "odjitter") {
   os_retail = os_pois |>
     dplyr::filter(groupname == "Retail") # 26279 points
   os_retail = os_retail |>
@@ -46,7 +46,6 @@ make_od_shopping = function(oas, os_pois, grid, trip_purposes, intermediate_zone
   zones_shopping = sf::st_transform(zones_shopping, 4326)
   zones_shopping = sf::st_make_valid(zones_shopping)
 
-
   # Spatial interaction model of journeys
   max_length_euclidean_km = 10 / 1.3
   od_shopping_initial = simodels::si_to_od(zones_shopping, shopping_grid, max_dist = max_length_euclidean_km * 1000)
@@ -79,7 +78,6 @@ make_od_shopping = function(oas, os_pois, grid, trip_purposes, intermediate_zone
   shopping_polygons = sf::st_buffer(shopping_grid, dist = 250)
   sf::sf_use_s2(using_s2)
   # Workaround for #445
-  sf::st_geometry(shopping_polygons) = "geom"
 
   shopping_grid_full = dplyr::bind_rows(
     shopping_grid,

@@ -748,7 +748,7 @@ list(
     grid = readRDS("./inputdata/grid_scot.Rds")
     grid = sf::st_transform(grid, "EPSG:4326")
     grid = grid[region_boundary_buffered, ]
-    grid
+    grid |> sf::st_transform("EPSG:27700")
   }),
   tar_target(oas, {
     oas = readRDS("./inputdata/oas.Rds")
@@ -765,7 +765,7 @@ list(
   tar_target(od_shopping, {
     od_shopping = make_od_shopping(
       oas, os_pois, grid, trip_purposes,
-      intermediate_zones, parameters, region_boundary_buffered
+      zones, parameters, region_boundary_buffered
     )
     od_shopping
   }),
