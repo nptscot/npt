@@ -21,12 +21,7 @@ make_od_shopping = function(oas, os_pois, grid, trip_purposes, intermediate_zone
     sf::st_drop_geometry() |>
     dplyr::group_by(grid_id) |>
     dplyr::summarise(size = n())
-
-  # assign grid geometry
-  grid_df = data.frame(grid)
-  grid_df = tibble::rowid_to_column(grid_df, "grid_id")
-  shopping_join = dplyr::inner_join(grid_df, shopping_grid)
-  shopping_grid = sf::st_as_sf(shopping_join)
+  shopping_grid = sf::st_as_sf(shopping_grid, geometry = grid[shopping_grid$grid_id])
   shopping_grid = sf::st_transform(shopping_grid, 4326)
 
   # Estimate number of shopping trips from each origin zone
