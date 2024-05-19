@@ -13,6 +13,8 @@ execute:
 ```{r setup, include=FALSE}
 library(tidyverse)
 library(sf)
+library(tmap)
+tmap_mode("view")
 set.seed(42)
 res_folder = "outputdata/2024-04-24"
 ```
@@ -822,7 +824,11 @@ grid = grid[region_boundary_buffered, ]
 oas = oas[aberdeen, ]
 os_pois = sf::st_transform(os_pois, "EPSG:4326")
 os_pois = os_pois[region_boundary_buffered, ]
-zones = zones[aberdeen, ]
+# Get zones whose centroids are within the region boundary:
+zones_centroids = sf::st_centroid(zones)
+zones_centroids_aberdeen = zones_centroids[aberdeen, ]
+zones = zones |>
+  filter(DataZone %in% zones_centroids_aberdeen$DataZone)
 
 summary(od_shopping$all)
 summary(sf::st_length(od_shopping$geometry))
@@ -846,6 +852,7 @@ od_shopping |>
   ggplot() +
   geom_histogram(aes(x = all)) +
   theme_minimal()
+
 ```
 
 ```{r}
@@ -861,7 +868,6 @@ ggplot() +
   geom_sf(data = region_boundary_buffered, fill = NA, colour = "black", size = 1) +
   coord_sf(xlim = sf::st_bbox(region_boundary_buffered)[c(1, 3)], ylim = sf::st_bbox(region_boundary_buffered)[c(2, 4)]) +
   theme_void()
-
 ```
 
 The output of the SIM model, for `r parameters$region` is shown below.
@@ -896,35 +902,43 @@ os_retail = os_retail |>
   sf::st_transform(27700)
 shopping = os_retail |>
   dplyr::mutate(grid_id = sf::st_nearest_feature(os_retail, grid))
+
 # calculate weighting of each grid point
 shopping_grid = shopping |>
   sf::st_drop_geometry() |>
   dplyr::group_by(grid_id) |>
   dplyr::summarise(size = n())
-nrow(shopping_grid) / length(grid) # ~0.1, only ~10% of grid points have a POI
+# nrow(shopping_grid) / length(grid) # ~0.1, only ~10% of grid points have a POI
 # Convert to sf object:
 shopping_grid = sf::st_as_sf(shopping_grid, geometry = grid[shopping_grid$grid_id])
 shopping_grid = sf::st_transform(shopping_grid, 4326)
 
 # Estimate number of shopping trips from each origin zone
 # Calculate number of trips / number of cyclists
-shop_percent = trip_purposes |>
+shop_proportion_all_distances = trip_purposes |>
   dplyr::filter(Purpose == "Shopping") |>
-  dplyr::select(adjusted_mean)
-shop_percent = shop_percent[[1]] / 100
-zones_shopping = intermediate_zones |>
-  dplyr::select(InterZone, ResPop2011)
+  dplyr::transmute(proportion = adjusted_mean / 100) |>
+  dplyr::pull(proportion)
+zones_shopping = zones |>
+  dplyr::select(DataZone, ResPop2011) 
 # from NTS 2019 (England) average 953 trips/person/year divided by 365 = 2.61 trips/day
+total_trips_per_day = 2.61
+distance_frequency = readr::read_csv("inputdata/distance_frequency_wide.csv")
+proportion_in_od = distance_frequency |>
+  dplyr::filter(`NPT purpose` == "Shopping") |>
+  dplyr::select(`1-2 km`, `2-5 km`, `5-10 km`, `10-15 km`, `15-20 km`) |>
+  sum()
+shop_proportion = shop_proportion_all_distances * proportion_in_od
 zones_shopping = zones_shopping |>
-  dplyr::mutate(shopping_trips = ResPop2011 * 2.61 * shop_percent) |>
+  dplyr::mutate(shopping_trips = ResPop2011 * total_trips_per_day * shop_proportion) |>
   dplyr::select(-ResPop2011)
 zones_shopping = sf::st_transform(zones_shopping, 4326)
 zones_shopping = sf::st_make_valid(zones_shopping)
 # Spatial interaction model of journeys
 # We could validate this SIM using the Scottish data on mean km travelled
-max_length_euclidean_km = 5
+max_length_euclidean_km = 20 / diversion_factor
 od_shopping_initial = simodels::si_to_od(zones_shopping, shopping_grid, max_dist = max_length_euclidean_km * 1000)
-od_interaction = od_shopping_initial |>
+od_interaction_before = od_shopping_initial |>
   simodels::si_calculate(
     fun = gravity_model,
     m = origin_shopping_trips,
@@ -933,9 +947,112 @@ od_interaction = od_shopping_initial |>
     beta = 0.5,
     constraint_production = origin_shopping_trips
   )
+beta_shopping = distance_frequency |>
+  dplyr::filter(`NPT purpose` == "Shopping") |>
+  dplyr::pull(beta)
+
+# With updated beta value:
+od_interaction = od_shopping_initial |>
+  simodels::si_calculate(
+    fun = gravity_model,
+    m = origin_shopping_trips,
+    n = destination_size,
+    d = distance_euclidean,
+    beta = -beta_shopping,
+    constraint_production = origin_shopping_trips
+  )
 
 ```
 
+Illustrations of the spatial interaction model results are shown below.
+
+```{r}
+#| label: sim-shopping-output-frequency
+#| layout-ncol: 2
+# old:
+od_interaction_before |>
+  # mutate(`M x N` = origin_shopping_trips * destination_size) |>
+  ggplot() +
+  # geom_point(aes(distance_euclidean, interaction, colour = `M x N`)) +
+
+  geom_point(aes(distance_euclidean, interaction, colour = destination_size)) +
+  labs(
+    x = "Distance (km)",
+    y = "Number of trips"
+  ) +
+  ggtitle("Before beta adjustment") +
+  theme_minimal()
+od_interaction |>
+  ggplot() +
+  geom_point(aes(distance_euclidean, interaction, colour = destination_size)) +
+  labs(
+    x = "Distance (km)",
+    y = "Number of trips"
+  ) +
+  ggtitle("After beta adjustment") +
+  theme_minimal()
+
+
+
+# Map of flows with greatest interaction
+tmap_mode("plot")
+m_old = od_interaction_before |>
+  dplyr::slice_max(interaction, n = 500) |>
+  qtm()
+m_new = od_interaction |>
+  dplyr::filter(interaction > 40) |>
+  qtm("interaction")
+  #  +
+  # qtm(zones) +
+  # qtm(aberdeen)
+tmap_arrange(m_old, m_new)
+
+av_length_old = sf::st_length(od_interaction_before$geometry) |>
+  mean(na.rm = TRUE)
+av_length_new = sf::st_length(od_interaction$geometry) |>
+  mean(na.rm = TRUE)
+```
+
+Let's create the equivalent graphs for a single origin zone.
+
+```{r}
+zone_most_populous = zones_shopping |>
+  dplyr::filter(shopping_trips == max(shopping_trips)) 
+od_interaction_before |>
+  filter(O == zone_most_populous$DataZone) |>
+  ggplot() +
+  geom_point(aes(distance_euclidean, interaction, colour = destination_size)) +
+  labs(
+    x = "Distance (km)",
+    y = "Number of trips"
+  ) +
+  ggtitle("Before beta adjustment") +
+  theme_minimal()
+od_interaction |>
+  filter(O == zone_most_populous$DataZone) |>
+  ggplot() +
+  geom_point(aes(distance_euclidean, interaction, colour = destination_size)) +
+  labs(
+    x = "Distance (km)",
+    y = "Number of trips"
+  ) +
+  ggtitle("After beta adjustment") +
+  theme_minimal()
+```
+
+The results demonstrate how the previous `beta` value led to an over-emphasis on short trips.
+
+We checked the number of shopping originating in each zone according to the synthetic OD data and found, as expected, a perfect correlation with population, implying constant trip rates per person.
+
+```{r}
+#| include: false
+od_aggregated_o = od_interaction |>
+  dplyr::group_by(O) |>
+  dplyr::summarise(n = sum(interaction))
+cor(od_aggregated_o$n, zones_shopping$shopping_trips)
+# Per population:
+cor(od_aggregated_o$n, zones$ResPop2011)
+```
 
 
 ## Disaggregating and filtering desire lines

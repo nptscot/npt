@@ -313,10 +313,19 @@ The output of the SIM model, for Aberdeen and North East is shown below.
 
 ![](report-utility-methods_files/figure-commonmark/sim-shopping-output-original-1.png)
 
-    [1] 0.1130604
+Illustrations of the spatial interaction model results are shown below.
 
-       Min. 1st Qu.  Median    Mean 3rd Qu.    Max. 
-      1.000   1.000   2.000   4.772   4.000  96.000 
+![](report-utility-methods_files/figure-commonmark/sim-shopping-output-frequency-1.png)
+
+![](report-utility-methods_files/figure-commonmark/sim-shopping-output-frequency-2.png)
+
+![](report-utility-methods_files/figure-commonmark/sim-shopping-output-frequency-3.png)
+
+Let’s create the equivalent graphs for a single origin zone.
+
+![](report-utility-methods_files/figure-commonmark/unnamed-chunk-31-1.png)
+
+![](report-utility-methods_files/figure-commonmark/unnamed-chunk-31-2.png)
 
 ## Disaggregating and filtering desire lines
 
