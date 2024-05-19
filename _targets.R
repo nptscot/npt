@@ -745,7 +745,10 @@ list(
   }),
 
   tar_target(grid, {
-    readRDS("./inputdata/grid_scot.Rds")
+    grid = readRDS("./inputdata/grid_scot.Rds")
+    grid = sf::st_transform(grid, "EPSG:4326")
+    grid = grid[region_boundary_buffered, ]
+    grid
   }),
   tar_target(oas, {
     oas = readRDS("./inputdata/oas.Rds")
