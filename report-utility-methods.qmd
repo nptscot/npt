@@ -1054,6 +1054,60 @@ cor(od_aggregated_o$n, zones_shopping$shopping_trips)
 cor(od_aggregated_o$n, zones$ResPop2011)
 ```
 
+Regardless of the beta value used, spatial interaction models lead to OD data with a highly skewed distribution of trip lengths.
+This can be illustrated by plotting the number of OD pairs with different trip numbers against the number of people making that trip, as shown below.
+
+```{r}
+#| label: od-interaction-plot
+# Old od data:
+od_interaction_before |>
+  sf::st_drop_geometry() |>
+  dplyr::group_by(n = round(interaction)) |>
+  dplyr::summarise(n_od = n()) |>
+  ggplot() +
+  geom_point(aes(n, n_od)) +
+  scale_x_log10() +
+  scale_y_log10() +
+  labs(
+    x = "Number of people making trip",
+    y = "Number of OD pairs"
+  ) +
+  theme_minimal()
+
+od_interaction |>
+  sf::st_drop_geometry() |>
+  dplyr::group_by(n = round(interaction)) |>
+  dplyr::summarise(n_od = n()) |>
+  ggplot() +
+  geom_point(aes(n, n_od)) +
+  scale_x_log10() +
+  scale_y_log10() +
+  labs(
+    x = "Number of people making trip",
+    y = "Number of OD pairs"
+  ) +
+  theme_minimal()
+
+# And for commuter trips:
+tar_load(od_national)
+od = od_national |>
+  filter(geo_code1 %in% zones$DataZone) |>
+  filter(geo_code2 %in% zones$DataZone)
+od |>
+  sf::st_drop_geometry() |>
+  dplyr::group_by(n = round(all)) |>
+  dplyr::summarise(n_od = n()) |>
+  ggplot() +
+  geom_point(aes(n, n_od)) +
+  scale_x_log10() +
+  scale_y_log10() +
+  labs(
+    x = "Number of people making trip",
+    y = "Number of OD pairs"
+  ) +
+  theme_minimal()
+```
+
 
 ## Disaggregating and filtering desire lines
 

@@ -327,6 +327,24 @@ Let’s create the equivalent graphs for a single origin zone.
 
 ![](report-utility-methods_files/figure-commonmark/unnamed-chunk-31-2.png)
 
+The results demonstrate how the previous `beta` value led to an
+over-emphasis on short trips.
+
+We checked the number of shopping originating in each zone according to
+the synthetic OD data and found, as expected, a perfect correlation with
+population, implying constant trip rates per person.
+
+Regardless of the beta value used, spatial interaction models lead to OD
+data with a highly skewed distribution of trip lengths. This can be
+illustrated by plotting the number of OD pairs with different trip
+numbers against the number of people making that trip, as shown below.
+
+![](report-utility-methods_files/figure-commonmark/od-interaction-plot-1.png)
+
+![](report-utility-methods_files/figure-commonmark/od-interaction-plot-2.png)
+
+![](report-utility-methods_files/figure-commonmark/od-interaction-plot-3.png)
+
 ## Disaggregating and filtering desire lines
 
 The resulting desire lines are put through a jittering process. In cases
