@@ -798,7 +798,6 @@ list(
       dplyr::slice_max(n = parameters$max_to_route, order_by = all, with_ties = FALSE)
 
     # Get % cycling for commuting per zone
-    tar_load(commute_stats)
     pcycle_national = sum(commute_stats$comm_orig_bicycle, na.rm = TRUE) /
       sum(commute_stats$comm_orig_all, na.rm = TRUE)
     cycling_multiplier = commute_stats |>
