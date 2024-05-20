@@ -807,15 +807,28 @@ list(
     # Get % cycling for commuting per zone
     pcycle_national = sum(commute_stats$comm_orig_bicycle, na.rm = TRUE) /
       sum(commute_stats$comm_orig_all, na.rm = TRUE)
-    cycling_multiplier = commute_stats |>
+    commute_stats_minimal = commute_stats |>
+      dplyr::select(DataZone, comm_orig_bicycle, comm_orig_all)
+    cycling_multiplier = commute_stats_minimal |>
       dplyr::transmute(
         DataZone,
         multiplier = (comm_orig_bicycle / comm_orig_all) /
          pcycle_national
-      )
+      ) |>
+      # 0 to 0.1:
+      dplyr::mutate(multiplier = case_when(
+        multiplier == 0 ~ 0.1,
+        TRUE ~ multiplier
+      ))
+    # summary(cycling_multiplier$multiplier)
     # Add new cycling multiplier column to od_utility_combined
     od_utility_combined = od_utility_combined |>
       dplyr::left_join(cycling_multiplier, by = join_by(geo_code1 == DataZone)) |>
+      # Convert NAs to 1:
+      dplyr::mutate(multiplier = case_when(
+        is.na(multiplier) ~ 1,
+        TRUE ~ multiplier
+      )) |>
       dplyr::mutate(
         bicycle_new = bicycle * multiplier,
         car = car - (bicycle_new - bicycle),
