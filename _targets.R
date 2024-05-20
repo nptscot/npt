@@ -711,6 +711,7 @@ list(
   tar_target(zones_stats, {
     stats = dplyr::full_join(commute_stats, school_stats_from, by = "DataZone")
     stats = dplyr::full_join(stats, utility_stats, by = "DataZone")
+    stats
   }),
 
   # Now covered in build.R:
@@ -795,6 +796,26 @@ list(
   tar_target(od_utility_combined, {
     od_utility_combined = rbind(od_shopping, od_visiting, od_leisure) |>
       dplyr::slice_max(n = parameters$max_to_route, order_by = all, with_ties = FALSE)
+
+    # Get % cycling for commuting per zone
+    tar_load(commute_stats)
+    pcycle_national = sum(commute_stats$comm_orig_bicycle, na.rm = TRUE) /
+      sum(commute_stats$comm_orig_all, na.rm = TRUE)
+    cycling_multiplier = commute_stats |>
+      dplyr::transmute(
+        DataZone,
+        multiplier = (comm_orig_bicycle / comm_orig_all) /
+         pcycle_national
+      )
+    # Add new cycling multiplier column to od_utility_combined
+    od_utility_combined = od_utility_combined |>
+      dplyr::left_join(cycling_multiplier, by = join_by(geo_code1 == DataZone)) |>
+      dplyr::mutate(
+        bicycle_new = bicycle * multiplier,
+        car = car - (bicycle_new - bicycle),
+        bicycle = bicycle_new
+      ) |>
+      dplyr::select(-cycling_multiplier, -bicycle_new)
 
     # Ensure the columns and distance units are identical to the other routing types
     # (apart from the additional trip purpose column)
