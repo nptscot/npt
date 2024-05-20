@@ -87,9 +87,7 @@ make_od = function(oas, os_pois, grid, purpose, trip_purposes, zones, parameters
       beta = beta_p,
       constraint_production = origin_p_trips
     )
-
-  browser()
-
+  # TODO: set min_per_o as a parameter?
   # Keep only max_per_o destinations per origin
   min_per_o = 10
   min_p = min(zones_p$p_trips)
