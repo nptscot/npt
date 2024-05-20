@@ -763,23 +763,29 @@ list(
 
   # Utility OD -------------------------------------------------------------
   tar_target(od_shopping, {
-    od_shopping = make_od_shopping(
-      oas, os_pois, grid, trip_purposes,
-      zones, parameters, region_boundary_buffered
+    od_shopping = make_od(
+      oas, os_pois, grid,
+      purpose = "shopping",
+      trip_purposes,
+      zones, parameters
     )
     od_shopping
   }),
   tar_target(od_visiting, {
-    od_visiting = make_od_visiting(
-      oas, os_pois, grid, trip_purposes,
-      intermediate_zones, parameters, region_boundary_buffered
+    od_visiting = make_od(
+      oas, os_pois, grid,
+      purpose = "visiting",
+      trip_purposes,
+      zones, parameters
     )
     od_visiting
   }),
   tar_target(od_leisure, {
-    od_leisure = make_od_leisure(
-      oas, os_pois, grid, trip_purposes,
-      intermediate_zones, parameters, region_boundary_buffered
+    od_leisure = make_od(
+      oas, os_pois, grid,
+      purpose = "leisure",
+      trip_purposes,
+      zones, parameters
     )
     od_leisure
   }),
