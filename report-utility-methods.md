@@ -421,81 +421,9 @@ onto the commute and education network layers and can be visualised in
 the website. An example of the route network results for central
 Aberdeen is shown below.
 
-     [1] "dasymetric_high.geojson"             
-     [2] "dasymetric_low.geojson"              
-     [3] "dasymetric_med.geojson"              
-     [4] "dasymetric_verylow.geojson"          
-     [5] "data_zones.geojson"                  
-     [6] "routes_max_dist_commute_balanced.Rds"
-     [7] "routes_max_dist_commute_ebike.Rds"   
-     [8] "routes_max_dist_commute_fastest.Rds" 
-     [9] "routes_max_dist_commute_quietest.Rds"
-    [10] "routes_max_dist_school_balanced.Rds" 
-    [11] "routes_max_dist_school_ebike.Rds"    
-    [12] "routes_max_dist_school_fastest.Rds"  
-    [13] "routes_max_dist_school_quietest.Rds" 
-    [14] "routes_max_dist_utility_balanced.Rds"
-    [15] "routes_max_dist_utility_ebike.Rds"   
-    [16] "routes_max_dist_utility_fastest.Rds" 
-    [17] "routes_max_dist_utility_quietest.Rds"
-    [18] "school_locations.geojson"            
+![](report-utility-methods_files/figure-commonmark/route-network-results-1.png)
 
-    [1] 608527
-
-     [1] "commute_fastest_bicycle"             "commute_fastest_bicycle_go_dutch"   
-     [3] "commute_fastest_bicycle_ebike"       "commute_quietest_bicycle"           
-     [5] "commute_quietest_bicycle_go_dutch"   "commute_quietest_bicycle_ebike"     
-     [7] "commute_ebike_bicycle"               "commute_ebike_bicycle_go_dutch"     
-     [9] "commute_ebike_bicycle_ebike"         "primary_fastest_bicycle"            
-    [11] "primary_fastest_bicycle_go_dutch"    "primary_fastest_bicycle_ebike"      
-    [13] "primary_quietest_bicycle"            "primary_quietest_bicycle_go_dutch"  
-    [15] "primary_quietest_bicycle_ebike"      "primary_ebike_bicycle"              
-    [17] "primary_ebike_bicycle_go_dutch"      "primary_ebike_bicycle_ebike"        
-    [19] "secondary_fastest_bicycle"           "secondary_fastest_bicycle_go_dutch" 
-    [21] "secondary_fastest_bicycle_ebike"     "secondary_quietest_bicycle"         
-    [23] "secondary_quietest_bicycle_go_dutch" "secondary_quietest_bicycle_ebike"   
-    [25] "secondary_ebike_bicycle"             "secondary_ebike_bicycle_go_dutch"   
-    [27] "secondary_ebike_bicycle_ebike"       "utility_fastest_bicycle"            
-    [29] "utility_fastest_bicycle_go_dutch"    "utility_fastest_bicycle_ebike"      
-    [31] "utility_quietest_bicycle"            "utility_quietest_bicycle_go_dutch"  
-    [33] "utility_quietest_bicycle_ebike"      "utility_ebike_bicycle"              
-    [35] "utility_ebike_bicycle_go_dutch"      "utility_ebike_bicycle_ebike"        
-    [37] "quietness"                           "gradient"                           
-    [39] "all_fastest_bicycle"                 "all_fastest_bicycle_go_dutch"       
-    [41] "all_fastest_bicycle_ebike"           "all_quietest_bicycle"               
-    [43] "all_quietest_bicycle_go_dutch"       "all_quietest_bicycle_ebike"         
-    [45] "all_ebike_bicycle"                   "all_ebike_bicycle_go_dutch"         
-    [47] "all_ebike_bicycle_ebike"             "geom"                               
-
-       Min. 1st Qu.  Median    Mean 3rd Qu.    Max.    NA's 
-      12.00   28.35   33.00     Inf   39.00     Inf   10519 
-
-![](report-utility-methods_files/figure-commonmark/unnamed-chunk-40-1.png)
-
-     [1] "combined_network_tile.geojson"       
-     [2] "local_authorities_region.geojson"    
-     [3] "rnet_primary_school_balanced.Rds"    
-     [4] "rnet_primary_school_ebike.Rds"       
-     [5] "rnet_primary_school_fastest.Rds"     
-     [6] "rnet_primary_school_quietest.Rds"    
-     [7] "routes_max_dist_commute_balanced.Rds"
-     [8] "routes_max_dist_commute_ebike.Rds"   
-     [9] "routes_max_dist_commute_fastest.Rds" 
-    [10] "routes_max_dist_commute_quietest.Rds"
-    [11] "routes_max_dist_school_balanced.Rds" 
-    [12] "routes_max_dist_school_ebike.Rds"    
-    [13] "routes_max_dist_school_fastest.Rds"  
-    [14] "routes_max_dist_school_quietest.Rds" 
-    [15] "routes_max_dist_utility_balanced.Rds"
-    [16] "routes_max_dist_utility_ebike.Rds"   
-    [17] "routes_max_dist_utility_fastest.Rds" 
-    [18] "routes_max_dist_utility_quietest.Rds"
-    [19] "simplified_network.geojson"          
-
-       Min. 1st Qu.  Median    Mean 3rd Qu.    Max.    NA's 
-       8.00   22.81   29.60     Inf     Inf     Inf   11221 
-
-![](report-utility-methods_files/figure-commonmark/unnamed-chunk-40-2.png)
+![](report-utility-methods_files/figure-commonmark/route-network-results-2.png)
 
 # Next steps
 

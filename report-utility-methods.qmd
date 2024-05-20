@@ -1252,6 +1252,7 @@ The results of the the utility trip uptake model and routing are added onto the 
 An example of the route network results for central Aberdeen is shown below.
 
 ```{r}
+#| include: false
 list.files("outputdata/2024-04-24/")
 combined_old = sf::read_sf("outputdata/v2024-04-27-13-25-54.303602_commit_8925a08931141f9838760a9fb04b2c9b383db021/combined_network.gpkg")
 nrow(combined_old) # 608527
@@ -1288,13 +1289,7 @@ combined_old_aberdeen = combined_old[aberdeen, ]
 combined_old_aberdeen = combined_old_aberdeen |>
   transmute(utility_increase = utility_fastest_bicycle_go_dutch / utility_fastest_bicycle)
 summary(combined_old_aberdeen$utility_increase)
-brks = c(0, 10, 20, 30, 50)
-combined_old_aberdeen |>
-  # mutate(utility_increase = cut(utility_increase, breaks = brks)) |>
-  ggplot() +
-  geom_sf(aes(colour = utility_increase)) +
-  scale_colour_viridis_b(breaks = brks) +
-  theme_void()
+
 
 # The new data:
 list.files("outputdata/2024-05-20/aberdeen_and_north_east")
@@ -1303,6 +1298,17 @@ combined_new_aberdeen = combined_new[aberdeen, ]
 combined_new_aberdeen = combined_new_aberdeen |>
   transmute(utility_increase = utility_fastest_bicycle_go_dutch / utility_fastest_bicycle)
 summary(combined_new_aberdeen$utility_increase)
+```
+
+```{r}
+#| label: route-network-results
+brks = c(0, 10, 20, 30, 50)
+combined_old_aberdeen |>
+  # mutate(utility_increase = cut(utility_increase, breaks = brks)) |>
+  ggplot() +
+  geom_sf(aes(colour = utility_increase)) +
+  scale_colour_viridis_b(breaks = brks) +
+  theme_void()
 combined_new_aberdeen |>
   ggplot() +
   geom_sf(aes(colour = utility_increase)) +
