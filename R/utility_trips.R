@@ -88,27 +88,22 @@ make_od = function(oas, os_pois, grid, purpose, trip_purposes, zones, parameters
       constraint_production = origin_p_trips
     )
 
-  interaction_summary = summary(od_interaction$interaction)
-  od_interaction_filtered = od_interaction |>
-    dplyr::filter(interaction >= 0.5)
-  destinations_per_origin = od_interaction_filtered |>
-    dplyr::group_by(O) |>
-    dplyr::summarise(n = n()) |>
-    dplyr::pull(n)
-  if (min(destinations_per_origin) < 5) {
-    message("Some origins have fewer than 5 destinations")
-    # TODO: explore why some zones have fewer than 5 destinations after this:
-    o_to_top_up = zones$DataZone[which(destinations_per_origin < 5)]
-    od_interaction_top_up = od_interaction |>
-      dplyr::filter(O %in% o_to_top_up) |>
-      dplyr::group_by(O) |>
-      slice_max(interaction, n = 5) |>
-      dplyr::ungroup()
-    od_filtered = od_interaction_filtered |>
-      dplyr::filter(!(O %in% o_to_top_up))
-    od_interaction_filtered = bind_rows(od_filtered, od_interaction_top_up)
-  }
+  browser()
 
+  # Keep only max_per_o destinations per origin
+  min_per_o = 10
+  min_p = min(zones_p$p_trips)
+  summary(od_interaction_filtered$n_destinations)
+  od_interaction_filtered = purrr::map_dfr(
+    unique(od_interaction$O),
+    ~ {
+      od_o = od_interaction |>
+        dplyr::filter(O == .x)
+      n_destinations = round(od_o$origin_p_trips[1] / min_p * min_per_o)
+      od_o |>
+        dplyr::slice_sample(n = n_destinations, weight_by = interaction)
+    }
+  )
   od_adjusted = od_interaction_filtered |>
     dplyr::group_by(O) |>
     dplyr::mutate(
@@ -116,6 +111,7 @@ make_od = function(oas, os_pois, grid, purpose, trip_purposes, zones, parameters
       p_all_modes = origin_p_trips * proportion
     ) |>
     dplyr::ungroup()
+  summary(od_adjusted$p_all_modes)
   # sum(od_adjusted$p_all_modes) / sum(zones_p$p_trips) # close to 1
 
   # Jittering
