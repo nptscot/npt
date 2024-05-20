@@ -252,6 +252,12 @@ shopping as having a considerably lower cycle mode share than other trip
 purposes. Shopping trips can be more difficult to cycle, since they
 require carrying larger volumes of luggage.
 
+We used a ‘commute multiplier’ to reflect the fact that cycling for
+utility (and other purposes) is not uniformly spread geographically. In
+places with double the average cycling commute mode share, we assumed
+that the cycling mode share for utility trips would be double the
+average cycling mode share for utility trips.
+
 ## Trip origins and destinations
 
 Origins and destinations were assigned to administrative zones.
@@ -464,7 +470,7 @@ Aberdeen is shown below.
        Min. 1st Qu.  Median    Mean 3rd Qu.    Max.    NA's 
       12.00   28.35   33.00     Inf   39.00     Inf   10519 
 
-![](report-utility-methods_files/figure-commonmark/unnamed-chunk-39-1.png)
+![](report-utility-methods_files/figure-commonmark/unnamed-chunk-40-1.png)
 
      [1] "combined_network_tile.geojson"       
      [2] "local_authorities_region.geojson"    
@@ -489,7 +495,7 @@ Aberdeen is shown below.
        Min. 1st Qu.  Median    Mean 3rd Qu.    Max.    NA's 
        8.00   22.81   29.60     Inf     Inf     Inf   11221 
 
-![](report-utility-methods_files/figure-commonmark/unnamed-chunk-39-2.png)
+![](report-utility-methods_files/figure-commonmark/unnamed-chunk-40-2.png)
 
 # Next steps
 

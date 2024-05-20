@@ -752,6 +752,9 @@ For shopping, we assumed that the cycle mode share was half of this, with the mo
 This follows our detailed analysis of Scottish Household Survey travel diaries, which identified shopping as having a considerably lower cycle mode share than other trip purposes.
 Shopping trips can be more difficult to cycle, since they require carrying larger volumes of luggage.
 
+We used a 'commute multiplier' to reflect the fact that cycling for utility (and other purposes) is not uniformly spread geographically.
+In places with double the average cycling commute mode share, we assumed that the cycling mode share for utility trips would be double the average cycling mode share for utility trips.
+
 ## Trip origins and destinations
 
 Origins and destinations were assigned to administrative zones.
@@ -1234,6 +1237,14 @@ We then filter the desire lines, excluding those with a Euclidean distance of <5
 
 Finally, the desire lines are routed on the road network, using the CycleStreets routing algorithms for fast and quiet routes.
 Individual routes are then combined into a route network.
+
+```{r}
+#| eval: false
+routes_utility_old = readRDS("outputdata/2024-05-17/aberdeen_and_north_east/routes_max_dist_utility_fastest.Rds")
+nrow(routes_utility_old$routes)
+routes_utility_new = readRDS("outputdata/2024-05-20/aberdeen_and_north_east/routes_max_dist_utility_fastest.Rds")
+nrow(routes_utility_new$routes)
+```
 
 ## Route network results
 
