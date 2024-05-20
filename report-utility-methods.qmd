@@ -1141,14 +1141,23 @@ od_summary |>
   knitr::kable(digits = 2)
 ```
 
-To avoid the situation whereby a large number of relatively unimportant OD pairs account for the majority of the computational resources (around 80% of OD pairs accounting for only 20% of travel in the table above), we will set a limit on the minimum number of trips for an OD pair to be included in the routing model, and re-assign the trips evenly in proportion to the flows on other OD pairs.
-Setting this value to 2.5 will remove all OD pairs with fewer than 3 trips, to the nearest whole number.
+To avoid the situation whereby a large number of relatively unimportant OD pairs account for the majority of the computational resources (around 80% of OD pairs accounting for only 20% of travel in the table above), we will set a limit on the number of OD pairs per origin zone, proportion to the number of trips made from that zone, and sample that many OD pairs, with weights proportional to the interaction value.
 The updated OD data is illustrated below.
 
 ```{r}
 #| label: od-interaction-filtered
-od_interaction_filtered = od_interaction |>
-  dplyr::filter(interaction >= 2.5)
+min_per_o = 10
+min_p = min(zones$origin_shopping_trips)
+od_interaction_filtered = purrr::map_dfr(
+  unique(od_interaction$O),
+  ~ {
+    od_o = od_interaction |>
+      dplyr::filter(O == .x)
+    n_destinations = round(od_o$origin_shopping_trips[1] / min_p * min_per_o)
+    od_o |>
+      dplyr::slice_sample(n = n_destinations, weight_by = interaction)
+  }
+)
 # sum(od_interaction_filtered$interaction) / sum(od_interaction$interaction) # 0.7
 od_adjusted = od_interaction_filtered |>
   dplyr::group_by(O) |>
@@ -1172,6 +1181,7 @@ od_adjusted |>
   ) +
   ggtitle("SIM-derived OD data after filtering") +
   theme_minimal()
+
 ```
 
 ```{r}
@@ -1212,6 +1222,7 @@ od_interaction_combined |>
     y = "Number of trips"
   ) +
   theme_minimal()
+
 ```
 
 
@@ -1223,6 +1234,70 @@ We then filter the desire lines, excluding those with a Euclidean distance of <5
 
 Finally, the desire lines are routed on the road network, using the CycleStreets routing algorithms for fast and quiet routes.
 Individual routes are then combined into a route network.
+
+## Route network results
+
+The results of the the utility trip uptake model and routing are added onto the commute and education network layers and can be visualised in the website.
+An example of the route network results for central Aberdeen is shown below.
+
+```{r}
+list.files("outputdata/2024-04-24/")
+combined_old = sf::read_sf("outputdata/v2024-04-27-13-25-54.303602_commit_8925a08931141f9838760a9fb04b2c9b383db021/combined_network.gpkg")
+nrow(combined_old) # 608527
+names(combined_old)
+#  [1] "commute_fastest_bicycle"             "commute_fastest_bicycle_go_dutch"   
+#  [3] "commute_fastest_bicycle_ebike"       "commute_quietest_bicycle"           
+#  [5] "commute_quietest_bicycle_go_dutch"   "commute_quietest_bicycle_ebike"     
+#  [7] "commute_ebike_bicycle"               "commute_ebike_bicycle_go_dutch"     
+#  [9] "commute_ebike_bicycle_ebike"         "primary_fastest_bicycle"            
+# [11] "primary_fastest_bicycle_go_dutch"    "primary_fastest_bicycle_ebike"      
+# [13] "primary_quietest_bicycle"            "primary_quietest_bicycle_go_dutch"  
+# [15] "primary_quietest_bicycle_ebike"      "primary_ebike_bicycle"              
+# [17] "primary_ebike_bicycle_go_dutch"      "primary_ebike_bicycle_ebike"        
+# [19] "secondary_fastest_bicycle"           "secondary_fastest_bicycle_go_dutch" 
+# [21] "secondary_fastest_bicycle_ebike"     "secondary_quietest_bicycle"         
+# [23] "secondary_quietest_bicycle_go_dutch" "secondary_quietest_bicycle_ebike"   
+# [25] "secondary_ebike_bicycle"             "secondary_ebike_bicycle_go_dutch"   
+# [27] "secondary_ebike_bicycle_ebike"       "utility_fastest_bicycle"            
+# [29] "utility_fastest_bicycle_go_dutch"    "utility_fastest_bicycle_ebike"      
+# [31] "utility_quietest_bicycle"            "utility_quietest_bicycle_go_dutch"  
+# [33] "utility_quietest_bicycle_ebike"      "utility_ebike_bicycle"              
+# [35] "utility_ebike_bicycle_go_dutch"      "utility_ebike_bicycle_ebike"        
+# [37] "quietness"                           "gradient"                           
+# [39] "all_fastest_bicycle"                 "all_fastest_bicycle_go_dutch"       
+# [41] "all_fastest_bicycle_ebike"           "all_quietest_bicycle"               
+# [43] "all_quietest_bicycle_go_dutch"       "all_quietest_bicycle_ebike"         
+# [45] "all_ebike_bicycle"                   "all_ebike_bicycle_go_dutch"         
+# [47] "all_ebike_bicycle_ebike"             "geom"
+
+# combined_old |>
+#   sample_n(1000) |>
+#   plot()
+combined_old_aberdeen = combined_old[aberdeen, ]
+combined_old_aberdeen = combined_old_aberdeen |>
+  transmute(utility_increase = utility_fastest_bicycle_go_dutch / utility_fastest_bicycle)
+summary(combined_old_aberdeen$utility_increase)
+brks = c(0, 10, 20, 30, 50)
+combined_old_aberdeen |>
+  # mutate(utility_increase = cut(utility_increase, breaks = brks)) |>
+  ggplot() +
+  geom_sf(aes(colour = utility_increase)) +
+  scale_colour_viridis_b(breaks = brks) +
+  theme_void()
+
+# The new data:
+list.files("outputdata/2024-05-20/aberdeen_and_north_east")
+combined_new = sf::read_sf("outputdata/2024-05-20/aberdeen_and_north_east/combined_network_tile.geojson")
+combined_new_aberdeen = combined_new[aberdeen, ]
+combined_new_aberdeen = combined_new_aberdeen |>
+  transmute(utility_increase = utility_fastest_bicycle_go_dutch / utility_fastest_bicycle)
+summary(combined_new_aberdeen$utility_increase)
+combined_new_aberdeen |>
+  ggplot() +
+  geom_sf(aes(colour = utility_increase)) +
+  scale_colour_viridis_b(breaks = brks) +
+  theme_void()
+```
 
 # Next steps
 

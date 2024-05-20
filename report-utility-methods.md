@@ -1,6 +1,6 @@
 # Utility trips methodology
 Joey Talbot and Robin Lovelace
-2024-05-19
+2024-05-20
 
 ## Trip numbers and purposes
 
@@ -383,11 +383,10 @@ The equivalent table for the observed commute OD data is shown below.
 To avoid the situation whereby a large number of relatively unimportant
 OD pairs account for the majority of the computational resources (around
 80% of OD pairs accounting for only 20% of travel in the table above),
-we will set a limit on the minimum number of trips for an OD pair to be
-included in the routing model, and re-assign the trips evenly in
-proportion to the flows on other OD pairs. Setting this value to 2.5
-will remove all OD pairs with fewer than 3 trips, to the nearest whole
-number. The updated OD data is illustrated below.
+we will set a limit on the number of OD pairs per origin zone,
+proportion to the number of trips made from that zone, and sample that
+many OD pairs, with weights proportional to the interaction value. The
+updated OD data is illustrated below.
 
 ![](report-utility-methods_files/figure-commonmark/od-interaction-filtered-1.png)
 
@@ -408,6 +407,89 @@ reduce the computational time of the routing).
 Finally, the desire lines are routed on the road network, using the
 CycleStreets routing algorithms for fast and quiet routes. Individual
 routes are then combined into a route network.
+
+## Route network results
+
+The results of the the utility trip uptake model and routing are added
+onto the commute and education network layers and can be visualised in
+the website. An example of the route network results for central
+Aberdeen is shown below.
+
+     [1] "dasymetric_high.geojson"             
+     [2] "dasymetric_low.geojson"              
+     [3] "dasymetric_med.geojson"              
+     [4] "dasymetric_verylow.geojson"          
+     [5] "data_zones.geojson"                  
+     [6] "routes_max_dist_commute_balanced.Rds"
+     [7] "routes_max_dist_commute_ebike.Rds"   
+     [8] "routes_max_dist_commute_fastest.Rds" 
+     [9] "routes_max_dist_commute_quietest.Rds"
+    [10] "routes_max_dist_school_balanced.Rds" 
+    [11] "routes_max_dist_school_ebike.Rds"    
+    [12] "routes_max_dist_school_fastest.Rds"  
+    [13] "routes_max_dist_school_quietest.Rds" 
+    [14] "routes_max_dist_utility_balanced.Rds"
+    [15] "routes_max_dist_utility_ebike.Rds"   
+    [16] "routes_max_dist_utility_fastest.Rds" 
+    [17] "routes_max_dist_utility_quietest.Rds"
+    [18] "school_locations.geojson"            
+
+    [1] 608527
+
+     [1] "commute_fastest_bicycle"             "commute_fastest_bicycle_go_dutch"   
+     [3] "commute_fastest_bicycle_ebike"       "commute_quietest_bicycle"           
+     [5] "commute_quietest_bicycle_go_dutch"   "commute_quietest_bicycle_ebike"     
+     [7] "commute_ebike_bicycle"               "commute_ebike_bicycle_go_dutch"     
+     [9] "commute_ebike_bicycle_ebike"         "primary_fastest_bicycle"            
+    [11] "primary_fastest_bicycle_go_dutch"    "primary_fastest_bicycle_ebike"      
+    [13] "primary_quietest_bicycle"            "primary_quietest_bicycle_go_dutch"  
+    [15] "primary_quietest_bicycle_ebike"      "primary_ebike_bicycle"              
+    [17] "primary_ebike_bicycle_go_dutch"      "primary_ebike_bicycle_ebike"        
+    [19] "secondary_fastest_bicycle"           "secondary_fastest_bicycle_go_dutch" 
+    [21] "secondary_fastest_bicycle_ebike"     "secondary_quietest_bicycle"         
+    [23] "secondary_quietest_bicycle_go_dutch" "secondary_quietest_bicycle_ebike"   
+    [25] "secondary_ebike_bicycle"             "secondary_ebike_bicycle_go_dutch"   
+    [27] "secondary_ebike_bicycle_ebike"       "utility_fastest_bicycle"            
+    [29] "utility_fastest_bicycle_go_dutch"    "utility_fastest_bicycle_ebike"      
+    [31] "utility_quietest_bicycle"            "utility_quietest_bicycle_go_dutch"  
+    [33] "utility_quietest_bicycle_ebike"      "utility_ebike_bicycle"              
+    [35] "utility_ebike_bicycle_go_dutch"      "utility_ebike_bicycle_ebike"        
+    [37] "quietness"                           "gradient"                           
+    [39] "all_fastest_bicycle"                 "all_fastest_bicycle_go_dutch"       
+    [41] "all_fastest_bicycle_ebike"           "all_quietest_bicycle"               
+    [43] "all_quietest_bicycle_go_dutch"       "all_quietest_bicycle_ebike"         
+    [45] "all_ebike_bicycle"                   "all_ebike_bicycle_go_dutch"         
+    [47] "all_ebike_bicycle_ebike"             "geom"                               
+
+       Min. 1st Qu.  Median    Mean 3rd Qu.    Max.    NA's 
+      12.00   28.35   33.00     Inf   39.00     Inf   10519 
+
+![](report-utility-methods_files/figure-commonmark/unnamed-chunk-39-1.png)
+
+     [1] "combined_network_tile.geojson"       
+     [2] "local_authorities_region.geojson"    
+     [3] "rnet_primary_school_balanced.Rds"    
+     [4] "rnet_primary_school_ebike.Rds"       
+     [5] "rnet_primary_school_fastest.Rds"     
+     [6] "rnet_primary_school_quietest.Rds"    
+     [7] "routes_max_dist_commute_balanced.Rds"
+     [8] "routes_max_dist_commute_ebike.Rds"   
+     [9] "routes_max_dist_commute_fastest.Rds" 
+    [10] "routes_max_dist_commute_quietest.Rds"
+    [11] "routes_max_dist_school_balanced.Rds" 
+    [12] "routes_max_dist_school_ebike.Rds"    
+    [13] "routes_max_dist_school_fastest.Rds"  
+    [14] "routes_max_dist_school_quietest.Rds" 
+    [15] "routes_max_dist_utility_balanced.Rds"
+    [16] "routes_max_dist_utility_ebike.Rds"   
+    [17] "routes_max_dist_utility_fastest.Rds" 
+    [18] "routes_max_dist_utility_quietest.Rds"
+    [19] "simplified_network.geojson"          
+
+       Min. 1st Qu.  Median    Mean 3rd Qu.    Max.    NA's 
+       8.00   22.81   29.60     Inf     Inf     Inf   11221 
+
+![](report-utility-methods_files/figure-commonmark/unnamed-chunk-39-2.png)
 
 # Next steps
 
