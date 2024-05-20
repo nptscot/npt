@@ -42,7 +42,7 @@ library(magrittr) # Light load of |>
 library(sf) # Needed for sf support
 
 tar_option_set(
-  controller = crew::crew_controller_local(workers = 2),
+  controller = crew::crew_controller_local(workers = 4),
   memory = "transient",
   garbage_collection = TRUE,
   storage = "worker",
@@ -794,6 +794,13 @@ list(
   # Combined utility trip purposes --------------------------------------------
 
   tar_target(od_utility_combined, {
+
+    tar_load(od_shopping)
+    tar_load(od_visiting)
+    tar_load(od_leisure)
+    tar_load(commute_stats)
+    tar_load(parameters)
+
     od_utility_combined = rbind(od_shopping, od_visiting, od_leisure) |>
       dplyr::slice_max(n = parameters$max_to_route, order_by = all, with_ties = FALSE)
 
@@ -814,7 +821,7 @@ list(
         car = car - (bicycle_new - bicycle),
         bicycle = bicycle_new
       ) |>
-      dplyr::select(-cycling_multiplier, -bicycle_new)
+      dplyr::select(-multiplier, -bicycle_new)
 
     # Ensure the columns and distance units are identical to the other routing types
     # (apart from the additional trip purpose column)
