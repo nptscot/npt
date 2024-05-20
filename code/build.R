@@ -142,7 +142,7 @@ cycleways_with_road_speeds_df = cycle_net_joined_polygons |>
   summarise(
     maxspeed_road = osmactive:::most_common_value(maxspeed_road),
     highway_join = osmactive:::most_common_value(highway_join),
-    volume_join = most_common_value(volume_join)
+    volume_join = osmactive:::most_common_value(volume_join)
   ) |>
   mutate(
     maxspeed_road = as.numeric(maxspeed_road),
