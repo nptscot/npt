@@ -91,7 +91,6 @@ make_od = function(oas, os_pois, grid, purpose, trip_purposes, zones, parameters
   # Keep only max_per_o destinations per origin
   min_per_o = 10
   min_p = min(zones_p$p_trips)
-  summary(od_interaction_filtered$n_destinations)
   od_interaction_filtered = purrr::map_dfr(
     unique(od_interaction$O),
     ~ {
