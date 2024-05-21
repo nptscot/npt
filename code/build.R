@@ -297,12 +297,12 @@ for (region in region_names) {
         grouped_network = corenet::coherent_network_group(cohesive_network_city_boundary, key_attribute = "all_fastest_bicycle_go_dutch")
 
         # Use city name in the filename
-        corenet::create_coherent_network_PMtiles(folder_path = folder_path, city_filename = city_filename, cohesive_network = grouped_network)
+        corenet::create_coherent_network_PMtiles(folder_path = folder_path, city_filename = glue::glue("{city_filename}_{date_folder}"), cohesive_network = grouped_network)
 
         message("Coherent network for: ", city, " generated successfully")
       },
       error = function(e) {
-        message(sprintf("An error occurred with %s: %s", city, e$message))
+        message(sprintf("An error occurred with %s: %s", city, e$message))    
       }
     )
   }
@@ -380,7 +380,7 @@ export_zone_json(zones_stats, "DataZone", path = "outputdata")
 setwd("outputdata")
 # Check the combined_network_tile.geojson file is there:
 file.exists("combined_network_tile.geojson")
-command_tippecanoe = paste("tippecanoe -o rnet_{date_folder}.pmtiles",
+command_tippecanoe = glue::glue("tippecanoe -o rnet_{date_folder}.pmtiles",
   "--name=rnet",
   "--layer=rnet",
   "--attribution=UniverstyofLeeds",
@@ -391,6 +391,26 @@ command_tippecanoe = paste("tippecanoe -o rnet_{date_folder}.pmtiles",
   "--simplification=10",
   "--buffer=5",
   "--force  combined_network_tile.geojson",
+  collapse = " "
+)
+
+responce = system(command_tippecanoe, intern = TRUE)
+
+# Simplified network tiling
+setwd("outputdata")
+# Check the combined_network_tile.geojson file is there:
+file.exists("simplified_network.geojson")
+command_tippecanoe = glue::glue("tippecanoe -o snet_{date_folder}.pmtiles",
+  "--name=snet",
+  "--layer=snet",
+  "--attribution=UniverstyofLeeds",
+  "--minimum-zoom=6",
+  "--maximum-zoom=13",
+  "--drop-smallest-as-needed",
+  "--maximum-tile-bytes=5000000",
+  "--simplification=10",
+  "--buffer=5",
+  "--force  simplified_network.geojson",
   collapse = " "
 )
 
