@@ -10,11 +10,6 @@ parameters = jsonlite::read_json("parameters.json", simplifyVector = T)
 lads = sf::read_sf("inputdata/boundaries/la_regions_2023.geojson")
 date_folder = parameters$date_routing
 output_folder = file.path("outputdata", date_folder)
-f = list.files(file.path("outputdata/", date_folder),  pattern = "utility", recursive = T, full.names=T)
-f
-file.remove(f)
-#  [1] "outputdata//2024-05-17/aberdeen_and_north_east/routes_max_dist_utility_balanced.Rds" 
-#  [2] "outputdata//2024-05-17/aberdeen_and_north_east/routes_max_dist_utility_ebike.Rds"
 
 # Start with Glasgow:
 region_names = unique(lads$Region)[c(3, 2, 1, 4, 5, 6)] 
