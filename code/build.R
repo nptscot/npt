@@ -400,9 +400,9 @@ responce = system(command_tippecanoe, intern = TRUE)
 setwd("outputdata")
 # Check the combined_network_tile.geojson file is there:
 file.exists("simplified_network.geojson")
-command_tippecanoe = glue::glue("tippecanoe -o snet_{date_folder}.pmtiles",
-  "--name=snet",
-  "--layer=snet",
+command_tippecanoe = glue::glue("tippecanoe -o rnet_simplified_{date_folder}.pmtiles",
+  "--name=rnet_simplified",
+  "--layer=rnet_simplified",
   "--attribution=UniverstyofLeeds",
   "--minimum-zoom=6",
   "--maximum-zoom=13",
