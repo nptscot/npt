@@ -32,7 +32,7 @@ for (region in region_names) {
   message("Processing region: ", region)
   parameters$region = region
   jsonlite::write_json(parameters, "parameters.json", pretty = TRUE)
-  # targets::tar_make()
+  targets::tar_make()
 }
 
 # CbD classification of networks ---------------------------------------------
@@ -212,7 +212,7 @@ cbd_layer = cycle_net_traffic |>
 sf::write_sf(cbd_layer, "cbd_layer.geojson", delete_dsn = TRUE)
 
 # PMTiles:
-pmtiles_msg = paste("tippecanoe -o cbd_layer.pmtiles",
+pmtiles_msg = glue::glue("tippecanoe -o cbd_layer_{date_folder}.pmtiles",
   "--name=cbd_layer",
   "--layer=cbd_layer",
   "--attribution=UniversityofLeeds",
@@ -227,11 +227,14 @@ pmtiles_msg = paste("tippecanoe -o cbd_layer.pmtiles",
 )
 system(pmtiles_msg)
 # Rename and upload:
-file.rename("cbd_layer.pmtiles", "outputdata/cbd_layer.pmtiles")
+file.rename(
+  glue::glue("cbd_layer_{date_folder}.pmtiles"),
+  glue::glue("outputdata/cbd_layer_{date_folder}.pmtiles")
+)
 file.rename("cbd_layer.geojson", "outputdata/cbd_layer.geojson")
 setwd("outputdata")
 system("gh release list")
-system("gh release upload 2024-05-30-geojson cbd_layer.pmtiles")
+system(glue::glue("gh release upload {date_folder} cbd_layer_{date_folder}.pmtiles"))
 
 # Generate coherent network ---------------------------------------------------
 
@@ -377,7 +380,7 @@ export_zone_json(zones_stats, "DataZone", path = "outputdata")
 setwd("outputdata")
 # Check the combined_network_tile.geojson file is there:
 file.exists("combined_network_tile.geojson")
-command_tippecanoe = paste("tippecanoe -o rnet.pmtiles",
+command_tippecanoe = paste("tippecanoe -o rnet_{date_folder}.pmtiles",
   "--name=rnet",
   "--layer=rnet",
   "--attribution=UniverstyofLeeds",
