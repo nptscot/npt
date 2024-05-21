@@ -32,7 +32,7 @@ for (region in region_names) {
   message("Processing region: ", region)
   parameters$region = region
   jsonlite::write_json(parameters, "parameters.json", pretty = TRUE)
-  # targets::tar_make()
+  targets::tar_make()
 }
 
 # CbD classification of networks ---------------------------------------------
