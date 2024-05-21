@@ -414,7 +414,7 @@ make_geojson_zones(b_low, file.path("outputdata", "dasymetric_low.geojson"))
 make_geojson_zones(b_med, file.path("outputdata", "dasymetric_med.geojson"))
 make_geojson_zones(b_high, file.path("outputdata", "dasymetric_high.geojson"))
 
-tippecanoe_verylow = paste("tippecanoe -o dasymetric_verylow_{date_folder}.pmtiles",
+tippecanoe_verylow = paste("tippecanoe -o dasymetric_verylow.pmtiles",
   "--name=dasymetric",
   "--layer=dasymetric",
   "--attribution=OS",
@@ -429,7 +429,7 @@ tippecanoe_verylow = paste("tippecanoe -o dasymetric_verylow_{date_folder}.pmtil
   collapse = " "
 )
 
-tippecanoe_low = paste("tippecanoe -o dasymetric_low_{date_folder}.pmtiles",
+tippecanoe_low = paste("tippecanoe -o dasymetric_low.pmtiles",
   "--name=dasymetric",
   "--layer=dasymetric",
   "--attribution=OS",
@@ -444,7 +444,7 @@ tippecanoe_low = paste("tippecanoe -o dasymetric_low_{date_folder}.pmtiles",
   collapse = " "
 )
 
-tippecanoe_med = paste("tippecanoe -o dasymetric_med_{date_folder}.pmtiles",
+tippecanoe_med = paste("tippecanoe -o dasymetric_med.pmtiles",
   "--name=dasymetric",
   "--layer=dasymetric",
   "--attribution=OS",
@@ -459,7 +459,7 @@ tippecanoe_med = paste("tippecanoe -o dasymetric_med_{date_folder}.pmtiles",
   collapse = " "
 )
 
-tippecanoe_high = paste("tippecanoe -o dasymetric_high_{date_folder}.pmtiles",
+tippecanoe_high = paste("tippecanoe -o dasymetric_high.pmtiles",
   "--name=dasymetric",
   "--layer=dasymetric",
   "--attribution=OS",
@@ -475,11 +475,11 @@ tippecanoe_high = paste("tippecanoe -o dasymetric_high_{date_folder}.pmtiles",
   collapse = " "
 )
 
-tippecanoe_join = paste("tile-join -o dasymetric_{date_folder}.pmtiles -pk --force",
-  "dasymetric_verylow_{date_folder}.pmtiles",
-  "dasymetric_low_{date_folder}.pmtiles",
-  "dasymetric_med_{date_folder}.pmtiles",
-  "dasymetric_high_{date_folder}.pmtiles",
+tippecanoe_join = paste("tile-join -o dasymetric.pmtiles -pk --force",
+  "dasymetric_verylow.pmtiles",
+  "dasymetric_low.pmtiles",
+  "dasymetric_med.pmtiles",
+  "dasymetric_high.pmtiles",
   collapse = " "
 )
 
