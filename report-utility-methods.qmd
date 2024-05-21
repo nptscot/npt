@@ -1,14 +1,71 @@
 ---
 title: "Utility trips methodology"
-# output: github_document
-output: github_document
 date: "Last updated: `r Sys.Date()`"
 author: "Joey Talbot and Robin Lovelace"
+format: gfm
+execute: 
+  echo: false
+  message: false
+  warning: false
+  cache: true
 ---
 
 ```{r setup, include=FALSE}
-knitr::opts_chunk$set(echo = TRUE)
 library(tidyverse)
+library(sf)
+library(tmap)
+tmap_mode("view")
+set.seed(42)
+res_folder = "outputdata/2024-04-24"
+```
+
+```{r}
+#| include: false
+#| label: import-nts
+u = "https://assets.publishing.service.gov.uk/media/64e8b433635870000d1dbfbc/nts0403.ods"
+f = basename(u)
+if (!file.exists(f)) download.file(u, f)
+readODS::ods_sheets(f)
+nts0403_trips_excl_sw = readODS::read_ods(f, sheet = "NTS0403b_trips_excl_sw", skip = 5)
+names(nts0403_trips_excl_sw)
+#  [1] "Year"                                     
+#  [2] "Commuting"                                
+#  [3] "Business"                                 
+#  [4] "Education"                                
+#  [5] "Escort education"                         
+#  [6] "Shopping"                                 
+#  [7] "Other escort"                             
+#  [8] "Personal business"                        
+#  [9] "Visiting friends at private home"         
+# [10] "Visiting friends elsewhere"               
+# [11] "Entertainment or public activity"         
+# [12] "Sport: participate"                       
+# [13] "Holiday: base"                            
+# [14] "Day trip"                                 
+# [15] "Other including just walk"                
+# [16] "All purposes"                             
+# [17] "Unweighted sample size: individuals"      
+# [18] "Unweighted sample size: trips (thousands)"
+nts0403_length_raw = readODS::read_ods(f, sheet = "NTS0403e_trip_length", skip = 5)
+names(nts0403_length_raw)
+#  [1] "Year"                                     
+#  [2] "Commuting"                                
+#  [3] "Business"                                 
+#  [4] "Education"                                
+#  [5] "Escort education"                         
+#  [6] "Shopping"                                 
+#  [7] "Other escort"                             
+#  [8] "Personal business"                        
+#  [9] "Visiting friends at private home"         
+# [10] "Visiting friends elsewhere"               
+# [11] "Entertainment or public activity"         
+# [12] "Sport: participate"                       
+# [13] "Holiday: base"                            
+# [14] "Day trip"                                 
+# [15] "Other including just walk"                
+# [16] "All purposes"                             
+# [17] "Unweighted sample size: individuals"      
+# [18] "Unweighted sample size: trips (thousands)"
 ```
 
 ## Trip numbers and purposes
@@ -34,32 +91,656 @@ In England, during 2002 to 2012, there were 1023 trips per person per year (http
 We assigned daily trips to trip purposes using the trip purpose percentage breakdown from the Scottish Household Survey, Table TD3 of the Transport and Travel in Scotland 2019 travel diary tables (after adjusting these percentages to remove the 'Go Home' category).
 This results in 25.1% of trips being assigned for shopping, 11.7% for social, and 6.3% for leisure, compared with 23.3% for commuting (https://www.transport.gov.scot/media/51346/transport-and-travel-in-scotland-2019-travel-diary-tables.xlsx).
 
+The roughly equivalent purposes in the National Travel Survey for 2022 are as follows:
+
+
+```{r}
+npt_nts_purpose_categories = tibble::tribble(
+  ~`NPT purpose`, ~`NTS purpose`,
+  "Shopping", "Shopping",
+  "Social", "Visiting friends at private home",
+  "Social", "Visiting friends elsewhere",
+  "Leisure", "Entertainment or public activity",
+  "Leisure", "Sport: participate"
+)
+npt_proportions = tibble::tribble(
+  ~`NPT purpose`, ~Proportion,
+  "Shopping", 0.251,
+  "Social", 0.117,
+  "Leisure", 0.063
+)
+# Get subset of NTS trip data from 2011 onwards:
+nts0403_trips_percent = nts0403_trips_excl_sw |>
+  select(Year:`All purposes`) |>
+  # Convert to proportions of All purposes:
+  mutate(across(-Year, ~ . / `All purposes`)) |>
+  filter(Year > "2011") |>
+  pivot_longer(-Year, names_to = "NTS purpose", values_to = "Proportion") |>
+   filter(str_detect(`NTS purpose`, "Shop|Visit|Entertain"))
+trips_percent_2022 = nts0403_trips_percent |>
+  # Convert to % with scales::percent_format():
+  filter(Year == "2022") |>
+  select(`NTS purpose`, Proportion) |>
+  left_join(npt_nts_purpose_categories, by = "NTS purpose")
+trips_percent_2022 |>
+  mutate(Proportion = scales::percent(Proportion, accuracy = 0.1)) |>
+  knitr::kable()
+```
+
+Aggregating the NTS purposes to match the NPT purposes, we find that the mode split for the three everyday purposes in 2022 is as follows:
+
+```{r}
+trips_percent_2022 |>
+  group_by(`NPT purpose`) |>
+  summarise(`Proportion (NTS)` = sum(as.numeric(Proportion))) |>
+  left_join(npt_proportions, by = "NPT purpose") |>
+  transmute(
+    `NPT purpose`,
+    `Proportion (NTS)` = scales::percent(`Proportion (NTS)`, accuracy = 0.1),
+    `Proportion (NPT)` = scales::percent(Proportion, accuracy = 0.1)
+  ) |>
+  knitr::kable()
+```
+
+The evolution of overall mode split from 2012 to 2022 in England is shown below:
+
+```{r}
+#| label: nts-trips-mode-split-time
+# Line graph of trip purposes:
+nts0403_trips_percent |>
+  ggplot() +
+  geom_line(aes(x = Year, y = Proportion, color = `NTS purpose`, group = `NTS purpose`)) +
+  # x label at 45 degrees:
+  theme(axis.text.x = element_text(angle = 45, hjust = 1)) +
+  # integer x axis labels:
+  scale_x_continuous(breaks = scales::pretty_breaks(n = 10)) +
+  # % y axis labels:
+  scale_y_continuous(labels = scales::percent_format(), limits = c(0, NA)) 
+```
+
 ## Trip distances by purpose
 
 Data on the distribution of trip distances (what % of trips are 0-2, 2-5 km etc) is important for the uptake model.
-We took data from the National Travel Survey
+We took data from the National Travel Survey, shown below, as the basis of average trip lengths for the three everyday purposes, as shown in the table below.
 
 ```{r, include=FALSE}
-u = "https://assets.publishing.service.gov.uk/media/64e8b433635870000d1dbfbc/nts0403.ods"
-f = basename(u)
-if (!file.exists(f)) download.file(u, f)
-readODS::ods_sheets(f)
-nts0403_length_raw = readODS::read_ods(f, sheet = "NTS0403e_trip_length", skip = 5)
-nts0403_length = pivot_longer(nts0403_length_raw, -1) |>
+nts0403_length = pivot_longer(nts0403_length_raw, -1, values_to = "Length (miles)", names_to = "NTS purpose") |>
   # Remove the space and everything after it:
     mutate(Year = str_remove(Year, " .+")) 
 nts0403_length_subset = nts0403_length |>
   filter(Year > "2011") |>
-  filter(str_detect(name, "Commut|Shop|Visit|Entertainment")) 
+  filter(str_detect(`NTS purpose`, "Commut|Shop|Visit|Edu|Entertain")) 
 ```
 
 ```{r}
-nts0403_length_subset |>
+#| label: nts-trips-length-time
+plot_NTS_categories = nts0403_length_subset |>
   ggplot() +
-  geom_line(aes(x = Year, y = value, color = name, group = name)) +
+  geom_line(aes(x = Year, y = `Length (miles)`, color = `NTS purpose`, group = `NTS purpose`)) +
   # x label at 45 degrees:
-  theme(axis.text.x = element_text(angle = 45, hjust = 1))
+  theme(axis.text.x = element_text(angle = 45, hjust = 1)) +
+  ylim(c(0, NA))
+lengths_npt = nts0403_length_subset |>
+  filter(Year == "2022") |>
+  left_join(npt_nts_purpose_categories, by = "NTS purpose") |>
+  mutate(`NPT purpose` = case_when(
+    is.na(`NPT purpose`) ~ `NTS purpose`,
+    TRUE ~ `NPT purpose`
+  ))
+# Join with % trips:
+lengths_npt = left_join(
+  lengths_npt,
+  trips_percent_2022 |> select(`NTS purpose`, Proportion),
+  by = "NTS purpose"
+) |>
+  mutate(Proportion = case_when(
+    is.na(Proportion) ~ 1,
+    TRUE ~ `Length (miles)`
+  )) |>
+  group_by(`NPT purpose`) |>
+  summarise(`Length (miles)` = weighted.mean(`Length (miles)`, Proportion)) 
+
+lengths_npt = lengths_npt |>
+    transmute(
+      `NPT purpose`,
+      `Length (miles)`,
+      `Av (km)` = `Length (miles)` * 1.60934,
+      `Average length (relative to commuting)` = `Length (miles)` / lengths_npt$`Length (miles)`[1]
+      )
+
+lengths_npt |>
+    transmute(
+      `NPT purpose`,
+      `Average length (miles)` = `Length (miles)`,
+      `Av (km)` = `Length (miles)` * 1.60934,
+      `Average length (relative to commuting)` = `Length (miles)` / lengths_npt$`Length (miles)`[1]
+      ) |>
+  knitr::kable(digits = 2)
 ```
+
+Lengths are expressed relative to the average commuting trip, the trip purpose for which we have the best data, allowing us to more effectively model trip distance distributions in different places (rural areas will tend to have longer trips for all trip purposes, for example), and allowing for the fact that absolute trip lengths vary.
+Note: the assumption that the relative trip lengths are the same in Scotland as in England is a simplification and can be tested when more detailed data is available.
+
+### Trip distance bands
+
+Trip distance distributions by purpose are not available in open summaries of the Scottish Household Survey or National Travel Survey that we have seen.
+We therefore use trip distance-frequency distributions for known commuting trips in Scotland, and adjust them based on the relative average trip lengths for the other purposes outlined above, to ensure realistic trip distance distributions for the other purposes.
+
+The approach is illustrated in the graphs of trip distance distributions below:
+
+```{r}
+#| label: desire-lines-setup
+#| include: false
+targets::tar_source()
+desire_lines_raw = read_TEAMS("secure_data/commute/commute_dl_sub30km.Rds")
+breaks_dist = c(
+  0,
+  1,
+  2,
+  5,
+  10,
+  15,
+  20,
+  200
+)
+breaks_dist_labels = c(
+  "0-1 km",
+  "1-2 km",
+  "2-5 km",
+  "5-10 km",
+  "10-15 km",
+  "15-20 km",
+  "20+ km"
+)
+diversion_factor = 1.3
+breaks_dist_euclidean = breaks_dist / 
+  diversion_factor # Assuming average circuity of 1.3
+names(desire_lines_raw)
+#  [1] "geo_code1"        "geo_code2"        "car"              "taxi"            
+#  [5] "foot"             "bicycle"          "public_transport" "all"             
+#  [9] "geometry"         "dist_euclidean" 
+desire_lines = desire_lines_raw |>
+  mutate(
+    dist_euclidean = dist_euclidean / 1000,
+    dist_band = cut(
+      dist_euclidean,
+      breaks = breaks_dist_euclidean,
+      labels = breaks_dist_labels
+    )
+  )
+
+# Check desire lines with NA dist_band:
+sum(is.na(desire_lines$dist_band))
+# # Look at them (they have distance of 0)
+# desire_lines |>
+#   filter(is.na(dist_band)) |>
+#   pull(dist_euclidean) |>
+#   head()
+
+# Remove them:
+desire_lines = desire_lines |>
+  filter(!is.na(dist_band))
+```
+
+```{r}
+#| label: desire-lines-dist-plot
+
+# plot histogram of trip distances:
+histogram_dist = desire_lines |>
+  ggplot() +
+  geom_histogram(aes(x = dist_euclidean, fill = dist_band), bins = 30) +
+  scale_fill_viridis_d() +
+  labs(
+    x = "Trip distance (km)",
+    y = "Number of desire lines"
+  ) +
+  xlim(c(1, 30))
+
+histogram_dist
+
+desire_line_summary = desire_lines |>
+  group_by(dist_band) |>
+  sf::st_drop_geometry() |>
+  summarise(
+    `Number of desire lines` = n(),
+    `Number of trips (all)` = sum(all),
+    `Proportion of trips` = sum(all) / sum(desire_lines$all),
+    `Average distance (km)` = mean(dist_euclidean)
+  ) 
+# Barplot of the summary:
+barplot_dist = desire_line_summary |>
+  ggplot() +
+  geom_col(aes(x = dist_band, y = `Proportion of trips`, fill = dist_band)) +
+  scale_fill_viridis_d() +
+  labs(
+    x = "Trip distance band",
+    y = "Proportion of trips"
+  ) +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1)) +
+  scale_y_continuous(labels = scales::percent_format())
+barplot_dist
+
+# With 1 km bins:
+desire_line_summary_1km = desire_lines |>
+  mutate(dist_band = cut(
+    dist_euclidean,
+    breaks = seq(0, 30, 1),
+    labels = paste0(seq(0, 29), "-", seq(1, 30))
+  )) |>
+  group_by(dist_band) |>
+  sf::st_drop_geometry() |>
+  summarise(
+    `Number of desire lines` = n(),
+    `Number of trips (all)` = sum(all),
+    `Proportion of trips` = sum(all) / sum(desire_lines$all),
+    `Average distance (km)` = mean(dist_euclidean)
+  )
+
+# with number of trips from the all column of desire_lines:
+# barplot_dist_number = desire_line_summary |>
+#   ggplot() +
+#   geom_col(aes(x = dist_band, y = `Number of trips (all)`, fill = dist_band)) +
+#   scale_fill_viridis_d() +
+#   labs(
+#     x = "Trip distance band",
+#     y = "Number of trips"
+#   ) +
+#   theme(axis.text.x = element_text(angle = 45, hjust = 1))
+
+# # barplot_dist_number
+
+# Expand the summary so the number of observations is proportional to the number of trips, with a total of 100 rows:
+n_observations_per_band = round(desire_line_summary$`Proportion of trips` * 100)
+expanded_summary = desire_line_summary |>
+  slice(rep(1:n(), n_observations_per_band)) |>
+  select(dist_band, `Average distance (km)`)
+# tail(expanded_summary)
+# table(expanded_summary$dist_band)
+# table(expanded_summary$`Average distance (km)`)
+
+# Histogram with Number of trips and distance bands
+histogram_dist_number = expanded_summary |>
+  ggplot() +
+  geom_histogram(aes(x = `Average distance (km)`), breaks = breaks_dist_euclidean, fill = "blue") +
+  labs(
+    x = "Average trip distance (km)",
+    y = "Number of trips"
+  ) +
+  xlim(c(0, 20))
+# histogram_dist_number
+
+```
+
+We will model the number of trips as a function of distance using exponential decay, with the following functional form:
+
+$$
+N = \alpha \exp(d \beta)
+$$
+
+where $N$ is the number of trips, $d$ is the distance, and $\alpha$ and $\beta$ are parameters to be estimated.
+
+Taking the log of both sides gives:
+
+$$
+\log(N) = \log(\alpha) + d \beta
+$$
+
+This allows us to model the number of trips as a linear function of distance, to estimate the decay parameter $\alpha$.
+As shown in the graph below, this approach fits the data well (note: the observed commute data only goes to 30 km as this was the cutoff used when processing the raw origin-destination data and converting to geographic desire lines from which distances can be calculated):
+
+```{r}
+dd_data = desire_line_summary_1km |>
+  transmute(
+    average_distance = `Average distance (km)`,
+    number_of_trips = `Number of trips (all)`,
+    proportion = `Proportion of trips`
+  )
+dd_data_100km = tibble(average_distance = 100, number_of_trips = 1, proportion = 0)
+dd_data_30_100km = purrr::map_dfr((31:100)-0.5, ~ tibble(average_distance = .x, number_of_trips = 1, proportion = 0.0001))
+dd_data = bind_rows(dd_data, dd_data_30_100km)
+dd_data$log_n = log(dd_data$proportion)
+# With lm function:
+m1 = lm(log_n ~ average_distance, weights = number_of_trips, data = dd_data)
+dd_data$m1 = predict(m1, newdata = dd_data) |>
+  exp()
+```
+
+```{r}
+#| label: desire-lines-dist-exp-decay
+# Plot the number of trips with 1 km bins as scatter plot:
+scatter_dist_number = desire_line_summary_1km |>
+  ggplot() +
+  geom_point(aes(x = `Average distance (km)`, y = `Proportion of trips`), color = "blue") +
+  labs(
+    x = "Trip distance (km)",
+    y = "Proportion of trips"
+  ) +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1)) +
+  geom_line(aes(x = average_distance, y = m1), data = dd_data, color = "red") +
+  scale_y_continuous(labels = scales::percent_format())
+
+scatter_dist_number
+```
+
+The value of $log(\alpha)$ and $\beta$ for Euclidean distances (used as the basis of the spatial interaction model) are estimated as follows:
+
+```{r}
+m1_coef = m1 |>
+  coef()
+m1_coef
+```
+
+Knowing the relative average trip lengths for the three everyday purposes, we can adjust the decay parameter $\beta$ to reflect the different trip lengths for the different purposes.
+The modelled and empirical mean distances implied from the Scottish commute data above are shown in the table below:
+
+```{r}
+#| label: desire-lines-dist-modelled
+mean_distance_observed = weighted.mean(dd_data$average_distance, dd_data$proportion) * diversion_factor
+mean_distance_modelled = weighted.mean(dd_data$average_distance, dd_data$m1) * diversion_factor
+
+purpose_distance_modelled = tibble::tribble(
+  ~`NPT purpose`, ~`Average distance (km)`, ~`%1-2`, ~`%2-5`, 
+  "Commuting (observed, up to 30km)", mean_distance_observed, dd_data$proportion[2], dd_data$proportion[3] + dd_data$proportion[4],
+  "Commuting (modelled, up to 100km)", mean_distance_modelled, dd_data$m1[2], dd_data$m1[3] + dd_data$m1[4]
+)
+purpose_distance_modelled |>
+  mutate(across(starts_with("%"), ~ scales::percent(.))) |>
+  knitr::kable(digits = 2)  
+```
+
+We fitted $\beta$ parameters to ensure that the relative average trip lengths matched the relative average trip lengths for the three everyday purposes.
+Summary visualisations of the fitting process are shown below.
+
+```{r}
+#| label: summary-fit
+# Estimate beta for shopping trips as a starter:
+mean_distance_shopping = lengths_npt |>
+  filter(`NPT purpose` == "Shopping") |>
+  pull(`Average length (relative to commuting)`) * mean_distance_modelled
+
+# # Reproduce predicted values from first principles:
+# # Sanity check. Outcome: all values are the same.
+# dd_test = dd_data |>
+#   mutate(log_n_est = m1_coef[1] + average_distance * m1_coef[2]) |>
+#   mutate(m_est = exp(log_n_est))
+# # Plot the results:
+# scatter_dist_number_est = dd_test |>
+#   ggplot() +
+#   geom_point(aes(x = average_distance, y = m_est), color = "blue") +
+#   labs(
+#     x = "Trip distance (km)",
+#     y = "Proportion of trips"
+#   ) +
+#   # Add the original model:
+#   geom_line(aes(x = average_distance, y = m1), data = dd_data, color = "red") +
+#   theme(axis.text.x = element_text(angle = 45, hjust = 1)) +
+#   scale_y_continuous(labels = scales::percent_format())
+
+# cor(dd_test$m1, dd_test$m_est)
+
+# Create vector of values for beta, centered on the commuting value:
+beta_commuting = m1_coef[2]
+beta_values = rnorm(500, beta_commuting, 0.05)
+# summary(beta_values)
+beta_value_1 = beta_values[1] # for testing
+distance_frequency_beta_1 = dd_data |>
+  mutate(p_est = exp(m1_coef[1] + average_distance * beta_value_1))
+# Check results with scatter plot of first beta value results:
+scatter_dist_number_beta_1 = distance_frequency_beta_1 |>
+  ggplot() +
+  geom_point(aes(x = average_distance, y = p_est), color = "blue") +
+  labs(
+    x = "Trip distance (km)",
+    y = "Relative number of trips"
+  ) +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1)) +
+  scale_y_continuous(labels = scales::percent_format())
+# For all beta values:
+distance_frequency_beta = map_dfr(
+  beta_values, ~ dd_data |>
+    mutate(p_est = exp(m1_coef[1] + average_distance * .x), beta = .x),
+  .id = "n"
+) |>
+  # Scale so p_est adds up to 1 for every group:
+  group_by(n) |>
+  mutate(p_est = p_est / sum(p_est))
+# # Sanity check sums of p_est for each group (all 1):
+# distance_frequency_beta |>
+#   group_by(beta) |>
+#   summarise(sum(p_est))
+distance_frequency_beta_summary = distance_frequency_beta |>
+  group_by(beta) |>
+  summarise(
+    `Mean distance (km)` = weighted.mean(average_distance, p_est),
+    `Proportion 1-2 km` = sum(p_est[average_distance <= 2]),
+    `Proportion 2-5 km` = sum(p_est[average_distance > 2 & average_distance <= 5])
+  )
+# Plot a sample of 5 random beta values:
+values_sample = sample(unique(distance_frequency_beta_summary$beta), 5)
+distance_frequency_beta_sample = distance_frequency_beta |>
+  filter(beta %in% values_sample)
+# Plot the sample:
+scatter_dist_number_sample = distance_frequency_beta_sample |>
+  mutate(beta = as.character(round(beta, 3))) |>
+  ggplot() +
+  geom_point(aes(x = average_distance, y = p_est, color = beta)) +
+  labs(
+    x = "Trip distance (km)",
+    y = "Relative number of trips"
+  ) +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1)) +
+  scale_y_continuous(labels = scales::percent_format())
+scatter_dist_number_sample
+```
+
+```{r}
+# Extract the beta value that gives the desired average distance for shopping trips:
+beta_shopping = distance_frequency_beta_summary |>
+  filter(`Mean distance (km)` > mean_distance_shopping) |>
+  slice_min(abs(`Mean distance (km)` - mean_distance_shopping)) |>
+  pull(beta)
+
+lengths_npt_beta = lengths_npt |>
+  select(`NPT purpose`, `Average length (relative to commuting)`) |>
+  mutate(
+    `Average route distance km` = NA,
+    beta = NA
+  )
+lengths_npt_beta$`Average route distance km`[1] = mean_distance_modelled
+# For loop to calculate Average distance and beta for each purpose:
+for (i in 1:nrow(lengths_npt_beta)) {
+  # Calculate average distance:
+  lengths_npt_beta$`Average route distance km`[i] = lengths_npt_beta$`Average length (relative to commuting)`[i] * mean_distance_modelled
+  # Calculate beta:
+  beta_value = distance_frequency_beta_summary |>
+    slice_min(abs(`Mean distance (km)` - lengths_npt_beta$`Average route distance km`[i])) |>
+    pull(beta)
+  lengths_npt_beta$beta[i] = beta_value
+}
+```
+
+```{r}
+#| label: desire-lines-dist-modelled-beta
+# Plot showing how av distance changes as function of beta:
+scatter_dist_number_beta = distance_frequency_beta_summary |>
+  ggplot() +
+  geom_point(aes(x = beta, y = `Mean distance (km)`), colour = "lightblue", alpha = 0.3) +
+  labs(
+    x = "Beta",
+    y = "Mean distance (km)"
+  ) +
+  # Add vlines for all purposes:
+  geom_vline(
+    data = lengths_npt_beta,
+    aes(xintercept = beta),
+    linetype = "dashed",
+    alpha = 0.8,
+    colour = "lightblue"
+  ) +
+  # Add hlines for all purposes:
+  geom_hline(
+    data = lengths_npt_beta,
+    aes(yintercept = `Average route distance km`),
+    linetype = "dashed",
+    alpha = 0.8,
+    colour = "lightblue"
+  ) +
+  # Annotate with the beta and distance for all purposes:
+  geom_text(
+    data = lengths_npt_beta,
+    aes(x = beta, y = `Average route distance km`, label = `NPT purpose`),
+    hjust = 1.1
+  ) +
+  # +
+  ylim(c(0, 15)) +
+  xlim(c(-0.3, 0))
+scatter_dist_number_beta
+```
+
+
+Target average trip lengths, and associated $\beta$ values, are shown in the table below:
+
+```{r}
+lengths_npt_beta |>
+  mutate(`Average route distance km` = round(`Average route distance km`, 2), beta = round(beta, 3)) |>
+  knitr::kable(digits = 3)
+```
+
+The resulting trip distance distributions for the three everyday purposes are shown in the graph below:
+
+```{r}
+#| label: desire-lines-dist-final
+# Plot the final distance frequency distributions:
+distance_frequency_final = distance_frequency_beta |>
+  filter(beta %in% lengths_npt_beta$beta) |>
+  left_join(lengths_npt_beta, by = c("beta" = "beta")) |>
+  mutate(distance_band = cut(
+    average_distance,
+    breaks = breaks_dist_euclidean,
+    labels = breaks_dist_labels
+  ))
+distance_frequency_final |>
+  ggplot() +
+  geom_line(aes(x = average_distance, y = p_est, color = `NPT purpose`)) +
+  labs(
+    x = "Trip distance (km)",
+    y = "Relative number of trips"
+  ) +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1)) +
+  scale_y_continuous(labels = scales::percent_format())
+```
+
+The approach allows us to estimate the proportion and overall number of trips in every distance band of arbitrary width for each purpose.
+For the purposes of this study and to ensure the results are straightforward to interpret, we will use the same 0-1, 1-2, 2-5, 5-10, 10-15, 15-20, and 20+ km distance bands as used in the commute model, with 0-1 and 20+ km bands omitted from the routing and uptake model as they are deemed too short and too long to cycle, respectively.
+
+The results are summarised in the table below:
+
+```{r}
+distance_frequency_wide = distance_frequency_final |>
+  group_by(`NPT purpose`, distance_band) |>
+  summarise(p_est = sum(p_est)) |> 
+  pivot_wider(names_from = distance_band, values_from = p_est) |>
+  select(`NPT purpose`, `0-1 km`, `1-2 km`, `2-5 km`, `5-10 km`, `10-15 km`, `15-20 km`, `20+ km`)
+  
+distance_frequency_wide |>
+  # Add totals column at end:
+  mutate(Total = rowSums(across(`0-1 km`:`20+ km`))) |>
+  # mutate(across(`0-1 km`:`Total`, ~ scales::percent(., accuracy = 0.1))) |>
+  # Multiply by 100 to get percentages:
+  mutate(across(`0-1 km`:`Total`, ~ . * 100)) |>
+  knitr::kable(digits = 2)
+
+betas = lengths_npt_beta |>
+  pull(beta)
+distance_frequency_wide$beta = betas
+write_csv(distance_frequency_wide, "inputdata/distance_frequency_wide.csv")
+```
+
+The results were saved in a config file to form the basis of the spatial interaction model that generates the origin-destination data for utility trips.
+A simplified version of the previous table, focussing on the percentage of trips that are in our model, is shown below:
+
+```{r}
+distance_frequency_wide |>
+  mutate(`Modelled cycling trips (%)` = `1-2 km` + `2-5 km` + `5-10 km` + `10-15 km` + `15-20 km`) |>
+  mutate(`Too short (%)` = `0-1 km`, `Too long (%)` = `20+ km`) |>
+  select(`NPT purpose`, `Modelled cycling trips (%)`, `Too short (%)`, `Too long (%)`) |>
+  mutate(across(`Modelled cycling trips (%)`:`Too long (%)`, ~ . * 100)) |>
+  knitr::kable(digits = 2)
+```
+
+### NPT route level results 
+
+```{r}
+f_routes_utility = file.path(res_folder, "routes_max_dist_utility_fastest.Rds")
+routes_utility = readRDS(f_routes_utility)
+# str(routes_utility)
+```
+
+```{r}
+routes_utility = routes_utility$routes |>
+    sf::st_drop_geometry() |>
+    transmute(
+        purpose,
+        all,
+        bicycle,
+        length_route,
+        route_hilliness
+        )
+summary(routes_utility$all)
+distance_bins = c(0, 1, 2, 5, 10, 15, 20, 100)
+distance_bin_labels = c("0-1", "1-2", "2-5", "5-10", "10-15", "15-20", "20+")
+uptake_combined = routes_utility |>
+    mutate(
+        distance_bin = cut(length_route, distance_bins * 1000, labels = distance_bin_labels, right = FALSE)
+    ) |>
+  # pivot longer to get n trips by mode and purpose
+  pivot_longer(
+    cols = c(all, bicycle),
+    names_to = "mode",
+    values_to = "n"
+  ) 
+# Barplot with n trips by mode and purpose:
+uptake_summary = uptake_combined |>
+    # count by distance bin, mode and purpose
+    group_by(distance_bin, mode, purpose) |>
+    summarise(n = sum(n))
+# uptake_summary |>
+#     # plot
+#     ggplot(aes(x = distance_bin, y = n, fill = mode)) +
+#     geom_bar(stat = "identity") +
+#     facet_wrap(~purpose)
+```
+
+Let's take a look at the route level results for the three everyday purposes.
+The numbers of trips by purpose and distance bands are summarised in the table below:
+
+```{r}
+uptake_summary |>
+    filter(mode == "all") |>
+    group_by(purpose, distance_bin) |>
+    summarise(n = sum(n)) |>
+    pivot_wider(names_from = distance_bin, values_from = n) |>
+    # Add sum column:
+    mutate(Total = rowSums(across(`0-1`:`20+`))) |>
+    knitr::kable(digits = 0)
+```
+
+Expressed as percentages of the total number of trips in each distance band, the results are as follows:
+
+```{r}
+uptake_summary |>
+    ungroup() |>
+    filter(mode == "all") |>
+    group_by(purpose) |>
+    mutate(n = n / sum(n) * 100) |>
+    pivot_wider(names_from = distance_bin, values_from = n) |>
+    knitr::kable(digits = 0)
+```
+
+Given the Scottish population of around 5.5 million, the results imply that `r round(2.7 / 5.5, 1)` trips per day are made for shopping in the 0 to 10 km band (100% of shopping trips).
+
+Given that 25.1% of trips are for shopping and the dailing number of trips per person is 2.61, this implies that `r 0.251 * 2.61` trips per person per day are for shopping *for all distances*.
+That value multiplied by 0.773 (the percent of trips in the 1-20 km range is 77.3%), gives the number of shopping trips we would expect in NPT flows: `r 0.251 * 2.61 * 0.773`.
 
 ## Mode share
 
@@ -71,13 +752,19 @@ For shopping, we assumed that the cycle mode share was half of this, with the mo
 This follows our detailed analysis of Scottish Household Survey travel diaries, which identified shopping as having a considerably lower cycle mode share than other trip purposes.
 Shopping trips can be more difficult to cycle, since they require carrying larger volumes of luggage.
 
+We used a 'commute multiplier' to reflect the fact that cycling for utility (and other purposes) is not uniformly spread geographically.
+In places with double the average cycling commute mode share, we assumed that the cycling mode share for utility trips would be double the average cycling mode share for utility trips.
+
 ## Trip origins and destinations
 
-Origins and destinations were assigned based on Intermediate Zones.
-The trip origins were assumed to be people's homes.
+Origins and destinations were assigned to administrative zones.
+Initially we used the larger Intermediate Zones, but we later switched to the smaller Data Zones.
+
+The trip origins were assumed to be people's homes, represented by Output Area centroids (OAs), the smallest geographical unit for which census data is available.
+
 The number of trips originating from each zone is therefore a function of the residential population of the zone, multiplied by the AADT for the given trip purpose.
 
-For shopping and leisure trips, we used Ordnance Survey Points of Interest (POIs) to identify potential trip destinations. 
+For shopping and leisure trips, we used Ordnance Survey Points of Interest (POIs) to identify trip destinations. 
 All of these POIs were assigned to the nearest point on a 500m grid, giving a density index for each grid point.
 The grid was clipped to avoid any destination points falling offshore.
 
@@ -92,23 +779,550 @@ For social trips, the destinations were people's homes, so the number of trips a
 
 We used a spatial interaction model to pair trip origins and destinations and thus create desire lines.
 These are assigned according to a distance decay equation, which has been derived from distances of travel to work.
-This may introduce bias if in reality typical trip distances for these other everyday purposes are different from the trip distances for commuting.
 
-See NTS0403e for mean trip lengths by purpose
-- shopping
-- visiting friends at private home
-- entertainment or public activity
+```{r}
+#| label: load-sim-inputs
+library(targets)
+tar_load(oas)
+tar_load(os_pois)
+tar_load(grid)
+tar_load(trip_purposes)
+tar_load(intermediate_zones)
+tar_load(parameters)
+tar_load(region_boundary_buffered)
+tar_load(zones)
+tar_source()
+lads = sf::read_sf("inputdata/boundaries/la_regions_2023.geojson")
+aberdeen = lads |>
+  filter(str_detect(LAD23NM, "Aberdeen City"))
+region_boundary_buffered = aberdeen |>
+  sf::st_buffer(5000) 
 
-## Disaggregating and filtering desire lines
+```
 
-The resulting desire lines are put through a jittering process.
-In cases where the trip origins or destinations were assigned based on Intermediate Zone populations, we disaggregate these desire lines and assign them to randomised points on the road network of the zone, rather than using a single point for each zone. 
-The disaggregation threshold is 100.
+```{r}
+od_shopping = make_od_shopping(
+  oas, os_pois, grid, trip_purposes,
+  intermediate_zones, parameters, region_boundary_buffered
+)
+```
 
+The inputs for the spatial interaction model are:
+
+- `grid`: a grid of points across the region for aggregating origins
+- `oas`: Output Areas (OAs) for the region
+- `os_pois`: Points of Interest (POIs) for the region
+- `trip_purposes`: the trip purposes for which we are modelling desire lines
+- a `zones` object with known residential poulation for each zone
+- `parameters`: the parameters for the model
+- `region_boundary_buffered`: the boundary of the region, buffered to ensure that all zones are included
+
+The inputs are illustrated below for Aberdeen:
+
+```{r}
+#| label: od-shopping-map
+#| include: false
+grid = grid |> sf::st_transform("EPSG:4326")
+grid = grid[region_boundary_buffered, ]
+oas = oas[aberdeen, ]
+os_pois = sf::st_transform(os_pois, "EPSG:4326")
+os_pois = os_pois[region_boundary_buffered, ]
+# Get zones whose centroids are within the region boundary:
+zones_centroids = sf::st_centroid(zones)
+zones_centroids_aberdeen = zones_centroids[aberdeen, ]
+zones = zones |>
+  filter(DataZone %in% zones_centroids_aberdeen$DataZone)
+
+summary(od_shopping$all)
+summary(sf::st_length(od_shopping$geometry))
+grid = grid[region_boundary_buffered, ]
+iz_wider = intermediate_zones |>
+  sf::st_transform("EPSG:4326") |>
+  sf::st_make_valid() |>
+  sf::st_filter(aberdeen)
+iz = intermediate_zones |>
+  sf::st_transform("EPSG:4326") |>
+  sf::st_make_valid() |>
+  sf::st_filter(oas)
+nrow(zones) / nrow(iz_wider) # ~5x more data zones
+
+od_shopping |>
+  ggplot() +
+  geom_histogram(aes(x = all)) +
+  theme_minimal()
+
+od_shopping |>
+  ggplot() +
+  geom_histogram(aes(x = all)) +
+  theme_minimal()
+
+```
+
+```{r}
+#| label: sim-shopping-inputs
+#| fig-cap: "Inputs for the spatial interaction model with the grid (black dots), Output Areas (OAs) (blue), Points of Interest (POIs) (red) and zones light blue)."
+ggplot() +
+  geom_sf(data = aberdeen) +
+  geom_sf(data = grid, fill = "grey", alpha = 0.5) +
+  geom_sf(data = iz, fill = "lightblue", alpha = 0.5) +
+  # geom_sf(data = zones, fill = "lightgreen", alpha = 0.5) +
+  geom_sf(data = os_pois, colour = "red", alpha = 0.5) +
+  geom_sf(data = oas, colour = "blue", alpha = 0.5) +
+  geom_sf(data = region_boundary_buffered, fill = NA, colour = "black", size = 1) +
+  coord_sf(xlim = sf::st_bbox(region_boundary_buffered)[c(1, 3)], ylim = sf::st_bbox(region_boundary_buffered)[c(2, 4)]) +
+  theme_void()
+```
+
+The output of the SIM model, for `r parameters$region` is shown below.
+
+```{r}
+#| label: sim-shopping-output-original
+# convert grid back to 27700
+grid = grid |> sf::st_transform("EPSG:27700")
+od_shopping = make_od_shopping(
+  oas,
+  os_pois,
+  grid,
+  trip_purposes,
+  iz, parameters, region_boundary_buffered
+)
+ggplot() +
+  geom_sf(data = grid, fill = "grey", alpha = 0.5) +
+  geom_sf(data = os_pois, colour = "red", alpha = 0.5) +
+  geom_sf(data = od_shopping, aes(size = all), colour = "black") +
+  geom_sf(data = oas, colour = "blue", alpha = 0.5) +
+  geom_sf(data = aberdeen |> sf::st_cast("MULTILINESTRING")) +
+  theme_void()
+
+```
+
+```{r}
+#| label: sim-shopping-line-by-line
+# Let's run through the spatial interaction model line-by-line to explain the process.
+os_retail = os_pois |>
+  dplyr::filter(groupname == "Retail") # 26279 points
+os_retail = os_retail |>
+  sf::st_transform(27700)
+shopping = os_retail |>
+  dplyr::mutate(grid_id = sf::st_nearest_feature(os_retail, grid))
+
+# calculate weighting of each grid point
+shopping_grid = shopping |>
+  sf::st_drop_geometry() |>
+  dplyr::group_by(grid_id) |>
+  dplyr::summarise(size = n())
+# nrow(shopping_grid) / length(grid) # ~0.1, only ~10% of grid points have a POI
+# Convert to sf object:
+shopping_grid = sf::st_as_sf(shopping_grid, geometry = grid[shopping_grid$grid_id])
+shopping_grid = sf::st_transform(shopping_grid, 4326)
+
+# Estimate number of shopping trips from each origin zone
+# Calculate number of trips / number of cyclists
+shop_proportion_all_distances = trip_purposes |>
+  dplyr::filter(Purpose == "Shopping") |>
+  dplyr::transmute(proportion = adjusted_mean / 100) |>
+  dplyr::pull(proportion)
+zones_shopping = zones |>
+  dplyr::select(DataZone, ResPop2011) 
+# from NTS 2019 (England) average 953 trips/person/year divided by 365 = 2.61 trips/day
+total_trips_per_day = 2.61
+distance_frequency = readr::read_csv("inputdata/distance_frequency_wide.csv")
+proportion_in_od = distance_frequency |>
+  dplyr::filter(`NPT purpose` == "Shopping") |>
+  dplyr::select(`1-2 km`, `2-5 km`, `5-10 km`, `10-15 km`, `15-20 km`) |>
+  sum()
+shop_proportion = shop_proportion_all_distances * proportion_in_od
+zones_shopping = zones_shopping |>
+  dplyr::mutate(shopping_trips = ResPop2011 * total_trips_per_day * shop_proportion) |>
+  dplyr::select(-ResPop2011)
+zones_shopping = sf::st_transform(zones_shopping, 4326)
+zones_shopping = sf::st_make_valid(zones_shopping)
+# Spatial interaction model of journeys
+# We could validate this SIM using the Scottish data on mean km travelled
+max_length_euclidean_km = 20 / diversion_factor
+od_shopping_initial = simodels::si_to_od(zones_shopping, shopping_grid, max_dist = max_length_euclidean_km * 1000)
+od_interaction_before = od_shopping_initial |>
+  simodels::si_calculate(
+    fun = gravity_model,
+    m = origin_shopping_trips,
+    n = destination_size,
+    d = distance_euclidean,
+    beta = 0.5,
+    constraint_production = origin_shopping_trips
+  )
+beta_shopping = distance_frequency |>
+  dplyr::filter(`NPT purpose` == "Shopping") |>
+  dplyr::pull(beta)
+
+# With updated beta value:
+od_interaction = od_shopping_initial |>
+  simodels::si_calculate(
+    fun = gravity_model,
+    m = origin_shopping_trips,
+    n = destination_size,
+    d = distance_euclidean,
+    beta = -beta_shopping,
+    constraint_production = origin_shopping_trips
+  )
+
+```
+
+Illustrations of the spatial interaction model results are shown below.
+
+```{r}
+#| label: sim-shopping-output-frequency
+#| layout-ncol: 2
+# old:
+od_interaction_before |>
+  # mutate(`M x N` = origin_shopping_trips * destination_size) |>
+  ggplot() +
+  # geom_point(aes(distance_euclidean, interaction, colour = `M x N`)) +
+
+  geom_point(aes(distance_euclidean, interaction, colour = destination_size)) +
+  labs(
+    x = "Distance (km)",
+    y = "Number of trips"
+  ) +
+  ggtitle("Before beta adjustment") +
+  theme_minimal()
+od_interaction |>
+  ggplot() +
+  geom_point(aes(distance_euclidean, interaction, colour = destination_size)) +
+  labs(
+    x = "Distance (km)",
+    y = "Number of trips"
+  ) +
+  ggtitle("After beta adjustment") +
+  theme_minimal()
+
+
+
+# Map of flows with greatest interaction
+tmap_mode("plot")
+m_old = od_interaction_before |>
+  dplyr::slice_max(interaction, n = 500) |>
+  qtm()
+m_new = od_interaction |>
+  dplyr::filter(interaction > 40) |>
+  qtm("interaction")
+  #  +
+  # qtm(zones) +
+  # qtm(aberdeen)
+tmap_arrange(m_old, m_new)
+
+av_length_old = sf::st_length(od_interaction_before$geometry) |>
+  mean(na.rm = TRUE)
+av_length_new = sf::st_length(od_interaction$geometry) |>
+  mean(na.rm = TRUE)
+```
+
+Let's create the equivalent graphs for a single origin zone.
+
+```{r}
+#| label: sim-shopping-output-single-zone
+zone_most_populous = zones_shopping |>
+  dplyr::filter(shopping_trips == max(shopping_trips)) 
+od_interaction_before |>
+  filter(O == zone_most_populous$DataZone) |>
+  ggplot() +
+  geom_point(aes(distance_euclidean, interaction, colour = destination_size)) +
+  labs(
+    x = "Distance (km)",
+    y = "Number of trips"
+  ) +
+  ggtitle("Before beta adjustment") +
+  theme_minimal()
+od_interaction |>
+  filter(O == zone_most_populous$DataZone) |>
+  ggplot() +
+  geom_point(aes(distance_euclidean, interaction, colour = destination_size)) +
+  labs(
+    x = "Distance (km)",
+    y = "Number of trips"
+  ) +
+  ggtitle("After beta adjustment") +
+  theme_minimal()
+```
+
+The results demonstrate how the previous `beta` value led to an over-emphasis on short trips.
+
+We checked the number of shopping originating in each zone according to the synthetic OD data and found, as expected, a perfect correlation with population, implying constant trip rates per person.
+
+```{r}
+#| include: false
+od_aggregated_o = od_interaction |>
+  dplyr::group_by(O) |>
+  dplyr::summarise(n = sum(interaction))
+cor(od_aggregated_o$n, zones_shopping$shopping_trips)
+# Per population:
+cor(od_aggregated_o$n, zones$ResPop2011)
+```
+
+Regardless of the beta value used, spatial interaction models lead to OD data with a highly skewed distribution of trip lengths.
+This can be illustrated by plotting the number of OD pairs with different trip numbers against the number of people making that trip, as shown below.
+
+```{r}
+#| label: od-interaction-plot
+# Old od data:
+od_interaction_before |>
+  sf::st_drop_geometry() |>
+  dplyr::group_by(n = round(interaction)) |>
+  dplyr::summarise(n_od = n()) |>
+  ggplot() +
+  geom_point(aes(n, n_od)) +
+  scale_x_log10() +
+  scale_y_log10() +
+  labs(
+    x = "Number of people making trip",
+    y = "Number of OD pairs"
+  ) +
+  ggtitle("SIM-derived OD data before beta adjustment") +
+  theme_minimal()
+
+od_interaction |>
+  sf::st_drop_geometry() |>
+  dplyr::group_by(n = round(interaction)) |>
+  dplyr::summarise(n_od = n()) |>
+  ggplot() +
+  geom_point(aes(n, n_od)) +
+  scale_x_log10() +
+  scale_y_log10() +
+  labs(
+    x = "Number of people making trip",
+    y = "Number of OD pairs"
+  ) +
+  ggtitle("SIM-derived OD data after beta adjustment") +
+  theme_minimal()
+
+# And for commuter trips:
+tar_load(od_national)
+od = od_national |>
+  filter(geo_code1 %in% zones$DataZone) |>
+  filter(geo_code2 %in% zones$DataZone)
+od |>
+  sf::st_drop_geometry() |>
+  dplyr::group_by(n = round(all)) |>
+  dplyr::summarise(n_od = n()) |>
+  ggplot() +
+  geom_point(aes(n, n_od)) +
+  scale_x_log10() +
+  scale_y_log10() +
+  labs(
+    x = "Number of people making trip",
+    y = "Number of OD pairs"
+  ) +
+  ggtitle("Observed OD data (commute)") +
+  theme_minimal()
+```
+
+An feature of all OD datasets we use in this project, whether synthetic or observed, is that they are highly skewed, with a large number of OD pairs with very few trips.
+The proportion of OD pairs and trips associated with synthetic shopping OD pairs with a given number of trips is shown in the table below.
+
+```{r}
+#| label: od-interaction-summary
+n_to_show = 0:10
+od_interaction_summary = od_interaction |>
+  sf::st_drop_geometry() |>
+  dplyr::group_by(n = round(interaction)) |>
+  dplyr::summarise(n_od = n(), n_trips = round(sum(interaction))) |>
+  mutate(proportion_pairs = n_od / sum(n_od), proportion_trips = n_trips / sum(n_trips)) |>
+  filter(n %in% n_to_show)
+od_interaction_summary |>
+  knitr::kable(digits = 2)
+```
+
+The equivalent table for the observed commute OD data is shown below.
+
+```{r}
+od_summary = od |>
+  sf::st_drop_geometry() |>
+  dplyr::group_by(n = round(all)) |>
+  dplyr::summarise(n_od = n(), n_trips = round(sum(all))) |>
+  mutate(proportion_pairs = n_od / sum(n_od), proportion_trips = n_trips / sum(n_trips)) |>
+  filter(n %in% n_to_show)
+od_summary |>
+  knitr::kable(digits = 2)
+```
+
+To avoid the situation whereby a large number of relatively unimportant OD pairs account for the majority of the computational resources (around 80% of OD pairs accounting for only 20% of travel in the table above), we will set a limit on the number of OD pairs per origin zone, proportion to the number of trips made from that zone, and sample that many OD pairs, with weights proportional to the interaction value.
+The updated OD data is illustrated below.
+
+```{r}
+#| label: od-interaction-filtered
+min_per_o = 10
+min_p = min(zones$origin_shopping_trips)
+od_interaction_filtered = purrr::map_dfr(
+  unique(od_interaction$O),
+  ~ {
+    od_o = od_interaction |>
+      dplyr::filter(O == .x)
+    n_destinations = round(od_o$origin_shopping_trips[1] / min_p * min_per_o)
+    od_o |>
+      dplyr::slice_sample(n = n_destinations, weight_by = interaction)
+  }
+)
+# sum(od_interaction_filtered$interaction) / sum(od_interaction$interaction) # 0.7
+od_adjusted = od_interaction_filtered |>
+  dplyr::group_by(O) |>
+  dplyr::mutate(
+    proportion = interaction / sum(interaction),
+    shopping_all_modes = origin_shopping_trips * proportion
+  ) |>
+  dplyr::ungroup()
+# sum(od_adjusted$shopping_all_modes) / sum(od_interaction$interaction) # 1
+od_adjusted |>
+  sf::st_drop_geometry() |>
+  dplyr::group_by(n = round(interaction)) |>
+  dplyr::summarise(n_od = n()) |>
+  ggplot() +
+  geom_point(aes(n, n_od)) +
+  scale_x_log10() +
+  scale_y_log10() +
+  labs(
+    x = "Number of people making trip",
+    y = "Number of OD pairs"
+  ) +
+  ggtitle("SIM-derived OD data after filtering") +
+  theme_minimal()
+
+```
+
+```{r}
+#| include: false
+names(od_adjusted)
+# [1] "O"                     "D"                     "distance_euclidean"   
+# [4] "origin_shopping_trips" "destination_size"      "geometry"             
+# [7] "interaction"           "proportion"            "shopping_all_modes"   
+```
+
+The number of trips associated with each distance band for the case study area of Aberdeen is illustrated below.
+
+```{r}
+#| label: od-interaction-combined
+od_interaction_combined = bind_rows(
+  od_interaction_before |>
+    dplyr::transmute(type = "Before beta adjustment", n = interaction, distance_euclidean),
+  od_interaction |>
+    dplyr::transmute(type = "After beta adjustment", n = interaction, distance_euclidean),
+  od_adjusted |>
+    dplyr::transmute(type = "After filtering", n = shopping_all_modes, distance_euclidean)
+) |>
+  sf::st_drop_geometry() |>
+  dplyr::mutate(distance_band = cut(
+    distance_euclidean,
+    breaks = breaks_dist_euclidean * 1000,
+    labels = breaks_dist_labels
+  )) |>
+  dplyr::group_by(type, distance_band) |>
+  dplyr::summarise(n = sum(n)) |>
+  dplyr::ungroup()
+# Plot the results:
+od_interaction_combined |>
+  ggplot() +
+  geom_bar(aes(x = distance_band, y = n, fill = type), stat = "identity", position = "dodge") +
+  labs(
+    x = "Distance (km)",
+    y = "Number of trips"
+  ) +
+  theme_minimal()
+
+```
+
+
+# Jittering 
+The resulting desire lines are put 'jittered'.
 We then filter the desire lines, excluding those with a Euclidean distance of <500m (below this distance people are likely to walk rather than cycle) or >5km (to reduce the computational time of the routing).
 
 ## Routing
 
 Finally, the desire lines are routed on the road network, using the CycleStreets routing algorithms for fast and quiet routes.
 Individual routes are then combined into a route network.
+
+```{r}
+#| eval: false
+routes_utility_old = readRDS("outputdata/2024-05-17/aberdeen_and_north_east/routes_max_dist_utility_fastest.Rds")
+nrow(routes_utility_old$routes)
+routes_utility_new = readRDS("outputdata/2024-05-20/aberdeen_and_north_east/routes_max_dist_utility_fastest.Rds")
+nrow(routes_utility_new$routes)
+```
+
+## Route network results
+
+The results of the the utility trip uptake model and routing are added onto the commute and education network layers and can be visualised in the website.
+An example of the route network results for central Aberdeen is shown below.
+
+```{r}
+#| include: false
+list.files("outputdata/2024-04-24/")
+combined_old = sf::read_sf("outputdata/v2024-04-27-13-25-54.303602_commit_8925a08931141f9838760a9fb04b2c9b383db021/combined_network.gpkg")
+nrow(combined_old) # 608527
+names(combined_old)
+#  [1] "commute_fastest_bicycle"             "commute_fastest_bicycle_go_dutch"   
+#  [3] "commute_fastest_bicycle_ebike"       "commute_quietest_bicycle"           
+#  [5] "commute_quietest_bicycle_go_dutch"   "commute_quietest_bicycle_ebike"     
+#  [7] "commute_ebike_bicycle"               "commute_ebike_bicycle_go_dutch"     
+#  [9] "commute_ebike_bicycle_ebike"         "primary_fastest_bicycle"            
+# [11] "primary_fastest_bicycle_go_dutch"    "primary_fastest_bicycle_ebike"      
+# [13] "primary_quietest_bicycle"            "primary_quietest_bicycle_go_dutch"  
+# [15] "primary_quietest_bicycle_ebike"      "primary_ebike_bicycle"              
+# [17] "primary_ebike_bicycle_go_dutch"      "primary_ebike_bicycle_ebike"        
+# [19] "secondary_fastest_bicycle"           "secondary_fastest_bicycle_go_dutch" 
+# [21] "secondary_fastest_bicycle_ebike"     "secondary_quietest_bicycle"         
+# [23] "secondary_quietest_bicycle_go_dutch" "secondary_quietest_bicycle_ebike"   
+# [25] "secondary_ebike_bicycle"             "secondary_ebike_bicycle_go_dutch"   
+# [27] "secondary_ebike_bicycle_ebike"       "utility_fastest_bicycle"            
+# [29] "utility_fastest_bicycle_go_dutch"    "utility_fastest_bicycle_ebike"      
+# [31] "utility_quietest_bicycle"            "utility_quietest_bicycle_go_dutch"  
+# [33] "utility_quietest_bicycle_ebike"      "utility_ebike_bicycle"              
+# [35] "utility_ebike_bicycle_go_dutch"      "utility_ebike_bicycle_ebike"        
+# [37] "quietness"                           "gradient"                           
+# [39] "all_fastest_bicycle"                 "all_fastest_bicycle_go_dutch"       
+# [41] "all_fastest_bicycle_ebike"           "all_quietest_bicycle"               
+# [43] "all_quietest_bicycle_go_dutch"       "all_quietest_bicycle_ebike"         
+# [45] "all_ebike_bicycle"                   "all_ebike_bicycle_go_dutch"         
+# [47] "all_ebike_bicycle_ebike"             "geom"
+
+# combined_old |>
+#   sample_n(1000) |>
+#   plot()
+combined_old_aberdeen = combined_old[aberdeen, ]
+combined_old_aberdeen = combined_old_aberdeen |>
+  transmute(utility_increase = utility_fastest_bicycle_go_dutch / utility_fastest_bicycle)
+summary(combined_old_aberdeen$utility_increase)
+
+
+# The new data:
+list.files("outputdata/2024-05-20/aberdeen_and_north_east")
+combined_new = sf::read_sf("outputdata/2024-05-20/aberdeen_and_north_east/combined_network_tile.geojson")
+combined_new_aberdeen = combined_new[aberdeen, ]
+combined_new_aberdeen = combined_new_aberdeen |>
+  transmute(utility_increase = utility_fastest_bicycle_go_dutch / utility_fastest_bicycle)
+summary(combined_new_aberdeen$utility_increase)
+```
+
+```{r}
+#| label: route-network-results
+brks = c(0, 10, 20, 30, 50)
+combined_old_aberdeen |>
+  # mutate(utility_increase = cut(utility_increase, breaks = brks)) |>
+  ggplot() +
+  geom_sf(aes(colour = utility_increase)) +
+  scale_colour_viridis_b(breaks = brks) +
+  theme_void()
+combined_new_aberdeen |>
+  ggplot() +
+  geom_sf(aes(colour = utility_increase)) +
+  scale_colour_viridis_b(breaks = brks) +
+  theme_void()
+```
+
+# Next steps
+
+The approach outlined above has been validated and quality assured, with reproducible code reviewed by a second analyst.
+There are a number of ways in which we can improve the accuracy of results in Phase 3, in rough descending order of priority:
+
+- Account for the fact that trip rates are note the same across zones: rural areas are known to have lower trip rates than urban areas, and longer distance trips are known to be made less frequently.
+- Refine the weighting associated with each grid point in the spatial interaction model, to account for the fact that some destinations (e.g. large supermarkets for shopping trips) are larger trip attractors than others.
+- Revisit the grid: should a more approach e.g. involving spatial clustering of points be used?
+- Use additional data to estimate mode split under the Baseline scenario
 

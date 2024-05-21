@@ -8,80 +8,29 @@ tar_source()
 
 parameters = jsonlite::read_json("parameters.json", simplifyVector = T)
 lads = sf::read_sf("inputdata/boundaries/la_regions_2023.geojson")
-region_names = unique(lads$Region)[c(3, 2, 1, 4, 5, 6)] # Start with Glasgow
-cities_region_names = list()
-
-for (region in region_names) {
-  # Assuming 'CityName' is the column that holds the names of cities or localities
-  cities_in_region = lads |>
-    filter(Region == region) |>
-    pull(LAD23NM) |>
-    unique() # Ensure unique city names
-
-  # Add the city names to the list under the region name
-  cities_region_names[[region]] = cities_in_region
-}
-
+# Start with Glasgow:
+# region_names = unique(lads$Region)[c(3, 2, 1, 4, 5, 6)] 
+# Test for 2 regions:
+region_names = unique(lads$Region)[c(3, 4)]
+cities_region_names = lapply(
+  region_names,
+  function(region) {
+    cities_in_region = lads |>
+      filter(Region == region) |>
+      pull(LAD23NM) |>
+      unique() # Ensure unique city names
+  }
+)
+names(cities_region_names) = region_names
 region_names_lowercase = snakecase::to_snake_case(region_names)
 
-# Initialize a vector to hold the names of regions that fail in the first attempt
-failed_regions = character()
-
 # First loop: Attempt to process each region and capture any failures
-for (region in region_names[1:6]) {
-  tryCatch(
-    {
-      message("Processing region: ", region)
-      parameters$region = region
-      parameters$coherent_area = cities_region_names[[region]]
-      jsonlite::write_json(parameters, "parameters.json", pretty = TRUE)
-      targets::tar_make()
-    },
-    error = function(e) {
-      message(paste("Error encountered in region", region, ". Error details: ", e$message))
-      # Add the failed region to the vector for later retry
-      print(paste("Adding", region, "to failed_regions"))
-      failed_regions <= c(failed_regions, region)
-    }
-  )
+for (region in region_names) {
+  message("Processing region: ", region)
+  parameters$region = region
+  jsonlite::write_json(parameters, "parameters.json", pretty = TRUE)
+  # targets::tar_make()
 }
-
-# Second loop: Attempt to reprocess any regions that failed in the first attempt
-if (length(failed_regions) > 0) {
-  message("Attempting to reprocess failed regions...")
-  for (region in failed_regions) {
-    tryCatch(
-      {
-        message("Reprocessing region: ", region)
-        parameters$region = region
-        parameters$coherent_area = cities_region_names[[region]]
-        jsonlite::write_json(parameters, "parameters.json", pretty = TRUE)
-        targets::tar_make()
-      },
-      error = function(e) {
-        message(paste("Failed again in region", region, ". Error details: ", e$message))
-        # Here you could log the failure or take additional recovery actions
-      }
-    )
-  }
-} else {
-  message("All regions processed successfully on the first attempt.")
-}
-
-
-# Zip and upload outputs ----
-# setwd("outputdata") # Temporarily change working directory
-# date_folder = parameters$date_routing
-# list.files(date_folder)
-# zip_file = paste0(date_folder, ".zip")
-# zip(zipfile = zip_file, date_folder, extras = "-x *.Rds")
-# zip(paste0(date_folder, "-geojson.zip"), files = paste0(date_folder, "-geojson"))
-# fs::file_size(paste0(date_folder, "-geojson.zip"))
-# system("gh release list")
-# system(paste0("gh release create ", date_folder, "-geojson"))
-# system(paste0("gh release upload ", date_folder, "-geojson ", date_folder, "-geojson.zip"))
-# setwd("..")
-
 
 # CbD classification of networks ---------------------------------------------
 
@@ -112,8 +61,6 @@ cycle_net = osmactive::get_cycling_network(osm)
 drive_net = get_driving_network_major(osm)
 cycle_net = distance_to_road(cycle_net, drive_net)
 cycle_net = classify_cycle_infrastructure(cycle_net)
-# m = plot_osm_tmap(cycle_net)
-# m
 
 drive_net = clean_speeds(drive_net)
 cycle_net = clean_speeds(cycle_net)
@@ -142,7 +89,7 @@ cycleways_with_road_speeds_df = cycle_net_joined_polygons |>
   summarise(
     maxspeed_road = osmactive:::most_common_value(maxspeed_road),
     highway_join = osmactive:::most_common_value(highway_join),
-    volume_join = most_common_value(volume_join)
+    volume_join = osmactive:::most_common_value(volume_join)
   ) |>
   mutate(
     maxspeed_road = as.numeric(maxspeed_road),
@@ -286,7 +233,6 @@ system("gh release upload 2024-05-30-geojson cbd_layer.pmtiles")
 
 # Read the open roads data outside the loop for only once
 # Define the path to the file
-setwd("..")
 file_path = "inputdata/open_roads_scotland.gpkg"
 if (!file.exists(file_path)) {
   setwd("inputdata")
@@ -296,10 +242,11 @@ if (!file.exists(file_path)) {
 open_roads_scotland = sf::read_sf(file_path)
 sf::st_geometry(open_roads_scotland) = "geometry"
 
+date_folder = parameters$date_routing
 output_folder = file.path("outputdata", date_folder)
 
 # Generate the coherent network for the region
-for (region in region_names[1:6]) {
+for (region in region_names) {
   message("Processing coherent network for region: ", region)
   region_snake = snakecase::to_snake_case(region)
   coherent_area = cities_region_names[[region]]
@@ -358,7 +305,7 @@ for (region in region_names[1:6]) {
 }
 
 # Combine regional outputs ---------------------------------------------------
-output_folders = list.dirs(file.path("outputdata", date_folder))[-1]
+output_folders = list.dirs(output_folder)[-1]
 regional_output_files = list.files(output_folders[1])
 regional_output_files
 
@@ -605,43 +552,3 @@ edinburgh_central = zonebuilder::zb_zone("Edinburgh", n_circles = 2)
 tar_load(simplified_network)
 simplified_central = simplified_network[edinburgh_central, ]
 mapview::mapview(simplified_central)
-
-# Upload stage:
-
-#   # Ensure the target runs after
-#   check = length(save_outputs)
-
-#   commit = gert::git_log(max = 1)
-#   message("Commit: ", commit)
-#   full_build =
-#     # isFALSE(parameters$geo_subset) &&
-#     isFALSE(parameters$open_data_build) &&
-#     parameters$max_to_route > 20e3
-#   is_linux = Sys.info()[['sysname']] == "Linux"
-#   if(full_build) {
-#   v = paste0("v", save_outputs, "_commit_", commit$commit)
-#   v = gsub(pattern = " |:", replacement = "-", x = v)
-#   setwd("outputdata")
-#   f = list.files(path = ".", pattern = "Rds|zip|pmtiles|json|gpkg")
-#   f = f[!grepl(".geojson", f)] # Remove .geojsons
-#   # piggyback::pb_upload(f)
-#   msg = glue::glue("gh release create {v} --generate-notes")
-#   message("Creating new release and folder to save the files: ", v)
-#   dir.create(v)
-#   message("Going to try to upload the following files: ", paste0(f, collapse = ", "))
-#   message("With sizes: ", paste0(fs::file_size(f), collapse = ", "))
-#   system(msg)
-#   for(i in f) {
-#     gh_release_upload(file = i, tag = v)
-#     # Move into a new directory
-#     file.copy(from = i, to = file.path(v, i))
-#   }
-#   message("Files stored in output folder: ", v)
-#   message("Which contains: ", paste0(list.files(v), collapse = ", "))
-#   # For specific version:
-#   # system("gh release create v0.0.1 --generate-notes")
-#   file.remove(f)
-#   setwd("..")
-# }  else {
-#   message("Not full build or gh command line tool not available")
-#   message("Not uploading files: manually move contents of outputdata (see upload_data target for details)")
