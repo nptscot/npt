@@ -8,10 +8,13 @@ tar_source()
 
 parameters = jsonlite::read_json("parameters.json", simplifyVector = T)
 lads = sf::read_sf("inputdata/boundaries/la_regions_2023.geojson")
+date_folder = parameters$date_routing
+output_folder = file.path("outputdata", date_folder)
+
 # Start with Glasgow:
-# region_names = unique(lads$Region)[c(3, 2, 1, 4, 5, 6)] 
+region_names = unique(lads$Region)[c(3, 2, 1, 4, 5, 6)] 
 # Test for 2 regions:
-region_names = unique(lads$Region)[c(3, 4)]
+# region_names = unique(lads$Region)[c(3, 4)]
 cities_region_names = lapply(
   region_names,
   function(region) {
@@ -242,9 +245,6 @@ if (!file.exists(file_path)) {
 }
 open_roads_scotland = sf::read_sf(file_path)
 sf::st_geometry(open_roads_scotland) = "geometry"
-
-date_folder = parameters$date_routing
-output_folder = file.path("outputdata", date_folder)
 
 # Generate the coherent network for the region
 for (region in region_names) {
