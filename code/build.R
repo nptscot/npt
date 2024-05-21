@@ -212,7 +212,7 @@ cbd_layer = cycle_net_traffic |>
 sf::write_sf(cbd_layer, "cbd_layer.geojson", delete_dsn = TRUE)
 
 # PMTiles:
-pmtiles_msg = paste("tippecanoe -o cbd_layer.pmtiles",
+pmtiles_msg = glue::glue("tippecanoe -o cbd_layer_{date_folder}.pmtiles",
   "--name=cbd_layer",
   "--layer=cbd_layer",
   "--attribution=UniversityofLeeds",
@@ -227,11 +227,14 @@ pmtiles_msg = paste("tippecanoe -o cbd_layer.pmtiles",
 )
 system(pmtiles_msg)
 # Rename and upload:
-file.rename("cbd_layer.pmtiles", "outputdata/cbd_layer.pmtiles")
+file.rename(
+  glue::glue("cbd_layer_{date_folder}.pmtiles"),
+  glue::glue("outputdata/cbd_layer_{date_folder}.pmtiles")
+)
 file.rename("cbd_layer.geojson", "outputdata/cbd_layer.geojson")
 setwd("outputdata")
 system("gh release list")
-system("gh release upload 2024-05-30-geojson cbd_layer.pmtiles")
+system(glue::glue("gh release upload {date_folder} cbd_layer_{date_folder}.pmtiles"))
 
 # Generate coherent network ---------------------------------------------------
 
@@ -377,7 +380,7 @@ export_zone_json(zones_stats, "DataZone", path = "outputdata")
 setwd("outputdata")
 # Check the combined_network_tile.geojson file is there:
 file.exists("combined_network_tile.geojson")
-command_tippecanoe = paste("tippecanoe -o rnet.pmtiles",
+command_tippecanoe = paste("tippecanoe -o rnet_{date_folder}.pmtiles",
   "--name=rnet",
   "--layer=rnet",
   "--attribution=UniverstyofLeeds",
@@ -411,7 +414,7 @@ make_geojson_zones(b_low, file.path("outputdata", "dasymetric_low.geojson"))
 make_geojson_zones(b_med, file.path("outputdata", "dasymetric_med.geojson"))
 make_geojson_zones(b_high, file.path("outputdata", "dasymetric_high.geojson"))
 
-tippecanoe_verylow = paste("tippecanoe -o dasymetric_verylow.pmtiles",
+tippecanoe_verylow = paste("tippecanoe -o dasymetric_verylow_{date_folder}.pmtiles",
   "--name=dasymetric",
   "--layer=dasymetric",
   "--attribution=OS",
@@ -426,7 +429,7 @@ tippecanoe_verylow = paste("tippecanoe -o dasymetric_verylow.pmtiles",
   collapse = " "
 )
 
-tippecanoe_low = paste("tippecanoe -o dasymetric_low.pmtiles",
+tippecanoe_low = paste("tippecanoe -o dasymetric_low_{date_folder}.pmtiles",
   "--name=dasymetric",
   "--layer=dasymetric",
   "--attribution=OS",
@@ -441,7 +444,7 @@ tippecanoe_low = paste("tippecanoe -o dasymetric_low.pmtiles",
   collapse = " "
 )
 
-tippecanoe_med = paste("tippecanoe -o dasymetric_med.pmtiles",
+tippecanoe_med = paste("tippecanoe -o dasymetric_med_{date_folder}.pmtiles",
   "--name=dasymetric",
   "--layer=dasymetric",
   "--attribution=OS",
@@ -456,7 +459,7 @@ tippecanoe_med = paste("tippecanoe -o dasymetric_med.pmtiles",
   collapse = " "
 )
 
-tippecanoe_high = paste("tippecanoe -o dasymetric_high.pmtiles",
+tippecanoe_high = paste("tippecanoe -o dasymetric_high_{date_folder}.pmtiles",
   "--name=dasymetric",
   "--layer=dasymetric",
   "--attribution=OS",
@@ -472,11 +475,11 @@ tippecanoe_high = paste("tippecanoe -o dasymetric_high.pmtiles",
   collapse = " "
 )
 
-tippecanoe_join = paste("tile-join -o dasymetric.pmtiles -pk --force",
-  "dasymetric_verylow.pmtiles",
-  "dasymetric_low.pmtiles",
-  "dasymetric_med.pmtiles",
-  "dasymetric_high.pmtiles",
+tippecanoe_join = paste("tile-join -o dasymetric_{date_folder}.pmtiles -pk --force",
+  "dasymetric_verylow_{date_folder}.pmtiles",
+  "dasymetric_low_{date_folder}.pmtiles",
+  "dasymetric_med_{date_folder}.pmtiles",
+  "dasymetric_high_{date_folder}.pmtiles",
   collapse = " "
 )
 
