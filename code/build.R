@@ -225,6 +225,7 @@ pmtiles_msg = paste("tippecanoe -o cbd_layer.pmtiles",
 system(pmtiles_msg)
 # Rename and upload:
 file.rename("cbd_layer.pmtiles", "outputdata/cbd_layer.pmtiles")
+file.rename("cbd_layer.geojson", "outputdata/cbd_layer.geojson")
 setwd("outputdata")
 system("gh release list")
 system("gh release upload 2024-05-30-geojson cbd_layer.pmtiles")
