@@ -7,7 +7,6 @@ get_routes = function(od, plans, purpose = "work", folder = ".", batch = TRUE, b
     message("Getting the ", plan, " routes for ", purpose, " journeys")
     file_name = glue::glue("routes_{purpose}_{plan}.csv.gz")
     savename_f = file.path(folder, file_name)
-    browser()
     if (file.exists(savename_f)) {
       message("Routes already exist: reading from file: ", savename_f)
       routes_raw = cyclestreets:::batch_read(savename_f, cols_to_keep = c2k, segments = segments)
