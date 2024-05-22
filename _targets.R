@@ -711,6 +711,7 @@ list(
   tar_target(zones_stats, {
     stats = dplyr::full_join(commute_stats, school_stats_from, by = "DataZone")
     stats = dplyr::full_join(stats, utility_stats, by = "DataZone")
+    stats
   }),
 
   # Now covered in build.R:
@@ -745,7 +746,10 @@ list(
   }),
 
   tar_target(grid, {
-    readRDS("./inputdata/grid_scot.Rds")
+    grid = readRDS("./inputdata/grid_scot.Rds")
+    grid = sf::st_transform(grid, "EPSG:4326")
+    grid = grid[region_boundary_buffered, ]
+    grid |> sf::st_transform("EPSG:27700")
   }),
   tar_target(oas, {
     oas = readRDS("./inputdata/oas.Rds")
@@ -760,23 +764,29 @@ list(
 
   # Utility OD -------------------------------------------------------------
   tar_target(od_shopping, {
-    od_shopping = make_od_shopping(
-      oas, os_pois, grid, trip_purposes,
-      intermediate_zones, parameters, region_boundary_buffered
+    od_shopping = make_od(
+      oas, os_pois, grid,
+      purpose = "shopping",
+      trip_purposes,
+      zones, parameters
     )
     od_shopping
   }),
   tar_target(od_visiting, {
-    od_visiting = make_od_visiting(
-      oas, os_pois, grid, trip_purposes,
-      intermediate_zones, parameters, region_boundary_buffered
+    od_visiting = make_od(
+      oas, os_pois, grid,
+      purpose = "visiting",
+      trip_purposes,
+      zones, parameters
     )
     od_visiting
   }),
   tar_target(od_leisure, {
-    od_leisure = make_od_leisure(
-      oas, os_pois, grid, trip_purposes,
-      intermediate_zones, parameters, region_boundary_buffered
+    od_leisure = make_od(
+      oas, os_pois, grid,
+      purpose = "leisure",
+      trip_purposes,
+      zones, parameters
     )
     od_leisure
   }),
@@ -784,8 +794,41 @@ list(
   # Combined utility trip purposes --------------------------------------------
 
   tar_target(od_utility_combined, {
+
     od_utility_combined = rbind(od_shopping, od_visiting, od_leisure) |>
       dplyr::slice_max(n = parameters$max_to_route, order_by = all, with_ties = FALSE)
+
+    # Get % cycling for commuting per zone
+    pcycle_national = sum(commute_stats$comm_orig_bicycle, na.rm = TRUE) /
+      sum(commute_stats$comm_orig_all, na.rm = TRUE)
+    commute_stats_minimal = commute_stats |>
+      dplyr::select(DataZone, comm_orig_bicycle, comm_orig_all)
+    cycling_multiplier = commute_stats_minimal |>
+      dplyr::transmute(
+        DataZone,
+        multiplier = (comm_orig_bicycle / comm_orig_all) /
+         pcycle_national
+      ) |>
+      # 0 to 0.1:
+      dplyr::mutate(multiplier = case_when(
+        multiplier == 0 ~ 0.1,
+        TRUE ~ multiplier
+      ))
+    # summary(cycling_multiplier$multiplier)
+    # Add new cycling multiplier column to od_utility_combined
+    od_utility_combined = od_utility_combined |>
+      dplyr::left_join(cycling_multiplier, by = join_by(geo_code1 == DataZone)) |>
+      # Convert NAs to 1:
+      dplyr::mutate(multiplier = case_when(
+        is.na(multiplier) ~ 1,
+        TRUE ~ multiplier
+      )) |>
+      dplyr::mutate(
+        bicycle_new = bicycle * multiplier,
+        car = car - (bicycle_new - bicycle),
+        bicycle = bicycle_new
+      ) |>
+      dplyr::select(-multiplier, -bicycle_new)
 
     # Ensure the columns and distance units are identical to the other routing types
     # (apart from the additional trip purpose column)
