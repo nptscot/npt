@@ -28,6 +28,7 @@ names(cities_region_names) = region_names
 region_names_lowercase = snakecase::to_snake_case(region_names)
 
 # First loop: Attempt to process each region and capture any failures
+region = region_names[1]
 for (region in region_names) {
   message("Processing region: ", region)
   parameters$region = region
