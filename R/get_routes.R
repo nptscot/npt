@@ -21,7 +21,7 @@ get_routes = function(od, plans, purpose = "work", folder = ".", batch = TRUE, b
       if (batch && !batch_save) {
         # One-off saving of pre-computed routes:
         id = NULL
-        if (as.character(Sys.time()) < "2024-05-22 08:59:12.486921") {
+        if (as.character(Sys.time()) < "2024-05-22 09:59:12.486921") {
           id = 9881
         }
         routes_raw = cyclestreets::batch(
@@ -77,26 +77,25 @@ get_routes = function(od, plans, purpose = "work", folder = ".", batch = TRUE, b
           )
         }
       }
-
-      if (is.character(segments) && !is(routes_raw, "sf")) {
-        r_filtered = routes_raw$routes |>
-          group_by(route_number) |>
-          mutate(route_hilliness = mean(gradient_smooth)) |>
-          mutate(length_route = sum(distances)) |>
-          ungroup()
-
-        routes_filtered = list(routes = r_filtered, segments = routes_raw$segments)
-      } else {
-        routes_filtered = routes_raw |>
-          group_by(route_number) |>
-          mutate(route_hilliness = mean(gradient_smooth)) |>
-          mutate(length_route = sum(distances)) |>
-          ungroup()
-      }
-      rm(routes_raw)
-      message("Saving ", savename_f)
-      saveRDS(routes_filtered, savename_f)
     }
+
+    if (is.character(segments) && !is(routes_raw, "sf")) {
+      r_filtered = routes_raw$routes |>
+        group_by(route_number) |>
+        mutate(route_hilliness = mean(gradient_smooth)) |>
+        mutate(length_route = sum(distances)) |>
+        ungroup()
+
+      routes_filtered = list(routes = r_filtered, segments = routes_raw$segments)
+    } else {
+      routes_filtered = routes_raw |>
+        group_by(route_number) |>
+        mutate(route_hilliness = mean(gradient_smooth)) |>
+        mutate(length_route = sum(distances)) |>
+        ungroup()
+    }
+    rm(routes_raw)
+
     route_list[[paste(plan)]] = routes_filtered
   }
   route_list
