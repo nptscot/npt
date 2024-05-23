@@ -1,4 +1,7 @@
 nrow,plan,purpose,region,date,id
+2500,balanced,utility,Edinburgh and Lothians,2024-05-25,9948
+2500,balanced,commute,Edinburgh and Lothians,2024-05-25,9945
+2500,balanced,school,Edinburgh and Lothians,2024-05-25,9943
 2500,fastest,school,"Tayside, Central and Fife",2024-05-25,9941
 2500,ebike,utility,Edinburgh and Lothians,2024-05-25,9940
 2500,quietest,utility,Edinburgh and Lothians,2024-05-25,9939
