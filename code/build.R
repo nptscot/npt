@@ -64,9 +64,9 @@ osm_centroids = osm_national |>
 region_geom = lads |> 
   filter(Region == region)
 
-district = region_geom[1,]
-for (district in region_geom) {
-  district_centroids = osm_centroids[district, ]
+district_geom = region_geom[1,]
+for (district_geom in region_geom) {
+  district_centroids = osm_centroids[district_geom, ]
   district_centroids = sf::st_drop_geometry(district_centroids)
   osm_district = inner_join(osm_national, district_centroids)
   nrow(osm_district) / nrow(osm_national)
@@ -101,7 +101,7 @@ for (district in region_geom) {
   )
   
   # group by + summarise stage
-  cycleways_with_road_speeds_df = cycle_net_joined_polygons |>
+  cycleways_with_road_data_df = cycle_net_joined_polygons |>
     sf::st_drop_geometry() |>
     group_by(osm_id) |>
     summarise(
@@ -115,7 +115,7 @@ for (district in region_geom) {
     )
   
   # join back onto cycle_net
-  cycle_net_joined = left_join(cycle_net, cycleways_with_road_speeds_df)
+  cycle_net_joined = left_join(cycle_net, cycleways_with_road_data_df)
   
   cycle_net_joined = cycle_net_joined |>
     mutate(
@@ -129,7 +129,7 @@ for (district in region_geom) {
       )
     )
   
-  traffic_volumes_region = traffic_volumes_scotland[osm_district, ] # change this to an inner join or a simple polygon district outline to speed up the build?
+  traffic_volumes_region = traffic_volumes_scotland[district_geom, ] # this is now a simple district outline
   cycle_net_traffic_polygons = stplanr::rnet_join(
     max_angle_diff = 30,
     rnet_x = cycle_net_joined,
