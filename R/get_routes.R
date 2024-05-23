@@ -25,12 +25,11 @@ get_routes = function(od, plans, purpose = "work", folder = ".", batch = TRUE, n
       #   }
       # Add to database of saved routes:
       p = jsonlite::read_json("parameters.json", simplifyVector = TRUE)
-      browser()
       route_id_new = data.frame(nrow = nrow(od), plan = plan, purpose = purpose, region = p$region, date = p$date_routing)
       route_id_old = readr::read_csv("route_ids.csv")
       route_id_old$date = as.character(route_id_old$date)
       route_id = inner_join(route_id_new, route_id_old)
-      if (!is.na(route_id$id)) {
+      if (nrow(route_id) == 0) {
         existing_route = FALSE
         id = cyclestreets::batch(
           desire_lines = od,
@@ -47,7 +46,7 @@ get_routes = function(od, plans, purpose = "work", folder = ".", batch = TRUE, n
         )
       } else {
         existing_route = TRUE
-        id = route_id$id
+        id = route_id$id[1]
       }
       routes_raw = cyclestreets::batch(
         desire_lines = od,
@@ -64,6 +63,7 @@ get_routes = function(od, plans, purpose = "work", folder = ".", batch = TRUE, n
       )
       # Save csv with lookups:
       if (!existing_route) {
+        route_id_new$id = id
         route_ids = dplyr::bind_rows(route_id_new, route_id_old)
         readr::write_csv(route_ids, "route_ids.csv")
       }
