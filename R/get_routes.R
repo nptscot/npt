@@ -20,22 +20,35 @@ get_routes = function(od, plans, purpose = "work", folder = ".", batch = TRUE, n
     } else {
       # One-off saving of pre-computed routes:
       id = NULL
-        if (as.character(Sys.time()) < "2024-05-23 07:15:12.486921" && plan == "balanced") {
-          id = 9905
-        }
-        routes_raw = cyclestreets::batch(
-          desire_lines = od,
-          id = id,
-          directory = folder,
-          wait = TRUE,
-          maxDistance = 30000,
-          username = "robinlovelace",
-          strategies = plan,
-          cols_to_keep = c2k,
-          segments = segments,
-          delete_job = FALSE,
-          filename = file_name |> gsub(".csv.gz", "", x = _)
-        )
+      #   if (as.character(Sys.time()) < "2024-05-23 07:15:12.486921" && plan == "balanced") {
+      #     id = 9905
+      #   }
+      # Add to database of saved routes:
+      p = jsonlite::read_json("parameters.json", simplifyVector = TRUE)
+      route_id_new = data.frame(nrow = nrow(od), plan = plan, purpose = purpose, date = p$date_routing)
+      # For saving:
+      route_id_new$id = 1
+      write_csv(route_id_new, "route_ids.csv", append = TRUE)
+      route_id_old = readr::read_csv("route_ids.csv")
+      route_id = inner_join(route_id_new, route_id_old)
+      # if (!is.na(route_id$id)) {
+      #   id = route_id$id
+      # } else {
+      #   id = NULL
+      # }
+      routes_raw = cyclestreets::batch(
+        desire_lines = od,
+        id = id,
+        directory = folder,
+        wait = TRUE,
+        maxDistance = 30000,
+        username = "robinlovelace",
+        strategies = plan,
+        cols_to_keep = c2k,
+        segments = segments,
+        delete_job = FALSE,
+        filename = file_name |> gsub(".csv.gz", "", x = _)
+      )
     }
   }
 

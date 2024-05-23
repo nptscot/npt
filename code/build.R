@@ -29,7 +29,7 @@ region_names_lowercase = snakecase::to_snake_case(region_names)
 
 # First loop: Attempt to process each region and capture any failures
 region = region_names[1]
-for (region in region_names[5:6]) {
+for (region in region_names[1:2]) {
   message("Processing region: ", region)
   parameters$region = region
   jsonlite::write_json(parameters, "parameters.json", pretty = TRUE)
