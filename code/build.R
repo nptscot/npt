@@ -63,9 +63,12 @@ osm_centroids = osm_national |>
 # Run for each district within each Scottish region
 region_geom = lads |> 
   filter(Region == region)
+district_names = region_geom$LAD23NM
 
-district_geom = region_geom[1,]
-for (district_geom in region_geom) {
+district = district_names[1]
+for (district in district_names) {
+  district_geom = region_geom |> 
+    filter(LAD23NM == district)
   district_centroids = osm_centroids[district_geom, ]
   district_centroids = sf::st_drop_geometry(district_centroids)
   osm_district = inner_join(osm_national, district_centroids)
