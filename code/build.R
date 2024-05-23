@@ -54,28 +54,34 @@ traffic_volumes_scotland = sf::read_sf(f_traffic)
 osm_national = get_travel_network("Scotland")
 # saveRDS(osm_national, "inputdata/osm_national_2024_05_23")
 
+# Generate road segments midpoints
+osm_centroids = osm_national |> 
+  sf::st_point_on_surface()
+  
+
 # Run for each district within each Scottish region
 region_geom = lads |> 
   filter(Region == region)
 
 district = region_geom[1,]
 for (district in region_geom) {
-  osm = osm_national[district, ]
-  nrow(osm) / nrow(osm_national)
+  osm = osm_centroids[district, ]
+  nrow(osm) / nrow(osm_centroids)
   # 6% network, could be 20x+ slower for Scotland
   # [1] 0.01831887 for East Ayrshire (raw road data)
+  # [1] 0.01815918 for East Ayrshire (using line midpoints)
   # # # ---
   
   cycle_net = osmactive::get_cycling_network(osm)
-  drive_net = get_driving_network_major(osm)
-  cycle_net = distance_to_road(cycle_net, drive_net)
-  cycle_net = classify_cycle_infrastructure(cycle_net)
+  drive_net = osmactive::get_driving_network_major(osm)
+  cycle_net = osmactive::distance_to_road(cycle_net, drive_net)
+  cycle_net = osmactive::classify_cycle_infrastructure(cycle_net)
   
-  drive_net = clean_speeds(drive_net)
-  cycle_net = clean_speeds(cycle_net)
+  drive_net = osmactive::clean_speeds(drive_net)
+  cycle_net = osmactive::clean_speeds(cycle_net)
   
-  drive_net = estimate_traffic(drive_net)
-  cycle_net = estimate_traffic(cycle_net)
+  drive_net = osmactive::estimate_traffic(drive_net)
+  cycle_net = osmactive::estimate_traffic(cycle_net)
   
   # See tutorial: https://github.com/acteng/network-join-demos
   cycle_net_joined_polygons = stplanr::rnet_join(
