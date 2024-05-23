@@ -8,9 +8,4 @@ nohup nice -4 R CMD BATCH code/build.R &
 # for your situation and system.
 
 # Removing .RData is recommended.
-# rm -f .RData
-
-# # Get data if it doesn't exist:
-# fi [ ! -d inputdata ]; then
-# gh repo clone nptscot/inputdata
-# fi
+rm -f .RData
