@@ -18,11 +18,10 @@ get_routes = function(od, plans, purpose = "work", folder = ".", batch = TRUE, b
       message(n_routes_removed, " routes removed")
       routes_raw$routes = dplyr::left_join(routes_raw$routes, od, by = dplyr::join_by(route_number == id))
     } else {
-      if (batch && !batch_save) {
-        # One-off saving of pre-computed routes:
-        id = NULL
-        if (as.character(Sys.time()) < "2024-05-22 12:00:00") {
-          id = 9881
+      # One-off saving of pre-computed routes:
+      id = NULL
+      if (as.character(Sys.time()) < "2024-05-22 12:00:00") {
+        id = 9881
         if (as.character(Sys.time()) < "2024-05-23 07:15:12.486921" && plan == "balanced") {
           id = 9905
         }
@@ -39,45 +38,6 @@ get_routes = function(od, plans, purpose = "work", folder = ".", batch = TRUE, b
           delete_job = FALSE,
           filename = file_name |> gsub(".csv.gz", "", x = _)
         )
-      } else {
-        if (batch_save) {
-          if (!dir.exists("tmp")) {
-            dir.create("tmp")
-          }
-          tmp_path = file.path("tmp", date)
-          if (!dir.exists(tmp_path)) {
-            dir.create(tmp_path)
-          }
-          routes_raw = batch_routes(
-            od,
-            fun = stplanr::route,
-            route_fun = cyclestreets::journey,
-            purpose = purpose,
-            plan = plan,
-            nrow_batch = nrow_batch,
-            temp_folder = tmp_path,
-            # comment-out this line to use default instance:
-            base_url = paste0(
-              "http://",
-              Sys.getenv("CYCLESTREETS_BATCH"),
-              "-api.cyclestreets.net"
-            ),
-            pat = Sys.getenv("CYCLESTREETS_BATCH")
-          )
-        } else {
-          routes_raw = stplanr::route(
-            l = od,
-            route_fun = cyclestreets::journey,
-            plan = plan,
-            # comment-out this line to use default instance:
-            base_url = paste0(
-              "http://",
-              Sys.getenv("CYCLESTREETS_BATCH"),
-              "-api.cyclestreets.net"
-            ),
-            pat = Sys.getenv("CYCLESTREETS_BATCH")
-          )
-        }
       }
     }
 
