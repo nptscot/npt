@@ -797,13 +797,6 @@ list(
 
   tar_target(od_utility_combined, {
 
-    # Load input objects:
-    tar_load(od_shopping)
-    tar_load(od_visiting)
-    tar_load(od_leisure)
-    tar_load(commute_stats)
-    tar_load(parameters)
-
     od_utility_combined = rbind(od_shopping, od_visiting, od_leisure) |>
       dplyr::slice_max(n = parameters$max_to_route, order_by = all, with_ties = FALSE)
     sum(od_utility_combined$bicycle) / sum(od_utility_combined$all)
