@@ -224,36 +224,49 @@ for (district_geom in region_geom) {
       `Level of Service`
     )
   
-  sf::write_sf(cbd_layer, "cbd_layer.geojson", delete_dsn = TRUE)
+  # save file for individual district
+  district_name = district_geom$LAD23NM |> 
+    snakecase::to_snake_case()
+  filename_d = paste0("cbd_layer_", district_name, ".geojson")
+  sf::write_sf(cbd_layer, filename_d, delete_dsn = TRUE)
+  
+  # save file for whole of Scotland
+  sysdate = Sys.Date()
+  filename = paste0("cbd_layer_", sysdate, ".geojson")
+  sf::write_sf(cbd_layer, filename, delete_dsn = FALSE)
+  
   # library(tmap)
   # tmap_mode("view")
   # tm_shape(cbd_layer |> slice_sample(1000)) + tm_lines("Level of Service", lwd = 2, palette = "viridis")
-  
-  # PMTiles:
-  pmtiles_msg = glue::glue("tippecanoe -o cbd_layer_{date_folder}.pmtiles",
-                           "--name=cbd_layer",
-                           "--layer=cbd_layer",
-                           "--attribution=UniversityofLeeds",
-                           "--minimum-zoom=6",
-                           "--maximum-zoom=13",
-                           "--drop-smallest-as-needed",
-                           "--maximum-tile-bytes=5000000",
-                           "--simplification=10",
-                           "--buffer=5",
-                           "--force  cbd_layer.geojson",
-                           collapse = " "
-  )
-  system(pmtiles_msg)
-  # Rename and upload:
-  file.rename(
-    glue::glue("cbd_layer_{date_folder}.pmtiles"),
-    glue::glue("outputdata/cbd_layer_{date_folder}.pmtiles")
-  )
-  file.rename("cbd_layer.geojson", "outputdata/cbd_layer.geojson")
-  setwd("outputdata")
-  system("gh release list")
-  system(glue::glue("gh release upload {date_folder} cbd_layer_{date_folder}.pmtiles"))
 }
+
+file.rename(filename, "cbd_layer.geojson")
+
+# PMTiles:
+pmtiles_msg = glue::glue("tippecanoe -o cbd_layer_{date_folder}.pmtiles",
+                         "--name=cbd_layer",
+                         "--layer=cbd_layer",
+                         "--attribution=UniversityofLeeds",
+                         "--minimum-zoom=6",
+                         "--maximum-zoom=13",
+                         "--drop-smallest-as-needed",
+                         "--maximum-tile-bytes=5000000",
+                         "--simplification=10",
+                         "--buffer=5",
+                         "--force  cbd_layer.geojson",
+                         collapse = " "
+)
+system(pmtiles_msg)
+# Rename and upload:
+file.rename(
+  glue::glue("cbd_layer_{date_folder}.pmtiles"),
+  glue::glue("outputdata/cbd_layer_{date_folder}.pmtiles")
+)
+file.rename("cbd_layer.geojson", "outputdata/cbd_layer.geojson")
+setwd("outputdata")
+system("gh release list")
+system(glue::glue("gh release upload {date_folder} cbd_layer_{date_folder}.pmtiles"))
+
 
 # Generate coherent network ---------------------------------------------------
 
