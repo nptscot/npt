@@ -11,10 +11,10 @@ lads = sf::read_sf("inputdata/boundaries/la_regions_2023.geojson")
 date_folder = parameters$date_routing
 output_folder = file.path("outputdata", date_folder)
 
-# Start with Glasgow:
-region_names = unique(lads$Region)[c(3, 2, 1, 4, 5, 6)] 
+# # Start with Glasgow:
+# region_names = unique(lads$Region)[c(3, 2, 1, 4, 5, 6)] 
 # Test for 2 regions:
-# region_names = unique(lads$Region)[c(3, 4)]
+region_names = unique(lads$Region)[c(1, 4)]
 cities_region_names = lapply(
   region_names,
   function(region) {
@@ -29,7 +29,7 @@ region_names_lowercase = snakecase::to_snake_case(region_names)
 
 # First loop: Attempt to process each region and capture any failures
 region = region_names[1]
-for (region in region_names) {
+for (region in region_names[1:2]) {
   message("Processing region: ", region)
   parameters$region = region
   jsonlite::write_json(parameters, "parameters.json", pretty = TRUE)
@@ -249,18 +249,19 @@ for (region in region_names) {
 file.rename(filename, "cbd_layer.geojson")
 
 # PMTiles:
-pmtiles_msg = glue::glue("tippecanoe -o cbd_layer_{date_folder}.pmtiles",
-                         "--name=cbd_layer",
-                         "--layer=cbd_layer",
-                         "--attribution=UniversityofLeeds",
-                         "--minimum-zoom=6",
-                         "--maximum-zoom=13",
-                         "--drop-smallest-as-needed",
-                         "--maximum-tile-bytes=5000000",
-                         "--simplification=10",
-                         "--buffer=5",
-                         "--force  cbd_layer.geojson",
-                         collapse = " "
+pmtiles_msg = paste(
+  glue::glue("tippecanoe -o cbd_layer_{date_folder}.pmtiles"),
+  "--name=cbd_layer",
+  "--layer=cbd_layer",
+  "--attribution=UniversityofLeeds",
+  "--minimum-zoom=6",
+  "--maximum-zoom=13",
+  "--drop-smallest-as-needed",
+  "--maximum-tile-bytes=5000000",
+  "--simplification=10",
+  "--buffer=5",
+  "--force  cbd_layer.geojson",
+  collapse = " "
 )
 system(pmtiles_msg)
 # Rename and upload:
@@ -363,9 +364,10 @@ combined_network = dplyr::bind_rows(combined_network_list)
 # # With do.call and rbind:
 # combined_network = do.call(rbind, combined_network_list)
 combined_network |>
-  sample_n(1000) |>
-  select(1) |>
+  sample_n(10000) |>
+  sf::st_geometry() |>
   plot()
+dim(combined_network) # ~700k rows for full build, 33 columns
 sf::write_sf(combined_network, file.path("outputdata", "combined_network_tile.geojson"), delete_dsn = TRUE)
 
 # Same for simplified_network.geojson:
@@ -376,6 +378,7 @@ simplified_network_list = lapply(output_folders, function(folder) {
   }
 })
 simplified_network = dplyr::bind_rows(simplified_network_list)
+dim(simplified_network) # ~400k rows for full build, 33 columns
 sf::write_sf(simplified_network, file.path("outputdata", "simplified_network.geojson"), delete_dsn = TRUE)
 
 
@@ -418,7 +421,8 @@ export_zone_json(zones_stats, "DataZone", path = "outputdata")
 setwd("outputdata")
 # Check the combined_network_tile.geojson file is there:
 file.exists("combined_network_tile.geojson")
-command_tippecanoe = glue::glue("tippecanoe -o rnet_{date_folder}.pmtiles",
+command_tippecanoe = paste(
+  glue::glue("tippecanoe -o rnet_{date_folder}.pmtiles"),
   "--name=rnet",
   "--layer=rnet",
   "--attribution=UniverstyofLeeds",
@@ -431,14 +435,13 @@ command_tippecanoe = glue::glue("tippecanoe -o rnet_{date_folder}.pmtiles",
   "--force  combined_network_tile.geojson",
   collapse = " "
 )
-
 responce = system(command_tippecanoe, intern = TRUE)
 
 # Simplified network tiling
-setwd("outputdata")
+
 # Check the combined_network_tile.geojson file is there:
 file.exists("simplified_network.geojson")
-command_tippecanoe = glue::glue("tippecanoe -o rnet_simplified_{date_folder}.pmtiles",
+command_tippecanoe = paste(glue::glue("tippecanoe -o rnet_simplified_{date_folder}.pmtiles"),
   "--name=rnet_simplified",
   "--layer=rnet_simplified",
   "--attribution=UniverstyofLeeds",
@@ -449,9 +452,7 @@ command_tippecanoe = glue::glue("tippecanoe -o rnet_simplified_{date_folder}.pmt
   "--simplification=10",
   "--buffer=5",
   "--force  simplified_network.geojson",
-  collapse = " "
-)
-
+  collapse = " ")
 responce = system(command_tippecanoe, intern = TRUE)
 
 # Re-set working directory:
@@ -583,8 +584,13 @@ is_linux = Sys.info()[["sysname"]] == "Linux"
 if (full_build) {
   v = paste0("v", Sys.Date(), "_commit_", commit$commit)
   v = gsub(pattern = " |:", replacement = "-", x = v)
+  # Or latest release:
   setwd("outputdata")
-  f = list.files(path = ".", pattern = "Rds|zip|pmtiles|.json")
+  system("gh release list")
+  v = "v2024-05-22_commit_eeb99e8a459ccc7b5b3b556d72a1024843a19a34"
+  # f = list.files(path = ".", pattern = "Rds|zip|pmtiles|.json")
+  f = list.files(path = ".", pattern = "rnet_")
+  f
   # Piggyback fails with error message so commented and using cust
   # piggyback::pb_upload(f)
   msg = glue::glue("gh release create {v} --generate-notes")

@@ -1,13 +1,13 @@
 {
   "plans": ["fastest", "balanced", "quietest", "ebike"],
   "min_flow": [1],
-  "max_to_route": [250],
-  "date_routing": ["2024-05-17"],
+  "max_to_route": [2500],
+  "date_routing": ["2024-05-25"],
   "geo_subset": [false],
   "open_data_build": [false],
   "disag_threshold": [100],
   "min_distance_meters": [500],
   "region_buffer_distance_meters": [5000],
-  "region": ["Glasgow and Strathclyde"],
+  "region": ["Edinburgh and Lothians"],
   "coherent_percentile": [0.938]
 }
