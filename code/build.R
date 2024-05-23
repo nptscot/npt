@@ -57,7 +57,7 @@ osm_national = get_travel_network("Scotland")
 # Generate road segment midpoints
 osm_centroids = osm_national |> 
   sf::st_point_on_surface() |> 
-  select(osm_id
+  select(osm_id)
 
 # Run for each region
 for (region in region_names) {
