@@ -42,7 +42,7 @@ library(magrittr) # Light load of |>
 library(sf) # Needed for sf support
 
 tar_option_set(
-  controller = crew::crew_controller_local(workers = 4),
+  controller = crew::crew_controller_local(workers = 1),
   memory = "transient",
   garbage_collection = TRUE,
   storage = "worker",
@@ -141,6 +141,8 @@ list(
   tar_target(od_national, {
     if (parameters$open_data_build) {
       od_raw = read_csv("data-raw/od_data_dz_synthetic.csv")
+      # % cycling in national od data
+      # sum(od_raw$bicycle) / sum(od_raw$all) # 0.15
     } else {
       desire_lines_raw = read_TEAMS("secure_data/commute/commute_dl_sub30km.Rds")
       od_raw = as_tibble(sf::st_drop_geometry(desire_lines_raw))
@@ -795,12 +797,22 @@ list(
 
   tar_target(od_utility_combined, {
 
+    # Load input objects:
+    tar_load(od_shopping)
+    tar_load(od_visiting)
+    tar_load(od_leisure)
+    tar_load(commute_stats)
+    tar_load(parameters)
+
     od_utility_combined = rbind(od_shopping, od_visiting, od_leisure) |>
       dplyr::slice_max(n = parameters$max_to_route, order_by = all, with_ties = FALSE)
+    sum(od_utility_combined$bicycle) / sum(od_utility_combined$all)
 
     # Get % cycling for commuting per zone
-    pcycle_national = sum(commute_stats$comm_orig_bicycle, na.rm = TRUE) /
-      sum(commute_stats$comm_orig_all, na.rm = TRUE)
+    pcycle_regional = sum(commute_stats$comm_orig_bicycle, na.rm = TRUE) /
+      # sum(commute_stats$comm_orig_all, na.rm = TRUE)
+    pcycle_national = 0.016
+
     commute_stats_minimal = commute_stats |>
       dplyr::select(DataZone, comm_orig_bicycle, comm_orig_all)
     cycling_multiplier = commute_stats_minimal |>
@@ -829,6 +841,9 @@ list(
         bicycle = bicycle_new
       ) |>
       dplyr::select(-multiplier, -bicycle_new)
+
+    # Check new % cycling:
+    # sum(od_utility_combined$bicycle) / sum(od_utility_combined$all)
 
     # Ensure the columns and distance units are identical to the other routing types
     # (apart from the additional trip purpose column)

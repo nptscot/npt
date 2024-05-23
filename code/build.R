@@ -29,7 +29,7 @@ region_names_lowercase = snakecase::to_snake_case(region_names)
 
 # First loop: Attempt to process each region and capture any failures
 region = region_names[1]
-for (region in region_names) {
+for (region in region_names[5:6]) {
   message("Processing region: ", region)
   parameters$region = region
   jsonlite::write_json(parameters, "parameters.json", pretty = TRUE)
@@ -329,6 +329,7 @@ combined_network |>
   sample_n(1000) |>
   select(1) |>
   plot()
+dim(combined_network) # ~700k rows for full build, 33 columns
 sf::write_sf(combined_network, file.path("outputdata", "combined_network_tile.geojson"), delete_dsn = TRUE)
 
 # Same for simplified_network.geojson:
@@ -339,6 +340,7 @@ simplified_network_list = lapply(output_folders, function(folder) {
   }
 })
 simplified_network = dplyr::bind_rows(simplified_network_list)
+dim(simplified_network) # ~400k rows for full build, 33 columns
 sf::write_sf(simplified_network, file.path("outputdata", "simplified_network.geojson"), delete_dsn = TRUE)
 
 
@@ -546,7 +548,10 @@ is_linux = Sys.info()[["sysname"]] == "Linux"
 if (full_build) {
   v = paste0("v", Sys.Date(), "_commit_", commit$commit)
   v = gsub(pattern = " |:", replacement = "-", x = v)
+  # Or latest release:
   setwd("outputdata")
+  system("gh release list")
+  v = "latest"
   f = list.files(path = ".", pattern = "Rds|zip|pmtiles|.json")
   # Piggyback fails with error message so commented and using cust
   # piggyback::pb_upload(f)

@@ -14,8 +14,8 @@ get_routes = function(od, plans, purpose = "work", folder = ".", batch = TRUE, b
       if (batch && !batch_save) {
         # One-off saving of pre-computed routes:
         id = NULL
-        if (as.character(Sys.time()) < "2024-05-22 19:55:12.486921" && plan == "fastest") {
-          id = 9896
+        if (as.character(Sys.time()) < "2024-05-23 07:15:12.486921" && plan == "balanced") {
+          id = 9905
         }
         routes_raw = cyclestreets::batch(
           id = id,
