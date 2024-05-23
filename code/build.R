@@ -52,17 +52,18 @@ traffic_volumes_scotland = sf::read_sf(f_traffic)
 
 # Generate cycle_net - this is slow, we should save the file
 osm_national = get_travel_network("Scotland")
+# saveRDS(osm_national, "inputdata/osm_national_2024_05_23")
 
-# Test for Edinburgh region (TODO: remove so the code runs nationally): ---
-region = lads |> 
+# Run for each district within each Scottish region
+region_geom = lads |> 
   filter(Region == region)
-# edinburgh_region = lads |>
-#   filter(str_detect(LAD23NM, "Edinburgh"))
 
-for (district in region) {
+district = region_geom[1,]
+for (district in region_geom) {
   osm = osm_national[district, ]
   nrow(osm) / nrow(osm_national)
   # 6% network, could be 20x+ slower for Scotland
+  # [1] 0.01831887 for East Ayrshire (raw road data)
   # # # ---
   
   cycle_net = osmactive::get_cycling_network(osm)
