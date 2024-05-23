@@ -40,6 +40,8 @@ if (!"corenet" %in% installed.packages()) {
 library(targets) # Needed to make targets work
 library(magrittr) # Light load of |>
 library(sf) # Needed for sf support
+set.seed(2023)
+
 
 tar_option_set(
   controller = crew::crew_controller_local(workers = 1),
@@ -192,7 +194,6 @@ list(
     od = od_national |>
       filter(geo_code1 %in% z$DataZone) |>
       filter(geo_code2 %in% z$DataZone)
-    set.seed(2023)
 
     odj = odjitter::jitter(
       od = od,
@@ -802,7 +803,7 @@ list(
     sum(od_utility_combined$bicycle) / sum(od_utility_combined$all)
 
     # Get % cycling for commuting per zone
-    pcycle_regional = sum(commute_stats$comm_orig_bicycle, na.rm = TRUE) /
+    # pcycle_regional = sum(commute_stats$comm_orig_bicycle, na.rm = TRUE) /
       # sum(commute_stats$comm_orig_all, na.rm = TRUE)
     pcycle_national = 0.016
 

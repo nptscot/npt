@@ -20,8 +20,6 @@ get_routes = function(od, plans, purpose = "work", folder = ".", batch = TRUE, n
     } else {
       # One-off saving of pre-computed routes:
       id = NULL
-      if (as.character(Sys.time()) < "2024-05-22 12:00:00") {
-        id = 9881
         if (as.character(Sys.time()) < "2024-05-23 07:15:12.486921" && plan == "balanced") {
           id = 9905
         }
@@ -38,7 +36,6 @@ get_routes = function(od, plans, purpose = "work", folder = ".", batch = TRUE, n
           delete_job = FALSE,
           filename = file_name |> gsub(".csv.gz", "", x = _)
         )
-      }
     }
   }
 
