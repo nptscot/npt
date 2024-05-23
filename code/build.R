@@ -54,9 +54,10 @@ traffic_volumes_scotland = sf::read_sf(f_traffic)
 osm_national = get_travel_network("Scotland")
 # saveRDS(osm_national, "inputdata/osm_national_2024_05_23")
 
-# Generate road segments midpoints
+# Generate road segment midpoints
 osm_centroids = osm_national |> 
-  sf::st_point_on_surface()
+  sf::st_point_on_surface() |> 
+  select(osm_id)
   
 
 # Run for each district within each Scottish region
@@ -65,15 +66,17 @@ region_geom = lads |>
 
 district = region_geom[1,]
 for (district in region_geom) {
-  osm = osm_centroids[district, ]
-  nrow(osm) / nrow(osm_centroids)
+  district_centroids = osm_centroids[district, ]
+  district_centroids = sf::st_drop_geometry(district_centroids)
+  osm_district = inner_join(osm_national, district_centroids)
+  nrow(osm_district) / nrow(osm_national)
   # 6% network, could be 20x+ slower for Scotland
   # [1] 0.01831887 for East Ayrshire (raw road data)
   # [1] 0.01815918 for East Ayrshire (using line midpoints)
   # # # ---
   
-  cycle_net = osmactive::get_cycling_network(osm)
-  drive_net = osmactive::get_driving_network_major(osm)
+  cycle_net = osmactive::get_cycling_network(osm_district)
+  drive_net = osmactive::get_driving_network_major(osm_district)
   cycle_net = osmactive::distance_to_road(cycle_net, drive_net)
   cycle_net = osmactive::classify_cycle_infrastructure(cycle_net)
   
@@ -126,7 +129,7 @@ for (district in region_geom) {
       )
     )
   
-  traffic_volumes_region = traffic_volumes_scotland[osm_region, ]
+  traffic_volumes_region = traffic_volumes_scotland[osm_district, ] # change this to an inner join or a simple polygon district outline to speed up the build?
   cycle_net_traffic_polygons = stplanr::rnet_join(
     max_angle_diff = 30,
     rnet_x = cycle_net_joined,
