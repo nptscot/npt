@@ -25,17 +25,30 @@ get_routes = function(od, plans, purpose = "work", folder = ".", batch = TRUE, n
       #   }
       # Add to database of saved routes:
       p = jsonlite::read_json("parameters.json", simplifyVector = TRUE)
-      route_id_new = data.frame(nrow = nrow(od), plan = plan, purpose = purpose, date = p$date_routing)
-      # For saving:
-      route_id_new$id = 1
-      write_csv(route_id_new, "route_ids.csv", append = TRUE)
+      browser()
+      route_id_new = data.frame(nrow = nrow(od), plan = plan, purpose = purpose, region = p$region, date = p$date_routing)
       route_id_old = readr::read_csv("route_ids.csv")
+      route_id_old$date = as.character(route_id_old$date)
       route_id = inner_join(route_id_new, route_id_old)
-      # if (!is.na(route_id$id)) {
-      #   id = route_id$id
-      # } else {
-      #   id = NULL
-      # }
+      if (!is.na(route_id$id)) {
+        existing_route = FALSE
+        id = cyclestreets::batch(
+          desire_lines = od,
+          id = id,
+          directory = folder,
+          wait = FALSE,
+          maxDistance = 30000,
+          username = "robinlovelace",
+          strategies = plan,
+          cols_to_keep = c2k,
+          segments = segments,
+          delete_job = FALSE,
+          filename = file_name |> gsub(".csv.gz", "", x = _)
+        )
+      } else {
+        existing_route = TRUE
+        id = route_id$id
+      }
       routes_raw = cyclestreets::batch(
         desire_lines = od,
         id = id,
@@ -49,6 +62,11 @@ get_routes = function(od, plans, purpose = "work", folder = ".", batch = TRUE, n
         delete_job = FALSE,
         filename = file_name |> gsub(".csv.gz", "", x = _)
       )
+      # Save csv with lookups:
+      if (!existing_route) {
+        route_ids = dplyr::bind_rows(route_id_new, route_id_old)
+        readr::write_csv(route_ids, "route_ids.csv")
+      }
     }
   }
 
