@@ -1,4 +1,9 @@
 nrow,plan,purpose,region,date,id
+218877,ebike,commute,Glasgow and Strathclyde,2024-05-23,9965
+218877,quietest,commute,Glasgow and Strathclyde,2024-05-23,9963
+218877,fastest,commute,Glasgow and Strathclyde,2024-05-23,9961
+29032,ebike,school,Glasgow and Strathclyde,2024-05-23,9960
+29032,balanced,school,Glasgow and Strathclyde,2024-05-23,9959
 29032,quietest,school,Glasgow and Strathclyde,2024-05-23,9956
 29032,fastest,school,Glasgow and Strathclyde,2024-05-23,9955
 11451,fastest,school,"Tayside, Central and Fife",2024-05-23,9953
