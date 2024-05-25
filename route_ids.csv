@@ -1,4 +1,24 @@
 nrow,plan,purpose,region,date,id
+20925,ebike,utility,Aberdeen and North East,2024-05-23,10035
+20925,quietest,utility,Aberdeen and North East,2024-05-23,10034
+20925,fastest,utility,Aberdeen and North East,2024-05-23,10033
+32967,ebike,commute,Aberdeen and North East,2024-05-23,10031
+32967,quietest,commute,Aberdeen and North East,2024-05-23,10029
+32967,fastest,commute,Aberdeen and North East,2024-05-23,10028
+4525,ebike,school,Aberdeen and North East,2024-05-23,10027
+4525,quietest,school,Aberdeen and North East,2024-05-23,10025
+4525,fastest,school,Aberdeen and North East,2024-05-23,10024
+14685,ebike,utility,Highlands and Islands,2024-05-23,10023
+14685,quietest,utility,Highlands and Islands,2024-05-23,10022
+14685,fastest,utility,Highlands and Islands,2024-05-23,10021
+7976,ebike,commute,Highlands and Islands,2024-05-23,10019
+7976,quietest,commute,Highlands and Islands,2024-05-23,10017
+7976,fastest,commute,Highlands and Islands,2024-05-23,10016
+3228,ebike,school,Highlands and Islands,2024-05-23,10015
+3228,quietest,school,Highlands and Islands,2024-05-23,10013
+3228,fastest,school,Highlands and Islands,2024-05-23,10012
+111294,ebike,utility,Edinburgh and Lothians,2024-05-23,10011
+111294,quietest,utility,Edinburgh and Lothians,2024-05-23,10010
 111294,fastest,utility,Edinburgh and Lothians,2024-05-23,10008
 90716,ebike,commute,Edinburgh and Lothians,2024-05-23,10005
 90716,quietest,commute,Edinburgh and Lothians,2024-05-23,10000
