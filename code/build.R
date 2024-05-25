@@ -273,6 +273,7 @@ file.rename("cbd_layer.geojson", "outputdata/cbd_layer.geojson")
 setwd("outputdata")
 system("gh release list")
 system(glue::glue("gh release upload {date_folder} cbd_layer_{date_folder}.pmtiles"))
+setwd("..")
 
 
 # Generate coherent network ---------------------------------------------------
