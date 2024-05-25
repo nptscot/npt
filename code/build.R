@@ -290,7 +290,15 @@ open_roads_scotland = sf::read_sf(file_path)
 sf::st_geometry(open_roads_scotland) = "geometry"
 
 # Generate the coherent network for the region
-for (region in region_names) {
+library(foreach)
+library(doParallel)
+
+# Set the number of cores to use
+num_cores <- parallel::detectCores()
+registerDoParallel(num_cores)
+
+# Create a parallel foreach loop
+foreach(region = region_names) %dopar% {
   message("Processing coherent network for region: ", region)
   region_snake = snakecase::to_snake_case(region)
   coherent_area = cities_region_names[[region]]
@@ -346,6 +354,7 @@ for (region in region_names) {
       }
     )
   }
+}
 }
 
 # Combine regional outputs ---------------------------------------------------
@@ -567,7 +576,7 @@ responce = system(command_all, intern = TRUE)
 # Copy pmtiles into app folder
 app_tiles_directory = "../nptscot.github.io/tiles"
 list.files(app_tiles_directory) # list current files
-pmtiles = list.files("outputdata", pattern = "pmtiles", full.names = TRUE)
+pmtiles = list.files("outputdata", pattern = "*05-23*.+pmtiles", full.names = TRUE)
 pmtiles_new = file.path(app_tiles_directory, basename(pmtiles))
 file.copy(pmtiles, pmtiles_new, overwrite = TRUE)
 
@@ -588,9 +597,9 @@ if (full_build) {
   # Or latest release:
   setwd("outputdata")
   system("gh release list")
-  v = "v2024-05-22_commit_eeb99e8a459ccc7b5b3b556d72a1024843a19a34"
+  v = "v2024-05-23"
   # f = list.files(path = ".", pattern = "Rds|zip|pmtiles|.json")
-  f = list.files(path = ".", pattern = "rnet_")
+  f = list.files(path = ".", pattern = "rnet_*.+2024-05-23")
   f
   # Piggyback fails with error message so commented and using cust
   # piggyback::pb_upload(f)
