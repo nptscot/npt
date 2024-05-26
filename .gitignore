@@ -44,3 +44,4 @@ OS_Scotland_Network.geojson
 *.docx
 npt_net_qgis
 scottraffic/
+*.geojson

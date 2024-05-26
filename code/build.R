@@ -12,9 +12,9 @@ date_folder = parameters$date_routing
 output_folder = file.path("outputdata", date_folder)
 
 # # Start with Glasgow:
-# region_names = unique(lads$Region)[c(3, 2, 1, 4, 5, 6)] 
+region_names = unique(lads$Region)[c(3, 2, 1, 4, 5, 6)] 
 # Test for 2 regions:
-region_names = unique(lads$Region)[c(1, 4)]
+# region_names = unique(lads$Region)[c(1, 4)]
 cities_region_names = lapply(
   region_names,
   function(region) {
@@ -29,7 +29,7 @@ region_names_lowercase = snakecase::to_snake_case(region_names)
 
 # First loop: Attempt to process each region and capture any failures
 region = region_names[1]
-for (region in region_names[1:2]) {
+for (region in region_names[3:6]) {
   message("Processing region: ", region)
   parameters$region = region
   jsonlite::write_json(parameters, "parameters.json", pretty = TRUE)
@@ -273,6 +273,7 @@ file.rename("cbd_layer.geojson", "outputdata/cbd_layer.geojson")
 setwd("outputdata")
 system("gh release list")
 system(glue::glue("gh release upload {date_folder} cbd_layer_{date_folder}.pmtiles"))
+setwd("..")
 
 
 # Generate coherent network ---------------------------------------------------
@@ -289,7 +290,15 @@ open_roads_scotland = sf::read_sf(file_path)
 sf::st_geometry(open_roads_scotland) = "geometry"
 
 # Generate the coherent network for the region
-for (region in region_names) {
+library(foreach)
+library(doParallel)
+
+# Set the number of cores to use
+num_cores <- parallel::detectCores()
+registerDoParallel(num_cores)
+
+# Create a parallel foreach loop
+foreach(region = region_names) %dopar% {
   message("Processing coherent network for region: ", region)
   region_snake = snakecase::to_snake_case(region)
   coherent_area = cities_region_names[[region]]
@@ -345,6 +354,7 @@ for (region in region_names) {
       }
     )
   }
+}
 }
 
 # Combine regional outputs ---------------------------------------------------
@@ -432,6 +442,8 @@ command_tippecanoe = paste(
   "--maximum-tile-bytes=5000000",
   "--simplification=10",
   "--buffer=5",
+  # To ensure that largest values shown on top:
+  "--order-by=all_fastest_bicycle_go_dutch",
   "--force  combined_network_tile.geojson",
   collapse = " "
 )
@@ -451,6 +463,8 @@ command_tippecanoe = paste(glue::glue("tippecanoe -o rnet_simplified_{date_folde
   "--maximum-tile-bytes=5000000",
   "--simplification=10",
   "--buffer=5",
+  # To ensure that largest values shown on top:
+  "--order-by=all_fastest_bicycle_go_dutch",
   "--force  simplified_network.geojson",
   collapse = " ")
 responce = system(command_tippecanoe, intern = TRUE)
@@ -566,7 +580,7 @@ responce = system(command_all, intern = TRUE)
 # Copy pmtiles into app folder
 app_tiles_directory = "../nptscot.github.io/tiles"
 list.files(app_tiles_directory) # list current files
-pmtiles = list.files("outputdata", pattern = "pmtiles", full.names = TRUE)
+pmtiles = list.files("outputdata", pattern = "*05-23*.+pmtiles", full.names = TRUE)
 pmtiles_new = file.path(app_tiles_directory, basename(pmtiles))
 file.copy(pmtiles, pmtiles_new, overwrite = TRUE)
 
@@ -587,9 +601,9 @@ if (full_build) {
   # Or latest release:
   setwd("outputdata")
   system("gh release list")
-  v = "v2024-05-22_commit_eeb99e8a459ccc7b5b3b556d72a1024843a19a34"
+  v = "v2024-05-23"
   # f = list.files(path = ".", pattern = "Rds|zip|pmtiles|.json")
-  f = list.files(path = ".", pattern = "rnet_")
+  f = list.files(path = ".", pattern = "rnet_*.+2024-05-23")
   f
   # Piggyback fails with error message so commented and using cust
   # piggyback::pb_upload(f)
