@@ -442,6 +442,8 @@ command_tippecanoe = paste(
   "--maximum-tile-bytes=5000000",
   "--simplification=10",
   "--buffer=5",
+  # To ensure that largest values shown on top:
+  "--order-by=all_fastest_bicycle_go_dutch",
   "--force  combined_network_tile.geojson",
   collapse = " "
 )
