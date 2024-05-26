@@ -463,6 +463,8 @@ command_tippecanoe = paste(glue::glue("tippecanoe -o rnet_simplified_{date_folde
   "--maximum-tile-bytes=5000000",
   "--simplification=10",
   "--buffer=5",
+  # To ensure that largest values shown on top:
+  "--order-by=all_fastest_bicycle_go_dutch",
   "--force  simplified_network.geojson",
   collapse = " ")
 responce = system(command_tippecanoe, intern = TRUE)
