@@ -355,7 +355,6 @@ foreach(region = region_names) %dopar% {
     )
   }
 }
-}
 
 # Combine regional outputs ---------------------------------------------------
 output_folders = list.dirs(output_folder)[-1]
