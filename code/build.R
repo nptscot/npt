@@ -45,7 +45,7 @@ f_traffic = "scottraffic/final_estimates_Scotland.gpkg"
 if (!file.exists(f_traffic)) {
   system("gh repo clone nptscot/scottraffic")
   setwd("scottraffic")
-  system("gh release download v4")
+  system("gh release download v5 --clobber")
   setwd("..")
 }
 traffic_volumes_scotland = sf::read_sf(f_traffic)
