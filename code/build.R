@@ -13,15 +13,13 @@ output_folder = file.path("outputdata", date_folder)
 
 # # Start with Glasgow:
 region_names = unique(lads$Region)[c(3, 2, 1, 4, 5, 6)] 
-# Test for 2 regions:
-# region_names = unique(lads$Region)[c(1, 4)]
 cities_region_names = lapply(
   region_names,
   function(region) {
     cities_in_region = lads |>
       filter(Region == region) |>
       pull(LAD23NM) |>
-      unique() # Ensure unique city names
+      unique()
   }
 )
 names(cities_region_names) = region_names
@@ -45,7 +43,8 @@ f_traffic = "scottraffic/final_estimates_Scotland.gpkg"
 if (!file.exists(f_traffic)) {
   system("gh repo clone nptscot/scottraffic")
   setwd("scottraffic")
-  system("gh release download v6 --clobber")
+  system("gh release list")
+  system("gh release download v5 --clobber")
   setwd("..")
 }
 traffic_volumes_scotland = sf::read_sf(f_traffic)
