@@ -29,7 +29,7 @@ region_names_lowercase = snakecase::to_snake_case(region_names)
 
 # First loop: Attempt to process each region and capture any failures
 region = region_names[1]
-for (region in region_names[3:6]) {
+for (region in region_names[1:6]) {
   message("Processing region: ", region)
   parameters$region = region
   jsonlite::write_json(parameters, "parameters.json", pretty = TRUE)
@@ -291,10 +291,11 @@ sf::st_geometry(open_roads_scotland) = "geometry"
 
 # Generate the coherent network for the region
 library(foreach)
+library(iterators)
+library(parallel)
 library(doParallel)
-
 # Set the number of cores to use
-num_cores <- parallel::detectCores()
+num_cores = parallel::detectCores()
 registerDoParallel(num_cores)
 
 # Create a parallel foreach loop
@@ -343,7 +344,9 @@ foreach(region = region_names) %dopar% {
         )
 
         grouped_network = corenet::coherent_network_group(cohesive_network_city_boundary, key_attribute = "all_fastest_bicycle_go_dutch")
-
+        # rename mean_potential in grouped_network as all_fastest_bicycle_go_dutch
+        grouped_network = grouped_network |>
+          dplyr::rename(all_fastest_bicycle_go_dutch = mean_potential)
         # Use city name in the filename
         corenet::create_coherent_network_PMtiles(folder_path = folder_path, city_filename = glue::glue("{city_filename}_{date_folder}"), cohesive_network = grouped_network)
 
@@ -355,6 +358,56 @@ foreach(region = region_names) %dopar% {
     )
   }
 }
+
+# Combine all cohesive networks (CN) into a single file
+# Define the root directory of coherent networks
+output_folder = glue::glue("outputdata/{date_folder}/")
+
+# Prepare to store all GeoJSON data
+all_CN_geojson = list()
+
+# Loop through the subfolders and read GeoJSON files
+subfolders = list.dirs(output_folder, full.names = TRUE, recursive = FALSE)
+for (folder in subfolders) {
+  coherent_networks_path = file.path(folder, "coherent_networks")
+  geojson_files = list.files(coherent_networks_path, pattern = "\\.geojson$", full.names = TRUE)
+  
+  for (geojson_file in geojson_files) {
+    geojson_data = sf::st_read(geojson_file) |>
+      sf::st_transform(crs = 4326) 
+    all_CN_geojson[[length(all_CN_geojson) + 1]] = geojson_data
+  }
+}
+
+# Combine all GeoJSON data into one sf object
+combined_CN_geojson = do.call(rbind, all_CN_geojson)
+
+# Write the combined GeoJSON to a file
+combined_CN_file = glue::glue("{output_folder}/combined_CN.geojson")
+sf::st_write(combined_CN_geojson, output_file)
+cat("Combined cohesive networks GeoJSON file has been saved to:", output_file)
+
+# create PMtiles for the combined CN
+combined_CN_pmtiles = glue::glue("{output_folder}/combined_CN.pmtiles") 
+
+# Construct the Tippecanoe command
+command_tippecanoe = paste0(
+  'tippecanoe -o ', combined_CN_pmtiles,
+  ' --name="', 'Scottish_Coherent_Networks', '"',
+  ' --layer=coherent_networks',
+  ' --attribution="University of Leeds"',
+  ' --minimum-zoom=6',
+  ' --maximum-zoom=13',
+  ' --maximum-tile-bytes=5000000',
+  ' --simplification=10',
+  ' --buffer=5',
+  ' -rg',
+  ' --force ',
+  combined_CN_file
+)
+
+# Execute the command and capture output
+system_output = system(command_tippecanoe, intern = TRUE)
 
 # Combine regional outputs ---------------------------------------------------
 output_folders = list.dirs(output_folder)[-1]
@@ -394,12 +447,15 @@ sf::write_sf(simplified_network, file.path("outputdata", "simplified_network.geo
 # Combine zones data:
 # DataZones file path: data_zones.geojson
 
-zones_tile_file = paste0("outputdata/", date_folder, "/data_zones.geojson")
-if (file.exists(zones_tile_file)) {
-  zones_tile = sf::read_sf(zones_tile_file)
-}
+zones_tile_files = list.files(output_folder, pattern = "data_zones\\.geojson$", full.names = TRUE)
 
-sf::write_sf(zones_tile, file.path("outputdata", "zones_tile.geojson"), delete_dsn = TRUE)
+if (length(zones_tile_files) > 0) {
+  zones_tiles <- lapply(zones_tile_files, sf::st_read)
+  combined_zones_tiles <- do.call(rbind, zones_tiles)
+  sf::write_sf(combined_zones_tiles, file.path(output_folder, "data_zones.geojson"), delete_dsn = TRUE)
+} else {
+  message("No geojson files found in the specified folder.")
+}
 
 # Same for school_locations.geojson
 
