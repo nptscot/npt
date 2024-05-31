@@ -39,7 +39,7 @@ for (region in region_names[1:6]) {
 remotes::install_github("nptscot/osmactive")
 library(osmactive)
 # See https://github.com/nptscot/osmactive/blob/main/code/classify-roads.R and traffic-volumes.R
-f_traffic = "scottraffic/final_estimates_Scotland.gpkg"
+f_traffic = "scottraffic/final_estimates_Scotland_higherror_discarded.gpkg"
 if (!file.exists(f_traffic)) {
   system("gh repo clone nptscot/scottraffic")
   setwd("scottraffic")
@@ -59,8 +59,14 @@ osm_centroids = osm_national |>
   select(osm_id)
 
 # Run for each region
-for (region in region_names) {
-  
+library(foreach)
+library(iterators)
+library(parallel)
+library(doParallel)
+# Set the number of cores to use
+num_cores = parallel::detectCores()
+registerDoParallel(num_cores)
+foreach(region = region_names) %dopar% {  
   region_geom = lads |> 
     filter(Region == region)
   district_names = region_geom$LAD23NM
@@ -289,15 +295,6 @@ open_roads_scotland = sf::read_sf(file_path)
 sf::st_geometry(open_roads_scotland) = "geometry"
 
 # Generate the coherent network for the region
-library(foreach)
-library(iterators)
-library(parallel)
-library(doParallel)
-# Set the number of cores to use
-num_cores = parallel::detectCores()
-registerDoParallel(num_cores)
-
-# Create a parallel foreach loop
 foreach(region = region_names) %dopar% {
   message("Processing coherent network for region: ", region)
   region_snake = snakecase::to_snake_case(region)
