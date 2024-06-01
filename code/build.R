@@ -25,7 +25,7 @@ cities_region_names = lapply(
 names(cities_region_names) = region_names
 region_names_lowercase = snakecase::to_snake_case(region_names)
 
-# First loop: Attempt to process each region and capture any failures
+# Build route networks:
 region = region_names[1]
 for (region in region_names[1:6]) {
   message("Processing region: ", region)
@@ -39,7 +39,7 @@ for (region in region_names[1:6]) {
 remotes::install_github("nptscot/osmactive")
 library(osmactive)
 # See https://github.com/nptscot/osmactive/blob/main/code/classify-roads.R and traffic-volumes.R
-f_traffic = "scottraffic/final_estimates_Scotland.gpkg"
+f_traffic = "scottraffic/final_estimates_Scotland_higherror_discarded.gpkg"
 if (!file.exists(f_traffic)) {
   system("gh repo clone nptscot/scottraffic")
   setwd("scottraffic")
@@ -59,8 +59,20 @@ osm_centroids = osm_national |>
   select(osm_id)
 
 # Run for each region
+library(foreach)
+library(iterators)
+library(parallel)
+library(doParallel)
+# Set the number of cores to use
+num_cores = min(parallel::detectCores() - 1, 10)
+registerDoParallel(num_cores)
+region = region_names[1]
+cbd_filename = glue::glue("cbd_layer_{date_folder}.geojson")
+# Delete the file if it already exists:
+file.remove(cbd_filename)
 for (region in region_names) {
-  
+# foreach(region = region_names) %dopar% {
+  message("Processing region: ", region)
   region_geom = lads |> 
     filter(Region == region)
   district_names = region_geom$LAD23NM
@@ -68,17 +80,13 @@ for (region in region_names) {
   # Run for each district within each Scottish region
   district = district_names[1]
   for (district in district_names) {
+    message("Processing district: ", district)
     district_geom = region_geom |> 
       filter(LAD23NM == district)
     district_centroids = osm_centroids[district_geom, ]
     district_centroids = sf::st_drop_geometry(district_centroids)
     osm_district = inner_join(osm_national, district_centroids)
     nrow(osm_district) / nrow(osm_national)
-    # 6% network, could be 20x+ slower for Scotland
-    # [1] 0.01831887 for East Ayrshire (raw road data)
-    # [1] 0.01815918 for East Ayrshire (using line midpoints)
-    # # # ---
-    
     cycle_net = osmactive::get_cycling_network(osm_district)
     drive_net = osmactive::get_driving_network_major(osm_district)
     cycle_net = osmactive::distance_to_road(cycle_net, drive_net)
@@ -90,14 +98,14 @@ for (region in region_names) {
     drive_net = osmactive::estimate_traffic(drive_net)
     cycle_net = osmactive::estimate_traffic(cycle_net)
     
-    # See tutorial: https://github.com/acteng/network-join-demos
+    # See https://github.com/acteng/network-join-demos
     cycle_net_joined_polygons = stplanr::rnet_join(
       rnet_x = cycle_net,
       rnet_y = drive_net |>
         transmute(
           maxspeed_road = maxspeed_clean,
           highway_join = highway,
-          volume_join = assumed_volume
+          assumed_volume_cycle = assumed_volume
         ) |>
         sf::st_cast(to = "LINESTRING"),
       dist = 20,
@@ -111,15 +119,18 @@ for (region in region_names) {
       summarise(
         maxspeed_road = osmactive:::most_common_value(maxspeed_road),
         highway_join = osmactive:::most_common_value(highway_join),
-        volume_join = osmactive:::most_common_value(volume_join)
+        assumed_volume_cycle = osmactive:::most_common_value(assumed_volume_cycle)
       ) |>
       mutate(
         maxspeed_road = as.numeric(maxspeed_road),
-        volume_join = as.numeric(volume_join)
+        assumed_volume_cycle = as.numeric(assumed_volume_cycle)
       )
     
     # join back onto cycle_net
-    cycle_net_joined = left_join(cycle_net, cycleways_with_road_data_df)
+    cycle_net_joined = left_join(
+      cycle_net,
+      cycleways_with_road_data_df
+    )
     
     cycle_net_joined = cycle_net_joined |>
       mutate(
@@ -129,7 +140,7 @@ for (region in region_names) {
         ),
         final_volume = case_when(
           !is.na(assumed_volume) ~ assumed_volume,
-          TRUE ~ volume_join
+          TRUE ~ assumed_volume_cycle
         )
       )
     
@@ -170,57 +181,14 @@ for (region in region_names) {
           TRUE ~ final_volume
         )
       )
-    
-    # Check results
-    
-    cycle_net_traffic = cycle_net_traffic |>
-      mutate(`Level of Service` = case_when(
-        detailed_segregation == "Cycle track" ~ "High",
-        detailed_segregation == "Level track" & final_speed <= 30 ~ "High",
-        detailed_segregation == "Stepped or footway" & final_speed <= 20 ~ "High",
-        detailed_segregation == "Stepped or footway" & final_speed == 30 & final_traffic < 4000 ~ "High",
-        detailed_segregation == "Light segregation" & final_speed <= 20 ~ "High",
-        detailed_segregation == "Light segregation" & final_speed == 30 & final_traffic < 4000 ~ "High",
-        detailed_segregation == "Cycle lane" & final_speed <= 20 & final_traffic < 4000 ~ "High",
-        detailed_segregation == "Cycle lane" & final_speed == 30 & final_traffic < 1000 ~ "High",
-        detailed_segregation == "Mixed traffic" & final_speed <= 20 & final_traffic < 2000 ~ "High",
-        detailed_segregation == "Mixed traffic" & final_speed == 30 & final_traffic < 1000 ~ "High",
-        detailed_segregation == "Level track" & final_speed == 40 ~ "Medium",
-        detailed_segregation == "Level track" & final_speed == 50 & final_traffic < 1000 ~ "Medium",
-        detailed_segregation == "Stepped or footway" & final_speed <= 40 ~ "Medium",
-        detailed_segregation == "Stepped or footway" & final_speed == 50 & final_traffic < 1000 ~ "Medium",
-        detailed_segregation == "Light segregation" & final_speed == 30 ~ "Medium",
-        detailed_segregation == "Light segregation" & final_speed == 40 & final_traffic < 2000 ~ "Medium",
-        detailed_segregation == "Light segregation" & final_speed == 50 & final_traffic < 1000 ~ "Medium",
-        detailed_segregation == "Cycle lane" & final_speed <= 20 ~ "Medium",
-        detailed_segregation == "Cycle lane" & final_speed == 30 & final_traffic < 4000 ~ "Medium",
-        detailed_segregation == "Cycle lane" & final_speed == 40 & final_traffic < 1000 ~ "Medium",
-        detailed_segregation == "Mixed traffic" & final_speed <= 20 & final_traffic < 4000 ~ "Medium",
-        detailed_segregation == "Mixed traffic" & final_speed == 30 & final_traffic < 2000 ~ "Medium",
-        detailed_segregation == "Mixed traffic" & final_speed == 40 & final_traffic < 1000 ~ "Medium",
-        detailed_segregation == "Level track" ~ "Low",
-        detailed_segregation == "Stepped or footway" ~ "Low",
-        detailed_segregation == "Light segregation" & final_speed <= 50 ~ "Low",
-        detailed_segregation == "Light segregation" & final_speed == 60 & final_traffic < 1000 ~ "Low",
-        detailed_segregation == "Cycle lane" & final_speed <= 50 ~ "Low",
-        detailed_segregation == "Cycle lane" & final_speed == 60 & final_traffic < 1000 ~ "Low",
-        detailed_segregation == "Mixed traffic" & final_speed <= 30 ~ "Low",
-        detailed_segregation == "Mixed traffic" & final_speed == 40 & final_traffic < 2000 ~ "Low",
-        detailed_segregation == "Mixed traffic" & final_speed == 60 & final_traffic < 1000 ~ "Low",
-        detailed_segregation == "Light segregation" ~ "Should not be used",
-        detailed_segregation == "Cycle lane" ~ "Should not be used",
-        detailed_segregation == "Mixed traffic" ~ "Should not be used",
-        TRUE ~ "Unknown"
-      )) |>
-      dplyr::mutate(`Level of Service` = factor(
-        `Level of Service`,
-        levels = c("High", "Medium", "Low", "Should not be used"),
-        ordered = TRUE
-      ))
+
+    #     
+    cycle_net_traffic = level_of_service(cycle_net_traffic)
     
     cbd_layer = cycle_net_traffic |>
       transmute(
         osm_id,
+        highway,
         `Traffic volume` = final_traffic,
         `Speed limit` = final_speed,
         `Infrastructure type` = cycle_segregation,
@@ -232,20 +200,13 @@ for (region in region_names) {
     district_name = district_geom$LAD23NM |> 
       snakecase::to_snake_case()
     filename_d = paste0("cbd_layer_", district_name, ".geojson")
-    sf::write_sf(cbd_layer, filename_d, delete_dsn = TRUE)
+    # sf::write_sf(cbd_layer, filename_d, delete_dsn = TRUE)
     
-    # save file for whole of Scotland
-    sysdate = Sys.Date()
-    filename = paste0("cbd_layer_", sysdate, ".geojson")
-    sf::write_sf(cbd_layer, filename, delete_dsn = FALSE)
-    
-    # library(tmap)
-    # tmap_mode("view")
-    # tm_shape(cbd_layer |> slice_sample(1000)) + tm_lines("Level of Service", lwd = 2, palette = "viridis")
+    # Append to the national file:
+    sf::write_sf(cbd_layer, cbd_filename, delete_dsn = FALSE)
   }
 }
-
-file.rename(filename, "cbd_layer.geojson")
+fs::file_size(cbd_filename)
 
 # PMTiles:
 pmtiles_msg = paste(
@@ -259,7 +220,7 @@ pmtiles_msg = paste(
   "--maximum-tile-bytes=5000000",
   "--simplification=10",
   "--buffer=5",
-  "--force  cbd_layer.geojson",
+  glue::glue("--force  {cbd_filename}"),
   collapse = " "
 )
 system(pmtiles_msg)
@@ -289,15 +250,6 @@ open_roads_scotland = sf::read_sf(file_path)
 sf::st_geometry(open_roads_scotland) = "geometry"
 
 # Generate the coherent network for the region
-library(foreach)
-library(iterators)
-library(parallel)
-library(doParallel)
-# Set the number of cores to use
-num_cores = parallel::detectCores()
-registerDoParallel(num_cores)
-
-# Create a parallel foreach loop
 foreach(region = region_names) %dopar% {
   message("Processing coherent network for region: ", region)
   region_snake = snakecase::to_snake_case(region)
