@@ -105,7 +105,7 @@ for (region in region_names) {
         transmute(
           maxspeed_road = maxspeed_clean,
           highway_join = highway,
-          assumed_volume_cycle = assumed_volume
+          assumed_volume_traffic = assumed_volume
         ) |>
         sf::st_cast(to = "LINESTRING"),
       dist = 20,
@@ -119,11 +119,11 @@ for (region in region_names) {
       summarise(
         maxspeed_road = osmactive:::most_common_value(maxspeed_road),
         highway_join = osmactive:::most_common_value(highway_join),
-        assumed_volume_cycle = osmactive:::most_common_value(assumed_volume_cycle)
+        assumed_volume_traffic = osmactive:::most_common_value(assumed_volume_traffic)
       ) |>
       mutate(
         maxspeed_road = as.numeric(maxspeed_road),
-        assumed_volume_cycle = as.numeric(assumed_volume_cycle)
+        assumed_volume_traffic = as.numeric(assumed_volume_traffic)
       )
     
     # join back onto cycle_net
@@ -140,7 +140,7 @@ for (region in region_names) {
         ),
         final_volume = case_when(
           !is.na(assumed_volume) ~ assumed_volume,
-          TRUE ~ assumed_volume_cycle
+          TRUE ~ assumed_volume_traffic
         )
       )
     
