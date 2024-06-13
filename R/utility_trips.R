@@ -29,6 +29,10 @@ make_od = function(oas, os_pois, grid, purpose, trip_purposes, zones, parameters
   if (purpose == "visiting") {
     purpose_nts = "Visiting friends or relatives"
   }
+  
+  if (purpose == "Retail") {
+    os_pois = poi_weights(pois = os_pois)
+  }
 
   os_pois = os_pois |>
     dplyr::mutate(grid_id = sf::st_nearest_feature(os_pois, grid))
@@ -37,7 +41,7 @@ make_od = function(oas, os_pois, grid, purpose, trip_purposes, zones, parameters
   p_grid = os_pois |>
     sf::st_drop_geometry() |>
     dplyr::group_by(grid_id) |>
-    dplyr::summarise(size = n())
+    dplyr::summarise(size = sum(poi_weights))
   p_grid = sf::st_as_sf(p_grid, geometry = grid[p_grid$grid_id])
   p_grid = sf::st_transform(p_grid, 4326)
 
@@ -202,4 +206,17 @@ make_parks = function(grid) {
   study_area = sf::st_convex_hull(sf::st_union(grid))
   park_points = sf::st_transform(park_points, sf::st_crs(grid))
   park_points[study_area, ]
+}
+
+poi_weights = function(pois) {
+  pois = pois |> 
+    mutate(
+      poi_weights = case_when(
+        classname == "Shopping Centres and Retail Parks" ~ 10,
+        classname == "Supermarket Chains" ~ 5,
+        classname == "Markets" ~ 5,
+        classname == "Convenience Stores and Independent Supermarkets" ~ 3,
+        TRUE ~ 1
+      )
+    )
 }
