@@ -44,7 +44,7 @@ set.seed(2023)
 
 
 tar_option_set(
-  controller = crew::crew_controller_local(workers = 1),
+  controller = crew::crew_controller_local(workers = 2),
   memory = "transient",
   garbage_collection = TRUE,
   storage = "worker",
