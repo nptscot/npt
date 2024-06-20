@@ -44,7 +44,7 @@ set.seed(2023)
 
 
 tar_option_set(
-  controller = crew::crew_controller_local(workers = 1),
+  controller = crew::crew_controller_local(workers = 2),
   memory = "transient",
   garbage_collection = TRUE,
   storage = "worker",
@@ -750,6 +750,10 @@ list(
 
   tar_target(grid, {
     grid = readRDS("./inputdata/grid_scot.Rds")
+    grid = sf::st_sf(
+      data.frame(grid_id = seq(length(grid))),
+      geometry = grid
+    )
     grid = sf::st_transform(grid, "EPSG:4326")
     grid = grid[region_boundary_buffered, ]
     grid |> sf::st_transform("EPSG:27700")
