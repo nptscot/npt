@@ -211,11 +211,10 @@ poi_weights = function(pois) {
       poi_weights = case_when(
         classname == "Shopping Centres and Retail Parks" ~ 10,
         classname == "Supermarket Chains" ~ 5,
-        classname == "Markets" ~ 5,
         classname == "Convenience Stores and Independent Supermarkets" ~ 3,
-        classname == "Gymnasiums, Sports Halls and Leisure Centres" ~ 5,
         classname == "Swimming Pools" ~ 5,
         classname == "Cinemas" ~ 5,
+        classname == "Gymnasiums, Sports Halls and Leisure Centres" ~ 3,
         classname == "Sports Grounds, Stadia and Pitches" ~ 3,
         TRUE ~ 1
       )
