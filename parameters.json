@@ -8,6 +8,6 @@
   "disag_threshold": [100],
   "min_distance_meters": [500],
   "region_buffer_distance_meters": [5000],
-  "region": ["Glasgow and Strathclyde"],
+  "region": ["Edinburgh and Lothians"],
   "coherent_percentile": [0.938]
 }

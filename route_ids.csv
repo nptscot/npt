@@ -1,4 +1,28 @@
 nrow,plan,purpose,region,date,id
+90716,fastest,commute,Edinburgh and Lothians,2024-06-01,10200
+9425,ebike,school,Edinburgh and Lothians,2024-06-01,10199
+9425,quietest,school,Edinburgh and Lothians,2024-06-01,10197
+9425,fastest,school,Edinburgh and Lothians,2024-06-01,10196
+50769,ebike,utility,"Tayside, Central and Fife",2024-06-01,10195
+50769,quietest,utility,"Tayside, Central and Fife",2024-06-01,10194
+50769,fastest,utility,"Tayside, Central and Fife",2024-06-01,10193
+65662,ebike,commute,"Tayside, Central and Fife",2024-06-01,10191
+65662,quietest,commute,"Tayside, Central and Fife",2024-06-01,10189
+65662,fastest,commute,"Tayside, Central and Fife",2024-06-01,10188
+11451,ebike,school,"Tayside, Central and Fife",2024-06-01,10187
+11451,quietest,school,"Tayside, Central and Fife",2024-06-01,10185
+11451,fastest,school,"Tayside, Central and Fife",2024-06-01,10184
+9458,ebike,utility,Scotland South,2024-06-01,10183
+9458,quietest,utility,Scotland South,2024-06-01,10182
+9458,fastest,utility,Scotland South,2024-06-01,10181
+6943,ebike,commute,Scotland South,2024-06-01,10179
+6943,quietest,commute,Scotland South,2024-06-01,10177
+6943,fastest,commute,Scotland South,2024-06-01,10176
+1607,ebike,school,Scotland South,2024-06-01,10175
+1607,quietest,school,Scotland South,2024-06-01,10173
+1607,fastest,school,Scotland South,2024-06-01,10172
+93499,ebike,utility,Glasgow and Strathclyde,2024-06-01,10171
+93499,quietest,utility,Glasgow and Strathclyde,2024-06-01,10170
 93499,fastest,utility,Glasgow and Strathclyde,2024-06-01,10169
 218877,ebike,commute,Glasgow and Strathclyde,2024-06-01,10167
 218877,quietest,commute,Glasgow and Strathclyde,2024-06-01,10165
