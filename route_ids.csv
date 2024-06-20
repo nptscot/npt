@@ -1,4 +1,6 @@
 nrow,plan,purpose,region,date,id
+90716,ebike,commute,Edinburgh and Lothians,2024-06-01,10203
+90716,quietest,commute,Edinburgh and Lothians,2024-06-01,10201
 90716,fastest,commute,Edinburgh and Lothians,2024-06-01,10200
 9425,ebike,school,Edinburgh and Lothians,2024-06-01,10199
 9425,quietest,school,Edinburgh and Lothians,2024-06-01,10197
