@@ -22,8 +22,14 @@ make_od = function(oas, os_pois, grid, purpose, trip_purposes, zones, parameters
     # add in park points
     parks = make_parks(grid$geometry)
     os_pois = bind_rows(
-      os_pois |> transmute(ref_no = as.character(ref_no)),
-      parks |> transmute(ref_no = id)
+      os_pois |> transmute(
+        ref_no = as.character(ref_no),
+        classname = classname
+      ),
+      parks |> transmute(
+        ref_no = as.character(id),
+        classname = "Parks"
+      )
     )
   }
   if (purpose == "visiting") {
