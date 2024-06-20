@@ -750,6 +750,10 @@ list(
 
   tar_target(grid, {
     grid = readRDS("./inputdata/grid_scot.Rds")
+    grid = sf::st_sf(
+      data.frame(grid_id = seq(length(grid))),
+      geometry = grid
+    )
     grid = sf::st_transform(grid, "EPSG:4326")
     grid = grid[region_boundary_buffered, ]
     grid |> sf::st_transform("EPSG:27700")
