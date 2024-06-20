@@ -789,13 +789,6 @@ list(
     od_visiting
   }),
   tar_target(od_leisure, {
-    tar_load(oas)
-    tar_load(os_pois)
-    tar_load(grid)
-    tar_load(trip_purposes)
-    tar_load(zones)
-    tar_load(parameters)
-    tar_source()
     od_leisure = make_od(
       oas, os_pois, grid,
       purpose = "leisure",

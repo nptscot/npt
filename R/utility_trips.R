@@ -39,8 +39,6 @@ make_od = function(oas, os_pois, grid, purpose, trip_purposes, zones, parameters
   os_pois = sf::st_join(os_pois, grid, join = sf::st_nearest_feature)
 
   # calculate weighting of each grid point  
-  browser()
-  os_pois
   os_pois = poi_weights(pois = os_pois)
   os_pois_aggregated = os_pois |>
     sf::st_drop_geometry() |>
