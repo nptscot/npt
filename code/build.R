@@ -38,7 +38,7 @@ for (region in region_names[1:6]) {
 
 # CbD classification of networks ---------------------------------------------
 
-remotes::install_github("nptscot/osmactive")
+# remotes::install_github("nptscot/osmactive")
 library(osmactive)
 # See https://github.com/nptscot/osmactive/blob/main/code/classify-roads.R and traffic-volumes.R
 f_traffic = "scottraffic/final_estimates_Scotland.gpkg"
@@ -324,7 +324,7 @@ foreach(region = region_names) %dopar% {
 
         combined_net_city_boundary = combined_net[sf::st_union(city_boundary), , op = sf::st_intersects]
 
-        min_percentile_value = stats::quantile(combined_net_city_boundary$all_fastest_bicycle_go_dutch, probs = 0.938, na.rm = TRUE)
+        min_percentile_value = stats::quantile(combined_net_city_boundary$all_fastest_bicycle_go_dutch, probs = 0.94, na.rm = TRUE)
 
         open_roads_scotland_city_boundary = open_roads_scotland[sf::st_union(city_boundary), , op = sf::st_intersects]
 
@@ -339,8 +339,8 @@ foreach(region = region_names) %dopar% {
 
         cohesive_network_city_boundary = corenet::corenet(combined_net_city_boundary, OS_combined_net_city_boundary, city_boundary,
           key_attribute = "all_fastest_bicycle_go_dutch",
-          crs = "EPSG:27700", dist = 10, threshold = min_percentile_value,
-          road_scores = list("A Road" = 1, "B Road" = 1, "Minor Road" = 10000000)
+          crs = "EPSG:27700", maxDistPts = 1500, npt_threshold = min_percentile_value,
+          road_scores = list("A Road" = 1, "B Road" = 1, "Minor Road" = 100000),n_removeDangles = 10
         )
 
         grouped_network = corenet::coherent_network_group(cohesive_network_city_boundary, key_attribute = "all_fastest_bicycle_go_dutch")
@@ -349,7 +349,7 @@ foreach(region = region_names) %dopar% {
           dplyr::rename(all_fastest_bicycle_go_dutch = mean_potential)
         # Use city name in the filename
         corenet::create_coherent_network_PMtiles(folder_path = folder_path, city_filename = glue::glue("{city_filename}_{date_folder}"), cohesive_network = grouped_network)
-
+        
         message("Coherent network for: ", city, " generated successfully")
       },
       error = function(e) {
@@ -384,8 +384,8 @@ combined_CN_geojson = do.call(rbind, all_CN_geojson)
 
 # Write the combined GeoJSON to a file
 combined_CN_file = glue::glue("{output_folder}/combined_CN.geojson")
-sf::st_write(combined_CN_geojson, output_file)
-cat("Combined cohesive networks GeoJSON file has been saved to:", output_file)
+sf::st_write(combined_CN_geojson, combined_CN_file, delete_dsn = TRUE)
+cat("Combined cohesive networks GeoJSON file has been saved to:", combined_CN_file)
 
 # create PMtiles for the combined CN
 combined_CN_pmtiles = glue::glue("{output_folder}/combined_CN.pmtiles") 
@@ -408,6 +408,61 @@ command_tippecanoe = paste0(
 
 # Execute the command and capture output
 system_output = system(command_tippecanoe, intern = TRUE)
+
+#  develop CN link between LAs
+# Create a parallel foreach loop
+foreach(region = region_names[4]) %dopar% {
+  message("Processing coherent network for region: ", region)
+  region_snake = snakecase::to_snake_case(region)
+
+  folder_path = file.path(output_folder, region_snake, "coherent_networks/")
+
+  if (!dir.exists(folder_path)) {
+    dir.create(folder_path, recursive = TRUE)
+  }
+
+
+  tryCatch(
+    {
+      message("Generating coherent network links for: ", region)
+      region_boundary = filter(lads, Region == region) |>
+        sf::st_transform(crs = "EPSG:27700")
+
+      combined_net_region_boundary = combined_net[sf::st_union(region_boundary), , op = sf::st_intersects]
+  
+      min_percentile_value = stats::quantile(combined_net_region_boundary$all_fastest_bicycle_go_dutch, probs = 0.8, na.rm = TRUE)
+
+      open_roads_scotland_region_boundary = open_roads_scotland[sf::st_union(region_boundary), , op = sf::st_intersects]
+
+      OS_combined_net_region_boundary = corenet::cohesive_network_prep(
+        base_network = open_roads_scotland_region_boundary,
+        influence_network = combined_net_region_boundary,
+        region_boundary,
+        crs = "EPSG:27700",
+        key_attribute = "road_function",
+        attribute_values = c("A Road", "B Road")
+      )
+
+      cohesive_network_region_boundary = corenet::corenet(combined_net_region_boundary, OS_combined_net_region_boundary, region_boundary,
+        key_attribute = "all_fastest_bicycle_go_dutch",
+        crs = "EPSG:27700", maxDistPts = 6000, npt_threshold = min_percentile_value,
+        road_scores = list("A Road" = 1, "B Road" = 1),n_removeDangles = 10
+      )
+mapview::mapview(cohesive_network_region_boundary)
+      grouped_network = corenet::coherent_network_group(cohesive_network_region_boundary, key_attribute = "all_fastest_bicycle_go_dutch")
+      # rename mean_potential in grouped_network as all_fastest_bicycle_go_dutch
+      grouped_network = grouped_network |>
+        dplyr::rename(all_fastest_bicycle_go_dutch = mean_potential)
+      # Use city name in the filename
+      corenet::create_coherent_network_PMtiles(folder_path = folder_path, city_filename = glue::glue("{region_snake}_{date_folder}"), cohesive_network = grouped_network)
+      
+      message("Coherent link network for: ", region, " generated successfully")
+    },
+    error = function(e) {
+      message(sprintf("An error occurred with %s: %s", region, e$message))    
+    }
+  )
+}
 
 # Combine regional outputs ---------------------------------------------------
 output_folders = list.dirs(output_folder)[-1]
@@ -635,7 +690,7 @@ responce = system(command_all, intern = TRUE)
 # Copy pmtiles into app folder
 app_tiles_directory = "../nptscot.github.io/tiles"
 list.files(app_tiles_directory) # list current files
-pmtiles = list.files("outputdata", pattern = "*05-23*.+pmtiles", full.names = TRUE)
+pmtiles = list.files("outputdata", pattern = "*06-03*.+pmtiles", full.names = TRUE)
 pmtiles_new = file.path(app_tiles_directory, basename(pmtiles))
 file.copy(pmtiles, pmtiles_new, overwrite = TRUE)
 
@@ -656,9 +711,9 @@ if (full_build) {
   # Or latest release:
   setwd("outputdata")
   system("gh release list")
-  v = "v2024-05-23"
+  v = paste0("v", parameters$date_routing)
   # f = list.files(path = ".", pattern = "Rds|zip|pmtiles|.json")
-  f = list.files(path = ".", pattern = "rnet_*.+2024-05-23")
+  f = list.files(path = ".", pattern = paste0("rnet_.*", parameters$date_routing))
   f
   # Piggyback fails with error message so commented and using cust
   # piggyback::pb_upload(f)

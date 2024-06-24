@@ -1,4 +1,76 @@
 nrow,plan,purpose,region,date,id
+20925,ebike,utility,Aberdeen and North East,2024-06-03,10159
+20925,quietest,utility,Aberdeen and North East,2024-06-03,10158
+20925,balanced,utility,Aberdeen and North East,2024-06-03,10157
+20925,fastest,utility,Aberdeen and North East,2024-06-03,10156
+32967,balanced,commute,Aberdeen and North East,2024-06-03,10155
+32967,ebike,commute,Aberdeen and North East,2024-06-03,10154
+32967,quietest,commute,Aberdeen and North East,2024-06-03,10153
+32967,fastest,commute,Aberdeen and North East,2024-06-03,10152
+4525,ebike,school,Aberdeen and North East,2024-06-03,10151
+4525,balanced,school,Aberdeen and North East,2024-06-03,10150
+4525,quietest,school,Aberdeen and North East,2024-06-03,10149
+4525,fastest,school,Aberdeen and North East,2024-06-03,10148
+14685,ebike,utility,Highlands and Islands,2024-06-03,10147
+14685,quietest,utility,Highlands and Islands,2024-06-03,10146
+14685,balanced,utility,Highlands and Islands,2024-06-03,10145
+14685,fastest,utility,Highlands and Islands,2024-06-03,10144
+7976,balanced,commute,Highlands and Islands,2024-06-03,10143
+7976,ebike,commute,Highlands and Islands,2024-06-03,10142
+7976,quietest,commute,Highlands and Islands,2024-06-03,10141
+7976,fastest,commute,Highlands and Islands,2024-06-03,10140
+3228,ebike,school,Highlands and Islands,2024-06-03,10139
+3228,balanced,school,Highlands and Islands,2024-06-03,10138
+3228,quietest,school,Highlands and Islands,2024-06-03,10137
+3228,fastest,school,Highlands and Islands,2024-06-03,10136
+111294,ebike,utility,Edinburgh and Lothians,2024-06-03,10135
+111294,quietest,utility,Edinburgh and Lothians,2024-06-03,10134
+111294,balanced,utility,Edinburgh and Lothians,2024-06-03,10133
+111294,fastest,utility,Edinburgh and Lothians,2024-06-03,10132
+90716,balanced,commute,Edinburgh and Lothians,2024-06-03,10131
+90716,ebike,commute,Edinburgh and Lothians,2024-06-03,10130
+90716,quietest,commute,Edinburgh and Lothians,2024-06-03,10128
+90716,fastest,commute,Edinburgh and Lothians,2024-06-03,10127
+9425,ebike,school,Edinburgh and Lothians,2024-06-03,10126
+9425,balanced,school,Edinburgh and Lothians,2024-06-03,10125
+9425,quietest,school,Edinburgh and Lothians,2024-06-03,10124
+9425,fastest,school,Edinburgh and Lothians,2024-06-03,10123
+50769,ebike,utility,"Tayside, Central and Fife",2024-06-03,10122
+50769,quietest,utility,"Tayside, Central and Fife",2024-06-03,10121
+50769,balanced,utility,"Tayside, Central and Fife",2024-06-03,10120
+50769,fastest,utility,"Tayside, Central and Fife",2024-06-03,10119
+65662,balanced,commute,"Tayside, Central and Fife",2024-06-03,10117
+65662,ebike,commute,"Tayside, Central and Fife",2024-06-03,10116
+65662,quietest,commute,"Tayside, Central and Fife",2024-06-03,10115
+65662,fastest,commute,"Tayside, Central and Fife",2024-06-03,10114
+11451,ebike,school,"Tayside, Central and Fife",2024-06-03,10113
+11451,balanced,school,"Tayside, Central and Fife",2024-06-03,10112
+11451,quietest,school,"Tayside, Central and Fife",2024-06-03,10111
+11451,fastest,school,"Tayside, Central and Fife",2024-06-03,10110
+9458,ebike,utility,Scotland South,2024-06-03,10109
+9458,quietest,utility,Scotland South,2024-06-03,10108
+9458,balanced,utility,Scotland South,2024-06-03,10107
+9458,fastest,utility,Scotland South,2024-06-03,10106
+6943,balanced,commute,Scotland South,2024-06-03,10105
+6943,ebike,commute,Scotland South,2024-06-03,10104
+6943,quietest,commute,Scotland South,2024-06-03,10103
+6943,fastest,commute,Scotland South,2024-06-03,10102
+1607,ebike,school,Scotland South,2024-06-03,10101
+1607,balanced,school,Scotland South,2024-06-03,10100
+1607,quietest,school,Scotland South,2024-06-03,10099
+1607,fastest,school,Scotland South,2024-06-03,10098
+93499,ebike,utility,Glasgow and Strathclyde,2024-06-03,10097
+93499,quietest,utility,Glasgow and Strathclyde,2024-06-03,10096
+93499,balanced,utility,Glasgow and Strathclyde,2024-06-03,10095
+93499,fastest,utility,Glasgow and Strathclyde,2024-06-03,10094
+218877,balanced,commute,Glasgow and Strathclyde,2024-06-03,10093
+218877,ebike,commute,Glasgow and Strathclyde,2024-06-03,10092
+218877,quietest,commute,Glasgow and Strathclyde,2024-06-03,10091
+218877,fastest,commute,Glasgow and Strathclyde,2024-06-03,10090
+29032,ebike,school,Glasgow and Strathclyde,2024-06-03,10089
+29032,balanced,school,Glasgow and Strathclyde,2024-06-03,10087
+29032,quietest,school,Glasgow and Strathclyde,2024-06-03,10086
+29032,fastest,school,Glasgow and Strathclyde,2024-06-03,10085
 20925,ebike,utility,Aberdeen and North East,2024-05-23,10035
 20925,quietest,utility,Aberdeen and North East,2024-05-23,10034
 20925,fastest,utility,Aberdeen and North East,2024-05-23,10033
