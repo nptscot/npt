@@ -2,6 +2,8 @@
 # Do you want to reinstall github packages, set to TRUE for first run
 update_github_packages = TRUE
 options(Ncpus = 4)
+source("R/pkgs.R")
+pkgs = get_pkgs()
 remotes::install_cran(pkgs)
 
 # Repeated builds can it GitHub API limit, set to TRUE in _targets.R to check for package updates

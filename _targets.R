@@ -6,27 +6,6 @@
 # 5) Optional: tar_watch(seconds = 60, targets_only = TRUE, supervise = FALSE, poll_connection = FALSE)
 # 6) tar_make()
 
-pkgs = c(
-  "crew", # For targets with workers
-  "cyclestreets", # For routing
-  "geojsonsf", # For converting geojson to sf
-  "geos", # For geometric operations
-  "gert", # For interactive with git
-  "glue", # For string interpolation
-  "lubridate", # For working with dates and times
-  "lwgeom", # For working with spatial data
-  "osmextract", # For extracting OpenStreetMap data
-  "pct", # PCT interface
-  "remotes", # For installing packages from remote sources
-  "sf", # For working with spatial data
-  "simodels", # For spatial interaction models
-  "snakecase", # For converting strings to snake case
-  "stplanr", # For sustainable transport planning
-  "targets", # For managing targets in a workflow
-  "tidyverse", # Includes dplyr, ggplot2, tidyr, stringr etc.
-  "zonebuilder" # For creating zones for spatial analysis
-)
-
 # Options
 # Do you want to reinstall github packages, set to TRUE for first run
 update_github_packages = TRUE
@@ -41,6 +20,8 @@ library(targets) # Needed to make targets work
 library(magrittr) # Light load of |>
 library(sf) # Needed for sf support
 set.seed(2023)
+tar_source()
+pkgs = pkgs()
 
 
 tar_option_set(
@@ -52,8 +33,6 @@ tar_option_set(
   packages = pkgs,
   format = "rds" # default storage format
 )
-
-tar_source()
 
 # Targets -----------------------------------------------------------------
 if (!file.exists("outputdata")) {
