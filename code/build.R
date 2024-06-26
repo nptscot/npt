@@ -398,15 +398,36 @@ sf::write_sf(simplified_network, file.path("outputdata", "simplified_network.geo
 # Combine zones data:
 # DataZones file path: data_zones.geojson
 
-zones_tile_files = list.files(output_folder, pattern = "data_zones\\.geojson$", full.names = TRUE)
+zones_tile_files = list.files(output_folder, pattern = "data_zones.*\\.geojson$", full.names = TRUE)
 
 if (length(zones_tile_files) > 0) {
   zones_tiles <- lapply(zones_tile_files, sf::st_read)
   combined_zones_tiles <- do.call(rbind, zones_tiles)
-  sf::write_sf(combined_zones_tiles, file.path(output_folder, "data_zones.geojson"), delete_dsn = TRUE)
+  sf::write_sf(combined_zones_tiles, file.path(output_folder, glue::glue("data_zones_{date_folder}.geojson")), delete_dsn = TRUE)
 } else {
   message("No geojson files found in the specified folder.")
 }
+
+# convert data_zones_{date_folder}.geojson to pmtiles
+setwd(output_folder)
+
+command_tippecanoe = paste(
+  glue::glue("tippecanoe -o data_zones_{date_folder}.pmtiles"),
+  "--name=data_zones",
+  "--layer=data_zones",
+  "--attribution=UniverstyofLeeds",
+  "--minimum-zoom=6",
+  "-zg",
+  "--coalesce-smallest-as-needed",
+  "--detect-shared-borders",
+  "--extend-zooms-if-still-dropping",
+  "--maximum-tile-bytes=5000000",
+  "--simplification=10",
+  "--buffer=5",
+  glue::glue("--force  data_zones_{date_folder}.geojson"),
+  collapse = " "
+)
+responce = system(command_tippecanoe, intern = TRUE)   
 
 # Same for school_locations.geojson
 

@@ -1140,7 +1140,7 @@ list(
     z$population_density = round(z$Total_population / z$area)
     z$area = NULL
 
-    make_geojson_zones(z, file.path(dir_local, paste0(output_folder, "data_zones_", region, ".geojson")))
+    make_geojson_zones(z, file.path(dir_local, paste0("data_zones_", parameters$region, ".geojson")))
     z
   }),
   tar_target(zones_dasymetric_tile, {
@@ -1295,38 +1295,7 @@ list(
     responce = system(command_all, intern = TRUE)
     responce
   }),
-  tar_target(pmtiles_zones, {
-    check = length(zones_tile)
-    command_tippecanoe = paste("tippecanoe -o data_zones.pmtiles",
-      "--name=data_zones",
-      "--layer=data_zones",
-      "--attribution=UniverstyofLeeds",
-      "--minimum-zoom=6",
-      "-zg",
-      "--coalesce-smallest-as-needed",
-      "--detect-shared-borders",
-      "--extend-zooms-if-still-dropping",
-      "--maximum-tile-bytes=5000000",
-      "--simplification=10",
-      "--buffer=5",
-      "--force  data_zones.geojson",
-      collapse = " "
-    )
 
-    if (.Platform$OS.type == "unix") {
-      command_cd = "cd outputdata"
-      command_all = paste(c(command_cd, command_tippecanoe), collapse = "; ")
-    } else {
-      # Using WSL
-      dir = getwd()
-      command_start = "bash -c "
-      command_cd = paste0("cd /mnt/", tolower(substr(dir, 1, 1)), substr(dir, 3, nchar(dir)), "/outputdata")
-      command_all = paste(c(command_cd, command_tippecanoe), collapse = "; ")
-      command_all = paste0(command_start, '"', command_all, '"')
-    }
-    responce = system(command_all, intern = TRUE)
-    responce
-  }),
   tar_target(pmtiles_buildings, {
     check = length(zones_dasymetric_tile)
 
