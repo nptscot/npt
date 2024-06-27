@@ -1,4 +1,7 @@
 nrow,plan,purpose,region,date,id
+9458,balanced,utility,Scotland South,2024-06-01,10260
+6943,balanced,commute,Scotland South,2024-06-01,10258
+1607,balanced,school,Scotland South,2024-06-01,10257
 90716,ebike,commute,Edinburgh and Lothians,2024-06-01,10203
 90716,quietest,commute,Edinburgh and Lothians,2024-06-01,10201
 90716,fastest,commute,Edinburgh and Lothians,2024-06-01,10200

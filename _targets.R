@@ -21,7 +21,7 @@ library(magrittr) # Light load of |>
 library(sf) # Needed for sf support
 set.seed(2023)
 tar_source()
-pkgs = pkgs()
+pkgs = get_pkgs()
 
 
 tar_option_set(

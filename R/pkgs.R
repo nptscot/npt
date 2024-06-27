@@ -1,6 +1,7 @@
 get_pkgs = function() {
    c(
   "crew", # For targets with workers
+  "collapse", # Needed for bind_sf
   "cyclestreets", # For routing
   "geojsonsf", # For converting geojson to sf
   "geos", # For geometric operations
