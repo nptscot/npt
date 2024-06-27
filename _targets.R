@@ -21,11 +21,11 @@ library(magrittr) # Light load of |>
 library(sf) # Needed for sf support
 set.seed(2023)
 tar_source()
-pkgs = pkgs()
+pkgs = get_pkgs()
 
 
 tar_option_set(
-  controller = crew::crew_controller_local(workers = 2),
+  controller = crew::crew_controller_local(workers = 1),
   memory = "transient",
   garbage_collection = TRUE,
   storage = "worker",
