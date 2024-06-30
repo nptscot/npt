@@ -275,7 +275,7 @@ foreach(region = region_names) %dopar% {
 
         combined_net_city_boundary = combined_net[sf::st_union(city_boundary), , op = sf::st_intersects]
 
-        min_percentile_value = stats::quantile(combined_net_city_boundary$all_fastest_bicycle_go_dutch, probs = 0.938, na.rm = TRUE)
+        min_percentile_value = stats::quantile(combined_net_city_boundary$all_fastest_bicycle_go_dutch, probs = parameters$coherent_percentile, na.rm = TRUE)
 
         open_roads_scotland_city_boundary = open_roads_scotland[sf::st_union(city_boundary), , op = sf::st_intersects]
 
@@ -290,24 +290,137 @@ foreach(region = region_names) %dopar% {
 
         cohesive_network_city_boundary = corenet::corenet(combined_net_city_boundary, OS_combined_net_city_boundary, city_boundary,
           key_attribute = "all_fastest_bicycle_go_dutch",
-          crs = "EPSG:27700", dist = 10, threshold = min_percentile_value,
-          road_scores = list("A Road" = 1, "B Road" = 1, "Minor Road" = 10000000)
+          crs = "EPSG:27700", maxDistPts = 1500, minDistPts = 2, npt_threshold = min_percentile_value,
+          road_scores = list("A Road" = 1, "B Road" = 1, "Minor Road" = 100), n_removeDangles = 6, penalty_value = 1
         )
+
+        message("Generating Off Road Cycle Path network for: ", city)
+        source("R/get_orcp_cn.R")
+        orcp_city_boundary = orcp_network(area = city_boundary, NPT_zones = combined_net_city_boundary, percentile_value = 0.8)
+
+        # rbind cohesive_network_city_boundary and orcp_city_boundary
+        cohesive_network_city_boundary = rbind(cohesive_network_city_boundary |> select(geometry, id), orcp_city_boundary |> select(geometry))
 
         grouped_network = corenet::coherent_network_group(cohesive_network_city_boundary, key_attribute = "all_fastest_bicycle_go_dutch")
         # rename mean_potential in grouped_network as all_fastest_bicycle_go_dutch
         grouped_network = grouped_network |>
           dplyr::rename(all_fastest_bicycle_go_dutch = mean_potential)
+
+        grouped_network = rbind(grouped_network |> select(geometry) |> st_transform(27700), orcp_city_boundary |> select(geometry)) |> st_transform(4326)
+
         # Use city name in the filename
         corenet::create_coherent_network_PMtiles(folder_path = folder_path, city_filename = glue::glue("{city_filename}_{date_folder}"), cohesive_network = grouped_network)
 
         message("Coherent network for: ", city, " generated successfully")
+
+        # Generate growing networks
+        # Define common parameters
+        network_params = list(
+          key_attribute = "all_fastest_bicycle_go_dutch",
+          crs = "EPSG:27700",
+          maxDistPts = 1500,
+          minDistPts = 2,
+          road_scores = list("A Road" = 1, "B Road" = 1, "Minor Road" = 100),
+          n_removeDangles = 6,
+          penalty_value = 1
+        )
+
+        # Define the varying npt_threshold values
+        # create a vector of npt_threshold values by 200 intervals from 5000 to 4000
+        thresholds = seq(5000, 1400, by = -200)
+
+        # Generate the networks using varying npt_threshold
+        CN_networks = lapply(thresholds, function(threshold) {
+          message("Generating CN network for threshold: ", threshold)
+          corenet(
+            combined_net_city_boundary,
+            OS_combined_net_city_boundary,
+            city_boundary,
+            key_attribute = network_params$key_attribute,
+            crs = network_params$crs,
+            maxDistPts = network_params$maxDistPts,
+            minDistPts = network_params$minDistPts,
+            npt_threshold = threshold,
+            road_scores = network_params$road_scores,
+            n_removeDangles = network_params$n_removeDangles,
+            penalty_value = network_params$penalty_value
+          )
+        })
+
+        # Process each generated network
+        for (cn in CN_networks) {  
+          grouped_network = corenet::coherent_network_group(cn, key_attribute = "all_fastest_bicycle_go_dutch")
+          grouped_network = grouped_network |> dplyr::rename(all_fastest_bicycle_go_dutch = mean_potential)
+          corenet::create_coherent_network_PMtiles(folder_path = folder_path, city_filename = glue::glue("{city_filename}_{date_folder}_{threshold}"), cohesive_network = grouped_network)
+          message("Coherent network for: ", city, " with threshold ", threshold, " generated successfully")
+        }
       },
       error = function(e) {
         message(sprintf("An error occurred with %s: %s", city, e$message))    
       }
     )
   }
+}
+
+# Generate the links coherent network for the LAs
+foreach(region = region_names) %dopar% {
+  message("Processing coherent network for region: ", region)
+  region_snake = snakecase::to_snake_case(region)
+
+  cnet_path = file.path(output_folder, region_snake, "combined_network_tile.geojson")
+  combined_net = sf::read_sf(cnet_path) |>
+    sf::st_transform(crs = "EPSG:27700")
+
+  folder_path = file.path(output_folder, region_snake, "coherent_networks/")
+
+  if (!dir.exists(folder_path)) {
+    dir.create(folder_path, recursive = TRUE)
+  }
+
+
+  tryCatch(
+    {
+      message("Generating coherent network links for: ", region)
+      region_boundary = dplyr::filter(lads, Region == region) |>
+        sf::st_transform(crs = "EPSG:27700")
+
+      combined_net_region_boundary = combined_net[sf::st_union(region_boundary), , op = sf::st_intersects]
+
+      min_percentile_value = stats::quantile(combined_net_region_boundary$all_fastest_bicycle_go_dutch, probs = 0.9, na.rm = TRUE)
+
+      open_roads_scotland_region_boundary = open_roads_scotland[sf::st_union(region_boundary), , op = sf::st_intersects]
+
+
+      OS_combined_net_region_boundary = cohesive_network_prep(
+        base_network = open_roads_scotland_region_boundary,
+        influence_network = combined_net_region_boundary,
+        region_boundary,
+        crs = "EPSG:27700",
+        key_attribute = "road_function",
+        attribute_values = c("A Road", "B Road")
+      )
+
+      cohesive_network_region_boundary = corenet(combined_net_region_boundary, OS_combined_net_region_boundary, region_boundary,
+        key_attribute = "all_fastest_bicycle_go_dutch",
+        crs = "EPSG:27700", maxDistPts = 6000, minDistPts = 2500, npt_threshold = min_percentile_value,
+        road_scores = list("A Road" = 1, "B Road" = 1), n_removeDangles = 6, penalty_value = 100000
+      )
+
+      grouped_network = corenet::coherent_network_group(cohesive_network_region_boundary, key_attribute = "all_fastest_bicycle_go_dutch")
+      # rename mean_potential in grouped_network as all_fastest_bicycle_go_dutch
+      grouped_network = grouped_network |>
+        dplyr::rename(all_fastest_bicycle_go_dutch = mean_potential)
+      # Use city name in the filename
+      corenet::create_coherent_network_PMtiles(folder_path = folder_path, city_filename = glue::glue("{region_snake}_{date_folder}"), cohesive_network = grouped_network)
+
+      message("Coherent network link for: ", region, " generated successfully")
+
+    },
+    error = function(e) {
+      message(sprintf("An error occurred with %s: %s", region, e$message))    
+    }
+  )
+  
 }
 
 # Combine all cohesive networks (CN) into a single file
@@ -401,8 +514,8 @@ sf::write_sf(simplified_network, file.path("outputdata", "simplified_network.geo
 zones_tile_files = list.files(output_folder, pattern = "data_zones.*\\.geojson$", full.names = TRUE)
 
 if (length(zones_tile_files) > 0) {
-  zones_tiles <- lapply(zones_tile_files, sf::st_read)
-  combined_zones_tiles <- do.call(rbind, zones_tiles)
+  zones_tiles = lapply(zones_tile_files, sf::st_read)
+  combined_zones_tiles = do.call(rbind, zones_tiles)
   sf::write_sf(combined_zones_tiles, file.path(output_folder, glue::glue("data_zones_{date_folder}.geojson")), delete_dsn = TRUE)
 } else {
   message("No geojson files found in the specified folder.")
