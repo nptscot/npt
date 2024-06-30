@@ -248,7 +248,9 @@ if (!file.exists(file_path)) {
 }
 open_roads_scotland = sf::read_sf(file_path)
 sf::st_geometry(open_roads_scotland) = "geometry"
-
+#------------------
+region_names = "Edinburgh and Lothians"  
+#------------------
 # Generate the coherent network for the region
 foreach(region = region_names) %dopar% {
   message("Processing coherent network for region: ", region)
@@ -298,9 +300,6 @@ foreach(region = region_names) %dopar% {
         source("R/get_orcp_cn.R")
         orcp_city_boundary = orcp_network(area = city_boundary, NPT_zones = combined_net_city_boundary, percentile_value = 0.8)
 
-        # rbind cohesive_network_city_boundary and orcp_city_boundary
-        cohesive_network_city_boundary = rbind(cohesive_network_city_boundary |> select(geometry, id), orcp_city_boundary |> select(geometry))
-
         grouped_network = corenet::coherent_network_group(cohesive_network_city_boundary, key_attribute = "all_fastest_bicycle_go_dutch")
         # rename mean_potential in grouped_network as all_fastest_bicycle_go_dutch
         grouped_network = grouped_network |>
@@ -327,12 +326,18 @@ foreach(region = region_names) %dopar% {
 
         # Define the varying npt_threshold values
         # create a vector of npt_threshold values by 200 intervals from 5000 to 4000
-        thresholds = seq(5000, 1400, by = -200)
+        max_value = round(stats::quantile(combined_net_city_boundary$all_fastest_bicycle_go_dutch, probs = 0.99, na.rm = TRUE))
+        min_value = round(stats::quantile(combined_net_city_boundary$all_fastest_bicycle_go_dutch, probs = 0.6, na.rm = TRUE))
 
+        
+        step_size = (max_value - min_value) / 20
+        step_size = -abs(step_size)
+        thresholds = round(seq(max_value, min_value, by = step_size))
+ 
         # Generate the networks using varying npt_threshold
         CN_networks = lapply(thresholds, function(threshold) {
           message("Generating CN network for threshold: ", threshold)
-          corenet(
+          corenet::corenet(
             combined_net_city_boundary,
             OS_combined_net_city_boundary,
             city_boundary,
@@ -348,10 +353,15 @@ foreach(region = region_names) %dopar% {
         })
 
         # Process each generated network
-        for (cn in CN_networks) {  
+        for (i in seq_along(CN_networks)) {
+          cn = CN_networks[[i]]
+          threshold = thresholds[i]  # Access the corresponding threshold for each network
           grouped_network = corenet::coherent_network_group(cn, key_attribute = "all_fastest_bicycle_go_dutch")
-          grouped_network = grouped_network |> dplyr::rename(all_fastest_bicycle_go_dutch = mean_potential)
-          corenet::create_coherent_network_PMtiles(folder_path = folder_path, city_filename = glue::glue("{city_filename}_{date_folder}_{threshold}"), cohesive_network = grouped_network)
+          grouped_network = grouped_network %>% dplyr::rename(all_fastest_bicycle_go_dutch = mean_potential)
+
+          # Use city name and threshold in the filename, using the correct threshold
+          city_filename = glue::glue("{city_filename}_{date_folder}_{threshold}")
+          corenet::create_coherent_network_PMtiles(folder_path = folder_path, city_filename = city_filename, cohesive_network = grouped_network)
           message("Coherent network for: ", city, " with threshold ", threshold, " generated successfully")
         }
       },
@@ -391,7 +401,7 @@ foreach(region = region_names) %dopar% {
       open_roads_scotland_region_boundary = open_roads_scotland[sf::st_union(region_boundary), , op = sf::st_intersects]
 
 
-      OS_combined_net_region_boundary = cohesive_network_prep(
+      OS_combined_net_region_boundary = corenet::cohesive_network_prep(
         base_network = open_roads_scotland_region_boundary,
         influence_network = combined_net_region_boundary,
         region_boundary,
@@ -400,7 +410,7 @@ foreach(region = region_names) %dopar% {
         attribute_values = c("A Road", "B Road")
       )
 
-      cohesive_network_region_boundary = corenet(combined_net_region_boundary, OS_combined_net_region_boundary, region_boundary,
+      cohesive_network_region_boundary = corenet::corenet(combined_net_region_boundary, OS_combined_net_region_boundary, region_boundary,
         key_attribute = "all_fastest_bicycle_go_dutch",
         crs = "EPSG:27700", maxDistPts = 6000, minDistPts = 2500, npt_threshold = min_percentile_value,
         road_scores = list("A Road" = 1, "B Road" = 1), n_removeDangles = 6, penalty_value = 100000
