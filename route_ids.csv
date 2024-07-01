@@ -1,4 +1,22 @@
 nrow,plan,purpose,region,date,id
+9458,fastest,utility,Scotland South,2024-07-01,10328
+9458,balanced,utility,Scotland South,2024-07-01,10327
+6943,ebike,commute,Scotland South,2024-07-01,10326
+6943,balanced,commute,Scotland South,2024-07-01,10325
+6943,quietest,commute,Scotland South,2024-07-01,10324
+6943,fastest,commute,Scotland South,2024-07-01,10323
+1607,ebike,school,Scotland South,2024-07-01,10322
+1607,balanced,school,Scotland South,2024-07-01,10321
+1607,quietest,school,Scotland South,2024-07-01,10320
+1607,fastest,school,Scotland South,2024-07-01,10319
+10000,ebike,utility,Glasgow and Strathclyde,2024-07-01,10318
+10000,quietest,utility,Glasgow and Strathclyde,2024-07-01,10317
+10000,fastest,utility,Glasgow and Strathclyde,2024-07-01,10316
+10000,balanced,utility,Glasgow and Strathclyde,2024-07-01,10315
+10000,ebike,commute,Glasgow and Strathclyde,2024-07-01,10314
+10000,balanced,commute,Glasgow and Strathclyde,2024-07-01,10313
+10000,quietest,commute,Glasgow and Strathclyde,2024-07-01,10312
+10000,fastest,commute,Glasgow and Strathclyde,2024-07-01,10311
 10000,ebike,school,Glasgow and Strathclyde,2024-07-01,10310
 10000,balanced,school,Glasgow and Strathclyde,2024-07-01,10309
 10000,quietest,school,Glasgow and Strathclyde,2024-07-01,10308
