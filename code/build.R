@@ -38,6 +38,7 @@ for (region in region_names[1:6]) {
   targets::tar_make()
 }
 
+
 # CbD classification of networks ---------------------------------------------
 
 remotes::install_github("nptscot/osmactive")
