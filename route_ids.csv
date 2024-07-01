@@ -1,4 +1,16 @@
 nrow,plan,purpose,region,date,id
+10000,fastest,utility,"Tayside, Central and Fife",2024-07-01,10341
+10000,balanced,utility,"Tayside, Central and Fife",2024-07-01,10340
+10000,ebike,commute,"Tayside, Central and Fife",2024-07-01,10339
+10000,balanced,commute,"Tayside, Central and Fife",2024-07-01,10338
+10000,quietest,commute,"Tayside, Central and Fife",2024-07-01,10337
+10000,fastest,commute,"Tayside, Central and Fife",2024-07-01,10336
+10000,ebike,school,"Tayside, Central and Fife",2024-07-01,10335
+10000,balanced,school,"Tayside, Central and Fife",2024-07-01,10334
+10000,quietest,school,"Tayside, Central and Fife",2024-07-01,10333
+10000,fastest,school,"Tayside, Central and Fife",2024-07-01,10332
+9458,ebike,utility,Scotland South,2024-07-01,10331
+9458,quietest,utility,Scotland South,2024-07-01,10330
 9458,fastest,utility,Scotland South,2024-07-01,10328
 9458,balanced,utility,Scotland South,2024-07-01,10327
 6943,ebike,commute,Scotland South,2024-07-01,10326
