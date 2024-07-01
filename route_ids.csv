@@ -1,4 +1,8 @@
 nrow,plan,purpose,region,date,id
+10000,ebike,school,Glasgow and Strathclyde,2024-07-01,10310
+10000,balanced,school,Glasgow and Strathclyde,2024-07-01,10309
+10000,quietest,school,Glasgow and Strathclyde,2024-07-01,10308
+10000,fastest,school,Glasgow and Strathclyde,2024-07-01,10307
 250,ebike,utility,Highlands and Islands,2024-07-01,10306
 250,quietest,utility,Highlands and Islands,2024-07-01,10305
 250,fastest,utility,Highlands and Islands,2024-07-01,10304
