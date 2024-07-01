@@ -331,7 +331,7 @@ foreach(region = region_names) %dopar% {
         min_value = round(stats::quantile(combined_net_city_boundary$all_fastest_bicycle_go_dutch, probs = 0.94, na.rm = TRUE))
 
         
-        if (min_value > 350) {
+        if (min_value > 50) {
           step_size = (max_value - min_value) / 10
           step_size = -abs(step_size)
           thresholds = round(seq(max_value, min_value, by = step_size))
@@ -367,7 +367,7 @@ foreach(region = region_names) %dopar% {
             message("Coherent network for: ", city, " with threshold ", threshold, " generated successfully")
           }
         } else {
-          message("Min value is not greater than 750. Code execution skipped.")
+          message("Min value is not greater than 350. Code execution skipped.")
         }
       },
       error = function(e) {
