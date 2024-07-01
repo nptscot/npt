@@ -1,4 +1,30 @@
 nrow,plan,purpose,region,date,id
+10000,ebike,utility,Aberdeen and North East,2024-07-01,10373
+10000,quietest,utility,Aberdeen and North East,2024-07-01,10371
+10000,fastest,utility,Aberdeen and North East,2024-07-01,10369
+10000,balanced,utility,Aberdeen and North East,2024-07-01,10367
+10000,ebike,commute,Aberdeen and North East,2024-07-01,10365
+10000,balanced,commute,Aberdeen and North East,2024-07-01,10363
+10000,quietest,commute,Aberdeen and North East,2024-07-01,10361
+10000,fastest,commute,Aberdeen and North East,2024-07-01,10360
+4525,ebike,school,Aberdeen and North East,2024-07-01,10359
+4525,balanced,school,Aberdeen and North East,2024-07-01,10358
+4525,quietest,school,Aberdeen and North East,2024-07-01,10357
+4525,fastest,school,Aberdeen and North East,2024-07-01,10356
+10000,ebike,utility,Edinburgh and Lothians,2024-07-01,10355
+10000,quietest,utility,Edinburgh and Lothians,2024-07-01,10354
+10000,fastest,utility,Edinburgh and Lothians,2024-07-01,10353
+10000,balanced,utility,Edinburgh and Lothians,2024-07-01,10352
+10000,ebike,commute,Edinburgh and Lothians,2024-07-01,10351
+10000,balanced,commute,Edinburgh and Lothians,2024-07-01,10350
+10000,quietest,commute,Edinburgh and Lothians,2024-07-01,10349
+10000,fastest,commute,Edinburgh and Lothians,2024-07-01,10348
+9425,ebike,school,Edinburgh and Lothians,2024-07-01,10347
+9425,balanced,school,Edinburgh and Lothians,2024-07-01,10346
+9425,quietest,school,Edinburgh and Lothians,2024-07-01,10345
+9425,fastest,school,Edinburgh and Lothians,2024-07-01,10344
+10000,ebike,utility,"Tayside, Central and Fife",2024-07-01,10343
+10000,quietest,utility,"Tayside, Central and Fife",2024-07-01,10342
 10000,fastest,utility,"Tayside, Central and Fife",2024-07-01,10341
 10000,balanced,utility,"Tayside, Central and Fife",2024-07-01,10340
 10000,ebike,commute,"Tayside, Central and Fife",2024-07-01,10339
