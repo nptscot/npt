@@ -307,7 +307,7 @@ foreach(region = region_names) %dopar% {
         grouped_network = grouped_network |>
           dplyr::rename(all_fastest_bicycle_go_dutch = mean_potential)
 
-        grouped_network = rbind(grouped_network |> select(geometry) |> st_transform(27700), orcp_city_boundary |> select(geometry)) |> st_transform(4326)
+        grouped_network = sf:::bind_sf(list(grouped_network |> select(geometry) |> st_transform(27700), orcp_city_boundary |> select(geometry))) |> st_transform(4326)
 
         # Use city name in the filename
         corenet::create_coherent_network_PMtiles(folder_path = folder_path, city_filename = glue::glue("{city_filename}_{date_folder}"), cohesive_network = grouped_network)
