@@ -16,7 +16,7 @@ date_folder = parameters$date_routing
 output_folder = file.path("outputdata", date_folder)
 
 # # Start with Glasgow:
-region_names = unique(lads$Region)[c(3, 2, 1, 4, 5, 6)][1:2] 
+region_names = unique(lads$Region)[c(3, 2, 1, 4, 5, 6)]
 cities_region_names = lapply(
   region_names,
   function(region) {
@@ -307,7 +307,7 @@ foreach(region = region_names) %dopar% {
         grouped_network = grouped_network |>
           dplyr::rename(all_fastest_bicycle_go_dutch = mean_potential)
 
-        grouped_network = rbind(grouped_network |> select(geometry) |> st_transform(27700), orcp_city_boundary |> select(geometry)) |> st_transform(4326)
+        grouped_network = sf:::bind_sf(list(grouped_network |> select(geometry) |> st_transform(27700), orcp_city_boundary |> select(geometry))) |> st_transform(4326)
 
         # Use city name in the filename
         corenet::create_coherent_network_PMtiles(folder_path = folder_path, city_filename = glue::glue("{city_filename}_{date_folder}"), cohesive_network = grouped_network)
@@ -367,7 +367,7 @@ foreach(region = region_names) %dopar% {
             message("Coherent network for: ", city, " with threshold ", threshold, " generated successfully")
           }
         } else {
-          message("Min value is not greater than 350. Code execution skipped.")
+          message("Min value is not greater than 50 Code execution skipped.")
         }
       },
       error = function(e) {
@@ -439,7 +439,7 @@ foreach(region = region_names) %dopar% {
 }
 
 # Combine all cohesive networks (CN) into a single file
-no_lists = c(1,2,3,4,5,6,7,8,9,10,11)
+no_lists <- c(1,2,3,4,5,6,7,8,9,10,11)
 
 all_CN_geojson = list()
 all_CN_geojson_groups = list()
@@ -450,15 +450,18 @@ for (folder in subfolders) {
   coherent_networks_path = file.path(folder, "coherent_networks")
   geojson_files = list.files(coherent_networks_path, pattern = "\\.geojson$", full.names = TRUE)
   
+  # Initialize a list to track files that have been matched to a number
+  matched_files = list()
+
   # Loop through each predefined number and match files
   for (no in no_lists) {
     # Define a pattern that includes the current number from no_lists
-    pattern = sprintf(".*_%s_%d_coherent_network\\.geojson$", date_folder, no)
+    number_pattern = sprintf(".*_%s_%d_coherent_network\\.geojson$", date_folder, no)
     # Find files that match this pattern
-    matched_files = grep(pattern, geojson_files, value = TRUE)
+    these_matched_files = grep(number_pattern, geojson_files, value = TRUE)
     
     # Process each matched file
-    for (geojson_file in matched_files) {
+    for (geojson_file in these_matched_files) {
       if (!exists(as.character(no), where = all_CN_geojson_groups)) {
         all_CN_geojson_groups[[as.character(no)]] = list()
       }
@@ -467,6 +470,22 @@ for (folder in subfolders) {
         sf::st_transform(crs = 4326)
       all_CN_geojson_groups[[as.character(no)]][[length(all_CN_geojson_groups[[as.character(no)]]) + 1]] = list(data = geojson_data, file = geojson_file)
     }
+    
+    # Add these files to the overall matched files list
+    matched_files = c(matched_files, these_matched_files)
+  }
+  
+  # Define a pattern for files with the date but without a specific number
+  general_pattern = sprintf(".*_%s_coherent_network\\.geojson$", date_folder)
+  # Identify files that match the general pattern but are not in the number-specific list
+  general_matched_files = setdiff(grep(general_pattern, geojson_files, value = TRUE), matched_files)
+
+  # Process general matched files
+  for (geojson_file in general_matched_files) {
+    # Read and transform the geojson data
+    geojson_data = sf::st_read(geojson_file, quiet = TRUE) |>
+      sf::st_transform(crs = 4326)
+    all_CN_geojson[[length(all_CN_geojson) + 1]] = geojson_data
   }
 }
 
@@ -474,6 +493,7 @@ for (folder in subfolders) {
 for (number in names(all_CN_geojson_groups)) {
   cat("Group", number, "contains the following files:\n")
   lapply(all_CN_geojson_groups[[number]], function(x) cat(x$file, "\n"))
+
 }
 
 # Combine all GeoJSON data into one sf object
