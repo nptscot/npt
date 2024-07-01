@@ -4,6 +4,10 @@ library(tidyverse)
 library(targets)
 library(tidygraph)
 library(osmextract)
+library(foreach)
+library(iterators)
+library(parallel)
+library(doParallel)
 tar_source()
 
 parameters = jsonlite::read_json("parameters.json", simplifyVector = T)
@@ -59,10 +63,6 @@ osm_centroids = osm_national |>
   select(osm_id)
 
 # Run for each region
-library(foreach)
-library(iterators)
-library(parallel)
-library(doParallel)
 # Set the number of cores to use
 num_cores = min(parallel::detectCores() - 1, 10)
 registerDoParallel(num_cores)
@@ -248,9 +248,7 @@ if (!file.exists(file_path)) {
 }
 open_roads_scotland = sf::read_sf(file_path)
 sf::st_geometry(open_roads_scotland) = "geometry"
-#------------------
-region_names = "Edinburgh and Lothians"  
-#------------------
+
 # Generate the coherent network for the region
 foreach(region = region_names) %dopar% {
   message("Processing coherent network for region: ", region)
@@ -325,44 +323,47 @@ foreach(region = region_names) %dopar% {
         )
 
         # Define the varying npt_threshold values
-        # create a vector of npt_threshold values by 200 intervals from 5000 to 4000
         max_value = round(stats::quantile(combined_net_city_boundary$all_fastest_bicycle_go_dutch, probs = 0.99, na.rm = TRUE))
-        min_value = round(stats::quantile(combined_net_city_boundary$all_fastest_bicycle_go_dutch, probs = 0.6, na.rm = TRUE))
+        min_value = round(stats::quantile(combined_net_city_boundary$all_fastest_bicycle_go_dutch, probs = 0.94, na.rm = TRUE))
 
         
-        step_size = (max_value - min_value) / 20
-        step_size = -abs(step_size)
-        thresholds = round(seq(max_value, min_value, by = step_size))
- 
-        # Generate the networks using varying npt_threshold
-        CN_networks = lapply(thresholds, function(threshold) {
-          message("Generating CN network for threshold: ", threshold)
-          corenet::corenet(
-            combined_net_city_boundary,
-            OS_combined_net_city_boundary,
-            city_boundary,
-            key_attribute = network_params$key_attribute,
-            crs = network_params$crs,
-            maxDistPts = network_params$maxDistPts,
-            minDistPts = network_params$minDistPts,
-            npt_threshold = threshold,
-            road_scores = network_params$road_scores,
-            n_removeDangles = network_params$n_removeDangles,
-            penalty_value = network_params$penalty_value
-          )
-        })
+        if (min_value > 750) {
+          step_size = (max_value - min_value) / 10
+          step_size = -abs(step_size)
+          thresholds = round(seq(max_value, min_value, by = step_size))
 
-        # Process each generated network
-        for (i in seq_along(CN_networks)) {
-          cn = CN_networks[[i]]
-          threshold = thresholds[i]  # Access the corresponding threshold for each network
-          grouped_network = corenet::coherent_network_group(cn, key_attribute = "all_fastest_bicycle_go_dutch")
-          grouped_network = grouped_network %>% dplyr::rename(all_fastest_bicycle_go_dutch = mean_potential)
+          # Generate the networks using varying npt_threshold
+          CN_networks = lapply(thresholds, function(threshold) {
+            message("Generating CN network for threshold: ", threshold)
+            corenet::corenet(
+              combined_net_city_boundary,
+              OS_combined_net_city_boundary,
+              city_boundary,
+              key_attribute = network_params$key_attribute,
+              crs = network_params$crs,
+              maxDistPts = network_params$maxDistPts,
+              minDistPts = network_params$minDistPts,
+              npt_threshold = threshold,
+              road_scores = network_params$road_scores,
+              n_removeDangles = network_params$n_removeDangles,
+              penalty_value = network_params$penalty_value
+            )
+          })
 
-          # Use city name and threshold in the filename, using the correct threshold
-          city_filename = glue::glue("{city_filename}_{date_folder}_{threshold}")
-          corenet::create_coherent_network_PMtiles(folder_path = folder_path, city_filename = city_filename, cohesive_network = grouped_network)
-          message("Coherent network for: ", city, " with threshold ", threshold, " generated successfully")
+          # Process each generated network
+          for (i in seq_along(CN_networks)) {
+            cn = CN_networks[[i]]
+            threshold = thresholds[i]  # Access the corresponding threshold for each network
+            grouped_network = corenet::coherent_network_group(cn, key_attribute = "all_fastest_bicycle_go_dutch")
+            grouped_network = grouped_network %>% dplyr::rename(all_fastest_bicycle_go_dutch = mean_potential)
+
+            # Use city name and threshold in the filename, using the correct threshold
+            city_filename = glue::glue("{city_filename}_{date_folder}_{threshold}")
+            corenet::create_coherent_network_PMtiles(folder_path = folder_path, city_filename = city_filename, cohesive_network = grouped_network)
+            message("Coherent network for: ", city, " with threshold ", threshold, " generated successfully")
+          }
+        } else {
+          message("Min value is not greater than 750. Code execution skipped.")
         }
       },
       error = function(e) {
