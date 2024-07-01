@@ -250,8 +250,11 @@ if (!file.exists(file_path)) {
 open_roads_scotland = sf::read_sf(file_path)
 sf::st_geometry(open_roads_scotland) = "geometry"
 
+num_cores = min(parallel::detectCores() - 1, 10)
+registerDoParallel(num_cores)
 # Generate the coherent network for the region
 foreach(region = region_names) %dopar% {
+# for (region in region_names) {
   message("Processing coherent network for region: ", region)
   region_snake = snakecase::to_snake_case(region)
   coherent_area = cities_region_names[[region]]
@@ -328,7 +331,7 @@ foreach(region = region_names) %dopar% {
         min_value = round(stats::quantile(combined_net_city_boundary$all_fastest_bicycle_go_dutch, probs = 0.94, na.rm = TRUE))
 
         
-        if (min_value > 750) {
+        if (min_value > 350) {
           step_size = (max_value - min_value) / 10
           step_size = -abs(step_size)
           thresholds = round(seq(max_value, min_value, by = step_size))
@@ -359,7 +362,7 @@ foreach(region = region_names) %dopar% {
             grouped_network = grouped_network %>% dplyr::rename(all_fastest_bicycle_go_dutch = mean_potential)
 
             # Use city name and threshold in the filename, using the correct threshold
-            city_filename = glue::glue("{city_filename}_{date_folder}_{threshold}")
+            city_filename = glue::glue("{snakecase::to_snake_case(city)}_{date_folder}_{i}")
             corenet::create_coherent_network_PMtiles(folder_path = folder_path, city_filename = city_filename, cohesive_network = grouped_network)
             message("Coherent network for: ", city, " with threshold ", threshold, " generated successfully")
           }
@@ -436,11 +439,8 @@ foreach(region = region_names) %dopar% {
 }
 
 # Combine all cohesive networks (CN) into a single file
-# Define the root directory of coherent networks
-output_folder = glue::glue("outputdata/{date_folder}/")
-
-# Prepare to store all GeoJSON data
 all_CN_geojson = list()
+all_CN_geojson_grow = list()
 
 # Loop through the subfolders and read GeoJSON files
 subfolders = list.dirs(output_folder, full.names = TRUE, recursive = FALSE)
@@ -449,9 +449,21 @@ for (folder in subfolders) {
   geojson_files = list.files(coherent_networks_path, pattern = "\\.geojson$", full.names = TRUE)
   
   for (geojson_file in geojson_files) {
-    geojson_data = sf::st_read(geojson_file) |>
-      sf::st_transform(crs = 4326) 
-    all_CN_geojson[[length(all_CN_geojson) + 1]] = geojson_data
+    # Check if the filename contains an additional number before "_coherent_network.geojson"
+    number_match = regmatches(geojson_file, regexpr("_\\d+", geojson_file))
+    if (length(number_match) > 0) {
+      number = sub("_", "", number_match)  # Extract the number only
+      if (!exists(number, where = all_CN_geojson_groups)) {
+        all_CN_geojson_groups[[number]] = list()
+      }
+      geojson_data = sf::st_read(geojson_file) |>
+        sf::st_transform(crs = 4326) 
+      all_CN_geojson_groups[[number]][[length(all_CN_geojson_groups[[number]]) + 1]] = geojson_data
+    } else {
+      geojson_data = sf::st_read(geojson_file) |>
+        sf::st_transform(crs = 4326)
+      all_CN_geojson[[length(all_CN_geojson) + 1]] = geojson_data
+    }
   }
 }
 
