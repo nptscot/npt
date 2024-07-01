@@ -1,4 +1,20 @@
 nrow,plan,purpose,region,date,id
+250,ebike,utility,Highlands and Islands,2024-07-01,10306
+250,quietest,utility,Highlands and Islands,2024-07-01,10305
+250,fastest,utility,Highlands and Islands,2024-07-01,10304
+250,ebike,commute,Highlands and Islands,2024-07-01,10302
+250,quietest,commute,Highlands and Islands,2024-07-01,10300
+250,fastest,commute,Highlands and Islands,2024-07-01,10299
+250,ebike,school,Highlands and Islands,2024-07-01,10298
+250,balanced,school,Highlands and Islands,2024-07-01,10297
+250,quietest,school,Highlands and Islands,2024-07-01,10296
+250,fastest,school,Highlands and Islands,2024-07-01,10295
+3228,balanced,school,Highlands and Islands,2024-06-01,10265
+3228,quietest,school,Highlands and Islands,2024-06-01,10262
+3228,fastest,school,Highlands and Islands,2024-06-01,10261
+9458,balanced,utility,Scotland South,2024-06-01,10260
+6943,balanced,commute,Scotland South,2024-06-01,10258
+1607,balanced,school,Scotland South,2024-06-01,10257
 90716,ebike,commute,Edinburgh and Lothians,2024-06-01,10203
 90716,quietest,commute,Edinburgh and Lothians,2024-06-01,10201
 90716,fastest,commute,Edinburgh and Lothians,2024-06-01,10200
