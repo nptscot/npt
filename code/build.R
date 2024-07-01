@@ -16,7 +16,7 @@ date_folder = parameters$date_routing
 output_folder = file.path("outputdata", date_folder)
 
 # # Start with Glasgow:
-region_names = unique(lads$Region)[c(3, 2, 1, 4, 5, 6)][2:6] 
+region_names = unique(lads$Region)[c(3, 2, 1, 4, 5, 6)][1:2] 
 cities_region_names = lapply(
   region_names,
   function(region) {
@@ -439,8 +439,10 @@ foreach(region = region_names) %dopar% {
 }
 
 # Combine all cohesive networks (CN) into a single file
+no_lists = c(1,2,3,4,5,6,7,8,9,10,11)
+
 all_CN_geojson = list()
-all_CN_geojson_grow = list()
+all_CN_geojson_groups = list()
 
 # Loop through the subfolders and read GeoJSON files
 subfolders = list.dirs(output_folder, full.names = TRUE, recursive = FALSE)
@@ -448,23 +450,30 @@ for (folder in subfolders) {
   coherent_networks_path = file.path(folder, "coherent_networks")
   geojson_files = list.files(coherent_networks_path, pattern = "\\.geojson$", full.names = TRUE)
   
-  for (geojson_file in geojson_files) {
-    # Check if the filename contains an additional number before "_coherent_network.geojson"
-    number_match = regmatches(geojson_file, regexpr("_\\d+", geojson_file))
-    if (length(number_match) > 0) {
-      number = sub("_", "", number_match)  # Extract the number only
-      if (!exists(number, where = all_CN_geojson_groups)) {
-        all_CN_geojson_groups[[number]] = list()
+  # Loop through each predefined number and match files
+  for (no in no_lists) {
+    # Define a pattern that includes the current number from no_lists
+    pattern = sprintf(".*_%s_%d_coherent_network\\.geojson$", date_folder, no)
+    # Find files that match this pattern
+    matched_files = grep(pattern, geojson_files, value = TRUE)
+    
+    # Process each matched file
+    for (geojson_file in matched_files) {
+      if (!exists(as.character(no), where = all_CN_geojson_groups)) {
+        all_CN_geojson_groups[[as.character(no)]] = list()
       }
-      geojson_data = sf::st_read(geojson_file) |>
-        sf::st_transform(crs = 4326) 
-      all_CN_geojson_groups[[number]][[length(all_CN_geojson_groups[[number]]) + 1]] = geojson_data
-    } else {
-      geojson_data = sf::st_read(geojson_file) |>
+      # Read and transform the geojson data
+      geojson_data = sf::st_read(geojson_file, quiet = TRUE) |>
         sf::st_transform(crs = 4326)
-      all_CN_geojson[[length(all_CN_geojson) + 1]] = geojson_data
+      all_CN_geojson_groups[[as.character(no)]][[length(all_CN_geojson_groups[[as.character(no)]]) + 1]] = list(data = geojson_data, file = geojson_file)
     }
   }
+}
+
+# Print filenames for each group to check the sorting
+for (number in names(all_CN_geojson_groups)) {
+  cat("Group", number, "contains the following files:\n")
+  lapply(all_CN_geojson_groups[[number]], function(x) cat(x$file, "\n"))
 }
 
 # Combine all GeoJSON data into one sf object
@@ -496,6 +505,43 @@ command_tippecanoe = paste0(
 
 # Execute the command and capture output
 system_output = system(command_tippecanoe, intern = TRUE)
+
+# Iterate over each group to process and save the data
+for (number in names(all_CN_geojson_groups)) {
+  # Combine all GeoJSON data into one sf object for the current number group
+  combined_CN_geojson = do.call(rbind, lapply(all_CN_geojson_groups[[number]], function(x) x$data))
+
+  # Define the file path for the combined GeoJSON
+  combined_CN_file = glue::glue("{output_folder}/combined_CN_{number}.geojson")
+  
+  # Write the combined GeoJSON to a file
+  sf::st_write(combined_CN_geojson, combined_CN_file)
+  cat("Combined cohesive networks GeoJSON file for group", number, "has been saved to:", combined_CN_file, "\n")
+
+  # Define the path for the PMtiles
+  combined_CN_pmtiles = glue::glue("{output_folder}/combined_CN_{number}.pmtiles")
+  
+  # Construct the Tippecanoe command for the current group
+  command_tippecanoe = paste0(
+    'tippecanoe -o ', combined_CN_pmtiles,
+    ' --name="', 'Scottish_Coherent_Networks_', number, '"',
+    ' --layer=coherent_networks',
+    ' --attribution="University of Leeds"',
+    ' --minimum-zoom=6',
+    ' --maximum-zoom=13',
+    ' --maximum-tile-bytes=5000000',
+    ' --simplification=10',
+    ' --buffer=5',
+    ' -rg',
+    ' --force ',
+    combined_CN_file
+  )
+
+  # Execute the command and capture output
+  system_output = system(command_tippecanoe, intern = TRUE)
+  cat("Tippecanoe output for group", number, ":\n", system_output, "\n")
+}
+
 
 # Combine regional outputs ---------------------------------------------------
 output_folders = list.dirs(output_folder)[-1]

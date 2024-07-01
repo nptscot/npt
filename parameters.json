@@ -8,6 +8,6 @@
   "disag_threshold": [100],
   "min_distance_meters": [500],
   "region_buffer_distance_meters": [5000],
-  "region": ["Tayside, Central and Fife"],
+  "region": ["Scotland South"],
   "coherent_percentile": [0.94]
 }
