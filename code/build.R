@@ -252,8 +252,8 @@ sf::st_geometry(open_roads_scotland) = "geometry"
 num_cores = min(parallel::detectCores() - 1, 10)
 registerDoParallel(num_cores)
 # Generate the coherent network for the region
-# foreach(region = region_names[1]) %dopar% {
-for (region in region_names) {
+foreach(region = region_names) %dopar% {
+# for (region in region_names) {
   message("Processing coherent network for region: ", region)
   region_snake = snakecase::to_snake_case(region)
   coherent_area = cities_region_names[[region]]
