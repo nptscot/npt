@@ -253,8 +253,8 @@ sf::st_geometry(open_roads_scotland) = "geometry"
 num_cores = min(parallel::detectCores() - 1, 10)
 registerDoParallel(num_cores)
 # Generate the coherent network for the region
-foreach(region = region_names) %dopar% {
-# for (region in region_names) {
+# foreach(region = region_names) %dopar% {
+for (region in region_names) {
   message("Processing coherent network for region: ", region)
   region_snake = snakecase::to_snake_case(region)
   coherent_area = cities_region_names[[region]]
@@ -307,7 +307,7 @@ foreach(region = region_names) %dopar% {
         grouped_network = grouped_network |>
           dplyr::rename(all_fastest_bicycle_go_dutch = mean_potential)
 
-        grouped_network = sf:::bind_sf(list(grouped_network |> select(geometry) |> st_transform(27700), orcp_city_boundary |> select(geometry))) |> st_transform(4326)
+        grouped_network = rbind(grouped_network |> select(geometry) |> st_transform(27700), orcp_city_boundary |> select(geometry)) |> st_transform(4326)
 
         # Use city name in the filename
         corenet::create_coherent_network_PMtiles(folder_path = folder_path, city_filename = glue::glue("{city_filename}_{date_folder}"), cohesive_network = grouped_network)
@@ -332,7 +332,7 @@ foreach(region = region_names) %dopar% {
 
         
         if (min_value > 50) {
-          step_size = (max_value - min_value) / 10
+          step_size = (max_value - min_value) / 2
           step_size = -abs(step_size)
           thresholds = round(seq(max_value, min_value, by = step_size))
 
@@ -378,8 +378,9 @@ foreach(region = region_names) %dopar% {
 }
 
 # Generate the links coherent network for the LAs
-foreach(region = region_names) %dopar% {
-  message("Processing coherent network for region: ", region)
+# foreach(region = region_names) %dopar% {
+for (region in region_names) {
+  message("Processing coherent network links for region: ", region)
   region_snake = snakecase::to_snake_case(region)
 
   cnet_path = file.path(output_folder, region_snake, "combined_network_tile.geojson")
@@ -439,7 +440,7 @@ foreach(region = region_names) %dopar% {
 }
 
 # Combine all cohesive networks (CN) into a single file
-no_lists <- c(1,2,3,4,5,6,7,8,9,10,11)
+no_lists = c(1,2,3,4,5,6,7,8,9,10,11)
 
 all_CN_geojson = list()
 all_CN_geojson_groups = list()
@@ -495,14 +496,18 @@ for (number in names(all_CN_geojson_groups)) {
   lapply(all_CN_geojson_groups[[number]], function(x) cat(x$file, "\n"))
 
 }
-
+length(all_CN_geojson)
 # Combine all GeoJSON data into one sf object
+all_CN_geojson = lapply(all_CN_geojson, function(x) {
+  # Ensure only geometry data is kept
+  x[, "geometry", drop = FALSE]  # drop = FALSE to ensure it returns an sf object
+})
 combined_CN_geojson = do.call(rbind, all_CN_geojson)
 
 # Write the combined GeoJSON to a file
 combined_CN_file = glue::glue("{output_folder}/combined_CN.geojson")
-sf::st_write(combined_CN_geojson, output_file)
-cat("Combined cohesive networks GeoJSON file has been saved to:", output_file)
+sf::st_write(combined_CN_geojson, combined_CN_file)
+cat("Combined cohesive networks GeoJSON file has been saved to:", output_folder)
 
 # create PMtiles for the combined CN
 combined_CN_pmtiles = glue::glue("{output_folder}/combined_CN.pmtiles") 
