@@ -31,7 +31,7 @@ region_names_lowercase = snakecase::to_snake_case(region_names)
 
 # Build route networks:
 region = region_names[1]
-for (region in region_names) {
+for (region in region_names[2:6]) {
   message("Processing region: ", region)
   parameters$region = region
   jsonlite::write_json(parameters, "parameters.json", pretty = TRUE)
@@ -441,7 +441,7 @@ for (region in region_names) {
 
 # Combine all cohesive networks (CN) into a single file
 no_lists = c(1,2,3,4,5,6,7,8,9,10,11)
-
+no_lists = c(1,2,3)
 all_CN_geojson = list()
 all_CN_geojson_groups = list()
 
@@ -494,9 +494,8 @@ for (folder in subfolders) {
 for (number in names(all_CN_geojson_groups)) {
   cat("Group", number, "contains the following files:\n")
   lapply(all_CN_geojson_groups[[number]], function(x) cat(x$file, "\n"))
-
 }
-length(all_CN_geojson)
+
 # Combine all GeoJSON data into one sf object
 all_CN_geojson = lapply(all_CN_geojson, function(x) {
   # Ensure only geometry data is kept
@@ -505,13 +504,12 @@ all_CN_geojson = lapply(all_CN_geojson, function(x) {
 combined_CN_geojson = do.call(rbind, all_CN_geojson)
 
 # Write the combined GeoJSON to a file
-combined_CN_file = glue::glue("{output_folder}/combined_CN.geojson")
+combined_CN_file = glue::glue("{output_folder}/combined_CN_", length(no_lists) + 1, ".geojson")
 sf::st_write(combined_CN_geojson, combined_CN_file)
-cat("Combined cohesive networks GeoJSON file has been saved to:", output_folder)
+cat("Combined cohesive networks GeoJSON file has been saved to:", combined_CN_file)
 
 # create PMtiles for the combined CN
-combined_CN_pmtiles = glue::glue("{output_folder}/combined_CN.pmtiles") 
-
+combined_CN_pmtiles = glue::glue("{output_folder}/combined_CN_", length(no_lists) + 1, ".pmtiles")
 # Construct the Tippecanoe command
 command_tippecanoe = paste0(
   'tippecanoe -o ', combined_CN_pmtiles,
@@ -567,6 +565,13 @@ for (number in names(all_CN_geojson_groups)) {
   cat("Tippecanoe output for group", number, ":\n", system_output, "\n")
 }
 
+# regain npt data for CN
+CN = sf::st_read("outputdata/2024-06-01/combined_CN.geojson") |> sf::st_transform(27700) 
+NPT = sf::st_read("outputdata/2024-06-01/edinburgh_and_lothians/combined_network_tile.geojson")|> sf::st_transform(27700) |> sf::st_transform(27700) 
+
+funs <- list(all_fastest_bicycle_go_dutch = sum)
+
+CN_NPT = stplanr::rnet_merge(CN, NPT, dist = 10, funs =  funs, max_angle_diff = 10)
 
 # Combine regional outputs ---------------------------------------------------
 output_folders = list.dirs(output_folder)[-1]
