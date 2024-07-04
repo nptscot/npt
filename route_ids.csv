@@ -1,4 +1,19 @@
 nrow,plan,purpose,region,date,id
+111294,quietest,utility,Edinburgh and Lothians,2024-07-02,10445
+111294,fastest,utility,Edinburgh and Lothians,2024-07-02,10444
+90716,ebike,commute,Edinburgh and Lothians,2024-07-02,10442
+90716,quietest,commute,Edinburgh and Lothians,2024-07-02,10440
+90716,fastest,commute,Edinburgh and Lothians,2024-07-02,10439
+9425,ebike,school,Edinburgh and Lothians,2024-07-02,10438
+9425,quietest,school,Edinburgh and Lothians,2024-07-02,10436
+9425,fastest,school,Edinburgh and Lothians,2024-07-02,10434
+50769,ebike,utility,"Tayside, Central and Fife",2024-07-02,10433
+50769,quietest,utility,"Tayside, Central and Fife",2024-07-02,10431
+9458,fastest,utility,Scotland South,2024-07-02,10429
+93499,ebike,utility,Glasgow and Strathclyde,2024-07-02,10171
+93499,quietest,utility,Glasgow and Strathclyde,2024-07-02,10170
+93499,balanced,utility,Glasgow and Strathclyde,2024-07-02,10418
+93499,fastest,utility,Glasgow and Strathclyde,2024-07-02,10420
 9458,ebike,utility,Scotland South,2024-07-02,10404
 9458,quietest,utility,Scotland South,2024-07-02,10403
 9458,balanced,utility,Scotland South,2024-07-02,10400
