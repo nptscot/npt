@@ -46,6 +46,7 @@ make_od = function(oas, os_pois, grid, purpose, trip_purposes, zones, parameters
     dplyr::summarise(size = sum(poi_weights))
   p_grid = inner_join(grid, os_pois_aggregated)
   p_grid = sf::st_transform(p_grid, 4326)
+  os_pois = sf::st_transform(os_pois, 4326)
 
   # Calculate number of trips / number of cyclists
   proportion_all_distances = trip_purposes |>
@@ -214,7 +215,7 @@ poi_weights = function(pois) {
   pois = pois |> 
     mutate(
       poi_weights = case_when(
-        classname == "Shopping Centres and Retail Parks" ~ 10,
+        classname == "Department Stores" ~ 5,
         classname == "Supermarket Chains" ~ 5,
         classname == "Convenience Stores and Independent Supermarkets" ~ 3,
         classname == "Swimming Pools" ~ 5,

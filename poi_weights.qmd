@@ -1,0 +1,80 @@
+---
+title: "POI weights"
+format: gfm
+---
+
+```{r setup, include=FALSE}
+library(tidyverse)
+library(sf)
+library(tmap)
+tmap_mode("view")
+library(targets)
+
+tar_source()
+tar_load(os_pois)
+tar_load(grid)
+```
+
+We are using Points of Interest (POIs) from Ordnance Survey covering a range of retail and leisure destinations.
+
+Some of these places will merit more trips than others, so we have given weights to these POIs. 
+
+```{r}
+p_mini = slice_sample(os_pois, n  = 1000)
+tm_shape(p_mini) + tm_dots()
+
+
+groupname = "Retail"
+if (purpose == "leisure") {
+  groupname = "Sport and Entertainment"
+}
+os_pois = os_pois |>
+  dplyr::filter(groupname == groupname)
+os_pois = os_pois |>
+  sf::st_transform(sf::st_crs(grid))
+purpose_nts = "Shopping"
+
+if (purpose == "leisure") {
+  purpose_nts = "Sport/Entertainment"
+  # add in park points
+  parks = make_parks(grid$geometry)
+  os_pois = bind_rows(
+    os_pois |> transmute(
+      ref_no = as.character(ref_no),
+      classname = classname
+    ),
+    parks |> transmute(
+      ref_no = as.character(id),
+      classname = "Parks"
+    )
+  )
+}
+if (purpose == "visiting") {
+  purpose_nts = "Visiting friends or relatives"
+}
+
+os_pois = sf::st_join(os_pois, grid, join = sf::st_nearest_feature)
+
+# calculate weighting of each grid point  
+os_pois = poi_weights(pois = os_pois)
+os_pois_aggregated = os_pois |>
+  sf::st_drop_geometry() |>
+  dplyr::group_by(grid_id) |>
+  dplyr::summarise(size = sum(poi_weights))
+p_grid = inner_join(grid, os_pois_aggregated)
+p_grid = sf::st_transform(p_grid, 4326)
+
+os_pois = sf::st_transform(os_pois, 4326)
+
+edinburgh_central = zonebuilder::zb_zone("Edinburgh", n_circles = 2)
+
+# g_edin = p_grid[edinburgh_central, ]
+# tm_shape(g_edin) + tm_dots(size = 0.5)
+
+p_edin = os_pois[edinburgh_central, ]
+tm_shape(p_edin 
+         |> filter(poi_weights > 1)
+         ) + tm_dots("classname", size = 0.5)
+```
+
+
