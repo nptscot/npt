@@ -31,7 +31,7 @@ region_names_lowercase = snakecase::to_snake_case(region_names)
 
 # Build route networks:
 region = region_names[1]
-for (region in region_names[2:6]) {
+for (region in region_names[3:6]) {
   message("Processing region: ", region)
   parameters$region = region
   jsonlite::write_json(parameters, "parameters.json", pretty = TRUE)
@@ -302,12 +302,20 @@ for (region in region_names) {
         source("R/get_orcp_cn.R")
         orcp_city_boundary = orcp_network(area = city_boundary, NPT_zones = combined_net_city_boundary, percentile_value = 0.8)
 
+        # Identify common columns
+        common_columns = intersect(names(cohesive_network_city_boundary), names(orcp_city_boundary))
+
+        # Subset both data frames to common columns
+        cohesive_network_filtered = cohesive_network_city_boundary[common_columns]
+        orcp_city_boundary_filtered = orcp_city_boundary[common_columns]
+
+        # Bind the rows
+        grouped_network = rbind(cohesive_network_filtered, orcp_city_boundary_filtered)
+
         grouped_network = corenet::coherent_network_group(cohesive_network_city_boundary, key_attribute = "all_fastest_bicycle_go_dutch")
         # rename mean_potential in grouped_network as all_fastest_bicycle_go_dutch
         grouped_network = grouped_network |>
           dplyr::rename(all_fastest_bicycle_go_dutch = mean_potential)
-
-        grouped_network = rbind(grouped_network |> select(geometry) |> st_transform(27700), orcp_city_boundary |> select(geometry)) |> st_transform(4326)
 
         # Use city name in the filename
         corenet::create_coherent_network_PMtiles(folder_path = folder_path, city_filename = glue::glue("{city_filename}_{date_folder}"), cohesive_network = grouped_network)
@@ -440,7 +448,6 @@ for (region in region_names) {
 }
 
 # Combine all cohesive networks (CN) into a single file
-no_lists = c(1,2,3,4,5,6,7,8,9,10,11)
 no_lists = c(1,2,3)
 all_CN_geojson = list()
 all_CN_geojson_groups = list()
@@ -496,11 +503,14 @@ for (number in names(all_CN_geojson_groups)) {
   lapply(all_CN_geojson_groups[[number]], function(x) cat(x$file, "\n"))
 }
 
-# Combine all GeoJSON data into one sf object
-all_CN_geojson = lapply(all_CN_geojson, function(x) {
-  # Ensure only geometry data is kept
-  x[, "geometry", drop = FALSE]  # drop = FALSE to ensure it returns an sf object
+# Identify common columns across all data frames in the list
+common_columns <- Reduce(intersect, lapply(all_CN_geojson, names))
+
+# Modify the list to keep only these common columns
+all_CN_geojson <- lapply(all_CN_geojson, function(x) {
+  x[, common_columns, drop = FALSE]  # Ensure only common columns are kept
 })
+
 combined_CN_geojson = do.call(rbind, all_CN_geojson)
 
 # Write the combined GeoJSON to a file
@@ -565,13 +575,41 @@ for (number in names(all_CN_geojson_groups)) {
   cat("Tippecanoe output for group", number, ":\n", system_output, "\n")
 }
 
-# regain npt data for CN
-CN = sf::st_read("outputdata/2024-06-01/combined_CN.geojson") |> sf::st_transform(27700) 
-NPT = sf::st_read("outputdata/2024-06-01/edinburgh_and_lothians/combined_network_tile.geojson")|> sf::st_transform(27700) |> sf::st_transform(27700) 
+# Iterate over each group to process and save the data
+for (number in names(all_CN_geojson_groups)) {
+  # Combine all GeoJSON data into one sf object for the current number group
+  combined_CN_geojson = do.call(rbind, lapply(all_CN_geojson_groups[[number]], function(x) x$data))
 
-funs <- list(all_fastest_bicycle_go_dutch = sum)
+  # Define the file path for the combined GeoJSON
+  combined_CN_file = glue::glue("{output_folder}/combined_CN_{number}.geojson")
+  
+  # Write the combined GeoJSON to a file
+  sf::st_write(combined_CN_geojson, combined_CN_file)
+  cat("Combined cohesive networks GeoJSON file for group", number, "has been saved to:", combined_CN_file, "\n")
 
-CN_NPT = stplanr::rnet_merge(CN, NPT, dist = 10, funs =  funs, max_angle_diff = 10)
+  # Define the path for the PMtiles
+  combined_CN_pmtiles = glue::glue("{output_folder}/combined_CN_{number}.pmtiles")
+  
+  # Construct the Tippecanoe command for the current group
+  command_tippecanoe = paste0(
+    'tippecanoe -o ', combined_CN_pmtiles,
+    ' --name="', 'Scottish_Coherent_Networks_', number, '"',
+    ' --layer=coherent_networks',
+    ' --attribution="University of Leeds"',
+    ' --minimum-zoom=6',
+    ' --maximum-zoom=13',
+    ' --maximum-tile-bytes=5000000',
+    ' --simplification=10',
+    ' --buffer=5',
+    ' -rg',
+    ' --force ',
+    combined_CN_file
+  )
+
+  # Execute the command and capture output
+  system_output = system(command_tippecanoe, intern = TRUE)
+  cat("Tippecanoe output for group", number, ":\n", system_output, "\n")
+}
 
 # Combine regional outputs ---------------------------------------------------
 output_folders = list.dirs(output_folder)[-1]
