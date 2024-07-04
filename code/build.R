@@ -96,16 +96,17 @@ for (region in region_names) {
     cycle_net = osmactive::clean_speeds(cycle_net)
     
     drive_net = osmactive::estimate_traffic(drive_net)
-    cycle_net = osmactive::estimate_traffic(cycle_net)
+    cycle_net = osmactive::estimate_traffic(cycle_net) |> 
+      rename(assumed_traffic_cyclenet = assumed_volume)
     
     # See https://github.com/acteng/network-join-demos
     cycle_net_joined_polygons = stplanr::rnet_join(
       rnet_x = cycle_net,
       rnet_y = drive_net |>
         transmute(
-          maxspeed_road = maxspeed_clean,
-          highway_join = highway,
-          assumed_volume_cycle = assumed_volume
+          maxspeed_drivenet = maxspeed_clean,
+          highway_drivenet = highway,
+          assumed_traffic_drivenet = assumed_volume
         ) |>
         sf::st_cast(to = "LINESTRING"),
       dist = 20,
@@ -117,13 +118,13 @@ for (region in region_names) {
       sf::st_drop_geometry() |>
       group_by(osm_id) |>
       summarise(
-        maxspeed_road = osmactive:::most_common_value(maxspeed_road),
-        highway_join = osmactive:::most_common_value(highway_join),
-        assumed_volume_cycle = osmactive:::most_common_value(assumed_volume_cycle)
+        maxspeed_drivenet = osmactive:::most_common_value(maxspeed_drivenet),
+        highway_drivenet = osmactive:::most_common_value(highway_drivenet),
+        assumed_traffic_drivenet = osmactive:::most_common_value(assumed_traffic_drivenet)
       ) |>
       mutate(
-        maxspeed_road = as.numeric(maxspeed_road),
-        assumed_volume_cycle = as.numeric(assumed_volume_cycle)
+        maxspeed_drivenet = as.numeric(maxspeed_drivenet),
+        assumed_traffic_drivenet = as.numeric(assumed_traffic_drivenet)
       )
     
     # join back onto cycle_net
@@ -136,11 +137,11 @@ for (region in region_names) {
       mutate(
         final_speed = case_when(
           !is.na(maxspeed_clean) ~ maxspeed_clean,
-          TRUE ~ maxspeed_road
+          TRUE ~ maxspeed_drivenet
         ),
-        final_volume = case_when(
-          !is.na(assumed_volume) ~ assumed_volume,
-          TRUE ~ assumed_volume_cycle
+        assumed_traffic = case_when(
+          !is.na(assumed_traffic_cyclenet) ~ assumed_traffic_cyclenet,
+          TRUE ~ assumed_traffic_drivenet
         )
       )
     
@@ -176,9 +177,9 @@ for (region in region_names) {
       mutate(
         final_traffic = case_when(
           detailed_segregation == "Cycle track" ~ 0,
-          highway %in% c("residential", "service") & road_classification %in% c("A Road", "B Road", "Classified Unnumbered") & pred_flows >= 4000 ~ final_volume,
+          highway %in% c("residential", "service") & road_classification %in% c("A Road", "B Road", "Classified Unnumbered") & pred_flows >= 4000 ~ assumed_traffic,
           !is.na(pred_flows) ~ pred_flows,
-          TRUE ~ final_volume
+          TRUE ~ assumed_traffic
         )
       )
 
