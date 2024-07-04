@@ -1,4 +1,24 @@
 nrow,plan,purpose,region,date,id
+20925,ebike,utility,Aberdeen and North East,2024-07-02,10470
+20925,quietest,utility,Aberdeen and North East,2024-07-02,10469
+20925,fastest,utility,Aberdeen and North East,2024-07-02,10468
+32967,ebike,commute,Aberdeen and North East,2024-07-02,10466
+32967,quietest,commute,Aberdeen and North East,2024-07-02,10464
+32967,fastest,commute,Aberdeen and North East,2024-07-02,10463
+4525,ebike,school,Aberdeen and North East,2024-07-02,10462
+4525,quietest,school,Aberdeen and North East,2024-07-02,10460
+4525,fastest,school,Aberdeen and North East,2024-07-02,10459
+14685,ebike,utility,Highlands and Islands,2024-07-02,10458
+14685,quietest,utility,Highlands and Islands,2024-07-02,10457
+14685,balanced,utility,Highlands and Islands,2024-07-02,10455
+7976,ebike,commute,Highlands and Islands,2024-07-02,10454
+7976,quietest,commute,Highlands and Islands,2024-07-02,10452
+7976,fastest,commute,Highlands and Islands,2024-07-02,10451
+3228,ebike,school,Highlands and Islands,2024-07-02,10450
+3228,balanced,school,Highlands and Islands,2024-07-02,10449
+3228,quietest,school,Highlands and Islands,2024-07-02,10448
+3228,fastest,school,Highlands and Islands,2024-07-02,10447
+111294,ebike,utility,Edinburgh and Lothians,2024-07-02,10446
 111294,quietest,utility,Edinburgh and Lothians,2024-07-02,10445
 111294,fastest,utility,Edinburgh and Lothians,2024-07-02,10444
 90716,ebike,commute,Edinburgh and Lothians,2024-07-02,10442
