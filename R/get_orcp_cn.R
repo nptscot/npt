@@ -87,7 +87,7 @@ orcp_network = function(area, NPT_zones, length_threshold = 1, percentile_value 
     } else if (name %in% c("gradient", "quietness")) {
         funs[[name]] = mean  # Assign mean function for specified fields
     } else {
-        funs[[name]] = mean  # Assign sum function for all other fields
+        funs[[name]] = sum  # Assign sum function for all other fields
     }
     }
 
@@ -104,5 +104,8 @@ orcp_network = function(area, NPT_zones, length_threshold = 1, percentile_value 
     
     summarized_data = summarized_data |> dplyr::filter(total_all_fastest_bicycle_go_dutch > min_percentile_value)
 
-    return(summarized_data)
+    cycle_net_NPT_filtered <- cycle_net_NPT %>%
+    filter(st_intersects(geometry, summarized_data$geometry, sparse = FALSE) %>% apply(1, any))
+
+    return(cycle_net_NPT_filtered)
 }
