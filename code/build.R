@@ -31,7 +31,7 @@ region_names_lowercase = snakecase::to_snake_case(region_names)
 
 # Build route networks:
 region = region_names[1]
-for (region in region_names[2:6]) {
+for (region in region_names) {
   message("Processing region: ", region)
   parameters$region = region
   jsonlite::write_json(parameters, "parameters.json", pretty = TRUE)
@@ -62,6 +62,7 @@ osm_national = get_travel_network("Scotland")
 osm_centroids = osm_national |> 
   sf::st_point_on_surface() |> 
   select(osm_id)
+
 
 # Run for each region
 # Set the number of cores to use
