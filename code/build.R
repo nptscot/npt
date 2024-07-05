@@ -887,8 +887,8 @@ if (full_build) {
   # Or latest release:
   setwd(output_folder)
   system("gh release list")
-  v = "v2024-07-01"
-  f = list.files(path = date_folder, pattern = "pmtiles|gpkg|zip")
+  v = "v2024-07-01-test" # TODO: remove the test part to release final version
+  f = list.files(path = date_folder, pattern = "pmtiles|gpkg|zip", full.names = TRUE)
   f
   # Piggyback fails with error message so commented and using cust
   # piggyback::pb_upload(f)
@@ -901,7 +901,7 @@ if (full_build) {
   for (i in f) {
     gh_release_upload(file = i, tag = v)
     # Move into a new directory
-    file.copy(from = i, to = file.path(v, i))
+    file.copy(from = i, to = file.path(v, basename(i)))
   }
   message("Files stored in output folder: ", v)
   message("Which contains: ", paste0(list.files(v), collapse = ", "))
