@@ -449,7 +449,7 @@ for (region in region_names) {
 }
 
 # Combine all cohesive networks (CN) into a single file
-no_lists = c(1,2,3)
+no_lists = 1:6
 all_CN_geojson = list()
 all_CN_geojson_groups = list()
 
@@ -513,6 +513,8 @@ all_CN_geojson <- lapply(all_CN_geojson, function(x) {
 })
 
 combined_CN_geojson = do.call(rbind, all_CN_geojson)
+# combined_CN = stplanr:::bind_sf(all_CN_geojson)
+plot(combined_CN_geojson$geometry)
 
 # Write the combined GeoJSON to a file
 combined_CN_file = glue::glue("{output_folder}/combined_CN_", length(no_lists) + 1, ".geojson")
@@ -835,8 +837,6 @@ tippecanoe_join = paste("tile-join -o dasymetric.pmtiles -pk --force",
   collapse = " "
 )
 
-
-
 if (.Platform$OS.type == "unix") {
   command_cd = "cd outputdata"
   command_all = paste(c(
@@ -880,9 +880,8 @@ if (full_build) {
   # Or latest release:
   setwd("outputdata")
   system("gh release list")
-  v = "v2024-05-23"
-  # f = list.files(path = ".", pattern = "Rds|zip|pmtiles|.json")
-  f = list.files(path = ".", pattern = "rnet_*.+2024-05-23")
+  v = "v2024-07-01"
+  f = list.files(path = date_folder, pattern = "pmtiles|gpkg|zip")
   f
   # Piggyback fails with error message so commented and using cust
   # piggyback::pb_upload(f)
