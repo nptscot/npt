@@ -210,7 +210,7 @@ for (region in region_names) {
 cbd_files = list.files(output_folder, pattern = "cbd_layer_.*\\.geojson$", full.names = TRUE)
 cbd_layers = lapply(cbd_files, sf::read_sf)
 cbd_layer = do.call(rbind, cbd_layers)
-cbd_filename = paste0(output_folder, "/cbd_layer_", ".geojson")
+cbd_filename = paste0(output_folder, "/cbd_layer_", date_folder, ".geojson")
 sf::write_sf(cbd_layer, cbd_filename, delete_dsn = TRUE)
 fs::file_size(cbd_filename)
 
@@ -226,26 +226,16 @@ pmtiles_msg = paste(
   "--maximum-tile-bytes=5000000",
   "--simplification=10",
   "--buffer=5",
-  glue::glue("--force  {output_folder}/{cbd_filename}"),
+  glue::glue("--force  {cbd_filename}"),
   collapse = " "
 )
 system(pmtiles_msg)
-# Rename and upload:
-file.rename(
-  glue::glue("cbd_layer_{date_folder}.pmtiles"),
-  glue::glue("{output_folder}/cbd_layer_{date_folder}.pmtiles")
-)
-file.rename("cbd_layer.geojson", "{output_folder}/cbd_layer.geojson")
-setwd("{output_folder}")
-system("gh release list")
-system(glue::glue("gh release upload {date_folder} cbd_layer_{date_folder}.pmtiles"))
-setwd("..")
-
 
 # Generate coherent network ---------------------------------------------------
 
 # Read the open roads data outside the loop for only once
 # Define the path to the file
+
 file_path = "inputdata/open_roads_scotland.gpkg"
 if (!file.exists(file_path)) {
   setwd("inputdata")
@@ -255,11 +245,11 @@ if (!file.exists(file_path)) {
 open_roads_scotland = sf::read_sf(file_path)
 sf::st_geometry(open_roads_scotland) = "geometry"
 
-num_cores = min(parallel::detectCores() - 1, 10)
-registerDoParallel(num_cores)
+# num_cores = min(parallel::detectCores() - 1, 10)
+# registerDoParallel(num_cores)
 # Generate the coherent network for the region
 # foreach(region = region_names) %dopar% {
-for (region in region_names[4]) {
+for (region in region_names) {
   message("Processing coherent network for region: ", region)
   region_snake = snakecase::to_snake_case(region)
   coherent_area = cities_region_names[[region]]
@@ -306,9 +296,8 @@ for (region in region_names[4]) {
         message("Generating Off Road Cycle Path network for: ", city)
         source("R/get_orcp_cn.R")
         
-        zone = zonebuilder::zb_zone(city, n_circles = 3) |> sf::st_transform(crs = 27700)
-
-        orcp_city_boundary = orcp_network(area = zone, NPT_zones = combined_net_city_boundary, percentile_value = 0.8)
+        orcp_city_boundary = orcp_network(area = city_boundary, NPT_zones = combined_net_city_boundary, percentile_value = 0.6)
+        # orcp_city_boundary_zone = orcp_city_boundary[sf::st_union(zonebuilder::zb_zone(city, n_circles = 3)) |> sf::st_transform(27700), , op = sf::st_intersects]
 
         # Identify common columns
         common_columns = intersect(names(cohesive_network_city_boundary), names(orcp_city_boundary))
@@ -375,7 +364,7 @@ for (region in region_names[4]) {
             cn = CN_networks[[i]]
             threshold = thresholds[i]  # Access the corresponding threshold for each network
             grouped_network = corenet::coherent_network_group(cn, key_attribute = "all_fastest_bicycle_go_dutch")
-            grouped_network = grouped_network %>% dplyr::rename(all_fastest_bicycle_go_dutch = mean_potential)
+            grouped_network = grouped_network |> dplyr::rename(all_fastest_bicycle_go_dutch = mean_potential)
 
             # Use city name and threshold in the filename, using the correct threshold
             city_filename = glue::glue("{snakecase::to_snake_case(city)}_{date_folder}_{i}")
@@ -512,10 +501,10 @@ for (number in names(all_CN_geojson_groups)) {
 }
 
 # Identify common columns across all data frames in the list
-common_columns <- Reduce(intersect, lapply(all_CN_geojson, names))
+common_columns = Reduce(intersect, lapply(all_CN_geojson, names))
 
 # Modify the list to keep only these common columns
-all_CN_geojson <- lapply(all_CN_geojson, function(x) {
+all_CN_geojson = lapply(all_CN_geojson, function(x) {
   x[, common_columns, drop = FALSE]  # Ensure only common columns are kept
 })
 
@@ -887,8 +876,8 @@ if (full_build) {
   # Or latest release:
   setwd(output_folder)
   system("gh release list")
-  v = "v2024-07-01-test" # TODO: remove the test part to release final version
-  f = list.files(path = date_folder, pattern = "pmtiles|gpkg|zip", full.names = TRUE)
+  v = "v2024-07-01"
+  f = list.files(path = date_folder, pattern = "pmtiles|gpkg|zip")
   f
   # Piggyback fails with error message so commented and using cust
   # piggyback::pb_upload(f)
@@ -901,7 +890,7 @@ if (full_build) {
   for (i in f) {
     gh_release_upload(file = i, tag = v)
     # Move into a new directory
-    file.copy(from = i, to = file.path(v, basename(i)))
+    file.copy(from = i, to = file.path(v, i))
   }
   message("Files stored in output folder: ", v)
   message("Which contains: ", paste0(list.files(v), collapse = ", "))
