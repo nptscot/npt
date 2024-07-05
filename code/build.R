@@ -69,9 +69,8 @@ osm_centroids = osm_national |>
 num_cores = min(parallel::detectCores() - 1, 10)
 registerDoParallel(num_cores)
 region = region_names[1]
-cbd_filename = glue::glue("cbd_layer_{date_folder}.geojson")
-# Delete the file if it already exists:
-file.remove(cbd_filename)
+cbd_filename = glue::glue(output_folder, "/cbd_layer_{date_folder}.geojson")
+
 for (region in region_names) {
 # foreach(region = region_names) %dopar% {
   message("Processing region: ", region)
@@ -201,18 +200,23 @@ for (region in region_names) {
     # save file for individual district
     district_name = district_geom$LAD23NM |> 
       snakecase::to_snake_case()
-    filename_d = paste0("cbd_layer_", district_name, ".geojson")
-    # sf::write_sf(cbd_layer, filename_d, delete_dsn = TRUE)
-    
-    # Append to the national file:
+    cbd_filename = paste0(output_folder, "/cbd_layer_", district_name, ".geojson")
+
     sf::write_sf(cbd_layer, cbd_filename, delete_dsn = FALSE)
   }
 }
+
+# Combine all CBD files into a single file
+cbd_files = list.files(output_folder, pattern = "cbd_layer_.*\\.geojson$", full.names = TRUE)
+cbd_layers = lapply(cbd_files, sf::read_sf)
+cbd_layer = do.call(rbind, cbd_layers)
+cbd_filename = paste0(output_folder, "/cbd_layer_", ".geojson")
+sf::write_sf(cbd_layer, cbd_filename, delete_dsn = TRUE)
 fs::file_size(cbd_filename)
 
 # PMTiles:
 pmtiles_msg = paste(
-  glue::glue("tippecanoe -o cbd_layer_{date_folder}.pmtiles"),
+  glue::glue("tippecanoe -o {output_folder}/cbd_layer_{date_folder}.pmtiles"),
   "--name=cbd_layer",
   "--layer=cbd_layer",
   "--attribution=UniversityofLeeds",
@@ -222,17 +226,17 @@ pmtiles_msg = paste(
   "--maximum-tile-bytes=5000000",
   "--simplification=10",
   "--buffer=5",
-  glue::glue("--force  {cbd_filename}"),
+  glue::glue("--force  {output_folder}/{cbd_filename}"),
   collapse = " "
 )
 system(pmtiles_msg)
 # Rename and upload:
 file.rename(
   glue::glue("cbd_layer_{date_folder}.pmtiles"),
-  glue::glue("outputdata/cbd_layer_{date_folder}.pmtiles")
+  glue::glue("{output_folder}/cbd_layer_{date_folder}.pmtiles")
 )
-file.rename("cbd_layer.geojson", "outputdata/cbd_layer.geojson")
-setwd("outputdata")
+file.rename("cbd_layer.geojson", "{output_folder}/cbd_layer.geojson")
+setwd("{output_folder}")
 system("gh release list")
 system(glue::glue("gh release upload {date_folder} cbd_layer_{date_folder}.pmtiles"))
 setwd("..")
@@ -255,7 +259,7 @@ num_cores = min(parallel::detectCores() - 1, 10)
 registerDoParallel(num_cores)
 # Generate the coherent network for the region
 # foreach(region = region_names) %dopar% {
-for (region in region_names) {
+for (region in region_names[4]) {
   message("Processing coherent network for region: ", region)
   region_snake = snakecase::to_snake_case(region)
   coherent_area = cities_region_names[[region]]
@@ -301,7 +305,10 @@ for (region in region_names) {
 
         message("Generating Off Road Cycle Path network for: ", city)
         source("R/get_orcp_cn.R")
-        orcp_city_boundary = orcp_network(area = city_boundary, NPT_zones = combined_net_city_boundary, percentile_value = 0.8)
+        
+        zone = zonebuilder::zb_zone(city, n_circles = 3) |> sf::st_transform(crs = 27700)
+
+        orcp_city_boundary = orcp_network(area = zone, NPT_zones = combined_net_city_boundary, percentile_value = 0.8)
 
         # Identify common columns
         common_columns = intersect(names(cohesive_network_city_boundary), names(orcp_city_boundary))
@@ -449,7 +456,7 @@ for (region in region_names) {
 }
 
 # Combine all cohesive networks (CN) into a single file
-no_lists = 1:6
+no_lists = 1:3
 all_CN_geojson = list()
 all_CN_geojson_groups = list()
 
@@ -635,7 +642,7 @@ combined_network |>
   sf::st_geometry() |>
   plot()
 dim(combined_network) # ~700k rows for full build, 33 columns
-sf::write_sf(combined_network, file.path("outputdata", "combined_network_tile.geojson"), delete_dsn = TRUE)
+sf::write_sf(combined_network, file.path(output_folder, "combined_network_tile.geojson"), delete_dsn = TRUE)
 
 # Same for simplified_network.geojson:
 simplified_network_list = lapply(output_folders, function(folder) {
@@ -646,7 +653,7 @@ simplified_network_list = lapply(output_folders, function(folder) {
 })
 simplified_network = dplyr::bind_rows(simplified_network_list)
 dim(simplified_network) # ~400k rows for full build, 33 columns
-sf::write_sf(simplified_network, file.path("outputdata", "simplified_network.geojson"), delete_dsn = TRUE)
+sf::write_sf(simplified_network, file.path(output_folder, "simplified_network.geojson"), delete_dsn = TRUE)
 
 
 # Combine zones data:
@@ -685,31 +692,31 @@ responce = system(command_tippecanoe, intern = TRUE)
 
 # Same for school_locations.geojson
 
-school_locations_file = "outputdata/school_locations.geojson"
+school_locations_file = glue::glue("{output_folder}/school_locations.geojson")
 if (file.exists(school_locations_file)) {
   school_locations = sf::read_sf(school_locations_file)
 }
 
 # Export SchoolStats:
 
-school_stats_file = "outputdata/school_stats.Rds"
+school_stats_file = glue::glue("{output_folder}/school_stats.Rds")
 if (file.exists(school_stats_file)) {
   school_stats = readRDS(school_stats_file)
 }
 
-export_zone_json(school_stats, "SeedCode", path = "outputdata")
+export_zone_json(school_stats, "SeedCode", path = output_folder)
 
 # Same for zones_stats.Rds
 
-zones_stats_file = "outputdata/zones_stats.Rds"
+zones_stats_file = glue::glue("{output_folder}/zones_stats.Rds")
 if (file.exists(zones_stats_file)) {
   zones_stats = readRDS(zones_stats_file)
 }
 
-export_zone_json(zones_stats, "DataZone", path = "outputdata")
+export_zone_json(zones_stats, "DataZone", path = output_folder)
 
 # Combined network tiling
-setwd("outputdata")
+setwd(output_folder)
 # Check the combined_network_tile.geojson file is there:
 file.exists("combined_network_tile.geojson")
 command_tippecanoe = paste(
@@ -763,10 +770,10 @@ b_verylow = dplyr::left_join(b_verylow, zones, by = c("geo_code" = "DataZone"))
 b_low = dplyr::left_join(b_low, zones, by = c("geo_code" = "DataZone"))
 b_med = dplyr::left_join(b_med, zones, by = c("geo_code" = "DataZone"))
 b_high = dplyr::left_join(b_high, zones, by = c("geo_code" = "DataZone"))
-make_geojson_zones(b_verylow, file.path("outputdata", "dasymetric_verylow.geojson"))
-make_geojson_zones(b_low, file.path("outputdata", "dasymetric_low.geojson"))
-make_geojson_zones(b_med, file.path("outputdata", "dasymetric_med.geojson"))
-make_geojson_zones(b_high, file.path("outputdata", "dasymetric_high.geojson"))
+make_geojson_zones(b_verylow, file.path(output_folder, "dasymetric_verylow.geojson"))
+make_geojson_zones(b_low, file.path(output_folder, "dasymetric_low.geojson"))
+make_geojson_zones(b_med, file.path(output_folder, "dasymetric_med.geojson"))
+make_geojson_zones(b_high, file.path(output_folder, "dasymetric_high.geojson"))
 
 tippecanoe_verylow = paste("tippecanoe -o dasymetric_verylow.pmtiles",
   "--name=dasymetric",
@@ -859,12 +866,12 @@ responce = system(command_all, intern = TRUE)
 # Copy pmtiles into app folder
 app_tiles_directory = "../nptscot.github.io/tiles"
 list.files(app_tiles_directory) # list current files
-pmtiles = list.files("outputdata", pattern = "*05-23*.+pmtiles", full.names = TRUE)
+pmtiles = list.files(output_folder, pattern = "*05-23*.+pmtiles", full.names = TRUE)
 pmtiles_new = file.path(app_tiles_directory, basename(pmtiles))
 file.copy(pmtiles, pmtiles_new, overwrite = TRUE)
 
 # Check contents of outputdata folder:
-outputdata_files = list.files("outputdata")
+outputdata_files = list.files(output_folder)
 outputdata_files
 
 commit = gert::git_log(max = 1)
@@ -878,7 +885,7 @@ if (full_build) {
   v = paste0("v", Sys.Date(), "_commit_", commit$commit)
   v = gsub(pattern = " |:", replacement = "-", x = v)
   # Or latest release:
-  setwd("outputdata")
+  setwd(output_folder)
   system("gh release list")
   v = "v2024-07-01"
   f = list.files(path = date_folder, pattern = "pmtiles|gpkg|zip")
