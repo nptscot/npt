@@ -297,6 +297,7 @@ for (region in region_names) {
         source("R/get_orcp_cn.R")
         
         orcp_city_boundary = orcp_network(area = city_boundary, NPT_zones = combined_net_city_boundary, percentile_value = 0.6)
+        # mapview::mapview(orcp_city_boundary)
         # orcp_city_boundary_zone = orcp_city_boundary[sf::st_union(zonebuilder::zb_zone(city, n_circles = 3)) |> sf::st_transform(27700), , op = sf::st_intersects]
 
         # Identify common columns
@@ -309,7 +310,7 @@ for (region in region_names) {
         # Bind the rows
         grouped_network = rbind(cohesive_network_filtered, orcp_city_boundary_filtered)
 
-        grouped_network = corenet::coherent_network_group(cohesive_network_city_boundary, key_attribute = "all_fastest_bicycle_go_dutch")
+        grouped_network = corenet::coherent_network_group(grouped_network, key_attribute = "all_fastest_bicycle_go_dutch")
         # rename mean_potential in grouped_network as all_fastest_bicycle_go_dutch
         grouped_network = grouped_network |>
           dplyr::rename(all_fastest_bicycle_go_dutch = mean_potential)
@@ -505,7 +506,13 @@ common_columns = Reduce(intersect, lapply(all_CN_geojson, names))
 
 # Modify the list to keep only these common columns
 all_CN_geojson = lapply(all_CN_geojson, function(x) {
-  x[, common_columns, drop = FALSE]  # Ensure only common columns are kept
+  # Ensure the dataframe is of the correct class
+  if("sf" %in% class(x) && "all_fastest_bicycle_go_dutch" %in% names(x)) {
+    # Round the specified column
+    x$all_fastest_bicycle_go_dutch <- round(x$all_fastest_bicycle_go_dutch)
+  }
+  # Return the modified spatial dataframe
+  return(x)
 })
 
 combined_CN_geojson = do.call(rbind, all_CN_geojson)
@@ -514,7 +521,7 @@ plot(combined_CN_geojson$geometry)
 
 # Write the combined GeoJSON to a file
 combined_CN_file = glue::glue("{output_folder}/combined_CN_", length(no_lists) + 1, ".geojson")
-sf::st_write(combined_CN_geojson, combined_CN_file)
+sf::st_write(combined_CN_geojson, combined_CN_file, delete_dsn = TRUE)
 cat("Combined cohesive networks GeoJSON file has been saved to:", combined_CN_file)
 
 # create PMtiles for the combined CN
@@ -541,13 +548,22 @@ system_output = system(command_tippecanoe, intern = TRUE)
 # Iterate over each group to process and save the data
 for (number in names(all_CN_geojson_groups)) {
   # Combine all GeoJSON data into one sf object for the current number group
-  combined_CN_geojson = do.call(rbind, lapply(all_CN_geojson_groups[[number]], function(x) x$data))
-
+  combined_CN_geojson <- do.call(rbind, lapply(all_CN_geojson_groups[[number]], function(x) {
+    if (is.list(x) && "data" %in% names(x) && inherits(x$data, "sf")) {
+      # Round the column if it exists in the dataframe
+      if ("all_fastest_bicycle_go_dutch" %in% names(x$data)) {
+        x$data$all_fastest_bicycle_go_dutch <- round(x$data$all_fastest_bicycle_go_dutch)
+      }
+      return(x$data)
+    } else {
+      return(NULL)  # or handle differently if the structure is not as expected
+    }
+  }))
   # Define the file path for the combined GeoJSON
   combined_CN_file = glue::glue("{output_folder}/combined_CN_{number}.geojson")
   
   # Write the combined GeoJSON to a file
-  sf::st_write(combined_CN_geojson, combined_CN_file)
+  sf::st_write(combined_CN_geojson, combined_CN_file, delete_dsn = TRUE)
   cat("Combined cohesive networks GeoJSON file for group", number, "has been saved to:", combined_CN_file, "\n")
 
   # Define the path for the PMtiles
