@@ -865,7 +865,7 @@ if (full_build) {
   # Or latest release:
   setwd(output_folder)
   system("gh release list")
-  v = "v2024-07-01"
+  v = glue::glue("v{date_folder}")
   f = list.files(path = date_folder, pattern = "pmtiles|gpkg|zip")
   f
   # Piggyback fails with error message so commented and using cust
