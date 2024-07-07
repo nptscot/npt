@@ -1147,7 +1147,7 @@ list(
   }),
   tar_target(school_points, {
     schools = sf::read_sf("inputdata/Schools/school_locations.geojson")
-    make_geojson_zones(schools, file.path("outputdata", "school_locations.geojson"))
+    make_geojson_zones(schools, file.path("outputdata", parameters$date_routing, "school_locations.geojson"))
     schools
   }),
 
@@ -1435,16 +1435,16 @@ list(
 
     message("Saving outputs for ", parameters$date_routing)
 
-    saveRDS(od_commute_subset, "outputdata/od_commute_subset.Rds")
-    saveRDS(zones_stats, "outputdata/zones_stats.Rds")
-    saveRDS(school_stats, "outputdata/school_stats.Rds")
+    saveRDS(od_commute_subset, file.path("outputdata", parameters$date_routing, "od_commute_subset.Rds"))  
+    saveRDS(zones_stats, file.path("outputdata", parameters$date_routing, "zones_stats.Rds"))
+    saveRDS(school_stats, file.path("outputdata", parameters$date_routing, "school_stats.Rds"))
 
     # Save GeoPackage versions (just fastest for now):
-    sf::write_sf(rnet_commute_fastest, "outputdata/rnet_commute_fastest.gpkg")
-    sf::write_sf(rnet_primary_fastest, "outputdata/rnet_primary_fastest.gpkg")
-    sf::write_sf(rnet_secondary_fastest, "outputdata/rnet_secondary_fastest.gpkg")
-    sf::write_sf(rnet_utility_fastest, "outputdata/rnet_utility_fastest.gpkg")
-    sf::write_sf(combined_network, "outputdata/combined_network.gpkg", delete_dsn = TRUE)
+    sf::write_sf(rnet_commute_fastest, file.path("outputdata", parameters$date_routing, "rnet_commute_fastest.gpkg"))
+    sf::write_sf(rnet_primary_fastest, file.path("outputdata", parameters$date_routing, "rnet_primary_fastest.gpkg"))
+    sf::write_sf(rnet_secondary_fastest, file.path("outputdata", parameters$date_routing, "rnet_secondary_fastest.gpkg"))
+    sf::write_sf(rnet_utility_fastest, file.path("outputdata", parameters$date_routing, "rnet_utility_fastest.gpkg"))
+    sf::write_sf(combined_network, file.path("outputdata", parameters$date_routing, "combined_network.gpkg"), delete_dsn = TRUE)
     as.character(Sys.Date())
   }),
 

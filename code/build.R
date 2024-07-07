@@ -509,7 +509,7 @@ all_CN_geojson = lapply(all_CN_geojson, function(x) {
   # Ensure the dataframe is of the correct class
   if("sf" %in% class(x) && "all_fastest_bicycle_go_dutch" %in% names(x)) {
     # Round the specified column
-    x$all_fastest_bicycle_go_dutch <- round(x$all_fastest_bicycle_go_dutch)
+    x$all_fastest_bicycle_go_dutch = round(x$all_fastest_bicycle_go_dutch)
   }
   # Return the modified spatial dataframe
   return(x)
@@ -548,11 +548,11 @@ system_output = system(command_tippecanoe, intern = TRUE)
 # Iterate over each group to process and save the data
 for (number in names(all_CN_geojson_groups)) {
   # Combine all GeoJSON data into one sf object for the current number group
-  combined_CN_geojson <- do.call(rbind, lapply(all_CN_geojson_groups[[number]], function(x) {
+  combined_CN_geojson = do.call(rbind, lapply(all_CN_geojson_groups[[number]], function(x) {
     if (is.list(x) && "data" %in% names(x) && inherits(x$data, "sf")) {
       # Round the column if it exists in the dataframe
       if ("all_fastest_bicycle_go_dutch" %in% names(x$data)) {
-        x$data$all_fastest_bicycle_go_dutch <- round(x$data$all_fastest_bicycle_go_dutch)
+        x$data$all_fastest_bicycle_go_dutch = round(x$data$all_fastest_bicycle_go_dutch)
       }
       return(x$data)
     } else {
@@ -590,41 +590,6 @@ for (number in names(all_CN_geojson_groups)) {
   cat("Tippecanoe output for group", number, ":\n", system_output, "\n")
 }
 
-# Iterate over each group to process and save the data
-for (number in names(all_CN_geojson_groups)) {
-  # Combine all GeoJSON data into one sf object for the current number group
-  combined_CN_geojson = do.call(rbind, lapply(all_CN_geojson_groups[[number]], function(x) x$data))
-
-  # Define the file path for the combined GeoJSON
-  combined_CN_file = glue::glue("{output_folder}/combined_CN_{number}.geojson")
-  
-  # Write the combined GeoJSON to a file
-  sf::st_write(combined_CN_geojson, combined_CN_file)
-  cat("Combined cohesive networks GeoJSON file for group", number, "has been saved to:", combined_CN_file, "\n")
-
-  # Define the path for the PMtiles
-  combined_CN_pmtiles = glue::glue("{output_folder}/combined_CN_{number}.pmtiles")
-  
-  # Construct the Tippecanoe command for the current group
-  command_tippecanoe = paste0(
-    'tippecanoe -o ', combined_CN_pmtiles,
-    ' --name="', 'Scottish_Coherent_Networks_', number, '"',
-    ' --layer=coherent_networks',
-    ' --attribution="University of Leeds"',
-    ' --minimum-zoom=6',
-    ' --maximum-zoom=13',
-    ' --maximum-tile-bytes=5000000',
-    ' --simplification=10',
-    ' --buffer=5',
-    ' -rg',
-    ' --force ',
-    combined_CN_file
-  )
-
-  # Execute the command and capture output
-  system_output = system(command_tippecanoe, intern = TRUE)
-  cat("Tippecanoe output for group", number, ":\n", system_output, "\n")
-}
 
 # Combine regional outputs ---------------------------------------------------
 output_folders = list.dirs(output_folder)[-1]
@@ -675,10 +640,9 @@ if (length(zones_tile_files) > 0) {
 }
 
 # convert data_zones_{date_folder}.geojson to pmtiles
-setwd(output_folder)
 
 command_tippecanoe = paste(
-  glue::glue("tippecanoe -o data_zones_{date_folder}.pmtiles"),
+  glue::glue("tippecanoe -o {output_folder}/data_zones_{date_folder}.pmtiles"),
   "--name=data_zones",
   "--layer=data_zones",
   "--attribution=UniverstyofLeeds",
@@ -690,7 +654,7 @@ command_tippecanoe = paste(
   "--maximum-tile-bytes=5000000",
   "--simplification=10",
   "--buffer=5",
-  glue::glue("--force  data_zones_{date_folder}.geojson"),
+  glue::glue("--force  {output_folder}/data_zones_{date_folder}.geojson"),
   collapse = " "
 )
 responce = system(command_tippecanoe, intern = TRUE)   
@@ -721,56 +685,59 @@ if (file.exists(zones_stats_file)) {
 export_zone_json(zones_stats, "DataZone", path = output_folder)
 
 # Combined network tiling
-setwd(output_folder)
 # Check the combined_network_tile.geojson file is there:
-file.exists("combined_network_tile.geojson")
-command_tippecanoe = paste(
-  glue::glue("tippecanoe -o rnet_{date_folder}.pmtiles"),
-  "--name=rnet",
-  "--layer=rnet",
-  "--attribution=UniverstyofLeeds",
-  "--minimum-zoom=6",
-  "--maximum-zoom=13",
-  "--drop-smallest-as-needed",
-  "--maximum-tile-bytes=5000000",
-  "--simplification=10",
-  "--buffer=5",
-  # To ensure that largest values shown on top:
-  "--order-by=all_fastest_bicycle_go_dutch",
-  "--force  combined_network_tile.geojson",
-  collapse = " "
-)
-responce = system(command_tippecanoe, intern = TRUE)
-
+if (!file.exists(glue::glue(output_folder, "/combined_network_tile.geojson"))) {
+  stop("combined_network_tile.geojson file not found.")
+} else {
+  command_tippecanoe = paste(
+    glue::glue("tippecanoe -o {output_folder}/rnet_{date_folder}.pmtiles"),
+    "--name=rnet",
+    "--layer=rnet",
+    "--attribution=UniverstyofLeeds",
+    "--minimum-zoom=6",
+    "--maximum-zoom=13",
+    "--drop-smallest-as-needed",
+    "--maximum-tile-bytes=5000000",
+    "--simplification=10",
+    "--buffer=5",
+    # To ensure that largest values shown on top:
+    "--order-by=all_fastest_bicycle_go_dutch",
+    glue::glue("--force  {output_folder}/combined_network_tile.geojson"),
+    collapse = " "
+  )
+  responce = system(command_tippecanoe, intern = TRUE)
+}
 # Simplified network tiling
 
 # Check the combined_network_tile.geojson file is there:
-file.exists("simplified_network.geojson")
-command_tippecanoe = paste(glue::glue("tippecanoe -o rnet_simplified_{date_folder}.pmtiles"),
-  "--name=rnet_simplified",
-  "--layer=rnet_simplified",
-  "--attribution=UniverstyofLeeds",
-  "--minimum-zoom=6",
-  "--maximum-zoom=13",
-  "--drop-smallest-as-needed",
-  "--maximum-tile-bytes=5000000",
-  "--simplification=10",
-  "--buffer=5",
-  # To ensure that largest values shown on top:
-  "--order-by=all_fastest_bicycle_go_dutch",
-  "--force  simplified_network.geojson",
-  collapse = " ")
-responce = system(command_tippecanoe, intern = TRUE)
-
-# Re-set working directory:
-setwd("..")
+if (!file.exists(glue::glue(output_folder, "/simplified_network.geojson"))) {
+  stop("simplified_network.geojson file not found.")
+} else {
+  command_tippecanoe = paste(
+    glue::glue("tippecanoe -o {output_folder}/rnet_simplified_{date_folder}.pmtiles"),
+    "--name=rnet_simplified",
+    "--layer=rnet_simplified",
+    "--attribution=UniverstyofLeeds",
+    "--minimum-zoom=6",
+    "--maximum-zoom=13",
+    "--drop-smallest-as-needed",
+    "--maximum-tile-bytes=5000000",
+    "--simplification=10",
+    "--buffer=5",
+    # To ensure that largest values shown on top:
+    "--order-by=all_fastest_bicycle_go_dutch",
+    glue::glue("--force  {output_folder}/simplified_network.geojson"),
+    collapse = " ")
+  responce = system(command_tippecanoe, intern = TRUE)
+}
 
 # Dasymetric population data:
 b_verylow = read_TEAMS("open_data/os_buildings/buildings_low_nat_lsoa_split.Rds")
 b_low = read_TEAMS("open_data/os_buildings/buildings_low_reg_lsoa_split.Rds")
 b_med = read_TEAMS("open_data/os_buildings/buildings_med_lsoa_split.Rds")
 b_high = read_TEAMS("open_data/os_buildings/buildings_high_lsoa_split.Rds")
-zones = sf::st_drop_geometry(zones_tile)
+# TODO: Check zones_tile
+zones = sf::st_drop_geometry(zones_tiles)
 b_verylow = dplyr::left_join(b_verylow, zones, by = c("geo_code" = "DataZone"))
 b_low = dplyr::left_join(b_low, zones, by = c("geo_code" = "DataZone"))
 b_med = dplyr::left_join(b_med, zones, by = c("geo_code" = "DataZone"))
@@ -780,7 +747,8 @@ make_geojson_zones(b_low, file.path(output_folder, "dasymetric_low.geojson"))
 make_geojson_zones(b_med, file.path(output_folder, "dasymetric_med.geojson"))
 make_geojson_zones(b_high, file.path(output_folder, "dasymetric_high.geojson"))
 
-tippecanoe_verylow = paste("tippecanoe -o dasymetric_verylow.pmtiles",
+tippecanoe_verylow = paste(
+  glue::glue("tippecanoe -o {output_folder}/dasymetric_verylow.pmtiles"),
   "--name=dasymetric",
   "--layer=dasymetric",
   "--attribution=OS",
@@ -791,11 +759,12 @@ tippecanoe_verylow = paste("tippecanoe -o dasymetric_verylow.pmtiles",
   "--maximum-tile-bytes=5000000",
   "--simplification=1",
   "--buffer=5",
-  "--force dasymetric_verylow.geojson",
+  glue::glue("--force  {output_folder}/dasymetric_verylow.geojson"),
   collapse = " "
 )
 
-tippecanoe_low = paste("tippecanoe -o dasymetric_low.pmtiles",
+tippecanoe_low = paste(
+  glue::glue("tippecanoe -o {output_folder}/dasymetric_low.pmtiles"),
   "--name=dasymetric",
   "--layer=dasymetric",
   "--attribution=OS",
@@ -806,11 +775,12 @@ tippecanoe_low = paste("tippecanoe -o dasymetric_low.pmtiles",
   "--maximum-tile-bytes=5000000",
   "--simplification=1",
   "--buffer=5",
-  "--force dasymetric_low.geojson",
+  glue::glue("--force  {output_folder}/dasymetric_low.geojson"),
   collapse = " "
 )
 
-tippecanoe_med = paste("tippecanoe -o dasymetric_med.pmtiles",
+tippecanoe_med = paste(
+  glue::glue("tippecanoe -o {output_folder}/dasymetric_med.pmtiles"),
   "--name=dasymetric",
   "--layer=dasymetric",
   "--attribution=OS",
@@ -821,11 +791,12 @@ tippecanoe_med = paste("tippecanoe -o dasymetric_med.pmtiles",
   "--maximum-tile-bytes=5000000",
   "--simplification=2",
   "--buffer=5",
-  "--force dasymetric_med.geojson",
+  glue::glue("--force  {output_folder}/dasymetric_med.geojson"),
   collapse = " "
 )
 
-tippecanoe_high = paste("tippecanoe -o dasymetric_high.pmtiles",
+tippecanoe_high = paste(
+  glue::glue("tippecanoe -o {output_folder}/dasymetric_high.pmtiles"),
   "--name=dasymetric",
   "--layer=dasymetric",
   "--attribution=OS",
@@ -837,20 +808,21 @@ tippecanoe_high = paste("tippecanoe -o dasymetric_high.pmtiles",
   "--maximum-tile-bytes=5000000",
   "--simplification=5",
   "--buffer=5",
-  "--force dasymetric_high.geojson",
+  glue::glue("--force  {output_folder}/dasymetric_high.geojson"),
   collapse = " "
 )
 
-tippecanoe_join = paste("tile-join -o dasymetric.pmtiles -pk --force",
-  "dasymetric_verylow.pmtiles",
-  "dasymetric_low.pmtiles",
-  "dasymetric_med.pmtiles",
-  "dasymetric_high.pmtiles",
+tippecanoe_join = paste(
+  glue::glue("tile-join -o {output_folder}/dasymetric.pmtiles -pk --force"),
+  glue::glue("{output_folder}/dasymetric_verylow.pmtiles"),
+  glue::glue("{output_folder}/dasymetric_low.pmtiles"),
+  glue::glue("{output_folder}/dasymetric_med.pmtiles"),
+  glue::glue("{output_folder}/dasymetric_high.pmtiles"),
   collapse = " "
 )
-
+responce = system(tippecanoe_join, intern = TRUE)
 if (.Platform$OS.type == "unix") {
-  command_cd = "cd outputdata"
+  command_cd = glue::glue("cd outputdata/{output_folder}")
   command_all = paste(c(
     command_cd, tippecanoe_verylow, tippecanoe_low,
     tippecanoe_med, tippecanoe_high, tippecanoe_join
@@ -871,7 +843,8 @@ responce = system(command_all, intern = TRUE)
 # Copy pmtiles into app folder
 app_tiles_directory = "../nptscot.github.io/tiles"
 list.files(app_tiles_directory) # list current files
-pmtiles = list.files(output_folder, pattern = "*05-23*.+pmtiles", full.names = TRUE)
+month_day = substr(date_folder, 6, 10)
+pmtiles = list.files(output_folder, pattern = glue::glue("*{month_day}*.+pmtiles"), full.names = TRUE)
 pmtiles_new = file.path(app_tiles_directory, basename(pmtiles))
 file.copy(pmtiles, pmtiles_new, overwrite = TRUE)
 
