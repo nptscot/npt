@@ -1,4 +1,4 @@
-orcp_network = function(area, NPT_zones, length_threshold = 1, percentile_value = 0.6) {
+orcp_network = function(area, NPT_zones, length_threshold = 10000, percentile_value = 0.6) {
 
   osm = osmactive::get_travel_network("Scotland", boundary = area, boundary_type = "clipsrc")
   cycle_net = osmactive::get_cycling_network(osm)
@@ -10,7 +10,7 @@ orcp_network = function(area, NPT_zones, length_threshold = 1, percentile_value 
     dplyr::filter(bicycle %in% c("yes", "dismount", "designated")) |>
     dplyr::filter(cycle_segregation == "Separated cycle track") |>
     dplyr::mutate(length = as.numeric(sf::st_length(geometry))) |>
-    dplyr::filter(length > length_threshold) |>
+    dplyr::filter(length > 1) |>
     sf::st_transform(crs = 27700)
 
   snapped_lines = sf::st_snap(cycle_net, cycle_net, tolerance = 15)
@@ -98,14 +98,17 @@ orcp_network = function(area, NPT_zones, length_threshold = 1, percentile_value 
 
     summarized_data = cycle_net_NPT |>
         dplyr::group_by(component) |>
-        dplyr::summarize(total_all_fastest_bicycle_go_dutch = sum(all_fastest_bicycle_go_dutch, na.rm = TRUE))
+        dplyr::summarize(total_all_fastest_bicycle_go_dutch = sum(all_fastest_bicycle_go_dutch, na.rm = TRUE),
+                         total_length = sum(as.numeric(sf::st_length(geometry)), na.rm = TRUE))
 
     min_percentile_value = stats::quantile(summarized_data$total_all_fastest_bicycle_go_dutch, probs = percentile_value, na.rm = TRUE)
     
     summarized_data = summarized_data |> dplyr::filter(total_all_fastest_bicycle_go_dutch > min_percentile_value)
 
-    cycle_net_NPT_filtered <- cycle_net_NPT %>%
-    filter(st_intersects(geometry, summarized_data$geometry, sparse = FALSE) %>% apply(1, any))
+    summarized_data = summarized_data |> dplyr::filter(total_length > length_threshold)
+
+    cycle_net_NPT_filtered = cycle_net_NPT |>
+    filter(st_intersects(geometry, summarized_data$geometry, sparse = FALSE) |> apply(1, any))
 
     return(cycle_net_NPT_filtered)
 }
