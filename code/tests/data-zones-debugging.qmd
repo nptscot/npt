@@ -10,7 +10,10 @@ Get that with:
 ```{bash}
 #| eval: false
 cd outputdata
-gh release download v2024-07-02 --clobber
+# gh release download v2024-07-02 --clobber
+# Download all files matching "DataZone_json.zip":
+gh release download v2024-07-02 --pattern "DataZone_json.zip" --clobber
+cd ..
 ```
 
 The code above automatically downloads the data from this release: https://github.com/nptscot/outputdata/releases/tag/v2024-07-02
@@ -24,7 +27,8 @@ file.exists(data_zones_zip_file)
 data_zones_exdir = "outputdata/DataZone_2024-07-02"
 unzip(data_zones_zip_file, exdir = data_zones_exdir)
 data_zone_files = list.files(data_zones_exdir, full.names = TRUE)
-length(data_zone_files) # 770, too few?
+length(data_zone_files) # 7457
+head(data_zone_files)
 ```
 
 Let's load the zones data to find out which zones are missing:
