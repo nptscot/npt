@@ -295,7 +295,8 @@ for (region in region_names) {
 
         message("Generating Off Road Cycle Path network for: ", city)
         source("R/get_orcp_cn.R")
-        
+        mapview::mapview(combined_net_city_boundary) + mapview::mapview(city_boundary)
+         
         orcp_city_boundary = orcp_network(area = city_boundary, NPT_zones = combined_net_city_boundary, percentile_value = 0.6)
         mapview::mapview(orcp_city_boundary, zcol = "all_fastest_bicycle_go_dutch") + mapview::mapview(combined_net_city_boundary)
         # orcp_city_boundary_zone = orcp_city_boundary[sf::st_union(zonebuilder::zb_zone(city, n_circles = 3)) |> sf::st_transform(27700), , op = sf::st_intersects]
@@ -681,8 +682,7 @@ command_tippecanoe = paste(
 )
 responce = system(command_tippecanoe, intern = TRUE)   
 
-# combine od_commute_subset, zones_stats, school_stats, rnet_commute_fastest, 
-# rnet_primary_fastest, rnet_secondary_fastest, rnet_utility_fastest, and combined_network
+# combine od_commute_subset, zones_stats, school_stats, rnet_commute_fastest, rnet_primary_fastest, rnet_secondary_fastest, rnet_utility_fastest, and combined_network
 # Initialize lists to store all files
 od_commute_subsets = list()
 zones_stats_list = list()
@@ -727,10 +727,27 @@ for (region in region_names_lowercase) {
   }
 }
 
+# define function to find common columns
+find_common_columns = function(df_list) {
+  common_columns = Reduce(intersect, lapply(df_list, colnames))
+  return(common_columns)
+}
+
 # Combine the data
+common_columns_od_commute = find_common_columns(od_commute_subsets)
+od_commute_subsets = lapply(od_commute_subsets, function(df) df[, common_columns_od_commute, drop = FALSE])
 combined_od_commute_subset = do.call(rbind, od_commute_subsets)
+
+# For zones_stats_list
+common_columns_zones_stats = find_common_columns(zones_stats_list)
+zones_stats_list = lapply(zones_stats_list, function(df) df[, common_columns_zones_stats, drop = FALSE])
 combined_zones_stats = do.call(rbind, zones_stats_list)
+
+# For school_stats_list
+common_columns_school_stats = find_common_columns(school_stats_list)
+school_stats_list = lapply(school_stats_list, function(df) df[, common_columns_school_stats, drop = FALSE])
 combined_school_stats = do.call(rbind, school_stats_list)
+
 combined_rnet_commute_fastest = do.call(rbind, rnet_commute_fastest_list)
 combined_rnet_primary_fastest = do.call(rbind, rnet_primary_fastest_list)
 combined_rnet_secondary_fastest = do.call(rbind, rnet_secondary_fastest_list)
@@ -766,10 +783,15 @@ export_zone_json(school_stats, "SeedCode", path = output_folder)
 
 zones_stats_file = glue::glue("{output_folder}/zones_stats.Rds")
 if (file.exists(zones_stats_file)) {
+  # Read the RDS file
   zones_stats = readRDS(zones_stats_file)
+  
+  # Call the function to export the data to JSON, assuming the function and its parameters are correctly defined
+  export_zone_json(zones_stats, "DataZone", path = output_folder)
+} else {
+  # Optionally, you can add a message if the file does not exist
+  message("File does not exist: ", zones_stats_file)
 }
-
-export_zone_json(zones_stats, "DataZone", path = output_folder)
 
 # Combined network tiling
 # Check the combined_network_tile.geojson file is there:

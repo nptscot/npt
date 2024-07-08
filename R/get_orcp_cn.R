@@ -78,23 +78,11 @@ orcp_network = function(area, NPT_zones, length_threshold = 10000, percentile_va
 
     sf::st_crs(all_edges) = 27700
 
-    funs = list()
-
-    name_list = names(NPT_zones) 
-    for (name in name_list) {
-    if (name == "geometry") {
-        next  # Correctly skip the current iteration if the name is "geometry"
-    } else if (name %in% c("gradient", "quietness")) {
-        funs[[name]] = mean  # Assign mean function for specified fields
-    } else {
-        funs[[name]] = sum  # Assign sum function for all other fields
-    }
-    }
-browser()
     filtered_OS_zones = all_edges |> 
                         sf::st_transform(27700) |> 
                         sf::st_zm()
-    cycle_net_NPT =  stplanr::rnet_merge(filtered_OS_zones, NPT_zones, dist = 5, funs = funs, max_angle_diff = 5, segment_length = 20)
+                 
+    cycle_net_NPT = sf::st_join(filtered_OS_zones, NPT_zones, join = st_intersects)
 
     summarized_data = cycle_net_NPT |>
         dplyr::group_by(component) |>
