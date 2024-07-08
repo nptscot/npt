@@ -1,0 +1,16 @@
+---
+format: gfm
+title: Data zones tests
+---
+
+The aim of the code in this document is to test the DataZones files, starting with the v2024-07-02 release.
+Get that with:
+
+
+```{bash}
+#| eval: false
+cd outputdata
+gh release download v2024-07-02 --clobber
+```
+
+The code above automatically downloads the data from this release: https://github.com/nptscot/outputdata/releases/tag/v2024-07-02
