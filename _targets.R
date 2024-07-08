@@ -1147,7 +1147,7 @@ list(
   }),
   tar_target(school_points, {
     schools = sf::read_sf("inputdata/Schools/school_locations.geojson")
-    make_geojson_zones(schools, file.path("outputdata", parameters$date_routing, "school_locations.geojson"))
+    make_geojson_zones(schools, file.path(region_folder, "school_locations.geojson"))
     schools
   }),
 
@@ -1435,16 +1435,16 @@ list(
 
     message("Saving outputs for ", parameters$date_routing)
 
-    saveRDS(od_commute_subset, file.path("outputdata", parameters$date_routing, "od_commute_subset.Rds"))  
-    saveRDS(zones_stats, file.path("outputdata", parameters$date_routing, "zones_stats.Rds"))
-    saveRDS(school_stats, file.path("outputdata", parameters$date_routing, "school_stats.Rds"))
+    saveRDS(od_commute_subset, file.path(region_folder, "od_commute_subset.Rds"))  
+    saveRDS(zones_stats, file.path(region_folder, "zones_stats.Rds"))
+    saveRDS(school_stats, file.path(region_folder, "school_stats.Rds"))
 
     # Save GeoPackage versions (just fastest for now):
-    sf::write_sf(rnet_commute_fastest, file.path("outputdata", parameters$date_routing, "rnet_commute_fastest.gpkg"))
-    sf::write_sf(rnet_primary_fastest, file.path("outputdata", parameters$date_routing, "rnet_primary_fastest.gpkg"))
-    sf::write_sf(rnet_secondary_fastest, file.path("outputdata", parameters$date_routing, "rnet_secondary_fastest.gpkg"))
-    sf::write_sf(rnet_utility_fastest, file.path("outputdata", parameters$date_routing, "rnet_utility_fastest.gpkg"))
-    sf::write_sf(combined_network, file.path("outputdata", parameters$date_routing, "combined_network.gpkg"), delete_dsn = TRUE)
+    sf::write_sf(rnet_commute_fastest, file.path(region_folder, "rnet_commute_fastest.gpkg"))
+    sf::write_sf(rnet_primary_fastest, file.path(region_folder, "rnet_primary_fastest.gpkg"))
+    sf::write_sf(rnet_secondary_fastest, file.path(region_folder, "rnet_secondary_fastest.gpkg"))
+    sf::write_sf(rnet_utility_fastest, file.path(region_folder, "rnet_utility_fastest.gpkg"))
+    sf::write_sf(combined_network, file.path(region_folder, "combined_network.gpkg"), delete_dsn = TRUE)
     as.character(Sys.Date())
   }),
 
