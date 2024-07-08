@@ -80,8 +80,12 @@ region_names_lowercase = snakecase::to_snake_case(region_names)
 region = region_names[1]
 for (region in region_names) {
   message("Processing region: ", region)
-#   parameters$region = region
-#   jsonlite::write_json(parameters, "parameters.json", pretty = TRUE)
-#   targets::tar_make()
+  parameters$region = region
+  jsonlite::write_json(parameters, "parameters.json", pretty = TRUE)
+  targets::tar_make(zones_stats)
+  targets::tar_make(region_folder)
+  tar_load(zones_stats)
+  tar_load(region_folder)
+  saveRDS(zones_stats, file.path(region_folder, "zones_stats.Rds"))
 }
 ```

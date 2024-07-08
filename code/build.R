@@ -627,6 +627,12 @@ sf::write_sf(simplified_network, file.path(output_folder, "simplified_network.ge
 
 
 # Combine zones data:
+
+for (region in region_names) {
+  message("Generating data_zones for region: ", region)
+  # ...
+}
+
 # DataZones file path: data_zones.geojson
 
 zones_tile_files = list.files(output_folder, pattern = "data_zones.*\\.geojson$", full.names = TRUE)
