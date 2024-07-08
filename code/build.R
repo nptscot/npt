@@ -630,12 +630,6 @@ sf::write_sf(simplified_network, file.path(output_folder, "simplified_network.ge
 
 
 # Combine zones data:
-
-for (region in region_names) {
-  message("Generating data_zones for region: ", region)
-  # ...
-}
-
 # DataZones file path: data_zones.geojson
 all_zones_tile_files = list()
 
@@ -687,6 +681,71 @@ command_tippecanoe = paste(
 )
 responce = system(command_tippecanoe, intern = TRUE)   
 
+# combine od_commute_subset, zones_stats, school_stats, rnet_commute_fastest, 
+# rnet_primary_fastest, rnet_secondary_fastest, rnet_utility_fastest, and combined_network
+# Initialize lists to store all files
+od_commute_subsets = list()
+zones_stats_list = list()
+school_stats_list = list()
+rnet_commute_fastest_list = list()
+rnet_primary_fastest_list = list()
+rnet_secondary_fastest_list = list()
+rnet_utility_fastest_list = list()
+combined_network_list = list()
+
+# Iterate over each region to collect all relevant files
+for (region in region_names_lowercase) {
+  # Define the region folder path
+  region_folder = file.path(output_folder, region)
+  
+  # Read and combine RDS files
+  if (file.exists(file.path(region_folder, "od_commute_subset.Rds"))) {
+    od_commute_subsets[[region]] = readRDS(file.path(region_folder, "od_commute_subset.Rds"))
+  }
+  if (file.exists(file.path(region_folder, "zones_stats.Rds"))) {
+    zones_stats_list[[region]] = readRDS(file.path(region_folder, "zones_stats.Rds"))
+  }
+  if (file.exists(file.path(region_folder, "school_stats.Rds"))) {
+    school_stats_list[[region]] = readRDS(file.path(region_folder, "school_stats.Rds"))
+  }
+
+  # Read and combine GeoPackage files
+  if (file.exists(file.path(region_folder, "rnet_commute_fastest.gpkg"))) {
+    rnet_commute_fastest_list[[region]] = sf::st_read(file.path(region_folder, "rnet_commute_fastest.gpkg"))
+  }
+  if (file.exists(file.path(region_folder, "rnet_primary_fastest.gpkg"))) {
+    rnet_primary_fastest_list[[region]] = sf::st_read(file.path(region_folder, "rnet_primary_fastest.gpkg"))
+  }
+  if (file.exists(file.path(region_folder, "rnet_secondary_fastest.gpkg"))) {
+    rnet_secondary_fastest_list[[region]] = sf::st_read(file.path(region_folder, "rnet_secondary_fastest.gpkg"))
+  }
+  if (file.exists(file.path(region_folder, "rnet_utility_fastest.gpkg"))) {
+    rnet_utility_fastest_list[[region]] = sf::st_read(file.path(region_folder, "rnet_utility_fastest.gpkg"))
+  }
+  if (file.exists(file.path(region_folder, "combined_network.gpkg"))) {
+    combined_network_list[[region]] = sf::st_read(file.path(region_folder, "combined_network.gpkg"))
+  }
+}
+
+# Combine the data
+combined_od_commute_subset = do.call(rbind, od_commute_subsets)
+combined_zones_stats = do.call(rbind, zones_stats_list)
+combined_school_stats = do.call(rbind, school_stats_list)
+combined_rnet_commute_fastest = do.call(rbind, rnet_commute_fastest_list)
+combined_rnet_primary_fastest = do.call(rbind, rnet_primary_fastest_list)
+combined_rnet_secondary_fastest = do.call(rbind, rnet_secondary_fastest_list)
+combined_rnet_utility_fastest = do.call(rbind, rnet_utility_fastest_list)
+combined_combined_network = do.call(rbind, combined_network_list)
+
+# Save the combined data
+saveRDS(combined_od_commute_subset, file.path(output_folder, "od_commute_subset.Rds"))
+saveRDS(combined_zones_stats, file.path(output_folder, "zones_stats.Rds"))
+saveRDS(combined_school_stats, file.path(output_folder, "school_stats.Rds"))
+sf::write_sf(combined_rnet_commute_fastest, file.path(output_folder, "rnet_commute_fastest.gpkg"))
+sf::write_sf(combined_rnet_primary_fastest, file.path(output_folder, "rnet_primary_fastest.gpkg"))
+sf::write_sf(combined_rnet_secondary_fastest, file.path(output_folder, "rnet_secondary_fastest.gpkg"))
+sf::write_sf(combined_rnet_utility_fastest, file.path(output_folder, "rnet_utility_fastest.gpkg"))
+sf::write_sf(combined_combined_network, file.path(output_folder, "combined_network.gpkg"), delete_dsn = TRUE)
 # Same for school_locations.geojson
 
 school_locations_file = glue::glue("{output_folder}/school_locations.geojson")
