@@ -1119,7 +1119,7 @@ list(
     z$population_density = round(z$Total_population / z$area)
     z$area = NULL
 
-    make_geojson_zones(z, file.path(dir_local, paste0("data_zones_", parameters$region, ".geojson")))
+    make_geojson_zones(z, file.path(region_folder, paste0("data_zones_", parameters$region, ".geojson")))
     z
   }),
   tar_target(zones_dasymetric_tile, {

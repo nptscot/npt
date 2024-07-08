@@ -90,11 +90,11 @@ orcp_network = function(area, NPT_zones, length_threshold = 10000, percentile_va
         funs[[name]] = sum  # Assign sum function for all other fields
     }
     }
-
+browser()
     filtered_OS_zones = all_edges |> 
                         sf::st_transform(27700) |> 
                         sf::st_zm()
-    cycle_net_NPT =  stplanr::rnet_merge(filtered_OS_zones, NPT_zones, dist = 10, funs = funs, max_angle_diff = 10)
+    cycle_net_NPT =  stplanr::rnet_merge(filtered_OS_zones, NPT_zones, dist = 5, funs = funs, max_angle_diff = 5, segment_length = 20)
 
     summarized_data = cycle_net_NPT |>
         dplyr::group_by(component) |>

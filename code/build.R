@@ -297,7 +297,7 @@ for (region in region_names) {
         source("R/get_orcp_cn.R")
         
         orcp_city_boundary = orcp_network(area = city_boundary, NPT_zones = combined_net_city_boundary, percentile_value = 0.6)
-        # mapview::mapview(orcp_city_boundary)
+        mapview::mapview(orcp_city_boundary, zcol = "all_fastest_bicycle_go_dutch") + mapview::mapview(combined_net_city_boundary)
         # orcp_city_boundary_zone = orcp_city_boundary[sf::st_union(zonebuilder::zb_zone(city, n_circles = 3)) |> sf::st_transform(27700), , op = sf::st_intersects]
 
         # Identify common columns
@@ -637,15 +637,34 @@ for (region in region_names) {
 }
 
 # DataZones file path: data_zones.geojson
+all_zones_tile_files = list()
 
-zones_tile_files = list.files(output_folder, pattern = "data_zones.*\\.geojson$", full.names = TRUE)
+# Iterate over each region to collect all GeoJSON files
+for (region in region_names_lowercase) {
+  # Define the region folder path
+  region_folder = file.path(output_folder, region)
+  
+  # List GeoJSON files in the region folder
+  zones_tile_files = list.files(region_folder, pattern = "data_zones.*\\.geojson$", full.names = TRUE)
+  
+  # Append the files to the list
+  all_zones_tile_files = c(all_zones_tile_files, zones_tile_files)
+}
 
-if (length(zones_tile_files) > 0) {
-  zones_tiles = lapply(zones_tile_files, sf::st_read)
+# Check if there are any files
+if (length(all_zones_tile_files) > 0) {
+  # Read the GeoJSON files
+  zones_tiles = lapply(all_zones_tile_files, sf::st_read)
+  
+  # Combine the GeoJSON files
   combined_zones_tiles = do.call(rbind, zones_tiles)
+  
+  # Write the combined GeoJSON file to the output folder
   sf::write_sf(combined_zones_tiles, file.path(output_folder, glue::glue("data_zones_{date_folder}.geojson")), delete_dsn = TRUE)
+  
+  message(glue::glue("Combined geojson file saved: {output_file}"))
 } else {
-  message("No geojson files found in the specified folder.")
+  message("No geojson files found in any of the specified folders.")
 }
 
 # convert data_zones_{date_folder}.geojson to pmtiles
