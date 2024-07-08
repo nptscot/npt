@@ -840,14 +840,6 @@ if (.Platform$OS.type == "unix") {
 }
 responce = system(command_all, intern = TRUE)
 
-# Copy pmtiles into app folder
-app_tiles_directory = "../nptscot.github.io/tiles"
-list.files(app_tiles_directory) # list current files
-month_day = substr(date_folder, 6, 10)
-pmtiles = list.files(output_folder, pattern = glue::glue("*{month_day}*.+pmtiles"), full.names = TRUE)
-pmtiles_new = file.path(app_tiles_directory, basename(pmtiles))
-file.copy(pmtiles, pmtiles_new, overwrite = TRUE)
-
 # Check contents of outputdata folder:
 outputdata_files = list.files(output_folder)
 outputdata_files
@@ -892,8 +884,15 @@ if (full_build) {
   message("Not uploading files: manually move contents of outputdata (see upload_data target for details)")
 }
 
-# Test for central Edinburgh:
-edinburgh_central = zonebuilder::zb_zone("Edinburgh", n_circles = 2)
-tar_load(simplified_network)
-simplified_central = simplified_network[edinburgh_central, ]
-mapview::mapview(simplified_central)
+# # Copy pmtiles into app folder (optional)
+# app_tiles_directory = "../nptscot.github.io/tiles"
+# list.files(app_tiles_directory) # list current files
+# pmtiles = list.files("outputdata", pattern = "*05-23*.+pmtiles", full.names = TRUE)
+# pmtiles_new = file.path(app_tiles_directory, basename(pmtiles))
+# file.copy(pmtiles, pmtiles_new, overwrite = TRUE)
+
+# # Test for central Edinburgh (optional)
+# edinburgh_central = zonebuilder::zb_zone("Edinburgh", n_circles = 2)
+# tar_load(simplified_network)
+# simplified_central = simplified_network[edinburgh_central, ]
+# mapview::mapview(simplified_central)
