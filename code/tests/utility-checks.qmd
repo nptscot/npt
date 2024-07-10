@@ -1,0 +1,226 @@
+---
+format: gfm
+title: QA on utility trips
+---
+
+
+```{r}
+#| eval: false
+#| label: code-snapshot
+# The relevant code for the utility trips is this, from _targets.R:
+
+  # Utility OD -------------------------------------------------------------
+  tar_target(od_shopping, {
+    od_shopping = make_od(
+      oas, os_pois, grid,
+      purpose = "shopping",
+      trip_purposes,
+      zones, parameters
+    )
+    od_shopping
+  }),
+  tar_target(od_visiting, {
+    od_visiting = make_od(
+      oas, os_pois, grid,
+      purpose = "visiting",
+      trip_purposes,
+      zones, parameters
+    )
+    od_visiting
+  }),
+  tar_target(od_leisure, {
+    od_leisure = make_od(
+      oas, os_pois, grid,
+      purpose = "leisure",
+      trip_purposes,
+      zones, parameters
+    )
+    od_leisure
+  }),
+
+  # Combined utility trip purposes --------------------------------------------
+
+  tar_target(od_utility_combined, {
+
+    od_utility_combined = rbind(od_shopping, od_visiting, od_leisure) |>
+      dplyr::slice_max(n = parameters$max_to_route, order_by = all, with_ties = FALSE)
+    sum(od_utility_combined$bicycle) / sum(od_utility_combined$all)
+
+    # Get % cycling for commuting per zone
+    # pcycle_regional = sum(commute_stats$comm_orig_bicycle, na.rm = TRUE) /
+      # sum(commute_stats$comm_orig_all, na.rm = TRUE)
+    pcycle_national = 0.016
+
+    commute_stats_minimal = commute_stats |>
+      dplyr::select(DataZone, comm_orig_bicycle, comm_orig_all)
+    cycling_multiplier = commute_stats_minimal |>
+      dplyr::transmute(
+        DataZone,
+        multiplier = (comm_orig_bicycle / comm_orig_all) /
+         pcycle_national
+      ) |>
+      # 0 to 0.1:
+      dplyr::mutate(multiplier = case_when(
+        multiplier == 0 ~ 0.1,
+        TRUE ~ multiplier
+      ))
+    # summary(cycling_multiplier$multiplier)
+    # Add new cycling multiplier column to od_utility_combined
+    od_utility_combined = od_utility_combined |>
+      dplyr::left_join(cycling_multiplier, by = join_by(geo_code1 == DataZone)) |>
+      # Convert NAs to 1:
+      dplyr::mutate(multiplier = case_when(
+        is.na(multiplier) ~ 1,
+        TRUE ~ multiplier
+      )) |>
+      dplyr::mutate(
+        bicycle_new = bicycle * multiplier,
+        car = car - (bicycle_new - bicycle),
+        bicycle = bicycle_new
+      ) |>
+      dplyr::select(-multiplier, -bicycle_new)
+
+    # Check new % cycling:
+    # sum(od_utility_combined$bicycle) / sum(od_utility_combined$all)
+
+    # Ensure the columns and distance units are identical to the other routing types
+    # (apart from the additional trip purpose column)
+    od_utility_combined = od_utility_combined |>
+      dplyr::mutate(
+        dist_euclidean = length_euclidean_unjittered * 1000,
+        dist_euclidean_jittered = length_euclidean_jittered * 1000
+      ) |>
+      dplyr::select(
+        geo_code1, geo_code2, car, foot, bicycle, all,
+        dist_euclidean, public_transport, taxi, geometry,
+        dist_euclidean_jittered, purpose
+      )
+
+    # Add Start and End DataZones for stats
+    # geo_code1 and 2 refere to non-Data Zone ids
+    end_point = lwgeom::st_endpoint(od_utility_combined)
+    end_point = sf::st_join(sf::st_as_sf(end_point), zones)
+    od_utility_combined$endDZ = end_point$DataZone
+
+    start_point = lwgeom::st_startpoint(od_utility_combined)
+    start_point = sf::st_join(sf::st_as_sf(start_point), zones)
+    od_utility_combined$startDZ = start_point$DataZone
+
+    od_utility_combined
+  }),
+  tar_target(rs_utility_fastest, {
+    length(done_commute_ebike) # Do school routing first
+    rs = get_routes(
+      od = od_utility_combined |> dplyr::slice_max(n = parameters$max_to_route, order_by = all, with_ties = FALSE),
+      plans = "fastest",
+      purpose = "utility",
+      folder = region_folder,
+      date = parameters$date_routing,
+      segments = "both"
+    )
+    rs
+  }),
+  tar_target(done_utility_fastest, {
+    length(rs_utility_fastest) # Hack for scheduling
+  }),
+  tar_target(rs_utility_quietest, {
+    length(done_utility_fastest)
+    rs = get_routes(
+      od = od_utility_combined,
+      plans = "quietest",
+      purpose = "utility",
+      folder = region_folder,
+      date = parameters$date_routing,
+      segments = "both"
+    )
+    rs
+  }),
+  tar_target(done_utility_quietest, {
+    length(rs_utility_quietest) # Hack for scheduling
+  }),
+  tar_target(rs_utility_ebike, {
+    length(done_utility_quietest)
+    rs = get_routes(
+      od = od_utility_combined,
+      plans = "ebike",
+      purpose = "utility",
+      folder = region_folder,
+      date = parameters$date_routing,
+      segments = "both"
+    )
+    rs
+  }),
+  tar_target(done_utility_ebike, {
+    length(rs_utility_ebike) # Hack for scheduling
+  }),
+  tar_target(rs_utility_balanced, {
+    length(done_commute_balanced)
+    rs = get_routes(
+      od = od_utility_combined,
+      plans = "balanced",
+      purpose = "utility",
+      folder = region_folder,
+      date = parameters$date_routing,
+      segments = "both"
+    )
+    rs
+  }),
+  tar_target(done_utility_balanced, {
+    length(rs_utility_balanced) # Hack for scheduling
+  }),
+
+
+  # Utility routing post-processing -----------------------------------------
+
+  tar_target(r_utility_fastest, {
+    rs_utility_fastest[[1]]$routes
+  }),
+  tar_target(r_utility_quietest, {
+    rs_utility_quietest[[1]]$routes
+  }),
+  tar_target(r_utility_ebike, {
+    rs_utility_ebike[[1]]$routes
+  }),
+  tar_target(r_utility_balanced, {
+    rs_utility_balanced[[1]]$routes
+  }),
+  tar_target(rnet_gq_utility_fastest, {
+    segments2rnet(rs_utility_fastest[[1]]$segments)
+  }),
+  tar_target(rnet_gq_utility_quietest, {
+    segments2rnet(rs_utility_quietest[[1]]$segments)
+  }),
+  tar_target(rnet_gq_utility_ebike, {
+    segments2rnet(rs_utility_ebike[[1]]$segments)
+  }),
+  tar_target(rnet_gq_utility_balanced, {
+    segments2rnet(rs_utility_balanced[[1]]$segments)
+  }),
+
+  # Utility Uptake ----------------------------------------------------------
+
+  tar_target(uptake_utility_fastest, {
+    routes = r_utility_fastest |>
+      filter(distances < 10000) |>
+      get_uptake_scenarios(purpose = "utility")
+    routes
+  }),
+  tar_target(uptake_utility_quietest, {
+    routes = r_utility_quietest |>
+      filter(distances < 10000) |>
+      get_uptake_scenarios(purpose = "utility")
+    routes
+  }),
+  tar_target(uptake_utility_ebike, {
+    routes = r_utility_ebike |>
+      filter(distances < 10000) |>
+      get_uptake_scenarios(purpose = "utility")
+    routes
+  }),
+  tar_target(uptake_utility_balanced, {
+    routes = r_utility_balanced |>
+      filter(distances < 10000) |>
+      get_uptake_scenarios(purpose = "utility")
+    routes
+  }),
+```
