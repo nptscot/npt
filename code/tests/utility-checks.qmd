@@ -240,8 +240,269 @@ We'll load data with `tar_load()` and check the utility trips.
 ```{r}
 old_working_directory = setwd("../..")
 tar_load(parameters)
+tar_load(zones_stats)
+tar_load(utility_stats)
 # parameters
 setwd(old_working_directory)
 ```
 
 The checks below apply to `r parameters$region`.
+
+The target that generates the graphs for each zone is `zones_stats`, which was defined as follows:
+
+```{r}
+#| echo: true
+#| eval: false
+  tar_target(zones_stats, {
+    stats = dplyr::full_join(commute_stats, school_stats_from, by = "DataZone")
+    stats = dplyr::full_join(stats, utility_stats, by = "DataZone")
+    stats
+  }),
+```
+
+The data in `zones_stats` is as follows:
+
+```{r}
+zones_stats
+```
+
+Let's look at the shopping trips arriving at a specific zone: S01012355.
+
+```{r}
+# names(zones_stats)
+zone_stats_shopping_arriving = zones_stats |>
+  dplyr::filter(DataZone == "S01012355") |>
+  dplyr::select(matches("shopping_dest"))
+names(zone_stats_shopping_arriving)
+zone_stats_example = zone_stats_shopping_arriving |>
+  dplyr::select("shopping_dest_all")
+zone_stats_example[[1]]
+```
+
+Let's get the associated data from the website:
+
+```{r}
+u = "https://nptscot.blob.core.windows.net/json/DataZone_2024-07-02/S01012355.json"
+zone_stats_example_azure = jsonlite::fromJSON(u)
+# names(zone_stats_example_azure)
+zone_stats_example_azure$shopping_dest_all
+```
+
+The equivalent value the `bicycle` column is:
+
+```{r}
+zone_stats_shopping_arriving$shopping_dest_bicycle
+```
+
+Under the Go Dutch scenario, the value is:
+
+```{r}
+zone_stats_shopping_arriving$shopping_dest_bicycle_go_dutch_fastest
+```
+
+The equivalent value for the `car` column is:
+
+```{r}
+zone_stats_shopping_arriving$shopping_dest_car
+```
+
+Under the Go Dutch scenario, the value is:
+
+```{r}
+zone_stats_shopping_arriving$shopping_dest_car_go_dutch_fastest
+```
+
+Let's identify the same value in the `utility_stats` data:
+
+```{r}
+names(utility_stats)
+#   [1] "DataZone"                                        
+#   [2] "leisure_orig_all"                                
+#   [3] "shopping_orig_all"                               
+#   [4] "visiting_orig_all"                               
+#   [5] "leisure_orig_car"                                
+#   [6] "shopping_orig_car"                               
+#   [7] "visiting_orig_car"                               
+#   [8] "leisure_orig_foot"                               
+#   [9] "shopping_orig_foot"                              
+#  [10] "visiting_orig_foot"                              
+#  [11] "leisure_orig_bicycle"                            
+#  [12] "shopping_orig_bicycle"                           
+#  [13] "visiting_orig_bicycle"                           
+#  [14] "leisure_orig_public_transport"                   
+#  [15] "shopping_orig_public_transport"                  
+#  [16] "visiting_orig_public_transport"                  
+#  [17] "leisure_orig_taxi"                               
+#  [18] "shopping_orig_taxi"                              
+#  [19] "visiting_orig_taxi"                              
+#  [20] "leisure_dest_all"                                
+#  [21] "visiting_dest_all"                               
+#  [22] "shopping_dest_all"                               
+#  [23] "leisure_dest_car"                                
+#  [24] "visiting_dest_car"                               
+#  [25] "shopping_dest_car"                               
+#  [26] "leisure_dest_foot"                               
+#  [27] "visiting_dest_foot"                              
+#  [28] "shopping_dest_foot"                              
+#  [29] "leisure_dest_bicycle"                            
+#  [30] "visiting_dest_bicycle"                           
+#  [31] "shopping_dest_bicycle"                           
+#  [32] "leisure_dest_public_transport"                   
+#  [33] "visiting_dest_public_transport"                  
+#  [34] "shopping_dest_public_transport"                  
+#  [35] "leisure_dest_taxi"                               
+#  [36] "visiting_dest_taxi"                              
+#  [37] "shopping_dest_taxi"                              
+#  [38] "leisure_orig_bicycle_go_dutch_fastest"           
+#  [39] "shopping_orig_bicycle_go_dutch_fastest"          
+#  [40] "visiting_orig_bicycle_go_dutch_fastest"          
+#  [41] "leisure_orig_car_go_dutch_fastest"               
+#  [42] "shopping_orig_car_go_dutch_fastest"              
+#  [43] "visiting_orig_car_go_dutch_fastest"              
+#  [44] "leisure_orig_public_transport_go_dutch_fastest"  
+#  [45] "shopping_orig_public_transport_go_dutch_fastest" 
+#  [46] "visiting_orig_public_transport_go_dutch_fastest" 
+#  [47] "leisure_orig_foot_go_dutch_fastest"              
+#  [48] "shopping_orig_foot_go_dutch_fastest"             
+#  [49] "visiting_orig_foot_go_dutch_fastest"             
+#  [50] "leisure_orig_taxi_go_dutch_fastest"              
+#  [51] "shopping_orig_taxi_go_dutch_fastest"             
+#  [52] "visiting_orig_taxi_go_dutch_fastest"             
+#  [53] "leisure_orig_quietness_fastest"                  
+#  [54] "shopping_orig_quietness_fastest"                 
+#  [55] "visiting_orig_quietness_fastest"                 
+#  [56] "leisure_orig_route_hilliness_fastest"            
+#  [57] "shopping_orig_route_hilliness_fastest"           
+#  [58] "visiting_orig_route_hilliness_fastest"           
+#  [59] "visiting_dest_bicycle_go_dutch_fastest"          
+#  [60] "leisure_dest_bicycle_go_dutch_fastest"           
+#  [61] "shopping_dest_bicycle_go_dutch_fastest"          
+#  [62] "visiting_dest_car_go_dutch_fastest"              
+#  [63] "leisure_dest_car_go_dutch_fastest"               
+#  [64] "shopping_dest_car_go_dutch_fastest"              
+#  [65] "visiting_dest_public_transport_go_dutch_fastest" 
+#  [66] "leisure_dest_public_transport_go_dutch_fastest"  
+#  [67] "shopping_dest_public_transport_go_dutch_fastest" 
+#  [68] "visiting_dest_foot_go_dutch_fastest"             
+#  [69] "leisure_dest_foot_go_dutch_fastest"              
+#  [70] "shopping_dest_foot_go_dutch_fastest"             
+#  [71] "visiting_dest_taxi_go_dutch_fastest"             
+#  [72] "leisure_dest_taxi_go_dutch_fastest"              
+#  [73] "shopping_dest_taxi_go_dutch_fastest"             
+#  [74] "visiting_dest_quietness_fastest"                 
+#  [75] "leisure_dest_quietness_fastest"                  
+#  [76] "shopping_dest_quietness_fastest"                 
+#  [77] "visiting_dest_route_hilliness_fastest"           
+#  [78] "leisure_dest_route_hilliness_fastest"            
+#  [79] "shopping_dest_route_hilliness_fastest"           
+#  [80] "leisure_orig_bicycle_ebike_fastest"              
+#  [81] "shopping_orig_bicycle_ebike_fastest"             
+#  [82] "visiting_orig_bicycle_ebike_fastest"             
+#  [83] "leisure_orig_car_ebike_fastest"                  
+#  [84] "shopping_orig_car_ebike_fastest"                 
+#  [85] "visiting_orig_car_ebike_fastest"                 
+#  [86] "leisure_orig_public_transport_ebike_fastest"     
+#  [87] "shopping_orig_public_transport_ebike_fastest"    
+#  [88] "visiting_orig_public_transport_ebike_fastest"    
+#  [89] "leisure_orig_foot_ebike_fastest"                 
+#  [90] "shopping_orig_foot_ebike_fastest"                
+#  [91] "visiting_orig_foot_ebike_fastest"                
+#  [92] "leisure_orig_taxi_ebike_fastest"                 
+#  [93] "shopping_orig_taxi_ebike_fastest"                
+#  [94] "visiting_orig_taxi_ebike_fastest"                
+#  [95] "visiting_dest_bicycle_ebike_fastest"             
+#  [96] "leisure_dest_bicycle_ebike_fastest"              
+#  [97] "shopping_dest_bicycle_ebike_fastest"             
+#  [98] "visiting_dest_car_ebike_fastest"                 
+#  [99] "leisure_dest_car_ebike_fastest"                  
+# [100] "shopping_dest_car_ebike_fastest"                 
+# [101] "visiting_dest_public_transport_ebike_fastest"    
+# [102] "leisure_dest_public_transport_ebike_fastest"     
+# [103] "shopping_dest_public_transport_ebike_fastest"    
+# [104] "visiting_dest_foot_ebike_fastest"                
+# [105] "leisure_dest_foot_ebike_fastest"                 
+# [106] "shopping_dest_foot_ebike_fastest"                
+# [107] "visiting_dest_taxi_ebike_fastest"                
+# [108] "leisure_dest_taxi_ebike_fastest"                 
+# [109] "shopping_dest_taxi_ebike_fastest"                
+# [110] "leisure_orig_bicycle_go_dutch_quietest"          
+# [111] "visiting_orig_bicycle_go_dutch_quietest"         
+# [112] "shopping_orig_bicycle_go_dutch_quietest"         
+# [113] "leisure_orig_car_go_dutch_quietest"              
+# [114] "visiting_orig_car_go_dutch_quietest"             
+# [115] "shopping_orig_car_go_dutch_quietest"             
+# [116] "leisure_orig_public_transport_go_dutch_quietest" 
+# [117] "visiting_orig_public_transport_go_dutch_quietest"
+# [118] "shopping_orig_public_transport_go_dutch_quietest"
+# [119] "leisure_orig_foot_go_dutch_quietest"             
+# [120] "visiting_orig_foot_go_dutch_quietest"            
+# [121] "shopping_orig_foot_go_dutch_quietest"            
+# [122] "leisure_orig_taxi_go_dutch_quietest"             
+# [123] "visiting_orig_taxi_go_dutch_quietest"            
+# [124] "shopping_orig_taxi_go_dutch_quietest"            
+# [125] "leisure_orig_bicycle_ebike_quietest"             
+# [126] "visiting_orig_bicycle_ebike_quietest"            
+# [127] "shopping_orig_bicycle_ebike_quietest"            
+# [128] "leisure_orig_car_ebike_quietest"                 
+# [129] "visiting_orig_car_ebike_quietest"                
+# [130] "shopping_orig_car_ebike_quietest"                
+# [131] "leisure_orig_public_transport_ebike_quietest"    
+# [132] "visiting_orig_public_transport_ebike_quietest"   
+# [133] "shopping_orig_public_transport_ebike_quietest"   
+# [134] "leisure_orig_foot_ebike_quietest"                
+# [135] "visiting_orig_foot_ebike_quietest"               
+# [136] "shopping_orig_foot_ebike_quietest"               
+# [137] "leisure_orig_taxi_ebike_quietest"                
+# [138] "visiting_orig_taxi_ebike_quietest"               
+# [139] "shopping_orig_taxi_ebike_quietest"               
+# [140] "leisure_orig_quietness_quietest"                 
+# [141] "visiting_orig_quietness_quietest"                
+# [142] "shopping_orig_quietness_quietest"                
+# [143] "leisure_orig_route_hilliness_quietest"           
+# [144] "visiting_orig_route_hilliness_quietest"          
+# [145] "shopping_orig_route_hilliness_quietest"          
+# [146] "visiting_dest_bicycle_go_dutch_quietest"         
+# [147] "leisure_dest_bicycle_go_dutch_quietest"          
+# [148] "shopping_dest_bicycle_go_dutch_quietest"         
+# [149] "visiting_dest_car_go_dutch_quietest"             
+# [150] "leisure_dest_car_go_dutch_quietest"              
+# [151] "shopping_dest_car_go_dutch_quietest"             
+# [152] "visiting_dest_public_transport_go_dutch_quietest"
+# [153] "leisure_dest_public_transport_go_dutch_quietest" 
+# [154] "shopping_dest_public_transport_go_dutch_quietest"
+# [155] "visiting_dest_foot_go_dutch_quietest"            
+# [156] "leisure_dest_foot_go_dutch_quietest"             
+# [157] "shopping_dest_foot_go_dutch_quietest"            
+# [158] "visiting_dest_taxi_go_dutch_quietest"            
+# [159] "leisure_dest_taxi_go_dutch_quietest"             
+# [160] "shopping_dest_taxi_go_dutch_quietest"            
+# [161] "visiting_dest_bicycle_ebike_quietest"            
+# [162] "leisure_dest_bicycle_ebike_quietest"             
+# [163] "shopping_dest_bicycle_ebike_quietest"            
+# [164] "visiting_dest_car_ebike_quietest"                
+# [165] "leisure_dest_car_ebike_quietest"                 
+# [166] "shopping_dest_car_ebike_quietest"                
+# [167] "visiting_dest_public_transport_ebike_quietest"   
+# [168] "leisure_dest_public_transport_ebike_quietest"    
+# [169] "shopping_dest_public_transport_ebike_quietest"   
+# [170] "visiting_dest_foot_ebike_quietest"               
+# [171] "leisure_dest_foot_ebike_quietest"                
+# [172] "shopping_dest_foot_ebike_quietest"               
+# [173] "visiting_dest_taxi_ebike_quietest"               
+# [174] "leisure_dest_taxi_ebike_quietest"                
+# [175] "shopping_dest_taxi_ebike_quietest"               
+# [176] "visiting_dest_quietness_quietest"                
+# [177] "leisure_dest_quietness_quietest"                 
+# [178] "shopping_dest_quietness_quietest"                
+# [179] "visiting_dest_route_hilliness_quietest"          
+# [180] "leisure_dest_route_hilliness_quietest"           
+# [181] "shopping_dest_route_hilliness_quietest"          
+
+utility_stats_example = utility_stats |>
+  dplyr::filter(DataZone == "S01012355")
+utility_stats_example$shopping_dest_all
+utility_stats_example$shopping_dest_car
+
+```
+
+Let's go back another step to look at the inputs and code that generated the `utility_stats` data.
