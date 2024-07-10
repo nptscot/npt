@@ -1,7 +1,17 @@
 ---
 format: gfm
 title: QA on utility trips
+execute: 
+  echo: false
+  message: false
 ---
+
+```{r}
+#| label: setup
+library(tidyverse)
+library(targets)
+tar_source()
+```
 
 
 ```{r}
@@ -224,3 +234,12 @@ title: QA on utility trips
     routes
   }),
 ```
+
+We'll load data with `tar_load()` and check the utility trips.
+
+```{r}
+tar_load(parameters)
+parameters
+```
+
+The checks below apply to `r parameters$region`.
