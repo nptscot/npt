@@ -238,8 +238,10 @@ tar_source()
 We'll load data with `tar_load()` and check the utility trips.
 
 ```{r}
+old_working_directory = setwd("../..")
 tar_load(parameters)
-parameters
+# parameters
+setwd(old_working_directory)
 ```
 
 The checks below apply to `r parameters$region`.
