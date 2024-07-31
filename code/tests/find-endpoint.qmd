@@ -1,0 +1,269 @@
+---
+juptyer:
+  kernels: python3
+---
+
+```{python}
+import os
+import geopandas as gpd
+import matplotlib.pyplot as plt
+from shapely.geometry import LineString, MultiLineString, Point
+from shapely.ops import unary_union, linemerge
+import requests
+from io import BytesIO
+
+# Define the URL
+url = "https://github.com/nptscot/npt/releases/download/join_orcp/orcp_city_boundary.geojson"
+
+# Download the file from the URL
+response = requests.get(url)
+response.raise_for_status()  # Check if the request was successful
+
+# Load the GeoJSON file directly from the response content
+gdf_all = gpd.read_file(BytesIO(response.content))
+
+# Filter the GeoDataFrame to only include the component of interest, change the value for another component
+gdf = gdf_all[gdf_all["component"] == "9"]
+# Merge all line geometries into a single MultiLineString object
+merged_lines = unary_union(gdf.geometry)
+
+# Attempt to merge into a single continuous line if possible
+single_line = linemerge(merged_lines)
+
+# Function to extract junctions from a geometry
+# TODO: Convert this function to R code
+def extract_junctions(geometry):
+    junctions = []  # Create an empty list to store points
+    all_points = [line.coords[0] for line in geometry.geoms] + [line.coords[-1] for line in geometry.geoms]
+    
+    # Count occurrences of each point
+    point_count = {}
+    for point in all_points:
+        point_count[point] = point_count.get(point, 0) + 1
+    
+    # Identify junctions as points occurring only once
+    for point, count in point_count.items():
+        if count == 1:
+            junctions.append(Point(point))
+    
+    return junctions
+
+# Check if the result is a MultiLineString to handle accordingly
+if isinstance(single_line, MultiLineString):
+    true_endpoints = extract_junctions(single_line)
+else:
+    # Fallback to handle if the result isn't a MultiLineString
+    true_endpoints = [Point(single_line.coords[0]), Point(single_line.coords[-1])]
+
+# Create a GeoDataFrame from the junctions
+junctions_gdf = gpd.GeoDataFrame(geometry=true_endpoints)
+
+# Plot the network and its junctions
+fig, ax = plt.subplots(figsize=(10, 10))
+gdf.plot(ax=ax, color='gray', label='Network')
+junctions_gdf.plot(ax=ax, color='blue', marker='o', markersize=50, label='Junctions/Endpoints')
+
+ax.set_title('Network with Junctions/Endpoints')
+ax.set_xlabel('Longitude')
+ax.set_ylabel('Latitude')
+ax.legend()
+
+plt.show()
+```
+
+```{python}
+# import geopandas as gpd
+# from shapely.geometry import LineString
+
+# def split_line_by_distance(linestring, distance):
+#     # This function splits a linestring into smaller segments of a specified length
+#     num_segments = int(linestring.length // distance)
+#     points = [linestring.interpolate(distance * i) for i in range(num_segments + 1)]
+#     return [LineString([points[i], points[i+1]]) for i in range(num_segments)]
+
+# # Load the datasets
+# OS = gpd.read_file("/workspaces/npt/inputdata/open_roads_scotland.geojson")
+# boundary = gpd.read_file("/workspaces/npt/inputdata/boundaries/la_regions_2023.geojson")
+# boundary = boundary[boundary['LAD23NM'] == 'City of Edinburgh']
+# OSM = gpd.read_file("/workspaces/npt/inputdata/OSM_City of Edinburgh.geojson")
+
+# # set crs are same
+# boundary = boundary.to_crs(OS.crs)
+# OSM = OSM.to_crs(OS.crs)
+
+# # Intersect with boundary
+# OS_inter = gpd.overlay(OS, boundary, how='intersection')
+# OSM_inter = gpd.overlay(OSM, boundary, how='intersection')
+
+# # save OS_inter and OSM_inter
+# OS_inter.to_file("/workspaces/npt/outputdata/OS_Edin.geojson", driver='GeoJSON')
+# OSM_inter.to_file("/workspaces/npt/outputdata/OSM_Edin.geojson", driver='GeoJSON')
+```
+
+```{python}
+import geopandas as gpd
+from shapely.ops import nearest_points
+from shapely.geometry import Point, LineString
+import numpy as np
+
+url = "https://github.com/nptscot/npt/releases/download/join_orcp/OS_Edin.geojson"
+
+# Download the file from the URL
+response = requests.get(url)
+response.raise_for_status()  # Check if the request was successful
+
+# Load the GeoJSON file directly from the response content
+OS_inter = gpd.read_file(BytesIO(response.content))
+
+url = "https://github.com/nptscot/npt/releases/download/join_orcp/OSM_Edin.geojson"
+
+# Download the file from the URL
+response = requests.get(url)
+response.raise_for_status()  # Check if the request was successful
+
+# Load the GeoJSON file directly from the response content
+OSM_inter = gpd.read_file(BytesIO(response.content))
+
+
+# Function to split a LineString by a specified distance
+def split_line_by_distance(line, distance):
+    # Create points along the line at the specified distance
+    num_points = int(np.ceil(line.length / distance))
+    points = [line.interpolate(i * distance) for i in range(num_points + 1)]
+    return points
+
+# Split each LineString in OS_inter into segments of 10 meters and extract points
+os_points_list = []
+
+for line in OS_inter.geometry:
+    if isinstance(line, LineString):
+        points = split_line_by_distance(line, 10)
+        os_points_list.extend(points)
+
+# Create a GeoDataFrame from the points
+os_points_gdf = gpd.GeoDataFrame(geometry=os_points_list)
+
+# Ensure the CRS is set correctly
+os_points_gdf.set_crs(OS_inter.crs, inplace=True)
+
+# Create spatial index for points_gdf
+os_points_sindex = os_points_gdf.sindex
+
+# Function to find the nearest point
+def find_nearest_point(row, points_gdf, points_sindex):
+    point = row.geometry
+    # Print statements to debug geometry types
+    print(f"Processing point: {point}")
+    possible_matches_index = list(points_sindex.nearest(point.bounds, 1))
+    print(f"Nearest index: {possible_matches_index}")
+    nearest_point = points_gdf.iloc[possible_matches_index[0]]
+    print(f"Nearest point: {nearest_point.geometry}")
+    return nearest_point.geometry
+
+# set junctions_gdf crs as 27700
+junctions_gdf.set_crs("EPSG:27700", inplace=True)
+#set points_gdf crs as 27700
+os_points_gdf.set_crs("EPSG:27700")
+
+# create junctions_buffer using junctions_gdf
+junctions_buffer = junctions_gdf.buffer(50)
+# convert junctions_buffer to GeoDataFrame
+junctions_buffer = gpd.GeoDataFrame(geometry=junctions_buffer, crs=junctions_gdf.crs)
+
+# filter points_gdf within buffer
+os_points_gdf = gpd.sjoin(os_points_gdf, junctions_buffer, how='inner', op='within')
+os_points_gdf.drop(['index_right'], axis =1, inplace=True)
+
+nearest_points_os_to_junctions = gpd.sjoin_nearest(
+    junctions_gdf, os_points_gdf, 
+    how='right', 
+    max_distance=50,  
+    distance_col='distance' 
+)
+
+nearest_points_os_to_junctions['rank'] = nearest_points_os_to_junctions.groupby('index_left')['distance'].rank(method='min', ascending=True)
+nearest_points_os_to_junctions = nearest_points_os_to_junctions[nearest_points_os_to_junctions['rank'] == 1].drop(columns=['rank'])
+
+nearest_points_os_to_junctions = nearest_points_os_to_junctions.groupby('index_left').first().reset_index()
+
+```
+
+```{python}
+import geopandas as gpd
+from shapely.geometry import LineString
+
+# Split each LineString in OSM_inter into segments of 10 meters and extract points
+osm_points_list = []
+for line in OSM_inter.geometry:
+    if isinstance(line, LineString):
+        points = split_line_by_distance(line, 10)
+        osm_points_list.extend(points)
+
+# Create a GeoDataFrame from the points
+osm_points_gdf = gpd.GeoDataFrame(geometry=osm_points_list)
+
+# Ensure the CRS is set correctly
+osm_points_gdf.set_crs(OSM_inter.crs, inplace=True)
+
+osm_points_gdf = gpd.sjoin(osm_points_gdf, junctions_buffer, how='inner', op='within')
+osm_points_gdf.drop(['index_right'], axis =1, inplace=True)
+
+# Create spatial index for osm_points_gdf
+osm_points_sindex = osm_points_gdf.sindex
+
+nearest_points_os_to_junctions.set_crs("EPSG:27700", inplace=True)
+
+nearest_points_os_to_junctions.drop(['index_left', "distance"], axis =1, inplace=True)
+
+nearest_points_os_to_junctions_osm = gpd.sjoin_nearest(
+    nearest_points_os_to_junctions,           # Left dataframe
+    osm_points_gdf,               # Right dataframe
+    how='right',                   # Keep every entry from the left df
+    max_distance=50,              # Optional: specify a maximum search distance
+    distance_col='distance'       # Adds a column showing the distance between points
+)
+
+# Step 3: Since sjoin_nearest might return multiple results per left entry, filter to the nearest
+nearest_points_os_to_junctions_osm['rank'] = nearest_points_os_to_junctions_osm.groupby('index_left')['distance'].rank(method='min', ascending=True)
+
+nearest_points_os_to_junctions_osm = nearest_points_os_to_junctions_osm[nearest_points_os_to_junctions_osm['rank'] == 1].drop(columns=['rank'])
+
+nearest_points_os_to_junctions_osm = nearest_points_os_to_junctions_osm.groupby('distance').first().reset_index()
+
+# Step 4: Optionally remove any unwanted columns and reset the index
+nearest_points_os_to_junctions_osm = nearest_points_os_to_junctions_osm.drop(columns=['index_left']).reset_index(drop=True)
+
+
+fig, ax = plt.subplots(figsize=(10, 10))
+
+# Plot the junction points
+junctions_gdf.plot(ax=ax, marker='o', color='blue', markersize=5, label='Junctions')
+
+# Plot the nearest points
+# If nearest_points_os_to_junctions is not directly available, ensure you use the result from the previous step
+nearest_points_os_to_junctions_osm.plot(ax=ax, marker='x', color='red', markersize=5, label='Nearest Points')
+#
+nearest_points_os_to_junctions.plot(ax=ax, marker='x', color='green', markersize=5, label='Nearest Points OSM')
+# Enhancing the plot
+ax.set_title('Junctions and Their Nearest Points')
+ax.set_xlabel('Longitude')
+ax.set_ylabel('Latitude')
+ax.legend()
+
+# Show the plot
+plt.show()
+```
+
+```{python}
+# Ensure your data contains only LineStrings (roads)
+roads = OSM[OSM.geometry.type == 'LineString']
+
+# Optionally, filter by road type if there are attributes available that allow this
+# roads = roads[roads['highway'].notnull()]  # Example to keep only features tagged as highways
+
+# Create a graph from the LineString GeoDataFrame
+import momepy
+G = momepy.gdf_to_nx(roads, approach='primal')
+
+
+```
