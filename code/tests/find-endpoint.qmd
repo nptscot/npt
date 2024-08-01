@@ -11,7 +11,7 @@ from shapely.geometry import LineString, MultiLineString, Point
 from shapely.ops import unary_union, linemerge
 import requests
 from io import BytesIO
-
+from shapely.geometry import box
 # Define the URL
 url = "https://github.com/nptscot/npt/releases/download/join_orcp/orcp_city_boundary.geojson"
 
@@ -21,6 +21,24 @@ response.raise_for_status()  # Check if the request was successful
 
 # Load the GeoJSON file directly from the response content
 gdf_all = gpd.read_file(BytesIO(response.content))
+
+url = "https://github.com/nptscot/npt/releases/download/join_orcp/OS_Edin.geojson"
+
+# Download the file from the URL
+response = requests.get(url)
+response.raise_for_status()  # Check if the request was successful
+
+# Load the GeoJSON file directly from the response content
+OS_inter = gpd.read_file(BytesIO(response.content))
+
+url = "https://github.com/nptscot/npt/releases/download/join_orcp/OSM_Edin.geojson"
+
+# Download the file from the URL
+response = requests.get(url)
+response.raise_for_status()  # Check if the request was successful
+
+# Load the GeoJSON file directly from the response content
+OSM_inter = gpd.read_file(BytesIO(response.content))
 
 # Filter the GeoDataFrame to only include the component of interest, change the value for another component
 gdf = gdf_all[gdf_all["component"] == "9"]
@@ -58,9 +76,23 @@ else:
 # Create a GeoDataFrame from the junctions
 junctions_gdf = gpd.GeoDataFrame(geometry=true_endpoints)
 
+all_points = gpd.GeoSeries(
+    list(junctions_gdf['geometry']))
+
+total_bounds = all_points.total_bounds 
+
+margin = 50  # Adjust the margin size based on your data scale and CRS unit
+expanded_box = box(total_bounds[0] - margin, total_bounds[1] - margin,
+                   total_bounds[2] + margin, total_bounds[3] + margin)
+
+# Clip OSM_inter to the area of the bounding box
+OS_clipped = gpd.clip(OS_inter, expanded_box)
+
 # Plot the network and its junctions
 fig, ax = plt.subplots(figsize=(10, 10))
-gdf.plot(ax=ax, color='gray', label='Network')
+
+OS_clipped.plot(ax=ax, color='gray', label='Open Roads')
+gdf.plot(ax=ax, color='blue', label='Network')
 junctions_gdf.plot(ax=ax, color='blue', marker='o', markersize=50, label='Junctions/Endpoints')
 
 ax.set_title('Network with Junctions/Endpoints')
@@ -106,24 +138,6 @@ from shapely.ops import nearest_points
 from shapely.geometry import Point, LineString
 import numpy as np
 
-url = "https://github.com/nptscot/npt/releases/download/join_orcp/OS_Edin.geojson"
-
-# Download the file from the URL
-response = requests.get(url)
-response.raise_for_status()  # Check if the request was successful
-
-# Load the GeoJSON file directly from the response content
-OS_inter = gpd.read_file(BytesIO(response.content))
-
-url = "https://github.com/nptscot/npt/releases/download/join_orcp/OSM_Edin.geojson"
-
-# Download the file from the URL
-response = requests.get(url)
-response.raise_for_status()  # Check if the request was successful
-
-# Load the GeoJSON file directly from the response content
-OSM_inter = gpd.read_file(BytesIO(response.content))
-
 # Function to split a LineString by a specified distance
 def split_line_by_distance(line, distance):
     # Create points along the line at the specified distance
@@ -164,19 +178,11 @@ junctions_gdf.set_crs("EPSG:27700", inplace=True)
 #set points_gdf crs as 27700
 os_points_gdf.set_crs("EPSG:27700")
 
-# create junctions_buffer using junctions_gdf
-junctions_buffer = junctions_gdf.buffer(50)
-# convert junctions_buffer to GeoDataFrame
-junctions_buffer = gpd.GeoDataFrame(geometry=junctions_buffer, crs=junctions_gdf.crs)
-
-# filter points_gdf within buffer
-os_points_gdf = gpd.sjoin(os_points_gdf, junctions_buffer, how='inner', op='within')
-os_points_gdf.drop(['index_right'], axis =1, inplace=True)
 
 nearest_points_os_to_junctions = gpd.sjoin_nearest(
     junctions_gdf, os_points_gdf, 
     how='right', 
-    max_distance=50,  
+    max_distance=200,  
     distance_col='distance' 
 )
 
@@ -187,6 +193,20 @@ nearest_points_os_to_junctions = nearest_points_os_to_junctions.groupby('index_l
 
 # rename 'index_left' to 'ori_index'
 nearest_points_os_to_junctions.rename(columns={'index_left': 'ori_index'}, inplace=True)
+
+# plot nearest_points_os_to_junctions, junctions_gdf and OS_clipped
+fig, ax = plt.subplots(figsize=(10, 10))
+
+OS_clipped.plot(ax=ax, color='gray', label='Open Roads')
+junctions_gdf.plot(ax=ax, color='blue', marker='o', markersize=50, label='Junctions/Endpoints')
+nearest_points_os_to_junctions.plot(ax=ax, color='red', marker='x', markersize=50, label='Nearest Points')
+
+ax.set_title('Open Roads with Junctions/Endpoints and Nearest Points')
+ax.set_xlabel('Longitude')
+ax.set_ylabel('Latitude')
+ax.legend()
+
+plt.show()
 
 ```
 
@@ -207,8 +227,8 @@ osm_points_gdf = gpd.GeoDataFrame(geometry=osm_points_list)
 # Ensure the CRS is set correctly
 osm_points_gdf.set_crs(OSM_inter.crs, inplace=True)
 
-osm_points_gdf = gpd.sjoin(osm_points_gdf, junctions_buffer, how='inner', op='within')
-osm_points_gdf.drop(['index_right'], axis =1, inplace=True)
+# osm_points_gdf = gpd.sjoin(osm_points_gdf, junctions_buffer, how='inner', op='within')
+# osm_points_gdf.drop(['index_right'], axis =1, inplace=True)
 
 # Create spatial index for osm_points_gdf
 osm_points_sindex = osm_points_gdf.sindex
@@ -317,7 +337,7 @@ OSM_clipped = gpd.clip(OSM_inter, expanded_box)
 OS_clipped = gpd.clip(OS_inter, expanded_box)
 # Plotting
 fig, ax = plt.subplots(figsize=(10, 10))
-OS_clipped.plot(ax=ax, color='red')
+OS_clipped.plot(ax=ax, color='red', label='Open Roads')
 gdf.plot(ax=ax, color='green')
 OSM_clipped.plot(ax=ax, linewidth=1, edgecolor='gray', label='OSM Roads')
 
@@ -356,6 +376,30 @@ def nearest_node(graph, point):
 
 G = nx.Graph()
 
+def split_line(line, segment_length):
+    """ Split a LineString into segments of approximately 'segment_length' meters """
+    num_segments = int(np.ceil(line.length / segment_length))
+    points = [line.interpolate(float(n) / num_segments, normalized=True) for n in range(num_segments + 1)]
+    return [LineString([points[i], points[i + 1]]) for i in range(num_segments)]
+    
+def split_geodataframe(gdf, segment_length):
+    """ Split all LineString geometries in a GeoDataFrame into segments """
+    new_rows = []
+    for _, row in gdf.iterrows():
+        if isinstance(row.geometry, LineString):
+            segments = split_line(row.geometry, segment_length)
+            for segment in segments:
+                new_row = row.copy()
+                new_row.geometry = segment
+                new_rows.append(new_row)
+        else:
+            new_rows.append(row)  # In case there are non-LineString geometries
+    return gpd.GeoDataFrame(new_rows, crs=gdf.crs)
+
+# Applying the function
+segment_length = 10  # meters
+# OSM_inter_split = split_geodataframe(OSM_inter, segment_length)
+
 # Add edges and nodes to the graph from OSM_inter
 for idx, row in OSM_inter.iterrows():
     geom = row.geometry
@@ -368,22 +412,25 @@ for idx, row in OSM_inter.iterrows():
         G.add_edge(start_point, end_point, weight=row.get('length', geom.length))
 
 all_points = gpd.GeoSeries(
-    list(junctions_gdf['geometry']) + list(nearest_points_os_to_junctions_osm['geometry'])
+     list(nearest_points_os_to_junctions_osm['geometry'])
 )
 total_bounds = all_points.total_bounds 
 
-margin = 50  # Adjust the margin size based on your data scale and CRS unit
+margin = 100 
 expanded_box = box(total_bounds[0] - margin, total_bounds[1] - margin,
                    total_bounds[2] + margin, total_bounds[3] + margin)
-
+# set expanded_box crs as 27700
+expanded_box = gpd.GeoDataFrame(geometry=[expanded_box], crs="EPSG:27700")
 # Clip OSM_inter to the area of the bounding box
 OSM_clipped = gpd.clip(OSM_inter, expanded_box)
 
-fig, ax = plt.subplots(figsize=(10, 10))
+fig, ax = plt.subplots(figsize=(15, 15))
 # Plot clipped OSM data
 OSM_clipped.plot(ax=ax, linewidth=1, edgecolor='gray')
-
+OS_clipped.plot(ax=ax, linewidth=1, edgecolor='orange')
+gdf.plot(ax=ax, color= "black")
 # Calculate and plot shortest paths
+nearest_points_os_to_junctions_osm_1 = nearest_points_os_to_junctions_osm.loc[[4]]
 for i, row in nearest_points_os_to_junctions_osm.iterrows():
     print(f"Processing pair {i+1}")
     osm_point = row['geometry']
@@ -404,13 +451,10 @@ for i, row in nearest_points_os_to_junctions_osm.iterrows():
         print(f"No path found between nodes {osm_node} and {junction_node}")
 
 junctions_gdf.plot(ax=ax, color='blue', marker='o', label='Junction Points', markersize=50)
-nearest_points_os_to_junctions_osm.plot(ax=ax, color='red', marker='<', label='Nearest Points', markersize=50)
+nearest_points_os_to_junctions_osm.plot(ax=ax, color='red', marker='x', label='Nearest Points', markersize=70)
 
-ax.set_xlim([bounding_box.bounds[0], bounding_box.bounds[2]])
-ax.set_ylim([bounding_box.bounds[1], bounding_box.bounds[3]])
 ax.set_title('OSM Data and Shortest Paths within Junction Boundaries')
 
 plt.grid(True)
 plt.show()
-
 ```
