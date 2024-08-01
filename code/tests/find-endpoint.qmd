@@ -3,6 +3,9 @@ juptyer:
   kernels: python3
 ---
 
+the code below is used to find the endpoints of a ORCP network 
+the extract_junctions function is waiting for conversion to R code
+
 ```{python}
 import os
 import geopandas as gpd
@@ -131,6 +134,7 @@ plt.show()
 # OS_inter.to_file("/workspaces/npt/outputdata/OS_Edin.geojson", driver='GeoJSON')
 # OSM_inter.to_file("/workspaces/npt/outputdata/OSM_Edin.geojson", driver='GeoJSON')
 ```
+the code below is used to find the nearest points between the endpoints identified above and OS networks
 
 ```{python}
 import geopandas as gpd
@@ -209,6 +213,8 @@ ax.legend()
 plt.show()
 
 ```
+
+the code below is continue from previous step to find nearest points in OSM networks
 
 ```{python}
 import geopandas as gpd
@@ -315,6 +321,7 @@ ax.legend()
 plt.show()
 ```
 
+the code below plot the OSM data, junction points, and nearest points
 
 ```{python}
 import geopandas as gpd
@@ -355,6 +362,8 @@ plt.ylabel('Latitude')
 plt.grid(True)
 plt.show()
 ```
+
+the code below is used to find the shortest path between the nearest points and junction points
 
 ```{python}
 import geopandas as gpd
