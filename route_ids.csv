@@ -1,4 +1,41 @@
 nrow,plan,purpose,region,date,id
+111294,quietest,utility,Edinburgh and Lothians,2024-08-01,10528
+111294,fastest,utility,Edinburgh and Lothians,2024-08-01,10527
+90716,ebike,commute,Edinburgh and Lothians,2024-08-01,10523
+90716,quietest,commute,Edinburgh and Lothians,2024-08-01,10521
+90716,fastest,commute,Edinburgh and Lothians,2024-08-01,10520
+9425,ebike,school,Edinburgh and Lothians,2024-08-01,10519
+9425,quietest,school,Edinburgh and Lothians,2024-08-01,10517
+9425,fastest,school,Edinburgh and Lothians,2024-08-01,10516
+50769,ebike,utility,"Tayside, Central and Fife",2024-08-01,10515
+50769,quietest,utility,"Tayside, Central and Fife",2024-08-01,10514
+50769,balanced,utility,"Tayside, Central and Fife",2024-08-01,10512
+65662,ebike,commute,"Tayside, Central and Fife",2024-08-01,10511
+65662,quietest,commute,"Tayside, Central and Fife",2024-08-01,10507
+65662,fastest,commute,"Tayside, Central and Fife",2024-08-01,10506
+11451,ebike,school,"Tayside, Central and Fife",2024-08-01,10505
+11451,quietest,school,"Tayside, Central and Fife",2024-08-01,10503
+11451,fastest,school,"Tayside, Central and Fife",2024-08-01,10502
+9458,ebike,utility,Scotland South,2024-08-01,10501
+9458,quietest,utility,Scotland South,2024-08-01,10500
+9458,fastest,utility,Scotland South,2024-08-01,10499
+6943,ebike,commute,Scotland South,2024-08-01,10497
+6943,quietest,commute,Scotland South,2024-08-01,10495
+6943,fastest,commute,Scotland South,2024-08-01,10494
+1607,ebike,school,Scotland South,2024-08-01,10493
+1607,balanced,school,Scotland South,2024-08-01,10492
+1607,quietest,school,Scotland South,2024-08-01,10491
+1607,fastest,school,Scotland South,2024-08-01,10490
+93499,ebike,utility,Glasgow and Strathclyde,2024-08-01,10489
+93499,quietest,utility,Glasgow and Strathclyde,2024-08-01,10488
+93499,fastest,utility,Glasgow and Strathclyde,2024-08-01,10487
+218877,ebike,commute,Glasgow and Strathclyde,2024-08-01,10483
+218877,quietest,commute,Glasgow and Strathclyde,2024-08-01,10481
+218877,fastest,commute,Glasgow and Strathclyde,2024-08-01,10480
+29032,ebike,school,Glasgow and Strathclyde,2024-08-01,10479
+29032,balanced,school,Glasgow and Strathclyde,2024-08-01,10478
+29032,quietest,school,Glasgow and Strathclyde,2024-08-01,10477
+29032,fastest,school,Glasgow and Strathclyde,2024-08-01,10476
 250,ebike,utility,Highlands and Islands,2024-07-01,10306
 250,quietest,utility,Highlands and Islands,2024-07-01,10305
 250,fastest,utility,Highlands and Islands,2024-07-01,10304
