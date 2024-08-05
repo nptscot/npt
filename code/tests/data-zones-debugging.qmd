@@ -1,0 +1,95 @@
+---
+format: gfm
+title: Data zones tests
+---
+
+The aim of the code in this document is to test the DataZones files, starting with the v2024-07-02 release.
+Get that with:
+
+
+```{bash}
+#| eval: false
+cd outputdata
+# gh release download v2024-07-02 --clobber
+# Download all files matching "DataZone_json.zip":
+gh release download v2024-07-02 --pattern "DataZone_json.zip" --clobber
+cd ..
+```
+
+The code above automatically downloads the data from this release: https://github.com/nptscot/outputdata/releases/tag/v2024-07-02
+
+Let's unzip the zip file:
+
+
+```{r}
+data_zones_zip_file = "outputdata/DataZone_json.zip"
+file.exists(data_zones_zip_file)
+data_zones_exdir = "outputdata/DataZone_2024-07-02"
+unzip(data_zones_zip_file, exdir = data_zones_exdir)
+data_zone_files = list.files(data_zones_exdir, full.names = TRUE)
+length(data_zone_files) # 7457
+head(data_zone_files)
+```
+
+Let's load the zones data to find out which zones are missing:
+
+
+```{r}
+library(targets)
+tar_load(zones)
+library(sf)
+library(tidyverse)
+zones |>
+  sf::st_geometry() |>
+  plot()
+nrow(zones) # 2837 for Glasgow
+```
+
+We can regenerate the zones data with the following code:
+
+
+```{r}
+# Aim: combine regional outputs, create and upload outputs
+
+library(tidyverse)
+library(targets)
+library(tidygraph)
+library(osmextract)
+library(foreach)
+library(iterators)
+library(parallel)
+library(doParallel)
+tar_source()
+
+parameters = jsonlite::read_json("parameters.json", simplifyVector = T)
+lads = sf::read_sf("inputdata/boundaries/la_regions_2023.geojson")
+date_folder = parameters$date_routing
+output_folder = file.path("outputdata", date_folder)
+
+# # Start with Glasgow:
+region_names = unique(lads$Region)[c(3, 2, 1, 4, 5, 6)]
+cities_region_names = lapply(
+  region_names,
+  function(region) {
+    cities_in_region = lads |>
+      filter(Region == region) |>
+      pull(LAD23NM) |>
+      unique()
+  }
+)
+names(cities_region_names) = region_names
+region_names_lowercase = snakecase::to_snake_case(region_names)
+
+# Build route networks:
+region = region_names[1]
+for (region in region_names) {
+  message("Processing region: ", region)
+  parameters$region = region
+  jsonlite::write_json(parameters, "parameters.json", pretty = TRUE)
+  targets::tar_make(zones_stats)
+  targets::tar_make(region_folder)
+  tar_load(zones_stats)
+  tar_load(region_folder)
+  saveRDS(zones_stats, file.path(region_folder, "zones_stats.Rds"))
+}
+```

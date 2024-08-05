@@ -1119,7 +1119,7 @@ list(
     z$population_density = round(z$Total_population / z$area)
     z$area = NULL
 
-    make_geojson_zones(z, file.path(dir_local, paste0("data_zones_", parameters$region, ".geojson")))
+    make_geojson_zones(z, file.path(region_folder, paste0("data_zones_", parameters$region, ".geojson")))
     z
   }),
   tar_target(zones_dasymetric_tile, {
@@ -1147,7 +1147,7 @@ list(
   }),
   tar_target(school_points, {
     schools = sf::read_sf("inputdata/Schools/school_locations.geojson")
-    make_geojson_zones(schools, file.path("outputdata", "school_locations.geojson"))
+    make_geojson_zones(schools, file.path(region_folder, "school_locations.geojson"))
     schools
   }),
 
@@ -1435,16 +1435,16 @@ list(
 
     message("Saving outputs for ", parameters$date_routing)
 
-    saveRDS(od_commute_subset, "outputdata/od_commute_subset.Rds")
-    saveRDS(zones_stats, "outputdata/zones_stats.Rds")
-    saveRDS(school_stats, "outputdata/school_stats.Rds")
+    saveRDS(od_commute_subset, file.path(region_folder, "od_commute_subset.Rds"))  
+    saveRDS(zones_stats, file.path(region_folder, "zones_stats.Rds"))
+    saveRDS(school_stats, file.path(region_folder, "school_stats.Rds"))
 
     # Save GeoPackage versions (just fastest for now):
-    sf::write_sf(rnet_commute_fastest, "outputdata/rnet_commute_fastest.gpkg")
-    sf::write_sf(rnet_primary_fastest, "outputdata/rnet_primary_fastest.gpkg")
-    sf::write_sf(rnet_secondary_fastest, "outputdata/rnet_secondary_fastest.gpkg")
-    sf::write_sf(rnet_utility_fastest, "outputdata/rnet_utility_fastest.gpkg")
-    sf::write_sf(combined_network, "outputdata/combined_network.gpkg", delete_dsn = TRUE)
+    sf::write_sf(rnet_commute_fastest, file.path(region_folder, "rnet_commute_fastest.gpkg"))
+    sf::write_sf(rnet_primary_fastest, file.path(region_folder, "rnet_primary_fastest.gpkg"))
+    sf::write_sf(rnet_secondary_fastest, file.path(region_folder, "rnet_secondary_fastest.gpkg"))
+    sf::write_sf(rnet_utility_fastest, file.path(region_folder, "rnet_utility_fastest.gpkg"))
+    sf::write_sf(combined_network, file.path(region_folder, "combined_network.gpkg"), delete_dsn = TRUE)
     as.character(Sys.Date())
   }),
 
