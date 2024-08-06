@@ -251,6 +251,7 @@ sf::st_geometry(open_roads_scotland) = "geometry"
 # Generate the coherent network for the region
 # foreach(region = region_names) %dopar% {
 for (region in region_names) {
+  # region = region_names[4]  "Edinburgh and Lothians"  
   message("Processing coherent network for region: ", region)
   region_snake = snakecase::to_snake_case(region)
   coherent_area = cities_region_names[[region]]
@@ -266,6 +267,7 @@ for (region in region_names) {
   }
 
   for (city in coherent_area) {
+    # city = coherent_area[3] "City of Edinburgh"
     city_filename = snakecase::to_snake_case(city)
     tryCatch(
       {
@@ -296,11 +298,102 @@ for (region in region_names) {
 
         message("Generating Off Road Cycle Path network for: ", city)
         source("R/get_orcp_cn.R")
-        mapview::mapview(combined_net_city_boundary) + mapview::mapview(city_boundary)
+        # mapview::mapview(combined_net_city_boundary) + mapview::mapview(city_boundary)
          
         orcp_city_boundary = orcp_network(area = city_boundary, NPT_zones = combined_net_city_boundary, percentile_value = 0.6)
-        mapview::mapview(orcp_city_boundary, zcol = "all_fastest_bicycle_go_dutch") + mapview::mapview(combined_net_city_boundary)
+        # mapview::mapview(orcp_city_boundary, zcol = "all_fastest_bicycle_go_dutch") + mapview::mapview(combined_net_city_boundary)
         # orcp_city_boundary_zone = orcp_city_boundary[sf::st_union(zonebuilder::zb_zone(city, n_circles = 3)) |> sf::st_transform(27700), , op = sf::st_intersects]
+
+        OSM_city = sf::read_sf(glue::glue("inputdata/fixed_osm/OSM_", city, ".geojson_fixed.geojson")) |> sf::st_transform(27700)
+
+        orcp_city_boundary_component = find_component(orcp_city_boundary)
+
+        # Initialize the list to store paths for each component
+        all_paths_dict <- list()
+
+        # Unique components
+        components <- unique(orcp_city_boundary_component$component)
+
+        # Loop through each component
+        for (component in components) {
+          tryCatch({
+            gdf <- orcp_city_boundary_component %>% filter(component == component)
+            
+            points_sf <- find_endpoints(gdf)
+            os_points <- find_nearest_points(points_sf, open_roads_scotland_city_boundary)
+            osm_points <- find_nearest_points(os_points, OSM_city)
+            
+            hull_sf <- st_convex_hull(st_union(osm_points))
+            buffer_distance <- 500  # Adjust the buffer distance as needed
+            buffered_hull_sf <- st_buffer(hull_sf, dist = buffer_distance)
+            
+            OSM <- OSM_city[st_union(buffered_hull_sf), , op = st_intersects]
+            OS <- open_roads_scotland_city_boundary[st_union(buffered_hull_sf), , op = st_intersects]
+            
+            paths <- compute_shortest_paths(points_sf, osm_points, OSM)
+            
+            # Save the paths in the list
+            all_paths_dict[[as.character(component)]] <- paths
+          }, error = function(e) {
+            message(sprintf("Error processing component %s: %s", component, e$message))
+            all_paths_dict[[as.character(component)]] <- NULL  # Or any other way to mark the failure
+          })
+        }
+
+        # Combine all the paths into a single sf object
+        all_paths_sf_list <- lapply(names(all_paths_dict), function(component) {
+          paths <- all_paths_dict[[component]]
+          if (!is.null(paths)) {
+            paths$component <- component
+            return(paths)
+          } else {
+            return(NULL)
+          }
+        })
+
+        all_paths_sf <- do.call(rbind, all_paths_sf_list)
+
+        # Plotting
+        ggplot() +
+          geom_sf(data = orcp_city_boundary_component, fill = "white", color = "black") +
+          geom_sf(data = all_paths_sf, aes(color = component), size = 1) +
+          labs(title = "Paths for Each Component", x = "Longitude", y = "Latitude") +
+          theme_minimal()
+
+
+
+        points_sf = find_endpoints(gdf)
+        os_points = find_nearest_points(points_sf, open_roads_scotland_city_boundary)
+        osm_points = find_nearest_points(os_points, OSM_city)
+
+        hull_sf = st_convex_hull(st_combine(osm_points))
+        buffer_distance = 500  # Adjust the buffer distance as needed
+        buffered_hull_sf = st_buffer(hull_sf, dist = buffer_distance)
+
+        OSM = OSM_city[sf::st_union(buffered_hull_sf), , op = sf::st_intersects]  
+
+        OS = open_roads_scotland_city_boundary[sf::st_union(buffered_hull_sf), , op = sf::st_intersects]  
+
+        all_paths = list()
+        all_paths = compute_shortest_paths(points_sf, osm_points, OSM)
+
+        plot = ggplot() +
+          geom_sf(data = gdf, color = "black", size = 0.5) +
+          geom_sf(data = OS, color = "blue", size = 0.5) 
+          # geom_sf(data = OSM, color = "red", size = 0.5)
+
+        # Add each path to the plot
+        for (i in 1:length(all_paths)) {
+          path = all_paths[[i]]
+          
+          plot = plot +
+            geom_sf(data = path$path_edges, color = "red", size = 1) +
+            geom_sf(data = path$start_node_geom, color = "blue", size = 3, shape = 21, fill = "blue") +
+            geom_sf(data = path$end_node_geom, color = "green", size = 3, shape = 21, fill = "green")
+        }
+
+        # Print the plot
+        print(plot)
 
         # Identify common columns
         common_columns = intersect(names(cohesive_network_city_boundary), names(orcp_city_boundary))

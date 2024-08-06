@@ -1,3 +1,9 @@
+library(sfnetworks)
+library(sf)
+library(tidygraph)
+library(tidyverse)
+library(igraph)
+
 orcp_network = function(area, NPT_zones, length_threshold = 10000, percentile_value = 0.6) {
 
   osm = osmactive::get_travel_network("Scotland", boundary = area, boundary_type = "clipsrc")

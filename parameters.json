@@ -2,12 +2,12 @@
   "plans": ["fastest", "balanced", "quietest", "ebike"],
   "min_flow": [1],
   "max_to_route": [1000000],
-  "date_routing": ["2024-07-02"],
+  "date_routing": ["2024-08-06"],
   "geo_subset": [false],
   "open_data_build": [false],
   "disag_threshold": [100],
   "min_distance_meters": [500],
   "region_buffer_distance_meters": [5000],
-  "region": ["Aberdeen and North East"],
+  "region": ["Glasgow and Strathclyde"],
   "coherent_percentile": [0.94]
 }
