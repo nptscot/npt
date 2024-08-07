@@ -238,7 +238,10 @@ tar_source()
 We'll load data with `tar_load()` and check the utility trips.
 
 ```{r}
-old_working_directory = setwd("../..")
+if (!file.exists("_targets.R")) {
+  old_working_directory = setwd("../..")
+}
+# tar_make()
 tar_load(parameters)
 tar_load(zones_stats)
 tar_load(utility_stats)
