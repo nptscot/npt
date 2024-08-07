@@ -16,7 +16,10 @@ date_folder = parameters$date_routing
 output_folder = file.path("outputdata", date_folder)
 
 # # Start with Glasgow:
-region_names = unique(lads$Region)[c(3, 2, 1, 4, 5, 6)]
+region_names = unique(lads$Region)[c(3, 4, 1, 6, 2, 5)] |>
+  # Reverse to build smallest first:
+  rev()
+  
 cities_region_names = lapply(
   region_names,
   function(region) {
