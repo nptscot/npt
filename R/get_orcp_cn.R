@@ -174,7 +174,7 @@ find_endpoints = function(rnet) {
 }
 
 
-find_nearest_points = function(points_sf, rnet, segment_length = 10, dist = 100) {
+find_nearest_points = function(points_sf, rnet, segment_length = 2, dist = 500) {
     rnet = stplanr::line_cast(rnet)
     rnet = stplanr::line_segment(rnet, segment_length = segment_length)   
     rnet_points_df = as.data.frame(sf::st_coordinates(rnet))

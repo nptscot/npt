@@ -19,7 +19,7 @@ output_folder = file.path("outputdata", date_folder)
 region_names = unique(lads$Region)[c(3, 4, 1, 6, 2, 5)] |>
   # Reverse to build smallest first:
   rev()
-  
+
 cities_region_names = lapply(
   region_names,
   function(region) {
@@ -254,7 +254,7 @@ sf::st_geometry(open_roads_scotland) = "geometry"
 # Generate the coherent network for the region
 # foreach(region = region_names) %dopar% {
 for (region in region_names) {
-  # region = region_names[4]  "Edinburgh and Lothians"  
+  # region = region_names[5]  "Edinburgh and Lothians"  
   message("Processing coherent network for region: ", region)
   region_snake = snakecase::to_snake_case(region)
   coherent_area = cities_region_names[[region]]
@@ -304,75 +304,86 @@ for (region in region_names) {
         # mapview::mapview(combined_net_city_boundary) + mapview::mapview(city_boundary)
          
         orcp_city_boundary = orcp_network(area = city_boundary, NPT_zones = combined_net_city_boundary, percentile_value = 0.6)
-        # mapview::mapview(orcp_city_boundary, zcol = "all_fastest_bicycle_go_dutch") + mapview::mapview(combined_net_city_boundary)
+
+        mapview::mapview(orcp_city_boundary, zcol = "all_fastest_bicycle_go_dutch") + mapview::mapview(cohesive_network_city_boundary)
         # orcp_city_boundary_zone = orcp_city_boundary[sf::st_union(zonebuilder::zb_zone(city, n_circles = 3)) |> sf::st_transform(27700), , op = sf::st_intersects]
+        # check if orcp_city_boundary is not empty before proceeding
+        if (nrow(orcp_city_boundary) > 0) {
 
-        OSM_city = sf::read_sf(glue::glue("inputdata/fixed_osm/OSM_", city, ".geojson_fixed.geojson")) |> sf::st_transform(27700)
+          OSM_city = sf::read_sf(glue::glue("inputdata/fixed_osm/OSM_", city, ".geojson_fixed.geojson")) |> sf::st_transform(27700)
+    
+          OSM_city = OSM_city[!is.na(OSM_city$highway), ]
 
-        orcp_city_boundary_component = find_component(orcp_city_boundary)
+          orcp_city_boundary_component = find_component(orcp_city_boundary)
 
-        # Initialize the list to store paths for each component
-        all_paths_dict = list()
+          # Initialize the list to store paths for each component
+          all_paths_dict = list()
 
-        # Unique components
-        components = unique(orcp_city_boundary_component$component)
+          # Unique components
+          components = unique(orcp_city_boundary_component$component)
 
-        # Loop through each component
-        for (component in components) {
-          tryCatch({
-            gdf = orcp_city_boundary_component %>% filter(component == component)
-            
-            points_sf = find_endpoints(gdf)
-            os_points = find_nearest_points(points_sf, cohesive_network_city_boundary)
-            osm_points = find_nearest_points(os_points, OSM_city)
-            
-            hull_sf = st_convex_hull(st_union(osm_points))
-            buffer_distance = 500  # Adjust the buffer distance as needed
-            buffered_hull_sf = st_buffer(hull_sf, dist = buffer_distance)
-            
-            OSM = OSM_city[st_union(buffered_hull_sf), , op = st_intersects]
-            OS = open_roads_scotland_city_boundary[st_union(buffered_hull_sf), , op = st_intersects]
-            
-            paths = compute_shortest_paths(points_sf, osm_points, OSM)
-            
-            # Save the paths in the list
-            all_paths_dict[[component]] = paths
-          }, error = function(e) {
-            message(sprintf("Error processing component %s: %s", component, e$message))
-            all_paths_dict[[component]] = NULL  # Or any other way to mark the failure
-          })
-        }
+          # Loop through each component
+          for (component_id in components) {
+            tryCatch({
+              gdf = orcp_city_boundary_component |> filter(component == component_id)
+              end_points_sf = list()
+              os_points = list()
+              osm_points = list()
+              end_points_sf = find_endpoints(gdf)
+              os_points = find_nearest_points(end_points_sf, cohesive_network_city_boundary, dist = 1500, segment_length = 5)
+              osm_points = find_nearest_points(os_points, OSM_city, dist = 1000, segment_length = 5)
 
-        all_orcp_path_sf = list()
+              # mapview::mapview(end_points_sf, color = "red") + mapview::mapview(os_points, color = "blue") + mapview::mapview(osm_points, color = "green") + mapview::mapview(cohesive_network_city_boundary, color = "gray")  + mapview::mapview(gdf, color = "black")
+                
+              hull_sf = st_convex_hull(st_union(osm_points))
+              buffer_distance = 500  # Adjust the buffer distance as needed
+              buffered_hull_sf = st_buffer(hull_sf, dist = buffer_distance)
+              
+              OSM = OSM_city[st_union(buffered_hull_sf), , op = st_intersects]
+              OS = open_roads_scotland_city_boundary[st_union(buffered_hull_sf), , op = st_intersects]
+              # mapview::mapview(OSM, color = "red") + mapview::mapview(OS, color = "gray") + mapview::mapview(cohesive_network_city_boundary, color = "gray") + mapview::mapview(gdf, color = "black")
+              paths = compute_shortest_paths(end_points_sf, osm_points, OSM)
+              
+              # Save the paths in the list
+              all_paths_dict[[component_id]] = paths
+            }, error = function(e) {
+              message(sprintf("Error processing component %s: %s", component, e$message))
+              all_paths_dict[[component_id]] = NULL  # Or any other way to mark the failure
+            })
+          }
 
-        # Loop over x and y indices
-        for (component in components) {
-      
-          y_range = length(all_paths_dict[[component]]) 
+          all_orcp_path_sf = list()
 
-          for (y in 1:y_range) {
-            # Extract the sf object if it's not NULL
-            if (!is.null(all_paths_dict[[component]][[y]]$path_edges)) {
-              all_orcp_path_sf[[length(all_orcp_path_sf) + 1]] = all_paths_dict[[component]][[y]]$path_edges
+          # Loop over x and y indices
+          for (component_id in components) {
+        
+            y_range = length(all_paths_dict[[component_id]]) 
+
+            for (y in 1:y_range) {
+              # Extract the sf object if it's not NULL
+              if (!is.null(all_paths_dict[[component_id]][[y]]$path_edges)) {
+                all_orcp_path_sf[[length(all_orcp_path_sf) + 1]] = all_paths_dict[[component_id]][[y]]$path_edges
+              }
             }
           }
+
+          combined_orcp_path_sf = do.call(rbind, all_orcp_path_sf)
+          combined_orcp_path_sf = combined_orcp_path_sf |> select(geometry)
+
+
+          missing_columns = setdiff(names(orcp_city_boundary_component), names(combined_orcp_path_sf))
+
+          for (col in missing_columns) {
+            combined_orcp_path_sf[[col]] = NA
+          }
+
+          # Combine all_paths_sf with orcp_city_boundary_component
+          orcp_city_boundary = rbind(orcp_city_boundary_component, combined_orcp_path_sf)
+        } else {
+            cat("orcp_city_boundary is empty, skipping processing.\n")
         }
-
-        combined_orcp_path_sf = do.call(rbind, all_orcp_path_sf)
-        combined_orcp_path_sf = combined_orcp_path_sf |> select(geometry)
-
-
-        missing_columns = setdiff(names(orcp_city_boundary_component), names(combined_orcp_path_sf))
-
-        for (col in missing_columns) {
-          combined_orcp_path_sf[[col]] = NA
-        }
-
-        # Combine all_paths_sf with orcp_city_boundary_component
-        orcp_city_boundary = rbind(orcp_city_boundary_component, combined_orcp_path_sf)
-
         # Plotting
-        mapview::mapview(orcp_city_boundary, color = "red") + mapview::mapview(cohesive_network_city_boundary, color = "gray") 
+        # mapview::mapview(orcp_city_boundary, color = "red") + mapview::mapview(cohesive_network_city_boundary, color = "gray")  + mapview::mapview(gdf, color = "black")
         # Identify common columns
         common_columns = intersect(names(cohesive_network_city_boundary), names(orcp_city_boundary))
 

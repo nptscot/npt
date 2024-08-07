@@ -1,4 +1,9 @@
 nrow,plan,purpose,region,date,id
+20925,balanced,utility,Aberdeen and North East,2024-08-01,10579
+32967,balanced,commute,Aberdeen and North East,2024-08-01,10578
+4525,balanced,school,Aberdeen and North East,2024-08-01,10577
+14685,balanced,utility,Highlands and Islands,2024-08-01,10576
+7976,quietest,commute,Highlands and Islands,2024-08-01,10575
 93499,balanced,utility,Glasgow and Strathclyde,2024-08-01,10564
 218877,balanced,commute,Glasgow and Strathclyde,2024-08-01,10563
 111294,ebike,utility,Edinburgh and Lothians,2024-08-01,10562
