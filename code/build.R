@@ -16,7 +16,10 @@ date_folder = parameters$date_routing
 output_folder = file.path("outputdata", date_folder)
 
 # # Start with Glasgow:
-region_names = unique(lads$Region)[c(3, 2, 1, 4, 5, 6)]
+region_names = unique(lads$Region)[c(3, 4, 1, 6, 2, 5)] |>
+  # Reverse to build smallest first:
+  rev()
+  
 cities_region_names = lapply(
   region_names,
   function(region) {
@@ -97,16 +100,17 @@ for (region in region_names) {
     cycle_net = osmactive::clean_speeds(cycle_net)
     
     drive_net = osmactive::estimate_traffic(drive_net)
-    cycle_net = osmactive::estimate_traffic(cycle_net)
+    cycle_net = osmactive::estimate_traffic(cycle_net) |> 
+      rename(assumed_traffic_cyclenet = assumed_volume)
     
     # See https://github.com/acteng/network-join-demos
     cycle_net_joined_polygons = stplanr::rnet_join(
       rnet_x = cycle_net,
       rnet_y = drive_net |>
         transmute(
-          maxspeed_road = maxspeed_clean,
-          highway_join = highway,
-          assumed_volume_cycle = assumed_volume
+          maxspeed_drivenet = maxspeed_clean,
+          highway_drivenet = highway,
+          assumed_traffic_drivenet = assumed_volume
         ) |>
         sf::st_cast(to = "LINESTRING"),
       dist = 20,
@@ -118,13 +122,13 @@ for (region in region_names) {
       sf::st_drop_geometry() |>
       group_by(osm_id) |>
       summarise(
-        maxspeed_road = osmactive:::most_common_value(maxspeed_road),
-        highway_join = osmactive:::most_common_value(highway_join),
-        assumed_volume_cycle = osmactive:::most_common_value(assumed_volume_cycle)
+        maxspeed_drivenet = osmactive:::most_common_value(maxspeed_drivenet),
+        highway_drivenet = osmactive:::most_common_value(highway_drivenet),
+        assumed_traffic_drivenet = osmactive:::most_common_value(assumed_traffic_drivenet)
       ) |>
       mutate(
-        maxspeed_road = as.numeric(maxspeed_road),
-        assumed_volume_cycle = as.numeric(assumed_volume_cycle)
+        maxspeed_drivenet = as.numeric(maxspeed_drivenet),
+        assumed_traffic_drivenet = as.numeric(assumed_traffic_drivenet)
       )
     
     # join back onto cycle_net
@@ -137,11 +141,11 @@ for (region in region_names) {
       mutate(
         final_speed = case_when(
           !is.na(maxspeed_clean) ~ maxspeed_clean,
-          TRUE ~ maxspeed_road
+          TRUE ~ maxspeed_drivenet
         ),
-        final_volume = case_when(
-          !is.na(assumed_volume) ~ assumed_volume,
-          TRUE ~ assumed_volume_cycle
+        assumed_traffic = case_when(
+          !is.na(assumed_traffic_cyclenet) ~ assumed_traffic_cyclenet,
+          TRUE ~ assumed_traffic_drivenet
         )
       )
     
@@ -177,9 +181,9 @@ for (region in region_names) {
       mutate(
         final_traffic = case_when(
           detailed_segregation == "Cycle track" ~ 0,
-          highway %in% c("residential", "service") & road_classification %in% c("A Road", "B Road", "Classified Unnumbered") & pred_flows >= 4000 ~ final_volume,
+          highway %in% c("residential", "service") & road_classification %in% c("A Road", "B Road", "Classified Unnumbered") & pred_flows >= 4000 ~ assumed_traffic,
           !is.na(pred_flows) ~ pred_flows,
-          TRUE ~ final_volume
+          TRUE ~ assumed_traffic
         )
       )
 
@@ -250,6 +254,7 @@ sf::st_geometry(open_roads_scotland) = "geometry"
 # Generate the coherent network for the region
 # foreach(region = region_names) %dopar% {
 for (region in region_names) {
+  # region = region_names[4]  "Edinburgh and Lothians"  
   message("Processing coherent network for region: ", region)
   region_snake = snakecase::to_snake_case(region)
   coherent_area = cities_region_names[[region]]
@@ -265,6 +270,7 @@ for (region in region_names) {
   }
 
   for (city in coherent_area) {
+    # city = coherent_area[3] "City of Edinburgh"
     city_filename = snakecase::to_snake_case(city)
     tryCatch(
       {
@@ -295,12 +301,78 @@ for (region in region_names) {
 
         message("Generating Off Road Cycle Path network for: ", city)
         source("R/get_orcp_cn.R")
-        mapview::mapview(combined_net_city_boundary) + mapview::mapview(city_boundary)
+        # mapview::mapview(combined_net_city_boundary) + mapview::mapview(city_boundary)
          
         orcp_city_boundary = orcp_network(area = city_boundary, NPT_zones = combined_net_city_boundary, percentile_value = 0.6)
-        mapview::mapview(orcp_city_boundary, zcol = "all_fastest_bicycle_go_dutch") + mapview::mapview(combined_net_city_boundary)
+        # mapview::mapview(orcp_city_boundary, zcol = "all_fastest_bicycle_go_dutch") + mapview::mapview(combined_net_city_boundary)
         # orcp_city_boundary_zone = orcp_city_boundary[sf::st_union(zonebuilder::zb_zone(city, n_circles = 3)) |> sf::st_transform(27700), , op = sf::st_intersects]
 
+        OSM_city = sf::read_sf(glue::glue("inputdata/fixed_osm/OSM_", city, ".geojson_fixed.geojson")) |> sf::st_transform(27700)
+
+        orcp_city_boundary_component = find_component(orcp_city_boundary)
+
+        # Initialize the list to store paths for each component
+        all_paths_dict = list()
+
+        # Unique components
+        components = unique(orcp_city_boundary_component$component)
+
+        # Loop through each component
+        for (component in components) {
+          tryCatch({
+            gdf = orcp_city_boundary_component %>% filter(component == component)
+            
+            points_sf = find_endpoints(gdf)
+            os_points = find_nearest_points(points_sf, cohesive_network_city_boundary)
+            osm_points = find_nearest_points(os_points, OSM_city)
+            
+            hull_sf = st_convex_hull(st_union(osm_points))
+            buffer_distance = 500  # Adjust the buffer distance as needed
+            buffered_hull_sf = st_buffer(hull_sf, dist = buffer_distance)
+            
+            OSM = OSM_city[st_union(buffered_hull_sf), , op = st_intersects]
+            OS = open_roads_scotland_city_boundary[st_union(buffered_hull_sf), , op = st_intersects]
+            
+            paths = compute_shortest_paths(points_sf, osm_points, OSM)
+            
+            # Save the paths in the list
+            all_paths_dict[[component]] = paths
+          }, error = function(e) {
+            message(sprintf("Error processing component %s: %s", component, e$message))
+            all_paths_dict[[component]] = NULL  # Or any other way to mark the failure
+          })
+        }
+
+        all_orcp_path_sf = list()
+
+        # Loop over x and y indices
+        for (component in components) {
+      
+          y_range = length(all_paths_dict[[component]]) 
+
+          for (y in 1:y_range) {
+            # Extract the sf object if it's not NULL
+            if (!is.null(all_paths_dict[[component]][[y]]$path_edges)) {
+              all_orcp_path_sf[[length(all_orcp_path_sf) + 1]] = all_paths_dict[[component]][[y]]$path_edges
+            }
+          }
+        }
+
+        combined_orcp_path_sf = do.call(rbind, all_orcp_path_sf)
+        combined_orcp_path_sf = combined_orcp_path_sf |> select(geometry)
+
+
+        missing_columns = setdiff(names(orcp_city_boundary_component), names(combined_orcp_path_sf))
+
+        for (col in missing_columns) {
+          combined_orcp_path_sf[[col]] = NA
+        }
+
+        # Combine all_paths_sf with orcp_city_boundary_component
+        orcp_city_boundary = rbind(orcp_city_boundary_component, combined_orcp_path_sf)
+
+        # Plotting
+        mapview::mapview(orcp_city_boundary, color = "red") + mapview::mapview(cohesive_network_city_boundary, color = "gray") 
         # Identify common columns
         common_columns = intersect(names(cohesive_network_city_boundary), names(orcp_city_boundary))
 
