@@ -1,4 +1,17 @@
 nrow,plan,purpose,region,date,id
+93499,balanced,utility,Glasgow and Strathclyde,2024-08-01,10564
+218877,balanced,commute,Glasgow and Strathclyde,2024-08-01,10563
+111294,ebike,utility,Edinburgh and Lothians,2024-08-01,10562
+90716,balanced,commute,Edinburgh and Lothians,2024-08-01,10560
+9425,balanced,school,Edinburgh and Lothians,2024-08-01,10559
+50769,fastest,utility,"Tayside, Central and Fife",2024-08-01,10558
+11451,balanced,school,"Tayside, Central and Fife",2024-08-01,10556
+20925,ebike,utility,Aberdeen and North East,2024-08-01,10555
+20925,quietest,utility,Aberdeen and North East,2024-08-01,10554
+20925,fastest,utility,Aberdeen and North East,2024-08-01,10553
+32967,ebike,commute,Aberdeen and North East,2024-08-01,10551
+32967,quietest,commute,Aberdeen and North East,2024-08-01,10549
+32967,fastest,commute,Aberdeen and North East,2024-08-01,10548
 4525,ebike,school,Aberdeen and North East,2024-08-01,10547
 4525,quietest,school,Aberdeen and North East,2024-08-01,10545
 4525,fastest,school,Aberdeen and North East,2024-08-01,10544
