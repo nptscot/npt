@@ -87,8 +87,9 @@ orcp_network = function(area, NPT_zones, length_threshold = 10000, percentile_va
     filtered_OS_zones = all_edges |> 
                         sf::st_transform(27700) |> 
                         sf::st_zm()
-                 
-    cycle_net_NPT = sf::st_join(filtered_OS_zones, NPT_zones, join = st_intersects)
+
+    cycle_net_NPT = stplanr::rnet_merge(filtered_OS_zones, NPT_zones, , max_angle_diff = 10, dist = 1, segment_length = 5, funs = list(all_fastest_bicycle_go_dutch = mean))          
+    # cycle_net_NPT = sf::st_join(filtered_OS_zones, NPT_zones, join = st_intersects)
 
     summarized_data = cycle_net_NPT |>
         dplyr::group_by(component) |>
@@ -105,32 +106,6 @@ orcp_network = function(area, NPT_zones, length_threshold = 10000, percentile_va
     filter(st_intersects(geometry, summarized_data$geometry, sparse = FALSE) |> apply(1, any))
 
     return(cycle_net_NPT_filtered)
-}
-
-find_component= function(rnet, threshold = 50) {
-
-  sf::st_crs(rnet) = 27700
-
-  # Calculate the distance matrix between features
-  dist_matrix = sf::st_distance(rnet)
-
-  # Convert the threshold to units of meters
-  threshold = units::set_units(threshold, "m")
-
-  # Create a connectivity matrix where connections are based on the threshold distance
-  connectivity_matrix = Matrix::Matrix(dist_matrix < threshold, sparse = TRUE)
-
-  # Create an undirected graph from the adjacency matrix
-  graph = igraph::graph_from_adjacency_matrix(connectivity_matrix, mode = "undirected", diag = FALSE)
-
-  # Find the connected components in the graph
-  components = igraph::components(graph)
-
-  # Assign component membership to the road network
-  rnet$component = components$membership
-
-  # Return the updated road network with component membership
-  return(rnet)
 }
 
 find_endpoints = function(rnet) {
@@ -169,12 +144,16 @@ find_endpoints = function(rnet) {
   
   # Convert to sf object
   points_sf = sf::st_as_sf(unique_points, coords = c("X", "Y"), crs = sf::st_crs(rnet))
-  
+
+  # use point_sf crete conve hull
+  hull_sf = st_convex_hull(st_combine(points_sf))
+  points_not_within_hull <- points_sf[!st_within(points_sf, hull_sf, sparse = FALSE), ]
+
   return(points_sf)
 }
 
 
-find_nearest_points = function(points_sf, rnet, segment_length = 2, dist = 500) {
+find_nearest_points = function(points_sf, rnet, segment_length = 10, dist = 100) {
     rnet = stplanr::line_cast(rnet)
     rnet = stplanr::line_segment(rnet, segment_length = segment_length)   
     rnet_points_df = as.data.frame(sf::st_coordinates(rnet))
