@@ -253,7 +253,7 @@ sf::st_geometry(open_roads_scotland) = "geometry"
 # registerDoParallel(num_cores)
 # Generate the coherent network for the region
 # foreach(region = region_names) %dopar% {
-for (region in region_names) {
+for (region in region_names[5]) {
   # region = region_names[5]  "Edinburgh and Lothians"  
   message("Processing coherent network for region: ", region)
   region_snake = snakecase::to_snake_case(region)
@@ -269,7 +269,7 @@ for (region in region_names) {
     dir.create(folder_path, recursive = TRUE)
   }
 
-  for (city in coherent_area) {
+  for (city in coherent_area[3]) {
     # city = coherent_area[3] "City of Edinburgh"
     city_filename = snakecase::to_snake_case(city)
     tryCatch(
@@ -431,7 +431,7 @@ for (region in region_names) {
         }
         
         # Plotting
-        # mapview::mapview(orcp_city_boundary, color = "red") + mapview::mapview(cohesive_network_city_boundary, color = "gray")  + mapview::mapview(gdf, color = "black")
+        # mapview::mapview(orcp_city_boundary, color = "red") + mapview::mapview(cohesive_network_city_boundary, color = "black")  + mapview::mapview(gdf, color = "black")
         # Identify common columns
         common_columns = intersect(names(cohesive_network_city_boundary), names(orcp_city_boundary))
 

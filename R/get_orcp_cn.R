@@ -108,6 +108,32 @@ orcp_network = function(area, NPT_zones, length_threshold = 10000, percentile_va
     return(cycle_net_NPT_filtered)
 }
 
+find_component= function(rnet, threshold = 50) {
+
+  sf::st_crs(rnet) = 27700
+
+  # Calculate the distance matrix between features
+  dist_matrix = sf::st_distance(rnet)
+
+  # Convert the threshold to units of meters
+  threshold = units::set_units(threshold, "m")
+
+  # Create a connectivity matrix where connections are based on the threshold distance
+  connectivity_matrix = Matrix::Matrix(dist_matrix < threshold, sparse = TRUE)
+
+  # Create an undirected graph from the adjacency matrix
+  graph = igraph::graph_from_adjacency_matrix(connectivity_matrix, mode = "undirected", diag = FALSE)
+
+  # Find the connected components in the graph
+  components = igraph::components(graph)
+
+  # Assign component membership to the road network
+  rnet$component = components$membership
+
+  # Return the updated road network with component membership
+  return(rnet)
+}
+
 find_endpoints = function(rnet) {
   # Remove duplicate lines in rnet
   merged_lines = sf::st_union(rnet)
