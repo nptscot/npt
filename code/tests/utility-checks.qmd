@@ -315,6 +315,8 @@ Under the Go Dutch scenario, the value is:
 zone_stats_shopping_arriving$shopping_dest_car_go_dutch_fastest
 ```
 
+The problem is clear from the above: the number of people arriving is much higher in the baseline scenario than the other scenarios.
+
 Let's identify the same value in the `utility_stats` data:
 
 ```{r}
@@ -510,3 +512,6 @@ utility_stats_example$shopping_dest_car
 
 Let's go back another step to look at the inputs and code that generated the `utility_stats` data.
 
+```{r}
+
+```
