@@ -509,3 +509,4 @@ utility_stats_example$shopping_dest_car
 ```
 
 Let's go back another step to look at the inputs and code that generated the `utility_stats` data.
+
