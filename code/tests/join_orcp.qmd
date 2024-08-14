@@ -13,7 +13,11 @@ library(dplyr)
 ```
 
 ```{r}
-lads = sf::read_sf("inputdata/boundaries/la_regions_2023.geojson") |> filter(LAD23NM == "City of Edinburgh") |> sf::st_transform(27700)
+f = "inputdata/boundaries/la_regions_2023.geojson"
+if (!file.exists(f)) {
+    f = "../../inputdata/boundaries/la_regions_2023.geojson"
+}
+lads = sf::read_sf(f) |> filter(LAD23NM == "City of Edinburgh") |> sf::st_transform(27700)
 
 osm = osmactive::get_travel_network("Scotland", boundary = lads, boundary_type = "clipsrc")
 
@@ -29,27 +33,62 @@ dplyr::filter(cycle_segregation == "Separated cycle track") |>
 dplyr::mutate(length = as.numeric(sf::st_length(geometry))) |>
 dplyr::filter(length > 1) |>
 sf::st_transform(crs = 27700)
+```
 
-group_ids = sapply(sf::st_geometry(cycle_net), function(geometry, index, lines) {
-possible_near = sf::st_intersects(geometry, lines, sparse = FALSE)
-connected = which(possible_near)
-unioned = sf::st_union(sf::st_geometry(lines[connected, ]))
-return(unioned)
-}, index = lines_index, lines = cycle_net)
+```{r}
+#| label: cycle_net-plot
+plot(cycle_net)
+```
 
-# Create a new sf object with merged lines
-merged_lines = sf::st_sf(geometry = do.call(sf::st_sfc, group_ids))
-merged_lines = merged_lines[!duplicated(sf::st_as_text(merged_lines$geometry)), ]    
+```{r}
+#| label: sfnetworks_cycle_net
+cycle_net_sfn = cycle_net |>
+  sf::st_cast("LINESTRING") |>
+  as_sfnetwork()
+```
 
-network = merged_lines
-network_multilines = network[sf::st_geometry_type(network) == "MULTILINESTRING", ]
-network_lines = sf::st_cast(network_multilines, "LINESTRING")
+```{r}
+#| label: cycle_net_group_simple
+cycle_net_group1 = cycle_net_sfn |>
+  activate(edges) |>
+  mutate(group_simple = group_biconnected_component()) 
+# How many groups?
+cycle_net_group1 |>
+  pull(group_simple) |>
+  unique() |>
+  length()
+```
 
-network = network_lines
-if (!inherits(network, "sfnetwork")) {
-    network_sfn = sfnetworks::as_sfnetwork(network, directed = FALSE)
-} else {
-    network_sfn = network
-}
-mapview(network)
+Let's plot the network near The Meadows in Edinburgh.
+
+```{r}
+#| label: cycle_net_meadows_edge_groups
+the_meadows = cycle_net |>
+  dplyr::filter(name == "South Meadow Walk") 
+the_meadows_500m = sf::st_buffer(the_meadows, 500)
+cycle_net_meadows = cycle_net_group1 |>
+  sf::st_filter(the_meadows_500m)
+# plot(cycle_net_meadows)
+the_meadows_sf = cycle_net_meadows |>
+  activate(edges) |>
+  sf::st_as_sf()
+table(the_meadows_sf$group_simple)
+the_meadows_sf |>
+  select(group_simple) |>
+  plot()
+```
+
+Let's try another way to get the connected components.
+
+```{r}
+cycle_net_buffered = cycle_net |>
+  sf::st_buffer(100) 
+
+```
+
+The above shows that there are 5 groups. Let's try to get them all into the same group.
+
+
+```{r}
+
 ```
