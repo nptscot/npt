@@ -12,6 +12,10 @@ library(mapview)
 library(dplyr)
 library(rgrass)
 source("R/get_orcp_cn.R")
+
+
+percentile_value = 0.7
+length_threshold = 10000
 ```
 
 ```{r}
@@ -32,12 +36,14 @@ dplyr::mutate(length = as.numeric(sf::st_length(geometry))) |>
 dplyr::filter(length > 1) |>
 sf::st_transform(crs = 27700)
 
-group_ids = sapply(sf::st_geometry(network_c), function(geometry, index, lines) {
+
+snapped_lines = sf::st_snap(cycle_net, cycle_net, tolerance = 15)
+group_ids = sapply(sf::st_geometry(snapped_lines), function(geometry, index, lines) {
 possible_near = sf::st_intersects(geometry, lines, sparse = FALSE)
 connected = which(possible_near)
 unioned = sf::st_union(sf::st_geometry(lines[connected, ]))
 return(unioned)
-}, index = lines_index, lines = network_c)
+}, index = lines_index, lines = snapped_lines)
 
 # Create a new sf object with merged lines
 merged_lines = sf::st_sf(geometry = do.call(sf::st_sfc, group_ids))
@@ -130,6 +136,11 @@ unioned_buffer = st_union(cycle_net_NPT_filtered_buffer)
 # Then perform the intersection test
 cycle_net_filtered = cycle_net_with_components[st_intersects(cycle_net_with_components, unioned_buffer, sparse = FALSE), ]
 
+mapview::mapview(cycle_net_filtered)
+
+```
+# start to join
+```{r}
 endpoints = find_endpoints(cycle_net_filtered)
 
 unique_indices <- unique(as.vector(pairs))
@@ -137,7 +148,9 @@ filtered_endpoints <- endpoints[unique_indices, ]
 filtered_endpoints$id <- seq_len(nrow(filtered_endpoints))
 
 mapview::mapview(cycle_net_filtered) + mapview::mapview(filtered_endpoints)
+```
 
+```{r}
 distances <- st_distance(endpoints)
 pairs <- which(distances < units::set_units(50, "meters") & distances > units::set_units(0, "meters"), arr.ind = TRUE)
 pairs <- pairs[pairs[, "row"] < pairs[, "col"], ]
@@ -161,11 +174,11 @@ connection_lines <- do.call(rbind,
 
 if (!inherits(connection_lines, "sf")) {
   # Combine LINESTRING objects into a single 'sf' collection
-  connection_lines_sf <- st_sfc(connection_lines, crs = st_crs(cycle_net_filtered_i))
+  connection_lines_sf <- st_sfc(connection_lines, crs = st_crs(cycle_net_filtered))
 } else {
   connection_lines_sf <- connection_lines
 }
-if (st_crs(cycle_net_filtered_i) != st_crs(connection_lines_sf)) {
+if (st_crs(cycle_net_filtered) != st_crs(connection_lines_sf)) {
     st_crs(connection_lines_sf) <- st_crs(cycle_net_filtered_i)
 }
 
@@ -175,7 +188,7 @@ geometries_connection_lines <- st_geometry(connection_lines_sf)
 # Combine these geometries into a single collection
 all_geometries <- st_geometrycollection(c(geometries_cycle_net, geometries_connection_lines))
 
-all_geometries_sfc <- st_sfc(all_geometries, crs = st_crs(cycle_net_filtered_i))
+all_geometries_sfc <- st_sfc(all_geometries, crs = st_crs(cycle_net_filtered))
 
 
 final_network <- st_sf(geometry = all_geometries_sfc)
