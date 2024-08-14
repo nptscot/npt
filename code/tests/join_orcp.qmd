@@ -143,6 +143,10 @@ mapview::mapview(cycle_net_filtered)
 ```{r}
 endpoints = find_endpoints(cycle_net_filtered)
 
+distances <- st_distance(endpoints)
+pairs <- which(distances < units::set_units(50, "meters") & distances > units::set_units(0, "meters"), arr.ind = TRUE)
+pairs <- pairs[pairs[, "row"] < pairs[, "col"], ]
+
 unique_indices <- unique(as.vector(pairs))
 filtered_endpoints <- endpoints[unique_indices, ]
 filtered_endpoints$id <- seq_len(nrow(filtered_endpoints))
@@ -151,10 +155,6 @@ mapview::mapview(cycle_net_filtered) + mapview::mapview(filtered_endpoints)
 ```
 
 ```{r}
-distances <- st_distance(endpoints)
-pairs <- which(distances < units::set_units(50, "meters") & distances > units::set_units(0, "meters"), arr.ind = TRUE)
-pairs <- pairs[pairs[, "row"] < pairs[, "col"], ]
-
 create_line <- function(pt1, pt2) {
   st_sfc(st_linestring(rbind(st_coordinates(pt1), st_coordinates(pt2))), crs = st_crs(pt1))
 }
@@ -193,7 +193,7 @@ all_geometries_sfc <- st_sfc(all_geometries, crs = st_crs(cycle_net_filtered))
 
 final_network <- st_sf(geometry = all_geometries_sfc)
 
-mapview(final_network)
+plot(final_network)
 ```
 
 
