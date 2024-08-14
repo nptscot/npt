@@ -86,9 +86,22 @@ cycle_net_buffered = cycle_net |>
 
 ```
 
-The above shows that there are 5 groups. Let's try to get them all into the same group.
-
+The above shows that there are 5 groups. Let's try to get them all into the same group, with reference to code here: https://github.com/cyipt/popupCycleways/blob/master/code/build.R#L175
 
 ```{r}
+#| label: cycle_net_touching_100m
+touching_list = sf::st_is_within_distance(cycle_net, dist = 100)
+g = igraph::graph_from_adj_list(touching_list)
+components = igraph::components(g)
+cycle_net$components_100m = components$membership
+cycle_net |>
+  dplyr::select(components_100m) |>
+  plot()
+```
 
+We can see with an interactive map that all the edges are connected in the meadows area.
+
+```{r}
+#| label: cycle_net_meadows_interactive
+mapview::mapview(cycle_net, zcol = "components_100m")
 ```
