@@ -112,14 +112,7 @@ find_component= function(rnet, threshold = 50) {
 
   sf::st_crs(rnet) = 27700
 
-  # Calculate the distance matrix between features
-  dist_matrix = sf::st_distance(rnet)
-
-  # Convert the threshold to units of meters
-  threshold = units::set_units(threshold, "m")
-
-  # Create a connectivity matrix where connections are based on the threshold distance
-  connectivity_matrix = Matrix::Matrix(dist_matrix < threshold, sparse = TRUE)
+  connectivity_matrix = sf::st_is_within_distance(rnet, dist = threshold)
 
   # Create an undirected graph from the adjacency matrix
   graph = igraph::graph_from_adjacency_matrix(connectivity_matrix, mode = "undirected", diag = FALSE)
