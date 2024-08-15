@@ -2,7 +2,7 @@
 format: gfm
 title: QA on utility trips
 execute: 
-  echo: false
+  echo: true
   message: false
 ---
 
@@ -16,6 +16,7 @@ tar_source()
 
 ```{r}
 #| eval: false
+#| echo: false
 #| label: code-snapshot
 # The relevant code for the utility trips is this, from _targets.R:
 
@@ -240,6 +241,8 @@ We'll load data with `tar_load()` and check the utility trips.
 ```{r}
 if (!file.exists("_targets.R")) {
   old_working_directory = setwd("../..")
+} else {
+  old_working_directory = getwd()
 }
 # tar_make()
 tar_load(parameters)
@@ -276,7 +279,7 @@ Let's look at the shopping trips arriving at a specific zone: S01012355.
 zone_stats_shopping_arriving = zones_stats |>
   dplyr::filter(DataZone == "S01012355") |>
   dplyr::select(matches("shopping_dest"))
-names(zone_stats_shopping_arriving)
+# names(zone_stats_shopping_arriving)
 zone_stats_example = zone_stats_shopping_arriving |>
   dplyr::select("shopping_dest_all")
 zone_stats_example[[1]]
@@ -320,7 +323,11 @@ The problem is clear from the above: the number of people arriving is much highe
 Let's identify the same value in the `utility_stats` data:
 
 ```{r}
-names(utility_stats)
+# names(utility_stats)
+```
+
+```{r}
+#| echo: false
 #   [1] "DataZone"                                        
 #   [2] "leisure_orig_all"                                
 #   [3] "shopping_orig_all"                               
@@ -502,7 +509,10 @@ names(utility_stats)
 # [179] "visiting_dest_route_hilliness_quietest"          
 # [180] "leisure_dest_route_hilliness_quietest"           
 # [181] "shopping_dest_route_hilliness_quietest"          
+```
 
+```{r}
+#| echo: true
 utility_stats_example = utility_stats |>
   dplyr::filter(DataZone == "S01012355")
 utility_stats_example$shopping_dest_all
