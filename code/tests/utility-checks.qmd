@@ -10,8 +10,70 @@ execute:
 #| label: setup
 library(tidyverse)
 library(targets)
-tar_source()
 ```
+
+We'll load data with `tar_load()` and check the utility trips.
+
+```{r}
+if (!file.exists("_targets.R")) {
+  old_working_directory = setwd("../..")
+} else {
+  old_working_directory = getwd()
+}
+# tar_make()
+tar_source()
+tar_load(parameters)
+tar_load(zones_stats)
+tar_load(utility_stats)
+tar_load(od_shopping)
+tar_load(od_utility_combined)
+tar_load(aadt_parameters)
+tar_load(zones)
+names(zones)
+# parameters
+setwd(old_working_directory)
+```
+
+Starting from first principles, there are 265k people in the case study area.
+
+```{r}
+sum(zones$TotPop2011)
+summary(zones$TotPop2011)
+zones |>
+   select(TotPop2011) |>
+   plot()
+```
+
+People make around 3 trips to the shops per week, meaning 3 / 7 (0.43) trips per day.
+We would therefore expect around 265k * 0.43 = 114k shopping trips per day.
+
+```{r}
+265 * 0.43
+```
+
+Let's check the number of shopping trips in the utility stats.
+
+```{r}
+sum(utility_stats$shopping_orig_all, na.rm = TRUE)
+```
+
+And in the od data:
+
+```{r}
+sum(od_shopping$all)
+```
+
+The numbers match-up for the baseline input data.
+The issue is associated with scenarios other than the baseline, e.g. Go Dutch.
+Let's check the number of shopping trips in the utility stats for the Go Dutch scenario.
+
+```{r}
+sum(utility_stats$shopping_orig_all, na.rm = TRUE)
+sum(utility_stats$shopping_dest_car, na.rm = TRUE)
+sum(utility_stats$shopping_orig_car_go_dutch_fastest, na.rm = TRUE)
+```
+
+All the modes should add up to the total, let's check this.
 
 
 ```{r}
@@ -234,22 +296,6 @@ tar_source()
       get_uptake_scenarios(purpose = "utility")
     routes
   }),
-```
-
-We'll load data with `tar_load()` and check the utility trips.
-
-```{r}
-if (!file.exists("_targets.R")) {
-  old_working_directory = setwd("../..")
-} else {
-  old_working_directory = getwd()
-}
-# tar_make()
-tar_load(parameters)
-tar_load(zones_stats)
-tar_load(utility_stats)
-# parameters
-setwd(old_working_directory)
 ```
 
 The checks below apply to `r parameters$region`.
@@ -521,7 +567,93 @@ utility_stats_example$shopping_dest_car
 ```
 
 Let's go back another step to look at the inputs and code that generated the `utility_stats` data.
+The baseline datasets are taken from the `utility_stats_baseline` target, which was defined as follows (we start by loading the inputs):
 
 ```{r}
+#| echo: false
+    stats = sf::st_drop_geometry(od_utility_combined)
+     stats = stats[, c(
+      "startDZ", "endDZ", "purpose", "all", "car",
+      "foot", "bicycle", "public_transport", "taxi"
+    )]
 
+    stats_shopping = aadt_adjust(stats[stats$purpose == "shopping", ],
+      purpose = "shopping",
+      aadt_parameters = aadt_parameters
+    )
+    stats_leisure = aadt_adjust(stats[stats$purpose == "leisure", ],
+      purpose = "leisure",
+      aadt_parameters = aadt_parameters
+    )
+    stats_visiting = aadt_adjust(stats[stats$purpose == "visiting", ],
+      purpose = "visiting",
+      aadt_parameters = aadt_parameters
+    )
+
+    stats = rbind(stats_shopping, stats_leisure, stats_visiting)
+
+    stats_orig = stats |>
+      dplyr::select(!endDZ) |>
+      dplyr::group_by(startDZ, purpose) |>
+      dplyr::summarise_all(sum, na.rm = TRUE)
+
+    stats_dest = stats |>
+      dplyr::select(!startDZ) |>
+      dplyr::group_by(endDZ, purpose) |>
+      dplyr::summarise_all(sum, na.rm = TRUE)
+
+    stats_orig$purpose = paste0(stats_orig$purpose, "_orig")
+    stats_dest$purpose = paste0(stats_dest$purpose, "_dest")
+
+    stats_orig = tidyr::pivot_wider(stats_orig,
+      id_cols = startDZ,
+      names_from = "purpose",
+      values_from = all:taxi,
+      names_glue = "{purpose}_{.value}"
+    )
+
+    stats_dest = tidyr::pivot_wider(stats_dest,
+      id_cols = endDZ,
+      names_from = "purpose",
+      values_from = all:taxi,
+      names_glue = "{purpose}_{.value}"
+    )
+    names(stats_orig)[1] = "DataZone"
+    names(stats_dest)[1] = "DataZone"
+
+    stats_all = dplyr::full_join(stats_orig, stats_dest, by = "DataZone")
+    # stats_all
+# names(stats_all)
+
+```
+
+
+```{r}
+stats_all_example = stats_all |>
+  dplyr::filter(DataZone == "S01012355")
+# Pull out the relevant columns
+stats_all_example |>
+  dplyr::select(matches("shopping_dest"))
+```
+
+The input is in the `stats` object which was generated from the `od_utility_combined` target.
+Let's take a look at summary stats before and after the `aadt_adjust` function:
+
+```{r}
+stats = sf::st_drop_geometry(od_utility_combined)
+stats = stats[, c(
+      "startDZ", "endDZ", "purpose", "all", "car",
+      "foot", "bicycle", "public_transport", "taxi"
+    )]
+stats_purpose_shopping = stats[stats$purpose == "shopping", ]
+summary(stats_purpose_shopping$all)
+stats_shopping = aadt_adjust(stats[stats$purpose == "shopping", ],
+      purpose = "shopping",
+      aadt_parameters = aadt_parameters
+    )
+nrow(stats_shopping)
+nrow(stats)
+summary(stats_shopping)
+identical(stats_shopping, stats_purpose_shopping)
+waldo::compare(summary(stats_shopping$car), summary(stats_purpose_shopping$car))
 ```
