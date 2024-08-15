@@ -169,6 +169,37 @@ sum(utility_stats$shopping_orig_car_go_dutch_fastest, na.rm = TRUE)
 
 All the modes should add up to the total, let’s check this.
 
+``` r
+# For the baseline scenario:
+sum(
+  utility_stats$shopping_orig_car,
+  utility_stats$shopping_orig_bicycle,
+  utility_stats$shopping_orig_foot,
+  utility_stats$shopping_orig_public_transport,
+  utility_stats$shopping_orig_taxi,
+  na.rm = TRUE
+)
+```
+
+    [1] 118299.4
+
+``` r
+sum(
+  utility_stats$shopping_orig_car_go_dutch_fastest,
+  utility_stats$shopping_orig_bicycle_go_dutch_fastest,
+  utility_stats$shopping_orig_foot_go_dutch_fastest,
+  utility_stats$shopping_orig_public_transport_go_dutch_fastest,
+  utility_stats$shopping_orig_taxi_go_dutch_fastest,
+  na.rm = TRUE
+)
+```
+
+    [1] 17075.12
+
+The results show that there are too few trips under the go_dutch
+scenario. Next step: check the code that generates the utility trips
+under the scenarios.
+
 The checks below apply to Scotland South.
 
 The target that generates the graphs for each zone is `zones_stats`,
