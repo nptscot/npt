@@ -105,7 +105,54 @@ orcp_network = function(area, NPT_zones, length_threshold = 10000, percentile_va
     cycle_net_NPT_filtered = cycle_net_NPT |>
     filter(st_intersects(geometry, summarized_data$geometry, sparse = FALSE) |> apply(1, any))
 
+    cycle_net_NPT_filtered_buffer = sf::st_buffer(cycle_net_NPT_filtered, dist = 15)
+
+    cycle_net_with_components <- st_join(cycle_net, cycle_net_NPT_filtered_buffer[, c("geometry", "component")], join = st_within)
+
+    unioned_buffer = st_union(cycle_net_NPT_filtered_buffer)
+
+    # Then perform the intersection test
+    cycle_net_filtered = cycle_net_with_components[sf::st_intersects(cycle_net_with_components, unioned_buffer, sparse = FALSE), ] |> 
+                        dplyr::select(geometry)
+
+    endpoints = find_endpoints(cycle_net_filtered)
+
+    distances <- sf::st_distance(endpoints)
+    pairs <- which(distances < units::set_units(100, "meters") & distances > units::set_units(0, "meters"), arr.ind = TRUE)
+
+    pairs <- pairs[pairs[, "row"] < pairs[, "col"], ]
+
+    unique_indices <- unique(as.vector(pairs))
+    filtered_endpoints <- endpoints[unique_indices, ]
+    filtered_endpoints$id <- seq_len(nrow(filtered_endpoints))
+
+    # Generate lines connecting these endpoint pairs
+    connection_lines <- do.call(rbind, 
+      lapply(seq_len(nrow(pairs)), function(i) {
+        pt1_index <- pairs[i, "row"]
+        pt2_index <- pairs[i, "col"]
+        # Extract the points directly since each row is a point
+        pt1 <- endpoints[pt1_index, ]
+        pt2 <- endpoints[pt2_index, ]
+        create_line(pt1, pt2)
+      })
+    )
+    line_geometries <- lapply(connection_lines[, 1], st_sfc, crs = 27700)
+
+    geometries <- lapply(line_geometries, function(sfc) { sfc[[1]] })
+
+    # Create a single sfc collection from the extracted geometries
+    combined_sfc <- st_sfc(geometries, crs = 27700)  # Ensure CRS matches your specification
+
+    # Create a simple feature collection from the combined LINESTRINGs
+    sf_collection <- st_sf(geometry = combined_sfc)
+
+    combined_sf <- rbind(sf_collection|> select(geometry), cycle_net_filtered|> select(geometry))    
     return(cycle_net_NPT_filtered)
+}
+
+create_line <- function(pt1, pt2) {
+  st_sfc(st_linestring(rbind(st_coordinates(pt1), st_coordinates(pt2))), crs = st_crs(pt1))
 }
 
 find_component= function(rnet, threshold = 50) {

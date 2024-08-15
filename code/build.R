@@ -305,22 +305,21 @@ for (region in region_names) {
          
         orcp_city_boundary = orcp_network(area = city_boundary, NPT_zones = combined_net_city_boundary, percentile_value = 0.7)
 
-        # mapview::mapview(orcp_city_boundary, zcol = "all_fastest_bicycle_go_dutch") + mapview::mapview(cohesive_network_city_boundary)
+        OSM_city = sf::read_sf(glue::glue("inputdata/fixed_osm/OSM_", city, ".geojson_fixed.geojson")) |> sf::st_transform(27700)
+  
+        OSM_city = OSM_city[!is.na(OSM_city$highway), ]
+
+        orcp_city_boundary_component = find_component(orcp_city_boundary)
+
+        components = unique(orcp_city_boundary_component$component)
+
+        # mapview::mapview(orcp_city_boundary) + mapview::mapview(cohesive_network_city_boundary)
         # orcp_city_boundary_zone = orcp_city_boundary[sf::st_union(zonebuilder::zb_zone(city, n_circles = 3)) |> sf::st_transform(27700), , op = sf::st_intersects]
         # check if orcp_city_boundary is not empty before proceeding
         if (nrow(orcp_city_boundary) > 0) {
 
-          OSM_city = sf::read_sf(glue::glue("inputdata/fixed_osm/OSM_", city, ".geojson_fixed.geojson")) |> sf::st_transform(27700)
-    
-          OSM_city = OSM_city[!is.na(OSM_city$highway), ]
-
-          orcp_city_boundary_component = find_component(orcp_city_boundary)
-
           # Initialize the list to store paths for each component
           all_paths_dict = list()
-
-          # Unique components
-          components = unique(orcp_city_boundary_component$component)
 
           # Loop through each component
           for (component_id in components) {
@@ -332,13 +331,13 @@ for (region in region_names) {
               os_points = list()
               osm_points = list()
               end_points_sf = find_endpoints(gdf)
-              os_points = find_nearest_points(end_points_sf, cohesive_network_city_boundary, dist = 1500, segment_length = 5)
-              osm_points = find_nearest_points(os_points, OSM_city, dist = 1000, segment_length = 5)
+              os_points = find_nearest_points(end_points_sf, cohesive_network_city_boundary, dist = 3000, segment_length = 5)
+              osm_points = find_nearest_points(os_points, OSM_city, dist = 3000, segment_length = 5)
 
               # mapview::mapview(end_points_sf, color = "red") + mapview::mapview(os_points, color = "blue") + mapview::mapview(osm_points, color = "green") + mapview::mapview(cohesive_network_city_boundary, color = "gray")  + mapview::mapview(gdf, color = "black")
                 
               hull_sf = st_convex_hull(st_union(osm_points))
-              buffer_distance = 500  # Adjust the buffer distance as needed
+              buffer_distance = 3000  # Adjust the buffer distance as needed
               buffered_hull_sf = st_buffer(hull_sf, dist = buffer_distance)
               
               OSM = OSM_city[st_union(buffered_hull_sf), , op = st_intersects]
@@ -347,37 +346,40 @@ for (region in region_names) {
               paths = compute_shortest_paths(end_points_sf, osm_points, OSM)
 
               filtered_paths = list()  # This list will store only the paths that meet the criterion
-
+              number_of_paths = 0
+              
               for (i in 1:length(paths)) {
-                  if (nrow(paths[[i]]$path_edges) == 0) {
+                  number_of_paths = number_of_paths + length(paths[[i]]$path_edges)
+                  
+                  path = paths[[i]]$path_edges
+                  
+                  if (is.null(path) || nrow(path) == 0) {
                       next
                   }
-                  path = paths[[i]]$path_edges
-                  # path = sf::st_union(path)
-                  # path = sf::st_line_merge(path)
+                  
                   path_buffered = sf::st_buffer(path, dist = 1)
-                  combined_net_city_boundary_path = combined_net_city_boundary[st_union(path_buffered), , op = st_intersects]
-
+                  combined_net_city_boundary_path = combined_net_city_boundary[sf::st_union(path_buffered), , op = st_intersects]
+                  
                   path_npt = stplanr::rnet_merge(path, combined_net_city_boundary_path, max_angle_diff = 10, dist = 1, segment_length = 5, funs = list(all_fastest_bicycle_go_dutch = mean))
-
+                  
                   path_mean = mean(path_npt$all_fastest_bicycle_go_dutch, na.rm = TRUE)
                   
                   if (!is.nan(path_mean) && !is.na(path_mean) && path_mean >= 250) {
-                      filtered_paths[[length(filtered_paths) + 1]] = path_npt
+                      filtered_paths[[length(filtered_paths) + 1]] = sf::st_union(path_npt)
                   }
-              }    
+                  
+                  all_paths_dict[[component_id]] = filtered_paths
+              }
 
+              if (number_of_paths == 0) {
+                  components = components[components != component_id]
+              }
 
-              # Save the filtered paths in the list under a specific component_id
-              
-              all_paths_dict[[component_id]] = filtered_paths
+              }, error = function(e) {
+                  message(sprintf("Error processing component %s: %s", component, e$message))
+                  all_paths_dict[[component_id]] = NULL  # Or any other way to mark the failure
+              })
 
-
-            }, error = function(e) {
-              message(sprintf("Error processing component %s: %s", component, e$message))
-              all_paths_dict[[component_id]] = NULL  # Or any other way to mark the failure
-            })
-          }
 
           all_orcp_path_sf = list()
 
@@ -400,7 +402,10 @@ for (region in region_names) {
 
           # all_orcp_path_sf <- Filter(function(x) !is.na(st_crs(x)$epsg), all_orcp_path_sf)
           combined_orcp_path_sf = do.call(rbind, all_orcp_path_sf)
-          combined_orcp_path_sf = combined_orcp_path_sf |> select(geometry)
+          combined_orcp_path_sf <- lapply(combined_orcp_path_sf[, 1], st_sfc, crs = 27700)
+          geometries <- lapply(combined_orcp_path_sf, function(sfc) { sfc[[1]] })
+          combined_sfc <- st_sfc(geometries, crs = 27700) 
+          combined_orcp_path_sf <- st_sf(geometry = combined_sfc)
 
           combined_orcp_path_sf_buffered = st_buffer(combined_orcp_path_sf, dist = 2)
           intersects = st_intersects(combined_orcp_path_sf_buffered, combined_net_city_boundary, sparse = FALSE)
@@ -415,23 +420,39 @@ for (region in region_names) {
           summarized_data = summarized_data |> dplyr::filter(total_all_fastest_bicycle_go_dutch > min_percentile_value)
 
           summarized_data = summarized_data |> dplyr::filter(total_length > 10)
+
           combined_orcp_path_sf_filtered = combined_orcp_path_sf |>
            filter(st_intersects(geometry, summarized_data$geometry, sparse = FALSE) |> apply(1, any))
 
-          missing_columns = setdiff(names(orcp_city_boundary_component), names(combined_orcp_path_sf))
+          missing_columns = setdiff(names(combined_orcp_path_sf), names(orcp_city_boundary_component))
 
-          for (col in missing_columns) {
-            combined_orcp_path_sf[[col]] = NA
+          if (length(missing_columns) > 0) {
+            for (col in missing_columns) {
+              orcp_city_boundary_component[[col]] = NA
+            }
           }
 
+          # Now check for missing columns in orcp_city_boundary_component compared to combined_orcp_path_sf
+          missing_columns = setdiff(names(orcp_city_boundary_component), names(combined_orcp_path_sf))
+
+          if (length(missing_columns) > 0) {
+            for (col in missing_columns) {
+              combined_orcp_path_sf[[col]] = NA
+            }
+          }
+
+
           # Combine all_paths_sf with orcp_city_boundary_component
-          orcp_city_boundary = rbind(orcp_city_boundary_component, combined_orcp_path_sf)
+          # fliter orcp_city_boundary_component based on updated components list
+          orcp_city_boundary_component_withpath = orcp_city_boundary_component |>
+            filter(component %in% components)
+          orcp_city_boundary = rbind(orcp_city_boundary_component_withpath, combined_orcp_path_sf)
         } else {
             cat("orcp_city_boundary is empty, skipping processing.\n")
         }
         
         # Plotting
-        # mapview::mapview(orcp_city_boundary, color = "red") + mapview::mapview(cohesive_network_city_boundary, color = "black")  + mapview::mapview(gdf, color = "black")
+        mapview::mapview(orcp_city_boundary_component, color = "red") + mapview::mapview(cohesive_network_city_boundary, color = "black")  + mapview::mapview(gdf, color = "black")
         # Identify common columns
         common_columns = intersect(names(cohesive_network_city_boundary), names(orcp_city_boundary))
 
