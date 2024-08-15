@@ -84,6 +84,7 @@ tar_load(od_shopping)
 tar_load(od_utility_combined)
 tar_load(aadt_parameters)
 tar_load(zones)
+tar_load(r_utility_fastest)
 names(zones)
 ```
 
@@ -199,6 +200,101 @@ sum(
 The results show that there are too few trips under the go_dutch
 scenario. Next step: check the code that generates the utility trips
 under the scenarios.
+
+The input data is `r_utility_fastest`, let’s first check that it
+contains the same number of trips as the `od_utility_combined` data.
+
+``` r
+waldo::compare(
+  names(r_utility_fastest),
+  names(od_utility_combined)
+)
+```
+
+        old               | new            
+    [1] "route_number"    -                
+    [2] "distances"       -                
+    [3] "quietness"       -                
+    [4] "gradient_smooth" -                
+    [5] "geo_code1"       | "geo_code1" [1]
+    [6] "geo_code2"       | "geo_code2" [2]
+    [7] "car"             | "car"       [3]
+
+         old                       | new                                     
+    [11] "dist_euclidean"          | "dist_euclidean"          [7]           
+    [12] "public_transport"        | "public_transport"        [8]           
+    [13] "taxi"                    | "taxi"                    [9]           
+                                   - "geometry"                [10]          
+    [14] "dist_euclidean_jittered" | "dist_euclidean_jittered" [11]          
+    [15] "purpose"                 | "purpose"                 [12]          
+    [16] "endDZ"                   | "endDZ"                   [13]          
+    [17] "startDZ"                 | "startDZ"                 [14]          
+    [18] "geometry"                -                                         
+    [19] "route_hilliness"         -                                         
+     ... ...                         ...                       and 1 more ...
+
+``` r
+r_utility_fastest_df = r_utility_fastest |>
+  sf::st_drop_geometry() |>
+  group_by(geo_code1, geo_code2) |>
+  slice(1)
+nrow(r_utility_fastest_df)
+```
+
+    [1] 8843
+
+``` r
+nrow(od_utility_combined)
+```
+
+    [1] 9458
+
+``` r
+sum(r_utility_fastest_df$all)
+```
+
+    [1] 150039.8
+
+``` r
+sum(od_utility_combined$all)
+```
+
+    [1] 188548.6
+
+The results show substantial differences between the two datasets, which
+is worth investigating further. The differences are not big enough to
+explain the differences between the baseline and Go Dutch scenarios.
+
+The number of trips for each scenario is calculated as follows:
+
+``` r
+# uptake_utility_fastest
+routes = r_utility_fastest |>
+  filter(distances < 10000) |>
+  get_uptake_scenarios(purpose = "utility")
+```
+
+Let’s check the total amount of trips for the Go Dutch scenario again,
+for each OD pair:
+
+``` r
+routes_df = routes |>
+  sf::st_drop_geometry() |>
+  group_by(geo_code1, geo_code2) |>
+  slice(1)
+nrow(r_utility_fastest_df)
+```
+
+    [1] 8843
+
+``` r
+nrow(routes_df)
+```
+
+    [1] 2518
+
+This shows that we’re losing a load of trips in the
+`get_uptake_scenarios` function.
 
 The checks below apply to Scotland South.
 
