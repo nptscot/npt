@@ -116,7 +116,7 @@ sum(r_utility_fastest_df$all)
 sum(od_utility_combined$all)
 ```
 
-The results show substantial differences between the two datasets, which is worth investigating further.
+The results show differences between the two datasets.
 The differences are not big enough to explain the differences between the baseline and Go Dutch scenarios.
 
 The number of trips for each scenario is calculated as follows:
@@ -137,6 +137,17 @@ routes_df = routes |>
   slice(1)
 nrow(r_utility_fastest_df)
 nrow(routes_df)
+```
+
+```{r}
+#| eval: false
+#| echo: false
+# additional checks:
+sum(routes_df$all)
+mean(routes_df$all)
+mean(r_utility_fastest_df$all)
+table(routes_df$purpose)
+table(r_utility_fastest_df$purpose)
 ```
 
 This shows that we're losing a load of trips in the `get_uptake_scenarios` function.

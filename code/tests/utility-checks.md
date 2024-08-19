@@ -261,9 +261,9 @@ sum(od_utility_combined$all)
 
     [1] 188548.6
 
-The results show substantial differences between the two datasets, which
-is worth investigating further. The differences are not big enough to
-explain the differences between the baseline and Go Dutch scenarios.
+The results show differences between the two datasets. The differences
+are not big enough to explain the differences between the baseline and
+Go Dutch scenarios.
 
 The number of trips for each scenario is calculated as follows:
 
