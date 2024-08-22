@@ -19,7 +19,7 @@ orcp_network = function(area, NPT_zones, length_threshold = 10000, percentile_va
     dplyr::filter(length > 1) |>
     sf::st_transform(crs = 27700)
 
-  # snapped_lines = sf::st_snap(cycle_net, cycle_net, tolerance = 15)
+  cycle_net = st_cast(cycle_net, "LINESTRING")  
   cycle_net = cycle_net |> select(geometry)
   cycle_net$length = st_length(cycle_net)
   cycle_net_components = find_component(cycle_net, threshold = 1)
@@ -53,16 +53,21 @@ orcp_network = function(area, NPT_zones, length_threshold = 10000, percentile_va
       print(sprintf("Failed to process component %d due to error: %s", comp, e$message))
     })
 
-  }
-  cycle_net_clean <- do.call(rbind, cycle_net_components_clean)
-  cycle_net_clean = find_component(cycle_net_clean, threshold = 1)
+   }
 
-  cycle_net_clean_length = cycle_net_clean |>
+  cycle_net_clean <- do.call(rbind, cycle_net_components_clean)
+  snapped_lines = sf::st_snap(cycle_net_clean, cycle_net_clean, tolerance = 20)
+  snapped_lines_compoenet = find_component(snapped_lines, threshold = 1)
+  snapped_lines_compoenet_buffer = sf::st_buffer(snapped_lines_compoenet, dist = 30)
+  cycle_net_clean_components = st_join(cycle_net_clean, snapped_lines_compoenet_buffer, join = st_intersects)
+
+
+  cycle_net_clean_length = cycle_net_clean_components |>
       dplyr::group_by(component) |>
       dplyr::summarize(
                         total_length = sum(as.numeric(sf::st_length(geometry)), na.rm = TRUE))  
 
-  min_percentile_value = stats::quantile(cycle_net_clean_length$total_length, probs = 0.5, na.rm = TRUE)
+  min_percentile_value = stats::quantile(cycle_net_clean_length$total_length, probs = 0.8, na.rm = TRUE)
   cycle_net_f = cycle_net_clean_length |> dplyr::filter(total_length > min_percentile_value)
 
   
@@ -134,7 +139,7 @@ orcp_network = function(area, NPT_zones, length_threshold = 10000, percentile_va
                         sf::st_transform(27700) |> 
                         sf::st_zm()
 
-    cycle_net_NPT = stplanr::rnet_merge(filtered_OS_zones, NPT_zones, , max_angle_diff = 5, dist = 0.5, segment_length = 5, funs = list(all_fastest_bicycle_go_dutch = mean))       
+    cycle_net_NPT = stplanr::rnet_merge(filtered_OS_zones, NPT_zones, , max_angle_diff = 10, dist = 1, segment_length = 5, funs = list(all_fastest_bicycle_go_dutch = mean))       
 
     # cycle_net_NPT = sf::st_join(filtered_OS_zones, NPT_zones, join = st_intersects)
 
@@ -143,10 +148,9 @@ orcp_network = function(area, NPT_zones, length_threshold = 10000, percentile_va
         dplyr::summarize(mean_all_fastest_bicycle_go_dutch = mean(all_fastest_bicycle_go_dutch, na.rm = TRUE),
                          total_length = sum(as.numeric(sf::st_length(geometry)), na.rm = TRUE))
 
-    min_percentile_value = stats::quantile(summarized_data$mean_all_fastest_bicycle_go_dutch, probs = 0.7, na.rm = TRUE)
+    min_percentile_value = stats::quantile(summarized_data$mean_all_fastest_bicycle_go_dutch, probs = 0.6, na.rm = TRUE)
     
     summarized_data = summarized_data |> dplyr::filter(mean_all_fastest_bicycle_go_dutch > min_percentile_value)
-
 
 #     cycle_net_NPT_filtered = cycle_net_NPT |>
 #     filter(st_intersects(geometry, summarized_data$geometry, sparse = FALSE) |> apply(1, any))
@@ -447,3 +451,51 @@ fix_net_connectivity <- function(file_name, input_dir, output_dir, gisBase, gisD
   cat("Network", output_file, " is cleaned and export completed successfully.\n")
 }
 
+library(sf)
+library(igraph)
+library(geosphere)
+library(igraph)
+
+sf_to_igraph = function(network_sf) {
+  # network_sf = cycle_net_components_1
+  # Assuming network_sf is LINESTRING
+  points = unique(do.call(rbind, lapply(network_sf$geometry, function(line) {
+    rbind(st_coordinates(line)[1, ], st_coordinates(line)[nrow(st_coordinates(line)), ])
+  })))
+  points = unique(points)
+  edges = do.call(rbind, lapply(network_sf$geometry, function(line) {
+    start = which(points[,1] == st_coordinates(line)[1,1] & points[,2] == st_coordinates(line)[1,2])
+    end = which(points[,1] == st_coordinates(line)[nrow(st_coordinates(line)),1] & points[,2] == st_coordinates(line)[nrow(st_coordinates(line)),2])
+    c(start, end)
+  }))
+  graph = graph_from_edgelist(as.matrix(edges), directed = FALSE)
+  return(graph)
+}
+
+remove_dangles = function(network, percentile = 0.012) {
+
+    network$length = sf::st_length(network)
+    network_g = sf_to_igraph(network)
+    vertex_degrees = degree(network_g)
+
+    dangle_vertices = which(vertex_degrees == 1)
+
+    points = unique(do.call(rbind, lapply(st_geometry(network), function(line) {
+    rbind(st_coordinates(line)[1, ], st_coordinates(line)[nrow(st_coordinates(line)), ])
+    })))
+    # Extract indices of LINESTRINGs to check
+    line_indices = sapply(st_geometry(network), function(line) {
+    coords = st_coordinates(line)
+    c(which(points[,1] == coords[1,1] & points[,2] == coords[1,2]),
+        which(points[,1] == coords[nrow(coords),1] & points[,2] == coords[nrow(coords),2]))
+    })
+
+    # sum of network$length
+    sum_value = sum(network$length)
+    
+    # Median of network$length
+    threshold_length = percentile* sum_value
+    short_dangles = network[(line_indices[1,] %in% dangle_vertices | line_indices[2,] %in% dangle_vertices) & network$length < units::set_units(threshold_length, "meters"), ]
+
+    network_clean = network[!((line_indices[1,] %in% dangle_vertices | line_indices[2,] %in% dangle_vertices) & network$length <  units::set_units(threshold_length, "meters")), ]
+}

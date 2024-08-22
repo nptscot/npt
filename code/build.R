@@ -302,15 +302,13 @@ for (region in region_names) {
         message("Generating Off Road Cycle Path network for: ", city)
         source("R/get_orcp_cn.R")
        
-        orcp_city_boundary = orcp_network(area = city_boundary, NPT_zones = combined_net_city_boundary, percentile_value = 0.7)
-
+        orcp_city_boundary = orcp_network(area = city_boundary, NPT_zones = combined_net_city_boundary, percentile_value = 0.7) 
+           
         OSM_city = sf::read_sf(glue::glue("inputdata/fixed_osm/OSM_", city, ".geojson_fixed.geojson")) |> sf::st_transform(27700)
   
         OSM_city = OSM_city[!is.na(OSM_city$highway), ]
 
-        orcp_city_boundary_component = find_component(orcp_city_boundary)
-
-        components = unique(orcp_city_boundary_component$component)
+        components = unique(orcp_city_boundary$component)
 
         # mapview::mapview(orcp_city_boundary) + mapview::mapview(cohesive_network_city_boundary)
         # orcp_city_boundary_zone = orcp_city_boundary[sf::st_union(zonebuilder::zb_zone(city, n_circles = 3)) |> sf::st_transform(27700), , op = sf::st_intersects]
@@ -325,7 +323,7 @@ for (region in region_names) {
             tryCatch({
 
               message("Processing component: ", component_id)
-              gdf = orcp_city_boundary_component |> filter(component == component_id)
+              gdf = orcp_city_boundary |> filter(component == component_id)
               end_points_sf = list()
               os_points = list()
               osm_points = list()
@@ -350,7 +348,7 @@ for (region in region_names) {
               for (i in 1:length(paths)) {
 
                   number_of_paths = number_of_paths + nrow(paths[[i]]$path_edges)
-                  
+          
                   path = paths[[i]]$path_edges
                   
                   if (is.null(path) || nrow(path) == 0) {
@@ -424,16 +422,25 @@ for (region in region_names) {
           combined_orcp_path_sf_filtered = combined_orcp_path_sf |>
            filter(st_intersects(geometry, summarized_data$geometry, sparse = FALSE) |> apply(1, any))
 
-          missing_columns = setdiff(names(combined_orcp_path_sf), names(orcp_city_boundary_component))
+          combined_orcp_path_sf_filtered = combined_orcp_path_sf_filtered |> 
+            dplyr::select(-all_fastest_bicycle_go_dutch) |>
+            dplyr::rename(all_fastest_bicycle_go_dutch = mean_all_fastest_bicycle_go_dutch)
+
+          orcp_city_boundary = orcp_city_boundary |> 
+            dplyr::select(-all_fastest_bicycle_go_dutch) |>
+            dplyr::rename(all_fastest_bicycle_go_dutch = mean_all_fastest_bicycle_go_dutch)
+
+
+          missing_columns = setdiff(names(combined_orcp_path_sf), names(orcp_city_boundary))
 
           if (length(missing_columns) > 0) {
             for (col in missing_columns) {
-              orcp_city_boundary_component[[col]] = NA
+              orcp_city_boundary[[col]] = NA
             }
           }
 
           # Now check for missing columns in orcp_city_boundary_component compared to combined_orcp_path_sf
-          missing_columns = setdiff(names(orcp_city_boundary_component), names(combined_orcp_path_sf))
+          missing_columns = setdiff(names(orcp_city_boundary), names(combined_orcp_path_sf))
 
           if (length(missing_columns) > 0) {
             for (col in missing_columns) {
@@ -444,17 +451,18 @@ for (region in region_names) {
 
           # Combine all_paths_sf with orcp_city_boundary_component
           # fliter orcp_city_boundary_component based on updated components list
-          orcp_city_boundary_component_withpath = orcp_city_boundary_component |>
+          orcp_city_boundary_withpath = orcp_city_boundary |>
             filter(component %in% components)
-          orcp_city_boundary = rbind(orcp_city_boundary_component_withpath, combined_orcp_path_sf)
+          orcp_city_boundary = rbind(orcp_city_boundary_withpath, combined_orcp_path_sf)
 
         } else {
             cat("orcp_city_boundary is empty, skipping processing.\n")
         }
         
         # Plotting
-        mapview::mapview(orcp_city_boundary, color = "red") + mapview::mapview(cohesive_network_city_boundary, color = "black")  
+        # mapview::mapview(orcp_city_boundary, color = "red") + mapview::mapview(cohesive_network_city_boundary, color = "black")   + mapview::mapview(cycle_net, color = "blue")
         # Identify common columns
+
         common_columns = intersect(names(cohesive_network_city_boundary), names(orcp_city_boundary))
 
         # Subset both data frames to common columns
@@ -464,13 +472,17 @@ for (region in region_names) {
         # Bind the rows
         grouped_network = rbind(cohesive_network_filtered, orcp_city_boundary_filtered)
 
-        grouped_network = corenet::coherent_network_group(grouped_network, key_attribute = "all_fastest_bicycle_go_dutch")
+        # remove duplicate in grouped_network
+        grouped_network = grouped_network[!duplicated(grouped_network), ]
+
+
+        # grouped_network = corenet::coherent_network_group(grouped_network, key_attribute = "all_fastest_bicycle_go_dutch")
         # rename mean_potential in grouped_network as all_fastest_bicycle_go_dutch
-        grouped_network = grouped_network |>
-          dplyr::rename(all_fastest_bicycle_go_dutch = mean_potential)
+        # grouped_network = grouped_network |>
+          # dplyr::rename(all_fastest_bicycle_go_dutch = mean_potential)
 
         # Use city name in the filename
-        corenet::create_coherent_network_PMtiles(folder_path = folder_path, city_filename = glue::glue("{city_filename}_{date_folder}"), cohesive_network = grouped_network)
+        corenet::create_coherent_network_PMtiles(folder_path = folder_path, city_filename = glue::glue("{city_filename}_{date_folder}"), cohesive_network = grouped_network|> sf::st_transform(4326))
 
         message("Coherent network for: ", city, " generated successfully")
 
