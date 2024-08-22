@@ -44,6 +44,17 @@ length(unique(od_shopping$geo_code1))
 nrow(zones)
 ```
 
+There is some duplication in the datasets:
+
+```{r}
+summary(od_utility_combined$startDZ == od_utility_combined$geo_code1)
+summary(od_utility_combined$endDZ == od_utility_combined$geo_code2)
+```
+
+This shows that, for calculating the number of people arriving at each zone, we need a national dataset of zones: zone level statistics should not be calculated per region, for the number of people arriving at each zone at least.
+
+In any case, we'll replace 'startDZ' and 'endDZ' with 'geo_code1' and 'geo_code2'.
+
 This shows that there are 344 zones in the case study area, and the od data is at the zone level.
 
 Starting from first principles, there are 265k people in the case study area.

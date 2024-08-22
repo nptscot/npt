@@ -124,6 +124,30 @@ nrow(zones)
 
     [1] 344
 
+There is some duplication in the datasets:
+
+``` r
+summary(od_utility_combined$startDZ == od_utility_combined$geo_code1)
+```
+
+       Mode    TRUE 
+    logical    9458 
+
+``` r
+summary(od_utility_combined$endDZ == od_utility_combined$geo_code2)
+```
+
+       Mode   FALSE    TRUE    NA's 
+    logical    6431    2868     159 
+
+This shows that, for calculating the number of people arriving at each
+zone, we need a national dataset of zones: zone level statistics should
+not be calculated per region, for the number of people arriving at each
+zone at least.
+
+In any case, we’ll replace ‘startDZ’ and ‘endDZ’ with ‘geo_code1’ and
+‘geo_code2’.
+
 This shows that there are 344 zones in the case study area, and the od
 data is at the zone level.
 
@@ -149,7 +173,7 @@ zones |>
    plot()
 ```
 
-![](utility-checks_files/figure-commonmark/unnamed-chunk-4-1.png)
+![](utility-checks_files/figure-commonmark/unnamed-chunk-5-1.png)
 
 People make around 3 trips to the shops per week, meaning 3 / 7 (0.43)
 trips per day. We would therefore expect around 265k \* 0.43 = 114k
