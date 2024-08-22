@@ -975,9 +975,8 @@ list(
   }),
 
   # Utility Zone stats ---------------------------------------------------------
-
   tar_target(utility_stats_baseline, {
-    stats = sf::st_drop_geometry(od_utility_combined)
+    stats = sf::st_drop_geometry(uptake_utility_fastest)
      stats = stats[, c(
       "startDZ", "endDZ", "purpose", "all", "car",
       "foot", "bicycle", "public_transport", "taxi"
@@ -1030,6 +1029,7 @@ list(
     stats_all = dplyr::full_join(stats_orig, stats_dest, by = "DataZone")
     stats_all
   }),
+
   tar_target(utility_stats_fastest, {
     make_utility_stats(uptake_utility_fastest, "fastest", zones)
   }),

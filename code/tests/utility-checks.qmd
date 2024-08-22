@@ -30,10 +30,21 @@ tar_load(od_utility_combined)
 tar_load(aadt_parameters)
 tar_load(zones)
 tar_load(r_utility_fastest)
+tar_load(uptake_utility_fastest)
 names(zones)
 # parameters
 setwd(old_working_directory)
 ```
+
+Let's check the level of the od data:
+
+```{r}
+names(od_shopping)
+length(unique(od_shopping$geo_code1))
+nrow(zones)
+```
+
+This shows that there are 344 zones in the case study area, and the od data is at the zone level.
 
 Starting from first principles, there are 265k people in the case study area.
 
@@ -139,6 +150,27 @@ nrow(r_utility_fastest_df)
 nrow(routes_df)
 ```
 
+Let's check that the output is internally consistent, with the total of all modes equal to the total number of trips, for each scenario.
+
+```{r}
+sum(routes_df$all)
+sum(
+  routes_df$car,
+  routes_df$bicycle,
+  routes_df$foot,
+  routes_df$public_transport,
+  routes_df$taxi
+)
+# And for the Go Dutch scenario:
+sum(
+  routes_df$car_go_dutch,
+  routes_df$bicycle_go_dutch,
+  routes_df$foot_go_dutch,
+  routes_df$public_transport_go_dutch,
+  routes_df$taxi_go_dutch
+)
+```
+
 ```{r}
 #| eval: false
 #| echo: false
@@ -152,7 +184,89 @@ table(r_utility_fastest_df$purpose)
 
 This shows that we're losing a load of trips in the `get_uptake_scenarios` function.
 
+A quick fix is to update the baseline stats object, replacing `od_utility_combined` with `uptake_utility_fastest`.
 
+```{r}
+    stats = sf::st_drop_geometry(uptake_utility_fastest)
+    summary(duplicated(paste0(stats$geo_code1, stats$geo_code2)))
+    summary(duplicated(paste0(stats$startDZ, stats$endDZ)))
+    # Keep only the first instance of each OD pair
+    stats = stats |>
+      dplyr::group_by(geo_code1, geo_code2) |>
+      dplyr::slice(1)
+
+     stats = stats[, c(
+      "startDZ", "endDZ", "purpose", "all", "car",
+      "foot", "bicycle", "public_transport", "taxi"
+    )]
+
+    stats_orig = stats |>
+      dplyr::select(!endDZ) |>
+      dplyr::group_by(startDZ, purpose) |>
+      dplyr::summarise_all(sum, na.rm = TRUE)
+
+    stats_dest = stats |>
+      dplyr::select(!startDZ) |>
+      dplyr::group_by(endDZ, purpose) |>
+      dplyr::summarise_all(sum, na.rm = TRUE)
+
+    stats_orig$purpose = paste0(stats_orig$purpose, "_orig")
+    stats_dest$purpose = paste0(stats_dest$purpose, "_dest")
+
+    stats_orig = tidyr::pivot_wider(stats_orig,
+      id_cols = startDZ,
+      names_from = "purpose",
+      values_from = all:taxi,
+      names_glue = "{purpose}_{.value}"
+    )
+
+    stats_dest = tidyr::pivot_wider(stats_dest,
+      id_cols = endDZ,
+      names_from = "purpose",
+      values_from = all:taxi,
+      names_glue = "{purpose}_{.value}"
+    )
+    names(stats_orig)[1] = "DataZone"
+    names(stats_dest)[1] = "DataZone"
+
+    stats_all = dplyr::full_join(stats_orig, stats_dest, by = "DataZone")
+    stats_all
+```
+
+Let's re-run the `utility_stats` target and check the number of shopping trips in the Go Dutch scenario.
+
+```{r}
+utility_stats_new = make_utility_stats(uptake_utility_fastest, "fastest", zones)
+mean(utility_stats$shopping_orig_car_go_dutch_fastest, na.rm = TRUE)
+mean(utility_stats_new$shopping_orig_car_go_dutch_fastest, na.rm = TRUE)
+```
+
+`stats_all` should now match the number of trips in other scenarios.
+Let's check:
+
+```{r}
+sum(stats_all$shopping_orig_all, na.rm = TRUE)
+sum(stats_all$shopping_dest_car, na.rm = TRUE)
+# Equivalent from Go Dutch scenario:
+sum(utility_stats$shopping_orig_all, na.rm = TRUE)
+sum(utility_stats$shopping_dest_car, na.rm = TRUE)
+totals_1 = c(
+  sum(stats_all$shopping_orig_car, na.rm = TRUE),
+  sum(stats_all$shopping_orig_bicycle, na.rm = TRUE),
+  sum(stats_all$shopping_orig_foot, na.rm = TRUE),
+  sum(stats_all$shopping_orig_public_transport, na.rm = TRUE),
+  sum(stats_all$shopping_orig_taxi, na.rm = TRUE)
+)
+# And the stats_all equivalent:
+sum(
+  stats_all$shopping_orig_car,
+  stats_all$shopping_orig_bicycle,
+  stats_all$shopping_orig_foot,
+  stats_all$shopping_orig_public_transport,
+  stats_all$shopping_orig_taxi,
+  na.rm = TRUE
+)
+```
 
 
 ```{r}

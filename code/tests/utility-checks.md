@@ -85,6 +85,7 @@ tar_load(od_utility_combined)
 tar_load(aadt_parameters)
 tar_load(zones)
 tar_load(r_utility_fastest)
+tar_load(uptake_utility_fastest)
 names(zones)
 ```
 
@@ -94,6 +95,37 @@ names(zones)
 # parameters
 setwd(old_working_directory)
 ```
+
+Let’s check the level of the od data:
+
+``` r
+names(od_shopping)
+```
+
+     [1] "geo_code1"                   "geo_code2"                  
+     [3] "length_euclidean_unjittered" "origin_trips"               
+     [5] "destination_size"            "geometry"                   
+     [7] "interaction"                 "output_col"                 
+     [9] "proportion"                  "all"                        
+    [11] "bicycle"                     "foot"                       
+    [13] "car"                         "public_transport"           
+    [15] "taxi"                        "length_euclidean_jittered"  
+    [17] "purpose"                    
+
+``` r
+length(unique(od_shopping$geo_code1))
+```
+
+    [1] 344
+
+``` r
+nrow(zones)
+```
+
+    [1] 344
+
+This shows that there are 344 zones in the case study area, and the od
+data is at the zone level.
 
 Starting from first principles, there are 265k people in the case study
 area.
@@ -117,7 +149,7 @@ zones |>
    plot()
 ```
 
-![](utility-checks_files/figure-commonmark/unnamed-chunk-3-1.png)
+![](utility-checks_files/figure-commonmark/unnamed-chunk-4-1.png)
 
 People make around 3 trips to the shops per week, meaning 3 / 7 (0.43)
 trips per day. We would therefore expect around 265k \* 0.43 = 114k
@@ -293,8 +325,199 @@ nrow(routes_df)
 
     [1] 2518
 
+Let’s check that the output is internally consistent, with the total of
+all modes equal to the total number of trips, for each scenario.
+
+``` r
+sum(routes_df$all)
+```
+
+    [1] 35246.14
+
+``` r
+sum(
+  routes_df$car,
+  routes_df$bicycle,
+  routes_df$foot,
+  routes_df$public_transport,
+  routes_df$taxi
+)
+```
+
+    [1] 35246.14
+
+``` r
+# And for the Go Dutch scenario:
+sum(
+  routes_df$car_go_dutch,
+  routes_df$bicycle_go_dutch,
+  routes_df$foot_go_dutch,
+  routes_df$public_transport_go_dutch,
+  routes_df$taxi_go_dutch
+)
+```
+
+    [1] 35246.14
+
 This shows that we’re losing a load of trips in the
 `get_uptake_scenarios` function.
+
+A quick fix is to update the baseline stats object, replacing
+`od_utility_combined` with `uptake_utility_fastest`.
+
+``` r
+    stats = sf::st_drop_geometry(uptake_utility_fastest)
+    summary(duplicated(paste0(stats$geo_code1, stats$geo_code2)))
+```
+
+       Mode   FALSE    TRUE 
+    logical    2518      86 
+
+``` r
+    summary(duplicated(paste0(stats$startDZ, stats$endDZ)))
+```
+
+       Mode   FALSE    TRUE 
+    logical    2107     497 
+
+``` r
+    # Keep only the first instance of each OD pair
+    stats = stats |>
+      dplyr::group_by(geo_code1, geo_code2) |>
+      dplyr::slice(1)
+
+     stats = stats[, c(
+      "startDZ", "endDZ", "purpose", "all", "car",
+      "foot", "bicycle", "public_transport", "taxi"
+    )]
+
+    stats_orig = stats |>
+      dplyr::select(!endDZ) |>
+      dplyr::group_by(startDZ, purpose) |>
+      dplyr::summarise_all(sum, na.rm = TRUE)
+
+    stats_dest = stats |>
+      dplyr::select(!startDZ) |>
+      dplyr::group_by(endDZ, purpose) |>
+      dplyr::summarise_all(sum, na.rm = TRUE)
+
+    stats_orig$purpose = paste0(stats_orig$purpose, "_orig")
+    stats_dest$purpose = paste0(stats_dest$purpose, "_dest")
+
+    stats_orig = tidyr::pivot_wider(stats_orig,
+      id_cols = startDZ,
+      names_from = "purpose",
+      values_from = all:taxi,
+      names_glue = "{purpose}_{.value}"
+    )
+
+    stats_dest = tidyr::pivot_wider(stats_dest,
+      id_cols = endDZ,
+      names_from = "purpose",
+      values_from = all:taxi,
+      names_glue = "{purpose}_{.value}"
+    )
+    names(stats_orig)[1] = "DataZone"
+    names(stats_dest)[1] = "DataZone"
+
+    stats_all = dplyr::full_join(stats_orig, stats_dest, by = "DataZone")
+    stats_all
+```
+
+    # A tibble: 345 × 37
+    # Groups:   DataZone [345]
+       DataZone  leisure_orig_all shopping_orig_all visiting_orig_all
+       <chr>                <dbl>             <dbl>             <dbl>
+     1 S01007481            78.2               39.2             116. 
+     2 S01007482            28.3               87.6              67.1
+     3 S01007483            40.7               78.1             139. 
+     4 S01007484             9.65              60.9              79.6
+     5 S01007485             1.18              NA                41.4
+     6 S01007486            45.4              127.               39.9
+     7 S01007487             7.87              49.5             107. 
+     8 S01007488            80.5               42.5             103. 
+     9 S01007489            81.6               35.7              56.4
+    10 S01007490            65.4               19.8              73.2
+    # ℹ 335 more rows
+    # ℹ 33 more variables: leisure_orig_car <dbl>, shopping_orig_car <dbl>,
+    #   visiting_orig_car <dbl>, leisure_orig_foot <dbl>, shopping_orig_foot <dbl>,
+    #   visiting_orig_foot <dbl>, leisure_orig_bicycle <dbl>,
+    #   shopping_orig_bicycle <dbl>, visiting_orig_bicycle <dbl>,
+    #   leisure_orig_public_transport <dbl>, shopping_orig_public_transport <dbl>,
+    #   visiting_orig_public_transport <dbl>, leisure_orig_taxi <dbl>, …
+
+Let’s re-run the `utility_stats` target and check the number of shopping
+trips in the Go Dutch scenario.
+
+``` r
+utility_stats_new = make_utility_stats(uptake_utility_fastest, "fastest", zones)
+```
+
+    `summarise()` has grouped output by 'startDZ'. You can override using the
+    `.groups` argument.
+    `summarise()` has grouped output by 'endDZ'. You can override using the
+    `.groups` argument.
+
+``` r
+mean(utility_stats$shopping_orig_car_go_dutch_fastest, na.rm = TRUE)
+```
+
+    [1] 37.25217
+
+``` r
+mean(utility_stats_new$shopping_orig_car_go_dutch_fastest, na.rm = TRUE)
+```
+
+    [1] 37.25217
+
+`stats_all` should now match the number of trips in other scenarios.
+Let’s check:
+
+``` r
+sum(stats_all$shopping_orig_all, na.rm = TRUE)
+```
+
+    [1] 12277.47
+
+``` r
+sum(stats_all$shopping_dest_car, na.rm = TRUE)
+```
+
+    [1] 8015.269
+
+``` r
+# Equivalent from Go Dutch scenario:
+sum(utility_stats$shopping_orig_all, na.rm = TRUE)
+```
+
+    [1] 118299.4
+
+``` r
+sum(utility_stats$shopping_dest_car, na.rm = TRUE)
+```
+
+    [1] 77272.48
+
+``` r
+totals_1 = c(
+  sum(stats_all$shopping_orig_car, na.rm = TRUE),
+  sum(stats_all$shopping_orig_bicycle, na.rm = TRUE),
+  sum(stats_all$shopping_orig_foot, na.rm = TRUE),
+  sum(stats_all$shopping_orig_public_transport, na.rm = TRUE),
+  sum(stats_all$shopping_orig_taxi, na.rm = TRUE)
+)
+# And the stats_all equivalent:
+sum(
+  stats_all$shopping_orig_car,
+  stats_all$shopping_orig_bicycle,
+  stats_all$shopping_orig_foot,
+  stats_all$shopping_orig_public_transport,
+  stats_all$shopping_orig_taxi,
+  na.rm = TRUE
+)
+```
+
+    [1] 12277.47
 
 The checks below apply to Scotland South.
 
