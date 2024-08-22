@@ -1,118 +1,69 @@
 nrow,plan,purpose,region,date,id
-20925,balanced,utility,Aberdeen and North East,2024-07-02,10475
-32967,balanced,commute,Aberdeen and North East,2024-07-02,10474
-4525,balanced,school,Aberdeen and North East,2024-07-02,10473
-14685,fastest,utility,Highlands and Islands,2024-07-02,10472
-20925,ebike,utility,Aberdeen and North East,2024-07-02,10470
-20925,quietest,utility,Aberdeen and North East,2024-07-02,10469
-20925,fastest,utility,Aberdeen and North East,2024-07-02,10468
-32967,ebike,commute,Aberdeen and North East,2024-07-02,10466
-32967,quietest,commute,Aberdeen and North East,2024-07-02,10464
-32967,fastest,commute,Aberdeen and North East,2024-07-02,10463
-4525,ebike,school,Aberdeen and North East,2024-07-02,10462
-4525,quietest,school,Aberdeen and North East,2024-07-02,10460
-4525,fastest,school,Aberdeen and North East,2024-07-02,10459
-14685,ebike,utility,Highlands and Islands,2024-07-02,10458
-14685,quietest,utility,Highlands and Islands,2024-07-02,10457
-14685,balanced,utility,Highlands and Islands,2024-07-02,10455
-7976,ebike,commute,Highlands and Islands,2024-07-02,10454
-7976,quietest,commute,Highlands and Islands,2024-07-02,10452
-7976,fastest,commute,Highlands and Islands,2024-07-02,10451
-3228,ebike,school,Highlands and Islands,2024-07-02,10450
-3228,balanced,school,Highlands and Islands,2024-07-02,10449
-3228,quietest,school,Highlands and Islands,2024-07-02,10448
-3228,fastest,school,Highlands and Islands,2024-07-02,10447
-111294,ebike,utility,Edinburgh and Lothians,2024-07-02,10446
-111294,quietest,utility,Edinburgh and Lothians,2024-07-02,10445
-111294,fastest,utility,Edinburgh and Lothians,2024-07-02,10444
-90716,ebike,commute,Edinburgh and Lothians,2024-07-02,10442
-90716,quietest,commute,Edinburgh and Lothians,2024-07-02,10440
-90716,fastest,commute,Edinburgh and Lothians,2024-07-02,10439
-9425,ebike,school,Edinburgh and Lothians,2024-07-02,10438
-9425,quietest,school,Edinburgh and Lothians,2024-07-02,10436
-9425,fastest,school,Edinburgh and Lothians,2024-07-02,10434
-50769,ebike,utility,"Tayside, Central and Fife",2024-07-02,10433
-50769,quietest,utility,"Tayside, Central and Fife",2024-07-02,10431
-9458,fastest,utility,Scotland South,2024-07-02,10429
-93499,ebike,utility,Glasgow and Strathclyde,2024-07-02,10171
-93499,quietest,utility,Glasgow and Strathclyde,2024-07-02,10170
-93499,balanced,utility,Glasgow and Strathclyde,2024-07-02,10418
-93499,fastest,utility,Glasgow and Strathclyde,2024-07-02,10420
-9458,ebike,utility,Scotland South,2024-07-02,10404
-9458,quietest,utility,Scotland South,2024-07-02,10403
-9458,balanced,utility,Scotland South,2024-07-02,10400
-50769,fastest,utility,"Tayside, Central and Fife",2024-07-02,10414
-50769,balanced,utility,"Tayside, Central and Fife",2024-07-02,10413
-65662,ebike,commute,"Tayside, Central and Fife",2024-07-02,10412
-65662,balanced,commute,"Tayside, Central and Fife",2024-07-02,10409
-65662,quietest,commute,"Tayside, Central and Fife",2024-07-02,10408
-65662,fastest,commute,"Tayside, Central and Fife",2024-07-02,10407
-11451,ebike,school,"Tayside, Central and Fife",2024-07-02,10406
-11451,balanced,school,"Tayside, Central and Fife",2024-07-02,10405
-11451,quietest,school,"Tayside, Central and Fife",2024-07-02,10402
-11451,fastest,school,"Tayside, Central and Fife",2024-07-02,10399
-6943,ebike,commute,Scotland South,2024-07-02,10396
-6943,balanced,commute,Scotland South,2024-07-02,10395
-6943,quietest,commute,Scotland South,2024-07-02,10394
-6943,fastest,commute,Scotland South,2024-07-02,10393
-1607,ebike,school,Scotland South,2024-07-02,10392
-1607,balanced,school,Scotland South,2024-07-02,10391
-1607,quietest,school,Scotland South,2024-07-02,10390
-1607,fastest,school,Scotland South,2024-07-02,10389
-218877,ebike,commute,Glasgow and Strathclyde,2024-07-02,10387
-218877,balanced,commute,Glasgow and Strathclyde,2024-07-02,10386
-218877,quietest,commute,Glasgow and Strathclyde,2024-07-02,10385
-218877,fastest,commute,Glasgow and Strathclyde,2024-07-02,10384
-29032,ebike,school,Glasgow and Strathclyde,2024-07-02,10383
-29032,balanced,school,Glasgow and Strathclyde,2024-07-02,10382
-29032,quietest,school,Glasgow and Strathclyde,2024-07-02,10381
-29032,fastest,school,Glasgow and Strathclyde,2024-07-02,10380
-10000,ebike,utility,Edinburgh and Lothians,2024-07-01,10379
-10000,quietest,utility,Edinburgh and Lothians,2024-07-01,10378
-10000,fastest,utility,Edinburgh and Lothians,2024-07-01,10377
-10000,balanced,utility,Edinburgh and Lothians,2024-07-01,10376
-10000,ebike,commute,Edinburgh and Lothians,2024-07-01,10375
-10000,balanced,commute,Edinburgh and Lothians,2024-07-01,10374
-10000,quietest,commute,Edinburgh and Lothians,2024-07-01,10372
-10000,fastest,commute,Edinburgh and Lothians,2024-07-01,10370
-9425,ebike,school,Edinburgh and Lothians,2024-07-01,10368
-9425,balanced,school,Edinburgh and Lothians,2024-07-01,10366
-9425,quietest,school,Edinburgh and Lothians,2024-07-01,10364
-9425,fastest,school,Edinburgh and Lothians,2024-07-01,10362
-10000,fastest,utility,"Tayside, Central and Fife",2024-07-01,10341
-10000,balanced,utility,"Tayside, Central and Fife",2024-07-01,10340
-10000,ebike,commute,"Tayside, Central and Fife",2024-07-01,10339
-10000,balanced,commute,"Tayside, Central and Fife",2024-07-01,10338
-10000,quietest,commute,"Tayside, Central and Fife",2024-07-01,10337
-10000,fastest,commute,"Tayside, Central and Fife",2024-07-01,10336
-10000,ebike,school,"Tayside, Central and Fife",2024-07-01,10335
-10000,balanced,school,"Tayside, Central and Fife",2024-07-01,10334
-10000,quietest,school,"Tayside, Central and Fife",2024-07-01,10333
-10000,fastest,school,"Tayside, Central and Fife",2024-07-01,10332
-9458,ebike,utility,Scotland South,2024-07-01,10331
-9458,quietest,utility,Scotland South,2024-07-01,10330
-9458,fastest,utility,Scotland South,2024-07-01,10328
-9458,balanced,utility,Scotland South,2024-07-01,10327
-6943,ebike,commute,Scotland South,2024-07-01,10326
-6943,balanced,commute,Scotland South,2024-07-01,10325
-6943,quietest,commute,Scotland South,2024-07-01,10324
-6943,fastest,commute,Scotland South,2024-07-01,10323
-1607,ebike,school,Scotland South,2024-07-01,10322
-1607,balanced,school,Scotland South,2024-07-01,10321
-1607,quietest,school,Scotland South,2024-07-01,10320
-1607,fastest,school,Scotland South,2024-07-01,10319
-10000,ebike,utility,Glasgow and Strathclyde,2024-07-01,10318
-10000,quietest,utility,Glasgow and Strathclyde,2024-07-01,10317
-10000,fastest,utility,Glasgow and Strathclyde,2024-07-01,10316
-10000,balanced,utility,Glasgow and Strathclyde,2024-07-01,10315
-10000,ebike,commute,Glasgow and Strathclyde,2024-07-01,10314
-10000,balanced,commute,Glasgow and Strathclyde,2024-07-01,10313
-10000,quietest,commute,Glasgow and Strathclyde,2024-07-01,10312
-10000,fastest,commute,Glasgow and Strathclyde,2024-07-01,10311
-10000,ebike,school,Glasgow and Strathclyde,2024-07-01,10310
-10000,balanced,school,Glasgow and Strathclyde,2024-07-01,10309
-10000,quietest,school,Glasgow and Strathclyde,2024-07-01,10308
-10000,fastest,school,Glasgow and Strathclyde,2024-07-01,10307
+93499,balanced,utility,Glasgow and Strathclyde,2024-08-01,10564
+218877,balanced,commute,Glasgow and Strathclyde,2024-08-01,10563
+111294,ebike,utility,Edinburgh and Lothians,2024-08-01,10562
+90716,balanced,commute,Edinburgh and Lothians,2024-08-01,10560
+9425,balanced,school,Edinburgh and Lothians,2024-08-01,10559
+50769,fastest,utility,"Tayside, Central and Fife",2024-08-01,10558
+11451,balanced,school,"Tayside, Central and Fife",2024-08-01,10556
+20925,ebike,utility,Aberdeen and North East,2024-08-01,10555
+20925,quietest,utility,Aberdeen and North East,2024-08-01,10554
+20925,fastest,utility,Aberdeen and North East,2024-08-01,10553
+32967,ebike,commute,Aberdeen and North East,2024-08-01,10551
+32967,quietest,commute,Aberdeen and North East,2024-08-01,10549
+32967,fastest,commute,Aberdeen and North East,2024-08-01,10548
+4525,ebike,school,Aberdeen and North East,2024-08-01,10547
+4525,quietest,school,Aberdeen and North East,2024-08-01,10545
+4525,fastest,school,Aberdeen and North East,2024-08-01,10544
+9458,balanced,utility,Scotland South,2024-08-01,10543
+6943,balanced,commute,Scotland South,2024-08-01,10542
+14685,ebike,utility,Highlands and Islands,2024-08-01,10541
+14685,quietest,utility,Highlands and Islands,2024-08-01,10540
+14685,fastest,utility,Highlands and Islands,2024-08-01,10539
+7976,ebike,commute,Highlands and Islands,2024-08-01,10537
+7976,balanced,commute,Highlands and Islands,2024-08-01,10536
+7976,fastest,commute,Highlands and Islands,2024-08-01,10534
+3228,ebike,school,Highlands and Islands,2024-08-01,10533
+3228,balanced,school,Highlands and Islands,2024-08-01,10532
+3228,quietest,school,Highlands and Islands,2024-08-01,10531
+3228,fastest,school,Highlands and Islands,2024-08-01,10530
+111294,quietest,utility,Edinburgh and Lothians,2024-08-01,10528
+111294,fastest,utility,Edinburgh and Lothians,2024-08-01,10527
+90716,ebike,commute,Edinburgh and Lothians,2024-08-01,10523
+90716,quietest,commute,Edinburgh and Lothians,2024-08-01,10521
+90716,fastest,commute,Edinburgh and Lothians,2024-08-01,10520
+9425,ebike,school,Edinburgh and Lothians,2024-08-01,10519
+9425,quietest,school,Edinburgh and Lothians,2024-08-01,10517
+9425,fastest,school,Edinburgh and Lothians,2024-08-01,10516
+50769,ebike,utility,"Tayside, Central and Fife",2024-08-01,10515
+50769,quietest,utility,"Tayside, Central and Fife",2024-08-01,10514
+50769,balanced,utility,"Tayside, Central and Fife",2024-08-01,10512
+65662,ebike,commute,"Tayside, Central and Fife",2024-08-01,10511
+65662,quietest,commute,"Tayside, Central and Fife",2024-08-01,10507
+65662,fastest,commute,"Tayside, Central and Fife",2024-08-01,10506
+11451,ebike,school,"Tayside, Central and Fife",2024-08-01,10505
+11451,quietest,school,"Tayside, Central and Fife",2024-08-01,10503
+11451,fastest,school,"Tayside, Central and Fife",2024-08-01,10502
+9458,ebike,utility,Scotland South,2024-08-01,10501
+9458,quietest,utility,Scotland South,2024-08-01,10500
+9458,fastest,utility,Scotland South,2024-08-01,10499
+6943,ebike,commute,Scotland South,2024-08-01,10497
+6943,quietest,commute,Scotland South,2024-08-01,10495
+6943,fastest,commute,Scotland South,2024-08-01,10494
+1607,ebike,school,Scotland South,2024-08-01,10493
+1607,balanced,school,Scotland South,2024-08-01,10492
+1607,quietest,school,Scotland South,2024-08-01,10491
+1607,fastest,school,Scotland South,2024-08-01,10490
+93499,ebike,utility,Glasgow and Strathclyde,2024-08-01,10489
+93499,quietest,utility,Glasgow and Strathclyde,2024-08-01,10488
+93499,fastest,utility,Glasgow and Strathclyde,2024-08-01,10487
+218877,ebike,commute,Glasgow and Strathclyde,2024-08-01,10483
+218877,quietest,commute,Glasgow and Strathclyde,2024-08-01,10481
+218877,fastest,commute,Glasgow and Strathclyde,2024-08-01,10480
+29032,ebike,school,Glasgow and Strathclyde,2024-08-01,10479
+29032,balanced,school,Glasgow and Strathclyde,2024-08-01,10478
+29032,quietest,school,Glasgow and Strathclyde,2024-08-01,10477
+29032,fastest,school,Glasgow and Strathclyde,2024-08-01,10476
 250,ebike,utility,Highlands and Islands,2024-07-01,10306
 250,quietest,utility,Highlands and Islands,2024-07-01,10305
 250,fastest,utility,Highlands and Islands,2024-07-01,10304

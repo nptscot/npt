@@ -1,0 +1,863 @@
+---
+format: gfm
+title: QA on utility trips
+execute: 
+  echo: true
+  message: false
+---
+
+```{r}
+#| label: setup
+library(tidyverse)
+library(targets)
+```
+
+We'll load data with `tar_load()` and check the utility trips.
+
+```{r}
+if (!file.exists("_targets.R")) {
+  old_working_directory = setwd("../..")
+} else {
+  old_working_directory = getwd()
+}
+# tar_make()
+tar_source()
+tar_load(parameters)
+tar_load(zones_stats)
+tar_load(utility_stats)
+tar_load(od_shopping)
+tar_load(od_utility_combined)
+tar_load(aadt_parameters)
+tar_load(zones)
+tar_load(r_utility_fastest)
+tar_load(uptake_utility_fastest)
+names(zones)
+# parameters
+setwd(old_working_directory)
+```
+
+Let's check the level of the od data:
+
+```{r}
+names(od_shopping)
+length(unique(od_shopping$geo_code1))
+nrow(zones)
+```
+
+There is some duplication in the datasets:
+
+```{r}
+summary(od_utility_combined$startDZ == od_utility_combined$geo_code1)
+summary(od_utility_combined$endDZ == od_utility_combined$geo_code2)
+```
+
+This shows that, for calculating the number of people arriving at each zone, we need a national dataset of zones: zone level statistics should not be calculated per region, for the number of people arriving at each zone at least.
+
+In any case, we'll replace 'startDZ' and 'endDZ' with 'geo_code1' and 'geo_code2'.
+
+This shows that there are 344 zones in the case study area, and the od data is at the zone level.
+
+Starting from first principles, there are 265k people in the case study area.
+
+```{r}
+sum(zones$TotPop2011)
+summary(zones$TotPop2011)
+zones |>
+   select(TotPop2011) |>
+   plot()
+```
+
+People make around 3 trips to the shops per week, meaning 3 / 7 (0.43) trips per day.
+We would therefore expect around 265k * 0.43 = 114k shopping trips per day.
+
+```{r}
+265 * 0.43
+```
+
+Let's check the number of shopping trips in the utility stats.
+
+```{r}
+sum(utility_stats$shopping_orig_all, na.rm = TRUE)
+```
+
+And in the od data:
+
+```{r}
+sum(od_shopping$all)
+```
+
+The numbers match-up for the baseline input data.
+The issue is associated with scenarios other than the baseline, e.g. Go Dutch.
+Let's check the number of shopping trips in the utility stats for the Go Dutch scenario.
+
+```{r}
+sum(utility_stats$shopping_orig_all, na.rm = TRUE)
+sum(utility_stats$shopping_dest_car, na.rm = TRUE)
+sum(utility_stats$shopping_orig_car_go_dutch_fastest, na.rm = TRUE)
+```
+
+All the modes should add up to the total, let's check this.
+
+```{r}
+# For the baseline scenario:
+sum(
+  utility_stats$shopping_orig_car,
+  utility_stats$shopping_orig_bicycle,
+  utility_stats$shopping_orig_foot,
+  utility_stats$shopping_orig_public_transport,
+  utility_stats$shopping_orig_taxi,
+  na.rm = TRUE
+)
+sum(
+  utility_stats$shopping_orig_car_go_dutch_fastest,
+  utility_stats$shopping_orig_bicycle_go_dutch_fastest,
+  utility_stats$shopping_orig_foot_go_dutch_fastest,
+  utility_stats$shopping_orig_public_transport_go_dutch_fastest,
+  utility_stats$shopping_orig_taxi_go_dutch_fastest,
+  na.rm = TRUE
+)
+```
+
+The results show that there are too few trips under the go_dutch scenario.
+Next step: check the code that generates the utility trips under the scenarios.
+
+The input data is `r_utility_fastest`, let's first check that it contains the same number of trips as the `od_utility_combined` data.
+
+```{r}
+waldo::compare(
+  names(r_utility_fastest),
+  names(od_utility_combined)
+)
+r_utility_fastest_df = r_utility_fastest |>
+  sf::st_drop_geometry() |>
+  group_by(geo_code1, geo_code2) |>
+  slice(1)
+nrow(r_utility_fastest_df)
+nrow(od_utility_combined)
+sum(r_utility_fastest_df$all)
+sum(od_utility_combined$all)
+```
+
+The results show differences between the two datasets.
+The differences are not big enough to explain the differences between the baseline and Go Dutch scenarios.
+
+The number of trips for each scenario is calculated as follows:
+
+```{r}
+# uptake_utility_fastest
+routes = r_utility_fastest |>
+  filter(distances < 10000) |>
+  get_uptake_scenarios(purpose = "utility")
+```
+
+Let's check the total amount of trips for the Go Dutch scenario again, for each OD pair:
+
+```{r}
+routes_df = routes |>
+  sf::st_drop_geometry() |>
+  group_by(geo_code1, geo_code2) |>
+  slice(1)
+nrow(r_utility_fastest_df)
+nrow(routes_df)
+```
+
+Let's check that the output is internally consistent, with the total of all modes equal to the total number of trips, for each scenario.
+
+```{r}
+sum(routes_df$all)
+sum(
+  routes_df$car,
+  routes_df$bicycle,
+  routes_df$foot,
+  routes_df$public_transport,
+  routes_df$taxi
+)
+# And for the Go Dutch scenario:
+sum(
+  routes_df$car_go_dutch,
+  routes_df$bicycle_go_dutch,
+  routes_df$foot_go_dutch,
+  routes_df$public_transport_go_dutch,
+  routes_df$taxi_go_dutch
+)
+```
+
+```{r}
+#| eval: false
+#| echo: false
+# additional checks:
+sum(routes_df$all)
+mean(routes_df$all)
+mean(r_utility_fastest_df$all)
+table(routes_df$purpose)
+table(r_utility_fastest_df$purpose)
+```
+
+This shows that we're losing a load of trips in the `get_uptake_scenarios` function.
+
+A quick fix is to update the baseline stats object, replacing `od_utility_combined` with `uptake_utility_fastest`.
+
+```{r}
+    stats = sf::st_drop_geometry(uptake_utility_fastest)
+    summary(duplicated(paste0(stats$geo_code1, stats$geo_code2)))
+    summary(duplicated(paste0(stats$startDZ, stats$endDZ)))
+    # Keep only the first instance of each OD pair
+    stats = stats |>
+      dplyr::group_by(geo_code1, geo_code2) |>
+      dplyr::slice(1)
+
+     stats = stats[, c(
+      "startDZ", "endDZ", "purpose", "all", "car",
+      "foot", "bicycle", "public_transport", "taxi"
+    )]
+
+    stats_orig = stats |>
+      dplyr::select(!endDZ) |>
+      dplyr::group_by(startDZ, purpose) |>
+      dplyr::summarise_all(sum, na.rm = TRUE)
+
+    stats_dest = stats |>
+      dplyr::select(!startDZ) |>
+      dplyr::group_by(endDZ, purpose) |>
+      dplyr::summarise_all(sum, na.rm = TRUE)
+
+    stats_orig$purpose = paste0(stats_orig$purpose, "_orig")
+    stats_dest$purpose = paste0(stats_dest$purpose, "_dest")
+
+    stats_orig = tidyr::pivot_wider(stats_orig,
+      id_cols = startDZ,
+      names_from = "purpose",
+      values_from = all:taxi,
+      names_glue = "{purpose}_{.value}"
+    )
+
+    stats_dest = tidyr::pivot_wider(stats_dest,
+      id_cols = endDZ,
+      names_from = "purpose",
+      values_from = all:taxi,
+      names_glue = "{purpose}_{.value}"
+    )
+    names(stats_orig)[1] = "DataZone"
+    names(stats_dest)[1] = "DataZone"
+
+    stats_all = dplyr::full_join(stats_orig, stats_dest, by = "DataZone")
+    stats_all
+```
+
+Let's re-run the `utility_stats` target and check the number of shopping trips in the Go Dutch scenario.
+
+```{r}
+utility_stats_new = make_utility_stats(uptake_utility_fastest, "fastest", zones)
+mean(utility_stats$shopping_orig_car_go_dutch_fastest, na.rm = TRUE)
+mean(utility_stats_new$shopping_orig_car_go_dutch_fastest, na.rm = TRUE)
+```
+
+`stats_all` should now match the number of trips in other scenarios.
+Let's check:
+
+```{r}
+sum(stats_all$shopping_orig_all, na.rm = TRUE)
+sum(stats_all$shopping_dest_car, na.rm = TRUE)
+# Equivalent from Go Dutch scenario:
+sum(utility_stats$shopping_orig_all, na.rm = TRUE)
+sum(utility_stats$shopping_dest_car, na.rm = TRUE)
+totals_1 = c(
+  sum(stats_all$shopping_orig_car, na.rm = TRUE),
+  sum(stats_all$shopping_orig_bicycle, na.rm = TRUE),
+  sum(stats_all$shopping_orig_foot, na.rm = TRUE),
+  sum(stats_all$shopping_orig_public_transport, na.rm = TRUE),
+  sum(stats_all$shopping_orig_taxi, na.rm = TRUE)
+)
+# And the stats_all equivalent:
+sum(
+  stats_all$shopping_orig_car,
+  stats_all$shopping_orig_bicycle,
+  stats_all$shopping_orig_foot,
+  stats_all$shopping_orig_public_transport,
+  stats_all$shopping_orig_taxi,
+  na.rm = TRUE
+)
+```
+
+
+```{r}
+#| eval: false
+#| echo: false
+#| label: code-snapshot
+# The relevant code for the utility trips is this, from _targets.R:
+
+  # Utility OD -------------------------------------------------------------
+  tar_target(od_shopping, {
+    od_shopping = make_od(
+      oas, os_pois, grid,
+      purpose = "shopping",
+      trip_purposes,
+      zones, parameters
+    )
+    od_shopping
+  }),
+  tar_target(od_visiting, {
+    od_visiting = make_od(
+      oas, os_pois, grid,
+      purpose = "visiting",
+      trip_purposes,
+      zones, parameters
+    )
+    od_visiting
+  }),
+  tar_target(od_leisure, {
+    od_leisure = make_od(
+      oas, os_pois, grid,
+      purpose = "leisure",
+      trip_purposes,
+      zones, parameters
+    )
+    od_leisure
+  }),
+
+  # Combined utility trip purposes --------------------------------------------
+
+  tar_target(od_utility_combined, {
+
+    od_utility_combined = rbind(od_shopping, od_visiting, od_leisure) |>
+      dplyr::slice_max(n = parameters$max_to_route, order_by = all, with_ties = FALSE)
+    sum(od_utility_combined$bicycle) / sum(od_utility_combined$all)
+
+    # Get % cycling for commuting per zone
+    # pcycle_regional = sum(commute_stats$comm_orig_bicycle, na.rm = TRUE) /
+      # sum(commute_stats$comm_orig_all, na.rm = TRUE)
+    pcycle_national = 0.016
+
+    commute_stats_minimal = commute_stats |>
+      dplyr::select(DataZone, comm_orig_bicycle, comm_orig_all)
+    cycling_multiplier = commute_stats_minimal |>
+      dplyr::transmute(
+        DataZone,
+        multiplier = (comm_orig_bicycle / comm_orig_all) /
+         pcycle_national
+      ) |>
+      # 0 to 0.1:
+      dplyr::mutate(multiplier = case_when(
+        multiplier == 0 ~ 0.1,
+        TRUE ~ multiplier
+      ))
+    # summary(cycling_multiplier$multiplier)
+    # Add new cycling multiplier column to od_utility_combined
+    od_utility_combined = od_utility_combined |>
+      dplyr::left_join(cycling_multiplier, by = join_by(geo_code1 == DataZone)) |>
+      # Convert NAs to 1:
+      dplyr::mutate(multiplier = case_when(
+        is.na(multiplier) ~ 1,
+        TRUE ~ multiplier
+      )) |>
+      dplyr::mutate(
+        bicycle_new = bicycle * multiplier,
+        car = car - (bicycle_new - bicycle),
+        bicycle = bicycle_new
+      ) |>
+      dplyr::select(-multiplier, -bicycle_new)
+
+    # Check new % cycling:
+    # sum(od_utility_combined$bicycle) / sum(od_utility_combined$all)
+
+    # Ensure the columns and distance units are identical to the other routing types
+    # (apart from the additional trip purpose column)
+    od_utility_combined = od_utility_combined |>
+      dplyr::mutate(
+        dist_euclidean = length_euclidean_unjittered * 1000,
+        dist_euclidean_jittered = length_euclidean_jittered * 1000
+      ) |>
+      dplyr::select(
+        geo_code1, geo_code2, car, foot, bicycle, all,
+        dist_euclidean, public_transport, taxi, geometry,
+        dist_euclidean_jittered, purpose
+      )
+
+    # Add Start and End DataZones for stats
+    # geo_code1 and 2 refere to non-Data Zone ids
+    end_point = lwgeom::st_endpoint(od_utility_combined)
+    end_point = sf::st_join(sf::st_as_sf(end_point), zones)
+    od_utility_combined$endDZ = end_point$DataZone
+
+    start_point = lwgeom::st_startpoint(od_utility_combined)
+    start_point = sf::st_join(sf::st_as_sf(start_point), zones)
+    od_utility_combined$startDZ = start_point$DataZone
+
+    od_utility_combined
+  }),
+  tar_target(rs_utility_fastest, {
+    length(done_commute_ebike) # Do school routing first
+    rs = get_routes(
+      od = od_utility_combined |> dplyr::slice_max(n = parameters$max_to_route, order_by = all, with_ties = FALSE),
+      plans = "fastest",
+      purpose = "utility",
+      folder = region_folder,
+      date = parameters$date_routing,
+      segments = "both"
+    )
+    rs
+  }),
+  tar_target(done_utility_fastest, {
+    length(rs_utility_fastest) # Hack for scheduling
+  }),
+  tar_target(rs_utility_quietest, {
+    length(done_utility_fastest)
+    rs = get_routes(
+      od = od_utility_combined,
+      plans = "quietest",
+      purpose = "utility",
+      folder = region_folder,
+      date = parameters$date_routing,
+      segments = "both"
+    )
+    rs
+  }),
+  tar_target(done_utility_quietest, {
+    length(rs_utility_quietest) # Hack for scheduling
+  }),
+  tar_target(rs_utility_ebike, {
+    length(done_utility_quietest)
+    rs = get_routes(
+      od = od_utility_combined,
+      plans = "ebike",
+      purpose = "utility",
+      folder = region_folder,
+      date = parameters$date_routing,
+      segments = "both"
+    )
+    rs
+  }),
+  tar_target(done_utility_ebike, {
+    length(rs_utility_ebike) # Hack for scheduling
+  }),
+  tar_target(rs_utility_balanced, {
+    length(done_commute_balanced)
+    rs = get_routes(
+      od = od_utility_combined,
+      plans = "balanced",
+      purpose = "utility",
+      folder = region_folder,
+      date = parameters$date_routing,
+      segments = "both"
+    )
+    rs
+  }),
+  tar_target(done_utility_balanced, {
+    length(rs_utility_balanced) # Hack for scheduling
+  }),
+
+
+  # Utility routing post-processing -----------------------------------------
+
+  tar_target(r_utility_fastest, {
+    rs_utility_fastest[[1]]$routes
+  }),
+  tar_target(r_utility_quietest, {
+    rs_utility_quietest[[1]]$routes
+  }),
+  tar_target(r_utility_ebike, {
+    rs_utility_ebike[[1]]$routes
+  }),
+  tar_target(r_utility_balanced, {
+    rs_utility_balanced[[1]]$routes
+  }),
+  tar_target(rnet_gq_utility_fastest, {
+    segments2rnet(rs_utility_fastest[[1]]$segments)
+  }),
+  tar_target(rnet_gq_utility_quietest, {
+    segments2rnet(rs_utility_quietest[[1]]$segments)
+  }),
+  tar_target(rnet_gq_utility_ebike, {
+    segments2rnet(rs_utility_ebike[[1]]$segments)
+  }),
+  tar_target(rnet_gq_utility_balanced, {
+    segments2rnet(rs_utility_balanced[[1]]$segments)
+  }),
+
+  # Utility Uptake ----------------------------------------------------------
+
+  tar_target(uptake_utility_fastest, {
+    routes = r_utility_fastest |>
+      filter(distances < 10000) |>
+      get_uptake_scenarios(purpose = "utility")
+    routes
+  }),
+  tar_target(uptake_utility_quietest, {
+    routes = r_utility_quietest |>
+      filter(distances < 10000) |>
+      get_uptake_scenarios(purpose = "utility")
+    routes
+  }),
+  tar_target(uptake_utility_ebike, {
+    routes = r_utility_ebike |>
+      filter(distances < 10000) |>
+      get_uptake_scenarios(purpose = "utility")
+    routes
+  }),
+  tar_target(uptake_utility_balanced, {
+    routes = r_utility_balanced |>
+      filter(distances < 10000) |>
+      get_uptake_scenarios(purpose = "utility")
+    routes
+  }),
+```
+
+The checks below apply to `r parameters$region`.
+
+The target that generates the graphs for each zone is `zones_stats`, which was defined as follows:
+
+```{r}
+#| echo: true
+#| eval: false
+  tar_target(zones_stats, {
+    stats = dplyr::full_join(commute_stats, school_stats_from, by = "DataZone")
+    stats = dplyr::full_join(stats, utility_stats, by = "DataZone")
+    stats
+  }),
+```
+
+The data in `zones_stats` is as follows:
+
+```{r}
+zones_stats
+```
+
+Let's look at the shopping trips arriving at a specific zone: S01012355.
+
+```{r}
+# names(zones_stats)
+zone_stats_shopping_arriving = zones_stats |>
+  dplyr::filter(DataZone == "S01012355") |>
+  dplyr::select(matches("shopping_dest"))
+# names(zone_stats_shopping_arriving)
+zone_stats_example = zone_stats_shopping_arriving |>
+  dplyr::select("shopping_dest_all")
+zone_stats_example[[1]]
+```
+
+Let's get the associated data from the website:
+
+```{r}
+u = "https://nptscot.blob.core.windows.net/json/DataZone_2024-07-02/S01012355.json"
+zone_stats_example_azure = jsonlite::fromJSON(u)
+# names(zone_stats_example_azure)
+zone_stats_example_azure$shopping_dest_all
+```
+
+The equivalent value the `bicycle` column is:
+
+```{r}
+zone_stats_shopping_arriving$shopping_dest_bicycle
+```
+
+Under the Go Dutch scenario, the value is:
+
+```{r}
+zone_stats_shopping_arriving$shopping_dest_bicycle_go_dutch_fastest
+```
+
+The equivalent value for the `car` column is:
+
+```{r}
+zone_stats_shopping_arriving$shopping_dest_car
+```
+
+Under the Go Dutch scenario, the value is:
+
+```{r}
+zone_stats_shopping_arriving$shopping_dest_car_go_dutch_fastest
+```
+
+The problem is clear from the above: the number of people arriving is much higher in the baseline scenario than the other scenarios.
+
+Let's identify the same value in the `utility_stats` data:
+
+```{r}
+# names(utility_stats)
+```
+
+```{r}
+#| echo: false
+#   [1] "DataZone"                                        
+#   [2] "leisure_orig_all"                                
+#   [3] "shopping_orig_all"                               
+#   [4] "visiting_orig_all"                               
+#   [5] "leisure_orig_car"                                
+#   [6] "shopping_orig_car"                               
+#   [7] "visiting_orig_car"                               
+#   [8] "leisure_orig_foot"                               
+#   [9] "shopping_orig_foot"                              
+#  [10] "visiting_orig_foot"                              
+#  [11] "leisure_orig_bicycle"                            
+#  [12] "shopping_orig_bicycle"                           
+#  [13] "visiting_orig_bicycle"                           
+#  [14] "leisure_orig_public_transport"                   
+#  [15] "shopping_orig_public_transport"                  
+#  [16] "visiting_orig_public_transport"                  
+#  [17] "leisure_orig_taxi"                               
+#  [18] "shopping_orig_taxi"                              
+#  [19] "visiting_orig_taxi"                              
+#  [20] "leisure_dest_all"                                
+#  [21] "visiting_dest_all"                               
+#  [22] "shopping_dest_all"                               
+#  [23] "leisure_dest_car"                                
+#  [24] "visiting_dest_car"                               
+#  [25] "shopping_dest_car"                               
+#  [26] "leisure_dest_foot"                               
+#  [27] "visiting_dest_foot"                              
+#  [28] "shopping_dest_foot"                              
+#  [29] "leisure_dest_bicycle"                            
+#  [30] "visiting_dest_bicycle"                           
+#  [31] "shopping_dest_bicycle"                           
+#  [32] "leisure_dest_public_transport"                   
+#  [33] "visiting_dest_public_transport"                  
+#  [34] "shopping_dest_public_transport"                  
+#  [35] "leisure_dest_taxi"                               
+#  [36] "visiting_dest_taxi"                              
+#  [37] "shopping_dest_taxi"                              
+#  [38] "leisure_orig_bicycle_go_dutch_fastest"           
+#  [39] "shopping_orig_bicycle_go_dutch_fastest"          
+#  [40] "visiting_orig_bicycle_go_dutch_fastest"          
+#  [41] "leisure_orig_car_go_dutch_fastest"               
+#  [42] "shopping_orig_car_go_dutch_fastest"              
+#  [43] "visiting_orig_car_go_dutch_fastest"              
+#  [44] "leisure_orig_public_transport_go_dutch_fastest"  
+#  [45] "shopping_orig_public_transport_go_dutch_fastest" 
+#  [46] "visiting_orig_public_transport_go_dutch_fastest" 
+#  [47] "leisure_orig_foot_go_dutch_fastest"              
+#  [48] "shopping_orig_foot_go_dutch_fastest"             
+#  [49] "visiting_orig_foot_go_dutch_fastest"             
+#  [50] "leisure_orig_taxi_go_dutch_fastest"              
+#  [51] "shopping_orig_taxi_go_dutch_fastest"             
+#  [52] "visiting_orig_taxi_go_dutch_fastest"             
+#  [53] "leisure_orig_quietness_fastest"                  
+#  [54] "shopping_orig_quietness_fastest"                 
+#  [55] "visiting_orig_quietness_fastest"                 
+#  [56] "leisure_orig_route_hilliness_fastest"            
+#  [57] "shopping_orig_route_hilliness_fastest"           
+#  [58] "visiting_orig_route_hilliness_fastest"           
+#  [59] "visiting_dest_bicycle_go_dutch_fastest"          
+#  [60] "leisure_dest_bicycle_go_dutch_fastest"           
+#  [61] "shopping_dest_bicycle_go_dutch_fastest"          
+#  [62] "visiting_dest_car_go_dutch_fastest"              
+#  [63] "leisure_dest_car_go_dutch_fastest"               
+#  [64] "shopping_dest_car_go_dutch_fastest"              
+#  [65] "visiting_dest_public_transport_go_dutch_fastest" 
+#  [66] "leisure_dest_public_transport_go_dutch_fastest"  
+#  [67] "shopping_dest_public_transport_go_dutch_fastest" 
+#  [68] "visiting_dest_foot_go_dutch_fastest"             
+#  [69] "leisure_dest_foot_go_dutch_fastest"              
+#  [70] "shopping_dest_foot_go_dutch_fastest"             
+#  [71] "visiting_dest_taxi_go_dutch_fastest"             
+#  [72] "leisure_dest_taxi_go_dutch_fastest"              
+#  [73] "shopping_dest_taxi_go_dutch_fastest"             
+#  [74] "visiting_dest_quietness_fastest"                 
+#  [75] "leisure_dest_quietness_fastest"                  
+#  [76] "shopping_dest_quietness_fastest"                 
+#  [77] "visiting_dest_route_hilliness_fastest"           
+#  [78] "leisure_dest_route_hilliness_fastest"            
+#  [79] "shopping_dest_route_hilliness_fastest"           
+#  [80] "leisure_orig_bicycle_ebike_fastest"              
+#  [81] "shopping_orig_bicycle_ebike_fastest"             
+#  [82] "visiting_orig_bicycle_ebike_fastest"             
+#  [83] "leisure_orig_car_ebike_fastest"                  
+#  [84] "shopping_orig_car_ebike_fastest"                 
+#  [85] "visiting_orig_car_ebike_fastest"                 
+#  [86] "leisure_orig_public_transport_ebike_fastest"     
+#  [87] "shopping_orig_public_transport_ebike_fastest"    
+#  [88] "visiting_orig_public_transport_ebike_fastest"    
+#  [89] "leisure_orig_foot_ebike_fastest"                 
+#  [90] "shopping_orig_foot_ebike_fastest"                
+#  [91] "visiting_orig_foot_ebike_fastest"                
+#  [92] "leisure_orig_taxi_ebike_fastest"                 
+#  [93] "shopping_orig_taxi_ebike_fastest"                
+#  [94] "visiting_orig_taxi_ebike_fastest"                
+#  [95] "visiting_dest_bicycle_ebike_fastest"             
+#  [96] "leisure_dest_bicycle_ebike_fastest"              
+#  [97] "shopping_dest_bicycle_ebike_fastest"             
+#  [98] "visiting_dest_car_ebike_fastest"                 
+#  [99] "leisure_dest_car_ebike_fastest"                  
+# [100] "shopping_dest_car_ebike_fastest"                 
+# [101] "visiting_dest_public_transport_ebike_fastest"    
+# [102] "leisure_dest_public_transport_ebike_fastest"     
+# [103] "shopping_dest_public_transport_ebike_fastest"    
+# [104] "visiting_dest_foot_ebike_fastest"                
+# [105] "leisure_dest_foot_ebike_fastest"                 
+# [106] "shopping_dest_foot_ebike_fastest"                
+# [107] "visiting_dest_taxi_ebike_fastest"                
+# [108] "leisure_dest_taxi_ebike_fastest"                 
+# [109] "shopping_dest_taxi_ebike_fastest"                
+# [110] "leisure_orig_bicycle_go_dutch_quietest"          
+# [111] "visiting_orig_bicycle_go_dutch_quietest"         
+# [112] "shopping_orig_bicycle_go_dutch_quietest"         
+# [113] "leisure_orig_car_go_dutch_quietest"              
+# [114] "visiting_orig_car_go_dutch_quietest"             
+# [115] "shopping_orig_car_go_dutch_quietest"             
+# [116] "leisure_orig_public_transport_go_dutch_quietest" 
+# [117] "visiting_orig_public_transport_go_dutch_quietest"
+# [118] "shopping_orig_public_transport_go_dutch_quietest"
+# [119] "leisure_orig_foot_go_dutch_quietest"             
+# [120] "visiting_orig_foot_go_dutch_quietest"            
+# [121] "shopping_orig_foot_go_dutch_quietest"            
+# [122] "leisure_orig_taxi_go_dutch_quietest"             
+# [123] "visiting_orig_taxi_go_dutch_quietest"            
+# [124] "shopping_orig_taxi_go_dutch_quietest"            
+# [125] "leisure_orig_bicycle_ebike_quietest"             
+# [126] "visiting_orig_bicycle_ebike_quietest"            
+# [127] "shopping_orig_bicycle_ebike_quietest"            
+# [128] "leisure_orig_car_ebike_quietest"                 
+# [129] "visiting_orig_car_ebike_quietest"                
+# [130] "shopping_orig_car_ebike_quietest"                
+# [131] "leisure_orig_public_transport_ebike_quietest"    
+# [132] "visiting_orig_public_transport_ebike_quietest"   
+# [133] "shopping_orig_public_transport_ebike_quietest"   
+# [134] "leisure_orig_foot_ebike_quietest"                
+# [135] "visiting_orig_foot_ebike_quietest"               
+# [136] "shopping_orig_foot_ebike_quietest"               
+# [137] "leisure_orig_taxi_ebike_quietest"                
+# [138] "visiting_orig_taxi_ebike_quietest"               
+# [139] "shopping_orig_taxi_ebike_quietest"               
+# [140] "leisure_orig_quietness_quietest"                 
+# [141] "visiting_orig_quietness_quietest"                
+# [142] "shopping_orig_quietness_quietest"                
+# [143] "leisure_orig_route_hilliness_quietest"           
+# [144] "visiting_orig_route_hilliness_quietest"          
+# [145] "shopping_orig_route_hilliness_quietest"          
+# [146] "visiting_dest_bicycle_go_dutch_quietest"         
+# [147] "leisure_dest_bicycle_go_dutch_quietest"          
+# [148] "shopping_dest_bicycle_go_dutch_quietest"         
+# [149] "visiting_dest_car_go_dutch_quietest"             
+# [150] "leisure_dest_car_go_dutch_quietest"              
+# [151] "shopping_dest_car_go_dutch_quietest"             
+# [152] "visiting_dest_public_transport_go_dutch_quietest"
+# [153] "leisure_dest_public_transport_go_dutch_quietest" 
+# [154] "shopping_dest_public_transport_go_dutch_quietest"
+# [155] "visiting_dest_foot_go_dutch_quietest"            
+# [156] "leisure_dest_foot_go_dutch_quietest"             
+# [157] "shopping_dest_foot_go_dutch_quietest"            
+# [158] "visiting_dest_taxi_go_dutch_quietest"            
+# [159] "leisure_dest_taxi_go_dutch_quietest"             
+# [160] "shopping_dest_taxi_go_dutch_quietest"            
+# [161] "visiting_dest_bicycle_ebike_quietest"            
+# [162] "leisure_dest_bicycle_ebike_quietest"             
+# [163] "shopping_dest_bicycle_ebike_quietest"            
+# [164] "visiting_dest_car_ebike_quietest"                
+# [165] "leisure_dest_car_ebike_quietest"                 
+# [166] "shopping_dest_car_ebike_quietest"                
+# [167] "visiting_dest_public_transport_ebike_quietest"   
+# [168] "leisure_dest_public_transport_ebike_quietest"    
+# [169] "shopping_dest_public_transport_ebike_quietest"   
+# [170] "visiting_dest_foot_ebike_quietest"               
+# [171] "leisure_dest_foot_ebike_quietest"                
+# [172] "shopping_dest_foot_ebike_quietest"               
+# [173] "visiting_dest_taxi_ebike_quietest"               
+# [174] "leisure_dest_taxi_ebike_quietest"                
+# [175] "shopping_dest_taxi_ebike_quietest"               
+# [176] "visiting_dest_quietness_quietest"                
+# [177] "leisure_dest_quietness_quietest"                 
+# [178] "shopping_dest_quietness_quietest"                
+# [179] "visiting_dest_route_hilliness_quietest"          
+# [180] "leisure_dest_route_hilliness_quietest"           
+# [181] "shopping_dest_route_hilliness_quietest"          
+```
+
+```{r}
+#| echo: true
+utility_stats_example = utility_stats |>
+  dplyr::filter(DataZone == "S01012355")
+utility_stats_example$shopping_dest_all
+utility_stats_example$shopping_dest_car
+
+```
+
+Let's go back another step to look at the inputs and code that generated the `utility_stats` data.
+The baseline datasets are taken from the `utility_stats_baseline` target, which was defined as follows (we start by loading the inputs):
+
+```{r}
+#| echo: false
+    stats = sf::st_drop_geometry(od_utility_combined)
+     stats = stats[, c(
+      "startDZ", "endDZ", "purpose", "all", "car",
+      "foot", "bicycle", "public_transport", "taxi"
+    )]
+
+    stats_shopping = aadt_adjust(stats[stats$purpose == "shopping", ],
+      purpose = "shopping",
+      aadt_parameters = aadt_parameters
+    )
+    stats_leisure = aadt_adjust(stats[stats$purpose == "leisure", ],
+      purpose = "leisure",
+      aadt_parameters = aadt_parameters
+    )
+    stats_visiting = aadt_adjust(stats[stats$purpose == "visiting", ],
+      purpose = "visiting",
+      aadt_parameters = aadt_parameters
+    )
+
+    stats = rbind(stats_shopping, stats_leisure, stats_visiting)
+
+    stats_orig = stats |>
+      dplyr::select(!endDZ) |>
+      dplyr::group_by(startDZ, purpose) |>
+      dplyr::summarise_all(sum, na.rm = TRUE)
+
+    stats_dest = stats |>
+      dplyr::select(!startDZ) |>
+      dplyr::group_by(endDZ, purpose) |>
+      dplyr::summarise_all(sum, na.rm = TRUE)
+
+    stats_orig$purpose = paste0(stats_orig$purpose, "_orig")
+    stats_dest$purpose = paste0(stats_dest$purpose, "_dest")
+
+    stats_orig = tidyr::pivot_wider(stats_orig,
+      id_cols = startDZ,
+      names_from = "purpose",
+      values_from = all:taxi,
+      names_glue = "{purpose}_{.value}"
+    )
+
+    stats_dest = tidyr::pivot_wider(stats_dest,
+      id_cols = endDZ,
+      names_from = "purpose",
+      values_from = all:taxi,
+      names_glue = "{purpose}_{.value}"
+    )
+    names(stats_orig)[1] = "DataZone"
+    names(stats_dest)[1] = "DataZone"
+
+    stats_all = dplyr::full_join(stats_orig, stats_dest, by = "DataZone")
+    # stats_all
+# names(stats_all)
+
+```
+
+
+```{r}
+stats_all_example = stats_all |>
+  dplyr::filter(DataZone == "S01012355")
+# Pull out the relevant columns
+stats_all_example |>
+  dplyr::select(matches("shopping_dest"))
+```
+
+The input is in the `stats` object which was generated from the `od_utility_combined` target.
+Let's take a look at summary stats before and after the `aadt_adjust` function:
+
+```{r}
+stats = sf::st_drop_geometry(od_utility_combined)
+stats = stats[, c(
+      "startDZ", "endDZ", "purpose", "all", "car",
+      "foot", "bicycle", "public_transport", "taxi"
+    )]
+stats_purpose_shopping = stats[stats$purpose == "shopping", ]
+summary(stats_purpose_shopping$all)
+stats_shopping = aadt_adjust(stats[stats$purpose == "shopping", ],
+      purpose = "shopping",
+      aadt_parameters = aadt_parameters
+    )
+nrow(stats_shopping)
+nrow(stats)
+summary(stats_shopping)
+identical(stats_shopping, stats_purpose_shopping)
+waldo::compare(summary(stats_shopping$car), summary(stats_purpose_shopping$car))
+```

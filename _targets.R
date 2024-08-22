@@ -835,11 +835,11 @@ list(
     # geo_code1 and 2 refere to non-Data Zone ids
     end_point = lwgeom::st_endpoint(od_utility_combined)
     end_point = sf::st_join(sf::st_as_sf(end_point), zones)
-    od_utility_combined$endDZ = end_point$DataZone
+    od_utility_combined$geo_code2 = end_point$DataZone
 
     start_point = lwgeom::st_startpoint(od_utility_combined)
     start_point = sf::st_join(sf::st_as_sf(start_point), zones)
-    od_utility_combined$startDZ = start_point$DataZone
+    od_utility_combined$geo_code1 = start_point$DataZone
 
     od_utility_combined
   }),
@@ -975,11 +975,11 @@ list(
   }),
 
   # Utility Zone stats ---------------------------------------------------------
-
   tar_target(utility_stats_baseline, {
-    stats = sf::st_drop_geometry(od_utility_combined)
-     stats = stats[, c(
-      "startDZ", "endDZ", "purpose", "all", "car",
+    stats = sf::st_drop_geometry(uptake_utility_fastest)
+    # Group by start and 
+    stats = stats[, c(
+      "geo_code1", "geo_code2", "purpose", "all", "car",
       "foot", "bicycle", "public_transport", "taxi"
     )]
 
@@ -999,27 +999,27 @@ list(
     stats = rbind(stats_shopping, stats_leisure, stats_visiting)
 
     stats_orig = stats |>
-      dplyr::select(!endDZ) |>
-      dplyr::group_by(startDZ, purpose) |>
+      dplyr::select(!geo_code2) |>
+      dplyr::group_by(geo_code1, purpose) |>
       dplyr::summarise_all(sum, na.rm = TRUE)
 
     stats_dest = stats |>
-      dplyr::select(!startDZ) |>
-      dplyr::group_by(endDZ, purpose) |>
+      dplyr::select(!geo_code1) |>
+      dplyr::group_by(geo_code2, purpose) |>
       dplyr::summarise_all(sum, na.rm = TRUE)
 
     stats_orig$purpose = paste0(stats_orig$purpose, "_orig")
     stats_dest$purpose = paste0(stats_dest$purpose, "_dest")
 
     stats_orig = tidyr::pivot_wider(stats_orig,
-      id_cols = startDZ,
+      id_cols = geo_code1,
       names_from = "purpose",
       values_from = all:taxi,
       names_glue = "{purpose}_{.value}"
     )
 
     stats_dest = tidyr::pivot_wider(stats_dest,
-      id_cols = endDZ,
+      id_cols = geo_code2,
       names_from = "purpose",
       values_from = all:taxi,
       names_glue = "{purpose}_{.value}"
@@ -1030,6 +1030,7 @@ list(
     stats_all = dplyr::full_join(stats_orig, stats_dest, by = "DataZone")
     stats_all
   }),
+
   tar_target(utility_stats_fastest, {
     make_utility_stats(uptake_utility_fastest, "fastest", zones)
   }),
