@@ -303,16 +303,13 @@ for (region in region_names) {
         source("R/get_orcp_cn.R")
        
         orcp_city_boundary = orcp_network(area = city_boundary, NPT_zones = combined_net_city_boundary, percentile_value = 0.7) 
-           
+         
         OSM_city = sf::read_sf(glue::glue("inputdata/fixed_osm/OSM_", city, ".geojson_fixed.geojson")) |> sf::st_transform(27700)
   
         OSM_city = OSM_city[!is.na(OSM_city$highway), ]
 
         components = unique(orcp_city_boundary$component)
 
-        # mapview::mapview(orcp_city_boundary) + mapview::mapview(cohesive_network_city_boundary)
-        # orcp_city_boundary_zone = orcp_city_boundary[sf::st_union(zonebuilder::zb_zone(city, n_circles = 3)) |> sf::st_transform(27700), , op = sf::st_intersects]
-        # check if orcp_city_boundary is not empty before proceeding
         if (nrow(orcp_city_boundary) > 0) {
 
           # Initialize the list to store paths for each component
@@ -427,9 +424,7 @@ for (region in region_names) {
             dplyr::rename(all_fastest_bicycle_go_dutch = mean_all_fastest_bicycle_go_dutch)
 
           orcp_city_boundary = orcp_city_boundary |> 
-            dplyr::select(-all_fastest_bicycle_go_dutch) |>
             dplyr::rename(all_fastest_bicycle_go_dutch = mean_all_fastest_bicycle_go_dutch)
-
 
           missing_columns = setdiff(names(combined_orcp_path_sf), names(orcp_city_boundary))
 
@@ -459,10 +454,7 @@ for (region in region_names) {
             cat("orcp_city_boundary is empty, skipping processing.\n")
         }
         
-        # Plotting
-        # mapview::mapview(orcp_city_boundary, color = "red") + mapview::mapview(cohesive_network_city_boundary, color = "black")   + mapview::mapview(cycle_net, color = "blue")
         # Identify common columns
-
         common_columns = intersect(names(cohesive_network_city_boundary), names(orcp_city_boundary))
 
         # Subset both data frames to common columns
@@ -474,12 +466,6 @@ for (region in region_names) {
 
         # remove duplicate in grouped_network
         grouped_network = grouped_network[!duplicated(grouped_network), ]
-
-
-        # grouped_network = corenet::coherent_network_group(grouped_network, key_attribute = "all_fastest_bicycle_go_dutch")
-        # rename mean_potential in grouped_network as all_fastest_bicycle_go_dutch
-        # grouped_network = grouped_network |>
-          # dplyr::rename(all_fastest_bicycle_go_dutch = mean_potential)
 
         # Use city name in the filename
         corenet::create_coherent_network_PMtiles(folder_path = folder_path, city_filename = glue::glue("{city_filename}_{date_folder}"), cohesive_network = grouped_network|> sf::st_transform(4326))
