@@ -19,136 +19,183 @@ orcp_network = function(area, NPT_zones, length_threshold = 10000, percentile_va
     dplyr::filter(length > 1) |>
     sf::st_transform(crs = 27700)
 
-  snapped_lines = sf::st_snap(cycle_net, cycle_net, tolerance = 15)
-  group_ids = sapply(sf::st_geometry(snapped_lines), function(geometry, index, lines) {
-    possible_near = sf::st_intersects(geometry, lines, sparse = FALSE)
-    connected = which(possible_near)
-    unioned = sf::st_union(sf::st_geometry(lines[connected, ]))
-    return(unioned)
-  }, index = lines_index, lines = snapped_lines)
+  # snapped_lines = sf::st_snap(cycle_net, cycle_net, tolerance = 15)
+  cycle_net = cycle_net |> select(geometry)
+  cycle_net$length = st_length(cycle_net)
+  cycle_net_components = find_component(cycle_net, threshold = 1)
 
-    # Create a new sf object with merged lines
-    merged_lines = sf::st_sf(geometry = do.call(sf::st_sfc, group_ids))
-    merged_lines = merged_lines[!duplicated(sf::st_as_text(merged_lines$geometry)), ]    
+  # Get the list of all unique components
+  unique_components = unique(cycle_net_components$component)
 
-    network = merged_lines
-    network_multilines = network[sf::st_geometry_type(network) == "MULTILINESTRING", ]
-    network_lines = sf::st_cast(network_multilines, "LINESTRING")
+  # Initialize an empty list to store the cleaned components
+  cycle_net_components_clean = list()
 
-    network = network_lines
-    if (!inherits(network, "sfnetwork")) {
-        network_sfn = sfnetworks::as_sfnetwork(network, directed = FALSE)
-    } else {
-        network_sfn = network
-    }
+  # Loop over each unique component
+  for (comp in unique_components) {
+    # Filter for the current component and select the geometry column
+    component_data = cycle_net_components |>
+                      filter(component == comp) |>
+                      select(geometry)
 
-    network_igraph = tidygraph::as_tbl_graph(network_sfn)   
+    # Calculate the total length after performing a spatial union of the geometries
+    total_length <- sum(st_length(st_union(component_data)))
 
-    components = igraph::components(network_igraph)
-    component_ids = order(components$csize, decreasing = TRUE)  # top 10 components by size
+    tryCatch({
+      # Check if total length is more than 1000 meters
+      if (total_length > units::set_units(200, "meters")) {
+        # Clean the data by removing dangles if length condition is met
+        cleaned_data <- remove_dangles(component_data)
+        # Store only the geometry data in the list
+        cycle_net_components_clean[[length(cycle_net_components_clean) + 1]] <- cleaned_data
+      }
+    }, error = function(e) {
+      # If an error occurs, print a custom error message
+      print(sprintf("Failed to process component %d due to error: %s", comp, e$message))
+    })
 
-    top_components_sfn = list()  # Initialize list to store sfnetwork components
+  }
+  cycle_net_clean <- do.call(rbind, cycle_net_components_clean)
+  cycle_net_clean = find_component(cycle_net_clean, threshold = 1)
 
-    # Extract each of the top 10 components and convert them
-    for (component_id in component_ids) {
-        component_nodes = which(components$membership == component_id)
-        component_subgraph = igraph::subgraph(network_igraph, component_nodes)
-        if (length(component_nodes) > 0) {  # Check if there are nodes in the component
-            component_sfn = sfnetworks::as_sfnetwork(component_subgraph, directed = FALSE)
-            top_components_sfn[[component_id]] = component_sfn
-        } else {
-            top_components_sfn[[component_id]] = NULL
-        }
-    }
+  cycle_net_clean_length = cycle_net_clean |>
+      dplyr::group_by(component) |>
+      dplyr::summarize(
+                        total_length = sum(as.numeric(sf::st_length(geometry)), na.rm = TRUE))  
 
-    valid_components = sapply(top_components_sfn, function(x) !is.null(x) && inherits(x, "sfnetwork"))
-    all_edges = NULL
+  min_percentile_value = stats::quantile(cycle_net_clean_length$total_length, probs = 0.5, na.rm = TRUE)
+  cycle_net_f = cycle_net_clean_length |> dplyr::filter(total_length > min_percentile_value)
 
-    # Loop through each component, activate edges, convert to sf, and combine
-    for (i in seq_along(top_components_sfn)) {
-        if (!is.null(top_components_sfn[[i]]) && inherits(top_components_sfn[[i]], "sfnetwork")) {
-            # Activate edges and convert to sf
-            edges_sf = top_components_sfn[[i]] |>
-                sfnetworks::activate("edges") |>
-                sf::st_as_sf() |>
-                dplyr::mutate(component = as.factor(i))  # Add component ID
+  
+  # group_ids = sapply(sf::st_geometry(cycle_net_f), function(geometry, index, lines) {
+  #   possible_near = sf::st_intersects(geometry, lines, sparse = FALSE)
+  #   connected = which(possible_near)
+  #   unioned = sf::st_union(sf::st_geometry(lines[connected, ]))
+  #   return(unioned)
+  # }, index = lines_index, lines = cycle_net_f)
+
+  #   # Create a new sf object with merged lines
+  #   merged_lines = sf::st_sf(geometry = do.call(sf::st_sfc, group_ids))
+  #   merged_lines = merged_lines[!duplicated(sf::st_as_text(merged_lines$geometry)), ]    
+
+  #   network = merged_lines
+  #   network_multilines = network[sf::st_geometry_type(network) == "MULTILINESTRING", ]
+  #   network_lines = sf::st_cast(network_multilines, "LINESTRING")
+
+  #   network = network_lines
+  #   if (!inherits(network, "sfnetwork")) {
+  #       network_sfn = sfnetworks::as_sfnetwork(network, directed = FALSE)
+  #   } else {
+  #       network_sfn = network
+  #   }
+
+  #   network_igraph = tidygraph::as_tbl_graph(network_sfn)   
+
+  #   components = igraph::components(network_igraph)
+  #   component_ids = order(components$csize, decreasing = TRUE)  # top 10 components by size
+
+  #   top_components_sfn = list()  # Initialize list to store sfnetwork components
+
+  #   # Extract each of the top 10 components and convert them
+  #   for (component_id in component_ids) {
+  #       component_nodes = which(components$membership == component_id)
+  #       component_subgraph = igraph::subgraph(network_igraph, component_nodes)
+  #       if (length(component_nodes) > 0) {  # Check if there are nodes in the component
+  #           component_sfn = sfnetworks::as_sfnetwork(component_subgraph, directed = FALSE)
+  #           top_components_sfn[[component_id]] = component_sfn
+  #       } else {
+  #           top_components_sfn[[component_id]] = NULL
+  #       }
+  #   }
+
+  #   valid_components = sapply(top_components_sfn, function(x) !is.null(x) && inherits(x, "sfnetwork"))
+  #   all_edges = NULL
+
+  #   # Loop through each component, activate edges, convert to sf, and combine
+  #   for (i in seq_along(top_components_sfn)) {
+  #       if (!is.null(top_components_sfn[[i]]) && inherits(top_components_sfn[[i]], "sfnetwork")) {
+  #           # Activate edges and convert to sf
+  #           edges_sf = top_components_sfn[[i]] |>
+  #               sfnetworks::activate("edges") |>
+  #               sf::st_as_sf() |>
+  #               dplyr::mutate(component = as.factor(i))  # Add component ID
             
-            # Combine into one sf object
-            if (is.null(all_edges)) {
-                all_edges = edges_sf
-            } else {
-                all_edges = rbind(all_edges, edges_sf)
-            }
-        }
-    }
+  #           # Combine into one sf object
+  #           if (is.null(all_edges)) {
+  #               all_edges = edges_sf
+  #           } else {
+  #               all_edges = rbind(all_edges, edges_sf)
+  #           }
+  #       }
+  #   }
 
-    sf::st_crs(all_edges) = 27700
+  #   sf::st_crs(all_edges) = 27700
 
-    filtered_OS_zones = all_edges |> 
+    filtered_OS_zones = cycle_net_f |> 
                         sf::st_transform(27700) |> 
                         sf::st_zm()
 
-    cycle_net_NPT = stplanr::rnet_merge(filtered_OS_zones, NPT_zones, , max_angle_diff = 10, dist = 1, segment_length = 5, funs = list(all_fastest_bicycle_go_dutch = mean))          
+    cycle_net_NPT = stplanr::rnet_merge(filtered_OS_zones, NPT_zones, , max_angle_diff = 5, dist = 0.5, segment_length = 5, funs = list(all_fastest_bicycle_go_dutch = mean))       
+
     # cycle_net_NPT = sf::st_join(filtered_OS_zones, NPT_zones, join = st_intersects)
 
     summarized_data = cycle_net_NPT |>
         dplyr::group_by(component) |>
-        dplyr::summarize(total_all_fastest_bicycle_go_dutch = sum(all_fastest_bicycle_go_dutch, na.rm = TRUE),
+        dplyr::summarize(mean_all_fastest_bicycle_go_dutch = mean(all_fastest_bicycle_go_dutch, na.rm = TRUE),
                          total_length = sum(as.numeric(sf::st_length(geometry)), na.rm = TRUE))
 
-    min_percentile_value = stats::quantile(summarized_data$total_all_fastest_bicycle_go_dutch, probs = percentile_value, na.rm = TRUE)
+    min_percentile_value = stats::quantile(summarized_data$mean_all_fastest_bicycle_go_dutch, probs = 0.7, na.rm = TRUE)
     
-    summarized_data = summarized_data |> dplyr::filter(total_all_fastest_bicycle_go_dutch > min_percentile_value)
+    summarized_data = summarized_data |> dplyr::filter(mean_all_fastest_bicycle_go_dutch > min_percentile_value)
 
-    summarized_data = summarized_data |> dplyr::filter(total_length > length_threshold)
 
-    cycle_net_NPT_filtered = cycle_net_NPT |>
-    filter(st_intersects(geometry, summarized_data$geometry, sparse = FALSE) |> apply(1, any))
+#     cycle_net_NPT_filtered = cycle_net_NPT |>
+#     filter(st_intersects(geometry, summarized_data$geometry, sparse = FALSE) |> apply(1, any))
+# mapview(summarized_data) 
+#     cycle_net_NPT_filtered_buffer = sf::st_buffer(cycle_net_NPT_filtered, dist = 15)
 
-    cycle_net_NPT_filtered_buffer = sf::st_buffer(cycle_net_NPT_filtered, dist = 15)
+    # cycle_net_with_components <- st_join(cycle_net, cycle_net_NPT_filtered_buffer[, c("geometry", "component")], join = st_within)
 
-    cycle_net_with_components <- st_join(cycle_net, cycle_net_NPT_filtered_buffer[, c("geometry", "component")], join = st_within)
-
-    unioned_buffer = st_union(cycle_net_NPT_filtered_buffer)
+    # unioned_buffer = st_union(cycle_net_NPT_filtered_buffer)
 
     # Then perform the intersection test
-    cycle_net_filtered = cycle_net_with_components[sf::st_intersects(cycle_net_with_components, unioned_buffer, sparse = FALSE), ] |> 
-                        dplyr::select(geometry)
+    # cycle_net_filtered = cycle_net_with_components[sf::st_intersects(cycle_net_with_components, unioned_buffer, sparse = FALSE), ] |> 
+    #                     dplyr::select(geometry)
 
-    endpoints = find_endpoints(cycle_net_filtered)
+    # endpoints = find_endpoints(cycle_net_NPT_filtered)
 
-    distances <- sf::st_distance(endpoints)
-    pairs <- which(distances < units::set_units(100, "meters") & distances > units::set_units(0, "meters"), arr.ind = TRUE)
+    # distances <- sf::st_distance(endpoints)
+    # pairs <- which(distances < units::set_units(100, "meters") & distances > units::set_units(0, "meters"), arr.ind = TRUE)
 
-    pairs <- pairs[pairs[, "row"] < pairs[, "col"], ]
+    # pairs <- pairs[pairs[, "row"] < pairs[, "col"], ]
 
-    unique_indices <- unique(as.vector(pairs))
-    filtered_endpoints <- endpoints[unique_indices, ]
-    filtered_endpoints$id <- seq_len(nrow(filtered_endpoints))
+    # unique_indices <- unique(as.vector(pairs))
+    # filtered_endpoints <- endpoints[unique_indices, ]
+    # filtered_endpoints$id <- seq_len(nrow(filtered_endpoints))
 
-    # Generate lines connecting these endpoint pairs
-    connection_lines <- do.call(rbind, 
-      lapply(seq_len(nrow(pairs)), function(i) {
-        pt1_index <- pairs[i, "row"]
-        pt2_index <- pairs[i, "col"]
-        # Extract the points directly since each row is a point
-        pt1 <- endpoints[pt1_index, ]
-        pt2 <- endpoints[pt2_index, ]
-        create_line(pt1, pt2)
-      })
-    )
-    line_geometries <- lapply(connection_lines[, 1], st_sfc, crs = 27700)
+    # # Generate lines connecting these endpoint pairs
+    # connection_lines <- do.call(rbind, 
+    #   lapply(seq_len(nrow(pairs)), function(i) {
+    #     pt1_index <- pairs[i, "row"]
+    #     pt2_index <- pairs[i, "col"]
+    #     # Extract the points directly since each row is a point
+    #     pt1 <- endpoints[pt1_index, ]
+    #     pt2 <- endpoints[pt2_index, ]
+    #     create_line(pt1, pt2)
+    #   })
+    # )
+    # line_geometries <- lapply(connection_lines[, 1], st_sfc, crs = 27700)
 
-    geometries <- lapply(line_geometries, function(sfc) { sfc[[1]] })
+    # geometries <- lapply(line_geometries, function(sfc) { sfc[[1]] })
 
-    # Create a single sfc collection from the extracted geometries
-    combined_sfc <- st_sfc(geometries, crs = 27700)  # Ensure CRS matches your specification
+    # # Create a single sfc collection from the extracted geometries
+    # combined_sfc <- st_sfc(geometries, crs = 27700)  # Ensure CRS matches your specification
 
-    # Create a simple feature collection from the combined LINESTRINGs
-    sf_collection <- st_sf(geometry = combined_sfc)
+    # # Create a simple feature collection from the combined LINESTRINGs
+    # sf_collection <- st_sf(geometry = combined_sfc)
 
-    combined_sf <- rbind(sf_collection|> select(geometry), cycle_net_filtered|> select(geometry))    
-    return(cycle_net_NPT_filtered)
+    # combined_sf <- rbind(sf_collection|> select(geometry), cycle_net_filtered|> select(geometry))    
+    # mapview(combined_sf)
+    return(summarized_data)
 }
 
 create_line <- function(pt1, pt2) {
@@ -166,6 +213,7 @@ find_component= function(rnet, threshold = 50) {
   threshold = units::set_units(threshold, "m")
 
   # Create a connectivity matrix where connections are based on the threshold distance
+  
   connectivity_matrix = Matrix::Matrix(dist_matrix < threshold, sparse = TRUE)
 
   # Create an undirected graph from the adjacency matrix

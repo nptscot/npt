@@ -301,8 +301,7 @@ for (region in region_names) {
 
         message("Generating Off Road Cycle Path network for: ", city)
         source("R/get_orcp_cn.R")
-        # mapview::mapview(combined_net_city_boundary) + mapview::mapview(city_boundary)
-         
+       
         orcp_city_boundary = orcp_network(area = city_boundary, NPT_zones = combined_net_city_boundary, percentile_value = 0.7)
 
         OSM_city = sf::read_sf(glue::glue("inputdata/fixed_osm/OSM_", city, ".geojson_fixed.geojson")) |> sf::st_transform(27700)
@@ -347,9 +346,10 @@ for (region in region_names) {
 
               filtered_paths = list()  # This list will store only the paths that meet the criterion
               number_of_paths = 0
-              
+
               for (i in 1:length(paths)) {
-                  number_of_paths = number_of_paths + length(paths[[i]]$path_edges)
+
+                  number_of_paths = number_of_paths + nrow(paths[[i]]$path_edges)
                   
                   path = paths[[i]]$path_edges
                   
@@ -379,7 +379,7 @@ for (region in region_names) {
                   message(sprintf("Error processing component %s: %s", component, e$message))
                   all_paths_dict[[component_id]] = NULL  # Or any other way to mark the failure
               })
-
+          }
 
           all_orcp_path_sf = list()
 
@@ -447,12 +447,13 @@ for (region in region_names) {
           orcp_city_boundary_component_withpath = orcp_city_boundary_component |>
             filter(component %in% components)
           orcp_city_boundary = rbind(orcp_city_boundary_component_withpath, combined_orcp_path_sf)
+
         } else {
             cat("orcp_city_boundary is empty, skipping processing.\n")
         }
         
         # Plotting
-        mapview::mapview(orcp_city_boundary_component, color = "red") + mapview::mapview(cohesive_network_city_boundary, color = "black")  + mapview::mapview(gdf, color = "black")
+        mapview::mapview(orcp_city_boundary, color = "red") + mapview::mapview(cohesive_network_city_boundary, color = "black")  
         # Identify common columns
         common_columns = intersect(names(cohesive_network_city_boundary), names(orcp_city_boundary))
 
