@@ -253,7 +253,7 @@ sf::st_geometry(open_roads_scotland) = "geometry"
 # registerDoParallel(num_cores)
 # Generate the coherent network for the region
 # foreach(region = region_names) %dopar% {
-for (region in region_names[5]) {
+for (region in region_names) {
   # region = region_names[5]  "Edinburgh and Lothians"  
   message("Processing coherent network for region: ", region)
   region_snake = snakecase::to_snake_case(region)
@@ -269,7 +269,7 @@ for (region in region_names[5]) {
     dir.create(folder_path, recursive = TRUE)
   }
 
-  for (city in coherent_area[3]) {
+  for (city in coherent_area) {
     # city = coherent_area[3] "City of Edinburgh"
     city_filename = snakecase::to_snake_case(city)
     tryCatch(
@@ -309,7 +309,7 @@ for (region in region_names[5]) {
         OSM_city = OSM_city[!is.na(OSM_city$highway), ]
 
         components = unique(orcp_city_boundary$component)
-
+     
         if (nrow(orcp_city_boundary) > 0) {
 
           # Initialize the list to store paths for each component
@@ -394,7 +394,7 @@ for (region in region_names[5]) {
                   }
               }
           }
-
+         
           # all_orcp_path_sf <- Filter(function(x) !is.na(st_crs(x)$epsg), all_orcp_path_sf)
           combined_orcp_path_sf = do.call(rbind, all_orcp_path_sf)
           combined_orcp_path_sf <- lapply(combined_orcp_path_sf[, 1], st_sfc, crs = 27700)
@@ -418,12 +418,23 @@ for (region in region_names[5]) {
 
           combined_orcp_path_sf_filtered = combined_orcp_path_sf |>
            filter(st_intersects(geometry, summarized_data$geometry, sparse = FALSE) |> apply(1, any))
-
-          combined_orcp_path_sf_filtered = combined_orcp_path_sf_filtered |> 
+   
+          tryCatch({
+            combined_orcp_path_sf_filtered = combined_orcp_path_sf_filtered |> 
             dplyr::select(-all_fastest_bicycle_go_dutch) |>
             dplyr::rename(all_fastest_bicycle_go_dutch = mean_all_fastest_bicycle_go_dutch)
+          }, error = function(e) {
+            message(sprintf("Error renaming column: %s", e$message))
+            print(names(combined_orcp_path_sf_filtered))
+          })
+          
+          tryCatch({
+            orcp_city_boundary <- orcp_city_boundary %>% dplyr::rename(all_fastest_bicycle_go_dutch = mean_all_fastest_bicycle_go_dutch)
+          }, error = function(e) {
+            message(sprintf("Error renaming column: %s", e$message))
+            print(names(orcp_city_boundary))
+          })
 
-          orcp_city_boundary <- orcp_city_boundary %>% dplyr::rename(all_fastest_bicycle_go_dutch = mean_all_fastest_bicycle_go_dutch)
 
           missing_columns = setdiff(names(combined_orcp_path_sf), names(orcp_city_boundary))
 
@@ -452,7 +463,7 @@ for (region in region_names[5]) {
         } else {
             cat("orcp_city_boundary is empty, skipping processing.\n")
         }
-        
+
         # Identify common columns
         common_columns = intersect(names(cohesive_network_city_boundary), names(orcp_city_boundary))
 
