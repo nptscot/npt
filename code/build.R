@@ -253,7 +253,7 @@ sf::st_geometry(open_roads_scotland) = "geometry"
 # registerDoParallel(num_cores)
 # Generate the coherent network for the region
 # foreach(region = region_names) %dopar% {
-for (region in region_names) {
+for (region in region_names[5]) {
   # region = region_names[5]  "Edinburgh and Lothians"  
   message("Processing coherent network for region: ", region)
   region_snake = snakecase::to_snake_case(region)
@@ -269,7 +269,7 @@ for (region in region_names) {
     dir.create(folder_path, recursive = TRUE)
   }
 
-  for (city in coherent_area) {
+  for (city in coherent_area[3]) {
     # city = coherent_area[3] "City of Edinburgh"
     city_filename = snakecase::to_snake_case(city)
     tryCatch(
@@ -371,7 +371,7 @@ for (region in region_names) {
               }
 
               }, error = function(e) {
-                  message(sprintf("Error processing component %s: %s", component, e$message))
+                  message(sprintf("Error processing component %s: %s", component_id, e$message))
                   all_paths_dict[[component_id]] = NULL  # Or any other way to mark the failure
               })
           }
@@ -423,8 +423,7 @@ for (region in region_names) {
             dplyr::select(-all_fastest_bicycle_go_dutch) |>
             dplyr::rename(all_fastest_bicycle_go_dutch = mean_all_fastest_bicycle_go_dutch)
 
-          orcp_city_boundary = orcp_city_boundary |> 
-            dplyr::rename(all_fastest_bicycle_go_dutch = mean_all_fastest_bicycle_go_dutch)
+          orcp_city_boundary <- orcp_city_boundary %>% dplyr::rename(all_fastest_bicycle_go_dutch = mean_all_fastest_bicycle_go_dutch)
 
           missing_columns = setdiff(names(combined_orcp_path_sf), names(orcp_city_boundary))
 

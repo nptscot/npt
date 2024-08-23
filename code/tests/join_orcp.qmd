@@ -134,7 +134,9 @@ cycle_net_with_components <- st_join(cycle_net, cycle_net_NPT_filtered_buffer[, 
 unioned_buffer = st_union(cycle_net_NPT_filtered_buffer)
 
 # Then perform the intersection test
-cycle_net_filtered = cycle_net_with_components[st_intersects(cycle_net_with_components, unioned_buffer, sparse = FALSE), ]
+cycle_net_filtered = cycle_net_with_components[st_intersects(cycle_net_with_components, unioned_buffer, sparse = FALSE), ] |> 
+                    dplyr::select(geometry)
+
 
 mapview::mapview(cycle_net_filtered)
 
@@ -144,7 +146,7 @@ mapview::mapview(cycle_net_filtered)
 endpoints = find_endpoints(cycle_net_filtered)
 
 distances <- st_distance(endpoints)
-pairs <- which(distances < units::set_units(50, "meters") & distances > units::set_units(0, "meters"), arr.ind = TRUE)
+pairs <- which(distances < units::set_units(100, "meters") & distances > units::set_units(0, "meters"), arr.ind = TRUE)
 pairs <- pairs[pairs[, "row"] < pairs[, "col"], ]
 
 unique_indices <- unique(as.vector(pairs))
@@ -170,30 +172,19 @@ connection_lines <- do.call(rbind,
     create_line(pt1, pt2)
   })
 )
+line_geometries <- lapply(connection_lines[, 1], st_sfc, crs = 27700)
 
+geometries <- lapply(line_geometries, function(sfc) { sfc[[1]] })
 
-if (!inherits(connection_lines, "sf")) {
-  # Combine LINESTRING objects into a single 'sf' collection
-  connection_lines_sf <- st_sfc(connection_lines, crs = st_crs(cycle_net_filtered))
-} else {
-  connection_lines_sf <- connection_lines
-}
-if (st_crs(cycle_net_filtered) != st_crs(connection_lines_sf)) {
-    st_crs(connection_lines_sf) <- st_crs(cycle_net_filtered_i)
-}
+# Create a single sfc collection from the extracted geometries
+combined_sfc <- st_sfc(geometries, crs = 27700)  # Ensure CRS matches your specification
 
-geometries_cycle_net <- st_geometry(cycle_net_filtered)
-geometries_connection_lines <- st_geometry(connection_lines_sf)
+# Create a simple feature collection from the combined LINESTRINGs
+sf_collection <- st_sf(geometry = combined_sfc)
 
-# Combine these geometries into a single collection
-all_geometries <- st_geometrycollection(c(geometries_cycle_net, geometries_connection_lines))
+combined_sf <- rbind(sf_collection|> select(geometry), cycle_net_filtered|> select(geometry))
 
-all_geometries_sfc <- st_sfc(all_geometries, crs = st_crs(cycle_net_filtered))
-
-
-final_network <- st_sf(geometry = all_geometries_sfc)
-
-plot(final_network)
+mapview::mapview(combined_sf)
 ```
 
 
