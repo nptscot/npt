@@ -317,8 +317,7 @@ for (region in region_names) {
 
           # Loop through each component
           for (component_id in components) {
-            tryCatch({
-
+            
               message("Processing component: ", component_id)
               gdf = orcp_city_boundary |> filter(component == component_id)
               end_points_sf = list()
@@ -327,16 +326,16 @@ for (region in region_names) {
               end_points_sf = find_endpoints(gdf)
               os_points = find_nearest_points(end_points_sf, cohesive_network_city_boundary, dist = 3000, segment_length = 5)
               osm_points = find_nearest_points(os_points, OSM_city, dist = 3000, segment_length = 5)
+            
+            if (length(end_points_sf) != 0 && length(os_points) != 0 && length(osm_points) != 0) {
 
-              # mapview::mapview(end_points_sf, color = "red") + mapview::mapview(os_points, color = "blue") + mapview::mapview(osm_points, color = "green") + mapview::mapview(cohesive_network_city_boundary, color = "gray")  + mapview::mapview(gdf, color = "black")
-                
               hull_sf = st_convex_hull(st_union(osm_points))
               buffer_distance = 3000  # Adjust the buffer distance as needed
               buffered_hull_sf = st_buffer(hull_sf, dist = buffer_distance)
               
               OSM = OSM_city[st_union(buffered_hull_sf), , op = st_intersects]
               OS = open_roads_scotland_city_boundary[st_union(buffered_hull_sf), , op = st_intersects]
-              # mapview::mapview(OSM, color = "red") + mapview::mapview(OS, color = "gray") + mapview::mapview(cohesive_network_city_boundary, color = "gray") + mapview::mapview(gdf, color = "black")
+
               paths = compute_shortest_paths(end_points_sf, osm_points, OSM)
 
               filtered_paths = list()  # This list will store only the paths that meet the criterion
@@ -370,12 +369,13 @@ for (region in region_names) {
                   components = components[components != component_id]
               }
 
-              }, error = function(e) {
+              } else {
                   message(sprintf("Error processing component %s: %s", component_id, e$message))
                   all_paths_dict[[component_id]] = NULL  # Or any other way to mark the failure
-              })
+              }
           }
 
+        
           all_orcp_path_sf = list()
 
           for (component_id in components) {
@@ -395,12 +395,12 @@ for (region in region_names) {
               }
           }
          
-          # all_orcp_path_sf <- Filter(function(x) !is.na(st_crs(x)$epsg), all_orcp_path_sf)
+          # all_orcp_path_sf = Filter(function(x) !is.na(st_crs(x)$epsg), all_orcp_path_sf)
           combined_orcp_path_sf = do.call(rbind, all_orcp_path_sf)
-          combined_orcp_path_sf <- lapply(combined_orcp_path_sf[, 1], st_sfc, crs = 27700)
-          geometries <- lapply(combined_orcp_path_sf, function(sfc) { sfc[[1]] })
-          combined_sfc <- st_sfc(geometries, crs = 27700) 
-          combined_orcp_path_sf <- st_sf(geometry = combined_sfc)
+          combined_orcp_path_sf = lapply(combined_orcp_path_sf[, 1], st_sfc, crs = 27700)
+          geometries = lapply(combined_orcp_path_sf, function(sfc) { sfc[[1]] })
+          combined_sfc = st_sfc(geometries, crs = 27700) 
+          combined_orcp_path_sf = st_sf(geometry = combined_sfc)
 
           combined_orcp_path_sf_buffered = st_buffer(combined_orcp_path_sf, dist = 2)
           intersects = st_intersects(combined_orcp_path_sf_buffered, combined_net_city_boundary, sparse = FALSE)
@@ -429,7 +429,7 @@ for (region in region_names) {
           })
           
           tryCatch({
-            orcp_city_boundary <- orcp_city_boundary %>% dplyr::rename(all_fastest_bicycle_go_dutch = mean_all_fastest_bicycle_go_dutch)
+            orcp_city_boundary = orcp_city_boundary %>% dplyr::rename(all_fastest_bicycle_go_dutch = mean_all_fastest_bicycle_go_dutch)
           }, error = function(e) {
             message(sprintf("Error renaming column: %s", e$message))
             print(names(orcp_city_boundary))
@@ -471,14 +471,17 @@ for (region in region_names) {
         cohesive_network_filtered = cohesive_network_city_boundary[common_columns]
         orcp_city_boundary_filtered = orcp_city_boundary[common_columns]
 
-        # Bind the rows
-        grouped_network = rbind(cohesive_network_filtered, orcp_city_boundary_filtered)
+        if (nrow(cohesive_network_filtered) != 0) {
+          grouped_network = rbind(cohesive_network_filtered, orcp_city_boundary_filtered)
+        } else {
+          grouped_network = orcp_city_boundary_filtered
+        }
 
         # remove duplicate in grouped_network
         grouped_network = grouped_network[!duplicated(grouped_network), ]
 
         # Use city name in the filename
-        corenet::create_coherent_network_PMtiles(folder_path = folder_path, city_filename = glue::glue("{city_filename}_{date_folder}"), cohesive_network = grouped_network|> sf::st_transform(4326))
+        corenet::create_coherent_network_PMtiles(folder_path = folder_path, city_filename = glue::glue("{city_filename}_{date_folder}_4"), cohesive_network = grouped_network|> sf::st_transform(4326))
 
         message("Coherent network for: ", city, " generated successfully")
 
@@ -612,12 +615,21 @@ no_lists = 1:3
 all_CN_geojson = list()
 all_CN_geojson_groups = list()
 
+# Function to check if a file starts with any region name
+starts_with_region <- function(filepath) {
+    # Extract the filename from the path
+    filename <- basename(filepath)
+    
+    # Check if the filename starts with any of the region names, anchored at the start
+    any(sapply(region_names_lowercase, function(region) grepl(paste0("^", region), filename, ignore.case = TRUE)))
+}
+
 # Loop through the subfolders and read GeoJSON files
 subfolders = list.dirs(output_folder, full.names = TRUE, recursive = FALSE)
 for (folder in subfolders) {
   coherent_networks_path = file.path(folder, "coherent_networks")
   geojson_files = list.files(coherent_networks_path, pattern = "\\.geojson$", full.names = TRUE)
-  
+
   # Initialize a list to track files that have been matched to a number
   matched_files = list()
 
@@ -657,10 +669,9 @@ for (folder in subfolders) {
   }
 }
 
-# Print filenames for each group to check the sorting
+# Print filenames length for each group to check the sorting
 for (number in names(all_CN_geojson_groups)) {
-  cat("Group", number, "contains the following files:\n")
-  lapply(all_CN_geojson_groups[[number]], function(x) cat(x$file, "\n"))
+  cat("Number of files for group", number, ":", length(all_CN_geojson_groups[[number]]), "\n")
 }
 
 # Identify common columns across all data frames in the list
@@ -668,18 +679,23 @@ common_columns = Reduce(intersect, lapply(all_CN_geojson, names))
 
 # Modify the list to keep only these common columns
 all_CN_geojson = lapply(all_CN_geojson, function(x) {
-  # Ensure the dataframe is of the correct class
-  if("sf" %in% class(x) && "all_fastest_bicycle_go_dutch" %in% names(x)) {
-    # Round the specified column
+  # Ensure the data frame includes only common columns
+  x <- x[, common_columns, drop = FALSE]  # Ensuring to subset by common columns, 'drop = FALSE' prevents data frame reduction to vector
+  
+  # Round the specified column if it exists in common columns
+  if("all_fastest_bicycle_go_dutch" %in% names(x)) {
     x$all_fastest_bicycle_go_dutch = round(x$all_fastest_bicycle_go_dutch)
   }
-  # Return the modified spatial dataframe
+  
+  # Return the modified data frame
   return(x)
 })
 
 combined_CN_geojson = do.call(rbind, all_CN_geojson)
+# remove duplicate geometry in combined_CN_geojson
+combined_CN_geojson = combined_CN_geojson[!duplicated(combined_CN_geojson), ]
 # combined_CN = stplanr:::bind_sf(all_CN_geojson)
-plot(combined_CN_geojson$geometry)
+# mapview::mapview(combined_CN_geojson)
 
 # Write the combined GeoJSON to a file
 combined_CN_file = glue::glue("{output_folder}/combined_CN_", length(no_lists) + 1, ".geojson")
