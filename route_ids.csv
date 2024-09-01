@@ -1,4 +1,10 @@
 nrow,plan,purpose,region,date,id
+111294,fastest,utility,Edinburgh and Lothians,2024-09-01,10637
+111294,balanced,utility,Edinburgh and Lothians,2024-09-01,10636
+90716,ebike,commute,Edinburgh and Lothians,2024-09-01,10635
+90716,quietest,commute,Edinburgh and Lothians,2024-09-01,10633
+90716,fastest,commute,Edinburgh and Lothians,2024-09-01,10632
+9425,ebike,school,Edinburgh and Lothians,2024-09-01,10631
 9425,quietest,school,Edinburgh and Lothians,2024-09-01,10629
 9425,fastest,school,Edinburgh and Lothians,2024-09-01,10628
 50769,ebike,utility,"Tayside, Central and Fife",2024-09-01,10627
