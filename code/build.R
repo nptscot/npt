@@ -772,8 +772,9 @@ output_folders = list.dirs(output_folder)[-1]
 regional_output_files = list.files(output_folders[1])
 regional_output_files
 
-# set working directory
-setwd("/workspaces/npt")
+# # TODO: Remove this?
+# # set working directory
+# setwd("/workspaces/npt")
 
 # Combine regional route networks:
 combined_network_list = lapply(output_folders, function(folder) {
