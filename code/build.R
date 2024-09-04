@@ -200,12 +200,10 @@ for (region in region_names) {
         `Infrastructure type (detailed)` = detailed_segregation,
         `Level of Service`
       )
-    
     # save file for individual district
     district_name = district_geom$LAD23NM |> 
       snakecase::to_snake_case()
     cbd_filename = paste0(output_folder, "/cbd_layer_", district_name, ".geojson")
-
     sf::write_sf(cbd_layer, cbd_filename, delete_dsn = FALSE)
   }
 }
