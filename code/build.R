@@ -247,7 +247,7 @@ sf::st_geometry(open_roads_scotland) = "geometry"
 file_path = "inputdata/connectivity_fixed_osm.gpkg"
 if (!file.exists(file_path)) {
   setwd("inputdata")
-  # system("gh release download OS_network --skip-existing")
+  system("gh release download OSM_fixed --skip-existing")
   setwd("..")
 }
 osm_scotland = sf::read_sf(file_path)
