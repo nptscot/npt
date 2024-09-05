@@ -66,7 +66,6 @@ osm_centroids = osm_national |>
   sf::st_point_on_surface() |> 
   select(osm_id)
 
-
 # Run for each region
 # Set the number of cores to use
 num_cores = min(parallel::detectCores() - 1, 10)
@@ -768,16 +767,10 @@ for (number in names(all_CN_geojson_groups)) {
 
 
 # Combine regional outputs ---------------------------------------------------
-output_folders = list.dirs(output_folder)[-1]
-regional_output_files = list.files(output_folders[1])
-regional_output_files
-
-# # TODO: Remove this?
-# # set working directory
-# setwd("/workspaces/npt")
 
 # Combine regional route networks:
-combined_network_list = lapply(output_folders, function(folder) {
+combined_network_list = lapply(subfolders, function(folder) {
+  message(glue::glue("Processing folder: {folder}"))
   combined_network_file = paste0(folder, "/combined_network_tile.geojson")
   if (file.exists(combined_network_file)) {
     network = sf::read_sf(combined_network_file)
@@ -804,7 +797,6 @@ simplified_network_list = lapply(output_folders, function(folder) {
 simplified_network = dplyr::bind_rows(simplified_network_list)
 dim(simplified_network) # ~400k rows for full build, 33 columns
 sf::write_sf(simplified_network, file.path(output_folder, "simplified_network.geojson"), delete_dsn = TRUE)
-
 
 # Combine zones data:
 # DataZones file path: data_zones.geojson
