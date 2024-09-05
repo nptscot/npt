@@ -34,7 +34,7 @@ region_names_lowercase = snakecase::to_snake_case(region_names)
 
 # Build route networks:
 region = region_names[1]
-for (region in region_names) {
+for (region in region_names[5:6]) {
   message("Processing region: ", region)
   parameters$region = region
   jsonlite::write_json(parameters, "parameters.json", pretty = TRUE)
@@ -200,12 +200,10 @@ for (region in region_names) {
         `Infrastructure type (detailed)` = detailed_segregation,
         `Level of Service`
       )
-    
     # save file for individual district
     district_name = district_geom$LAD23NM |> 
       snakecase::to_snake_case()
     cbd_filename = paste0(output_folder, "/cbd_layer_", district_name, ".geojson")
-
     sf::write_sf(cbd_layer, cbd_filename, delete_dsn = FALSE)
   }
 }
@@ -626,8 +624,9 @@ output_folders = list.dirs(output_folder)[-1]
 regional_output_files = list.files(output_folders[1])
 regional_output_files
 
-# set working directory
-setwd("/workspaces/npt")
+# # TODO: Remove this?
+# # set working directory
+# setwd("/workspaces/npt")
 
 # Combine regional route networks:
 combined_network_list = lapply(output_folders, function(folder) {
