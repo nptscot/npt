@@ -387,3 +387,154 @@ remove_dangles = function(network, percentile = 0.012) {
 
     network_clean = network[!((line_indices[1,] %in% dangle_vertices | line_indices[2,] %in% dangle_vertices) & network$length <  units::set_units(threshold_length, "meters")), ]
 }
+
+find_orcp_path = function(orcp_city_boundary, cohesive_network_city_boundary, OSM_city, open_roads_scotland_city_boundary, combined_net_city_boundary) {
+
+    components = unique(orcp_city_boundary$component)
+    
+    if (nrow(orcp_city_boundary) > 0) {
+        # Initialize the list to store paths for each component
+        all_paths_dict = list()
+
+        # Loop through each component
+        for (component_id in components) {
+            message("Processing component: ", component_id)
+            gdf = dplyr::filter(orcp_city_boundary, component == component_id)
+            end_points_sf = list()
+            os_points = list()
+            osm_points = list()
+            end_points_sf = find_endpoints(gdf)
+            os_points = find_nearest_points(end_points_sf, cohesive_network_city_boundary, dist = 3000, segment_length = 5)
+            osm_points = find_nearest_points(os_points, OSM_city, dist = 3000, segment_length = 5)
+        
+            if (length(end_points_sf) != 0 && length(os_points) != 0 && length(osm_points) != 0) {
+                hull_sf = sf::st_convex_hull(sf::st_union(osm_points))
+                buffer_distance = 3000  # Adjust the buffer distance as needed
+                buffered_hull_sf = sf::st_buffer(hull_sf, dist = buffer_distance)
+                
+                OSM = OSM_city[sf::st_union(buffered_hull_sf), , op = sf::st_intersects]
+                OS = open_roads_scotland_city_boundary[sf::st_union(buffered_hull_sf), , op = sf::st_intersects]
+
+                paths = compute_shortest_paths(end_points_sf, osm_points, OSM)
+
+                filtered_paths = list()  # This list will store only the paths that meet the criterion
+                number_of_paths = 0
+
+                for (i in 1:length(paths)) {
+                    number_of_paths = number_of_paths + nrow(paths[[i]]$path_edges)
+                    path = paths[[i]]$path_edges
+                    
+                    if (is.null(path) || nrow(path) == 0) {
+                        next
+                    }
+                    
+                    path_buffered = sf::st_buffer(path, dist = 1)
+                    combined_net_city_boundary_path = combined_net_city_boundary[sf::st_union(path_buffered), , op = sf::st_intersects]
+                    
+                    path_npt = stplanr::rnet_merge(path, combined_net_city_boundary_path, max_angle_diff = 10, dist = 1, segment_length = 5, funs = list(all_fastest_bicycle_go_dutch = mean))
+                    
+                    path_mean = mean(path_npt$all_fastest_bicycle_go_dutch, na.rm = TRUE)
+                    
+                    if (!is.nan(path_mean) && !is.na(path_mean) && path_mean >= 250) {
+                        filtered_paths[[length(filtered_paths) + 1]] = sf::st_union(path_npt)
+                    }
+                    
+                    all_paths_dict[[component_id]] = filtered_paths
+                }
+
+                if (number_of_paths == 0) {
+                    components = components[components != component_id]
+                }
+            } else {
+                message(sprintf("Error processing component %s: %s", component_id, e$message))
+                all_paths_dict[[component_id]] = NULL  # Or any other way to mark the failure
+            }
+        }
+
+        all_orcp_path_sf = list()
+
+        for (component_id in components) {
+            y_range = length(all_paths_dict[[component_id]])
+
+            # Skip the rest of the loop if y_range is 0
+            if (y_range == 0) {
+                next
+            }
+
+            for (y in 1:y_range) {
+                # Extract the sf object if it's not NULL
+                if (!is.null(all_paths_dict[[component_id]][[y]])) {
+                    # Assuming 'all_orcp_path_sf' is initialized earlier as a list
+                    all_orcp_path_sf[[length(all_orcp_path_sf) + 1]] = all_paths_dict[[component_id]][[y]]
+                }
+            }
+        }
+        combined_orcp_path_sf = do.call(rbind, all_orcp_path_sf)
+        combined_orcp_path_sf = lapply(combined_orcp_path_sf[, 1], st_sfc, crs = 27700)
+        geometries = lapply(combined_orcp_path_sf, function(sfc) { sfc[[1]] })
+        combined_sfc = st_sfc(geometries, crs = 27700) 
+        combined_orcp_path_sf = st_sf(geometry = combined_sfc)
+
+        combined_orcp_path_sf_buffered = st_buffer(combined_orcp_path_sf, dist = 2)
+        intersects = st_intersects(combined_orcp_path_sf_buffered, combined_net_city_boundary, sparse = FALSE)
+        combined_orcp_path_sf$all_fastest_bicycle_go_dutch = combined_net_city_boundary$all_fastest_bicycle_go_dutch[apply(intersects, 1, function(x) which(x)[1])]
+
+        summarized_data = combined_orcp_path_sf |> 
+        dplyr::group_by(geometry) |> dplyr::summarize(total_all_fastest_bicycle_go_dutch = sum(all_fastest_bicycle_go_dutch, na.rm = TRUE),
+                          total_length = sum(as.numeric(sf::st_length(geometry)), na.rm = TRUE))
+
+        min_percentile_value = stats::quantile(summarized_data$total_all_fastest_bicycle_go_dutch, probs = 0.6, na.rm = TRUE)
+        
+        summarized_data = summarized_data |> dplyr::filter(total_all_fastest_bicycle_go_dutch > min_percentile_value)
+
+        summarized_data = summarized_data |> dplyr::filter(total_length > 10)
+
+        combined_orcp_path_sf_filtered = combined_orcp_path_sf |>
+          filter(st_intersects(geometry, summarized_data$geometry, sparse = FALSE) |> apply(1, any))
+  
+        tryCatch({
+          combined_orcp_path_sf_filtered = combined_orcp_path_sf_filtered |> 
+          dplyr::select(-all_fastest_bicycle_go_dutch) |>
+          dplyr::rename(all_fastest_bicycle_go_dutch = mean_all_fastest_bicycle_go_dutch)
+        }, error = function(e) {
+          message(sprintf("Error renaming column: %s", e$message))
+          print(names(combined_orcp_path_sf_filtered))
+        })
+        
+        tryCatch({
+          orcp_city_boundary = orcp_city_boundary %>% dplyr::rename(all_fastest_bicycle_go_dutch = mean_all_fastest_bicycle_go_dutch)
+        }, error = function(e) {
+          message(sprintf("Error renaming column: %s", e$message))
+          print(names(orcp_city_boundary))
+        })
+
+
+        missing_columns = setdiff(names(combined_orcp_path_sf), names(orcp_city_boundary))
+
+        if (length(missing_columns) > 0) {
+          for (col in missing_columns) {
+            orcp_city_boundary[[col]] = NA
+          }
+        }
+
+        # Now check for missing columns in orcp_city_boundary_component compared to combined_orcp_path_sf
+        missing_columns = setdiff(names(orcp_city_boundary), names(combined_orcp_path_sf))
+
+        if (length(missing_columns) > 0) {
+          for (col in missing_columns) {
+            combined_orcp_path_sf[[col]] = NA
+          }
+        }
+
+
+        # Combine all_paths_sf with orcp_city_boundary_component
+        # fliter orcp_city_boundary_component based on updated components list
+        orcp_city_boundary_withpath = orcp_city_boundary |>
+          filter(component %in% components)
+        orcp_city_boundary = rbind(orcp_city_boundary_withpath, combined_orcp_path_sf)
+    } else {
+        cat("orcp_city_boundary is empty, skipping processing.\n")
+    }
+    
+    return(orcp_city_boundary)
+}
