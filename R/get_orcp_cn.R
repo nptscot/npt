@@ -458,7 +458,6 @@ find_orcp_path = function(orcp_city_boundary, cohesive_network_city_boundary, OS
                 }
             } else {
                 message("No routes found for component: ", component_id)
-                all_paths_dict[[component_id]] = list() # Or any other way to mark the failure
                 components = components[components != component_id]
             }
         }
@@ -466,14 +465,18 @@ find_orcp_path = function(orcp_city_boundary, cohesive_network_city_boundary, OS
         all_orcp_path_sf = list()
 
         for (component_id in components) {
-            # Check if the 'component_id' exists as a key in 'all_paths_dict'
             y_range = length(all_paths_dict[[component_id]])
+
             # Skip the rest of the loop if y_range is 0
+            if (y_range == 0) {
+                next
+            }
+
             for (y in 1:y_range) {
                 # Extract the sf object if it's not NULL
                 if (!is.null(all_paths_dict[[component_id]][[y]])) {
                     # Assuming 'all_orcp_path_sf' is initialized earlier as a list
-                    all_orcp_path_sf[[y]] = all_paths_dict[[component_id]][[y]]
+                    all_orcp_path_sf[[length(all_orcp_path_sf) + 1]] = all_paths_dict[[component_id]][[y]]
                 }
             }
         }
