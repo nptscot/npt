@@ -263,7 +263,7 @@ if (generate_CN_start) {
 
   message("Generate the city's coherent network for each region with growing")
 
-  for (region in region_names) {
+  for (region in region_names[5]) {
     # region = region_names[5]  "Edinburgh and Lothians"  
     message("Processing coherent network for region: ", region)
     region_snake = snakecase::to_snake_case(region)
@@ -280,7 +280,7 @@ if (generate_CN_start) {
     }
 
     for (city in coherent_area) {
-      # city = coherent_area[3] "City of Edinburgh"
+      # city = coherent_area[1] "City of Edinburgh"
       city_filename = snakecase::to_snake_case(city)
       tryCatch(
         {
