@@ -9,5 +9,6 @@
   "min_distance_meters": [500],
   "region_buffer_distance_meters": [5000],
   "region": ["Glasgow and Strathclyde"],
+  "generate_CN_start": [true],
   "coherent_percentile": [0.94]
 }

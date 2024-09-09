@@ -235,9 +235,8 @@ system(pmtiles_msg)
 # Generate coherent network ---------------------------------------------------
 
 # Read the open roads data outside the loop for only once
-generate_CN_start = TRUE
 
-if (generate_CN_start) {
+if (parameters$generate_CN_start) {
   file_path = "inputdata/open_roads_scotland.gpkg"
   if (!file.exists(file_path)) {
     setwd("inputdata")
@@ -263,7 +262,7 @@ if (generate_CN_start) {
 
   message("Generate the city's coherent network for each region with growing")
 
-  for (region in region_names[5]) {
+  for (region in region_names) {
     # region = region_names[5]  "Edinburgh and Lothians"  
     message("Processing coherent network for region: ", region)
     region_snake = snakecase::to_snake_case(region)
@@ -280,7 +279,7 @@ if (generate_CN_start) {
     }
 
     for (city in coherent_area) {
-      # city = coherent_area[1] "City of Edinburgh"
+      # city = coherent_area[3] "City of Edinburgh"
       city_filename = snakecase::to_snake_case(city)
       tryCatch(
         {
