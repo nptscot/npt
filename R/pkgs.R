@@ -9,6 +9,7 @@ get_pkgs = function() {
   "glue", # For string interpolation
   "lubridate", # For working with dates and times
   "lwgeom", # For working with spatial data
+  "nngeo", # Nearest neighbour functions
   "osmextract", # For extracting OpenStreetMap data
   "pct", # PCT interface
   "remotes", # For installing packages from remote sources
