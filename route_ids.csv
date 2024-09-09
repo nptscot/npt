@@ -1,4 +1,16 @@
 nrow,plan,purpose,region,date,id
+50769,balanced,utility,"Tayside, Central and Fife",2024-09-01,10677
+65662,balanced,commute,"Tayside, Central and Fife",2024-09-01,10676
+11451,balanced,school,"Tayside, Central and Fife",2024-09-01,10675
+20925,fastest,utility,Aberdeen and North East,2024-09-01,10674
+32967,balanced,commute,Aberdeen and North East,2024-09-01,10673
+4525,ebike,school,Aberdeen and North East,2024-09-01,10672
+9458,balanced,utility,Scotland South,2024-09-01,10671
+6943,quietest,commute,Scotland South,2024-09-01,10670
+14685,balanced,utility,Highlands and Islands,2024-09-01,10669
+7976,balanced,commute,Highlands and Islands,2024-09-01,10668
+90716,balanced,commute,Edinburgh and Lothians,2024-09-01,10667
+9425,balanced,school,Edinburgh and Lothians,2024-09-01,10666
 93499,ebike,utility,Glasgow and Strathclyde,2024-09-01,10662
 93499,quietest,utility,Glasgow and Strathclyde,2024-09-01,10661
 93499,fastest,utility,Glasgow and Strathclyde,2024-09-01,10660
