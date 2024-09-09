@@ -167,6 +167,10 @@ find_endpoints = function(rnet) {
 
 
 find_nearest_points = function(points_sf, rnet, segment_length = 10, dist = 100) {
+    if (is.null(points_sf) || nrow(points_sf) == 0) {
+        return(NULL)
+    }
+
     rnet = stplanr::line_cast(rnet)
     rnet = stplanr::line_segment(rnet, segment_length = segment_length)   
     rnet_points_df = as.data.frame(sf::st_coordinates(rnet))
@@ -174,21 +178,28 @@ find_nearest_points = function(points_sf, rnet, segment_length = 10, dist = 100)
     rnet_points_sf = st_as_sf(rnet_points_df, coords = c("X", "Y"), crs = st_crs(rnet))
     points_sf_buffer = st_buffer(points_sf, dist = dist)
     rnet_points_sf_within_buffer = sf::st_intersection(rnet_points_sf, points_sf_buffer)
-    # Find the nearest point in os_points_sf_within_buffer for each point in points_sf
-    nearest_points = nngeo::st_nn(points_sf, rnet_points_sf_within_buffer, k = 1, returnDist = TRUE)
 
-    # Extract the nearest points and distances
-    nearest_indices = unlist(nearest_points$nn)
-    nearest_distances = unlist(nearest_points$dist)
-
-    # Ensure nearest_indices are within the range of points_sf
-    if (all(nearest_indices <= nrow(rnet_points_sf_within_buffer))) {
-    # Add the index of points_sf to the nearest_os_points
-    nearest_os_points = rnet_points_sf_within_buffer[nearest_indices, ]
-    nearest_os_points$index_points_sf = 1:length(nearest_indices)
+    if (nrow(rnet_points_sf_within_buffer) == 0) {
+        message("No points in the road network are within the buffer distance.")
+        nearest_os_points = NULL
     } else {
-    stop("The nearest_indices are out of bounds. Please check your data.")
+        # Find the nearest point in rnet_points_sf_within_buffer for each point in points_sf
+        nearest_points = nngeo::st_nn(points_sf, rnet_points_sf_within_buffer, k = 1, returnDist = TRUE)
+
+        # Extract the nearest points and distances
+        nearest_indices = unlist(nearest_points$nn)
+        nearest_distances = unlist(nearest_points$dist)
+
+        # Ensure nearest_indices are within the range of rnet_points_sf_within_buffer
+        if (all(nearest_indices <= nrow(rnet_points_sf_within_buffer))) {
+            # Add the index of points_sf to the nearest_os_points
+            nearest_os_points = rnet_points_sf_within_buffer[nearest_indices, ]
+            nearest_os_points$index_points_sf = 1:length(nearest_indices)
+        } else {
+            nearest_os_points = NULL
+        }
     }
+
     return(nearest_os_points)
 }
 
@@ -391,7 +402,7 @@ remove_dangles = function(network, percentile = 0.012) {
 find_orcp_path = function(orcp_city_boundary, cohesive_network_city_boundary, OSM_city, open_roads_scotland_city_boundary, combined_net_city_boundary) {
 
     components = unique(orcp_city_boundary$component)
-    
+    # mapview::mapview(orcp_city_boundary) + mapview::mapview(cohesive_network_city_boundary, color = "red")
     if (nrow(orcp_city_boundary) > 0) {
         # Initialize the list to store paths for each component
         all_paths_dict = list()
@@ -406,7 +417,7 @@ find_orcp_path = function(orcp_city_boundary, cohesive_network_city_boundary, OS
             end_points_sf = find_endpoints(gdf)
             os_points = find_nearest_points(end_points_sf, cohesive_network_city_boundary, dist = 3000, segment_length = 5)
             osm_points = find_nearest_points(os_points, OSM_city, dist = 3000, segment_length = 5)
-        
+
             if (length(end_points_sf) != 0 && length(os_points) != 0 && length(osm_points) != 0) {
                 hull_sf = sf::st_convex_hull(sf::st_union(osm_points))
                 buffer_distance = 3000  # Adjust the buffer distance as needed
@@ -435,7 +446,7 @@ find_orcp_path = function(orcp_city_boundary, cohesive_network_city_boundary, OS
                     
                     path_mean = mean(path_npt$all_fastest_bicycle_go_dutch, na.rm = TRUE)
                     
-                    if (!is.nan(path_mean) && !is.na(path_mean) && path_mean >= 250) {
+                    if (!is.nan(path_mean) && !is.na(path_mean) && path_mean >= 50) {
                         filtered_paths[[length(filtered_paths) + 1]] = sf::st_union(path_npt)
                     }
                     
@@ -446,7 +457,7 @@ find_orcp_path = function(orcp_city_boundary, cohesive_network_city_boundary, OS
                     components = components[components != component_id]
                 }
             } else {
-                message(sprintf("Error processing component %s: %s", component_id, e$message))
+                message("No routes found for component: ", component_id)
                 all_paths_dict[[component_id]] = NULL  # Or any other way to mark the failure
             }
         }
