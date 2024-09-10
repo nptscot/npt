@@ -562,14 +562,14 @@ if (parameters$generate_CN_start) {
       }
     }))
     # Define the file path for the combined GeoJSON
-    combined_CN_file = glue::glue("{output_folder}/combined_CN_{number}.geojson")
+    combined_CN_file = glue::glue("{output_folder}/combined_CN_{number}_{date_folder}.geojson")
     
     # Write the combined GeoJSON to a file
     sf::st_write(combined_CN_geojson, combined_CN_file, delete_dsn = TRUE)
     cat("Combined cohesive networks GeoJSON file for group", number, "has been saved to:", combined_CN_file, "\n")
 
     # Define the path for the PMtiles
-    combined_CN_pmtiles = glue::glue("{output_folder}/combined_CN_{number}.pmtiles")
+    combined_CN_pmtiles = glue::glue("{output_folder}/combined_CN_{number}_{date_folder}.pmtiles")
     
     # Construct the Tippecanoe command for the current group
     command_tippecanoe = paste0(
