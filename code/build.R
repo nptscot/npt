@@ -534,6 +534,7 @@ if (parameters$generate_CN_start) {
   # for (number in names(all_CN_geojson_groups)) {
   #   cat("Number of files for group", number, ":", length(all_CN_geojson_groups[[number]]), "\n")
   # }
+  all_columns <- c("geometry", "all_fastest_bicycle_go_dutch")
 
   # Iterate over each group to process and save the data
   for (number in names(all_CN_geojson_groups)) {
