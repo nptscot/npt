@@ -505,7 +505,7 @@ if (parameters$generate_CN_start) {
           sf::st_transform(crs = 4326)
         all_CN_geojson_groups[[as.character(no)]][[length(all_CN_geojson_groups[[as.character(no)]]) + 1]] = list(data = geojson_data, file = geojson_file)
       }
-      
+
       # Add these files to the overall matched files list
       matched_files = c(matched_files, these_matched_files)
     }
@@ -516,12 +516,19 @@ if (parameters$generate_CN_start) {
       # Identify files that match the general pattern but are not in the number-specific list
       LAs_link_geojson_files = setdiff(grep(LAs_link_geojson, geojson_files, value = TRUE), matched_files)
       
+      combined_sf = bind_rows(lapply(all_CN_geojson_groups[["4"]], function(x) x$data)) 
+      buffered_sf = stplanr::geo_buffer(st_union(combined_sf), crs = "EPSG:27700", dist = 20)
+
       # Process general matched files
       for (geojson_file in LAs_link_geojson_files) {
         # Read and transform the geojson data
         geojson_data = sf::st_read(geojson_file, quiet = TRUE) |>
+          sf::st_transform(crs = 27700)
+
+        clipped_sf = sf::st_difference(geojson_data, st_union(buffered_sf)) |>
           sf::st_transform(crs = 4326)
-        all_CN_geojson_groups[[as.character(no)]][[length(all_CN_geojson_groups[[as.character(no)]]) + 1]] = list(data = geojson_data, file = geojson_file)
+
+        all_CN_geojson_groups[[as.character(no)]][[length(all_CN_geojson_groups[[as.character(no)]]) + 1]] = list(data = clipped_sf, file = geojson_file)
       }
     }
   }
@@ -534,27 +541,27 @@ if (parameters$generate_CN_start) {
   # for (number in names(all_CN_geojson_groups)) {
   #   cat("Number of files for group", number, ":", length(all_CN_geojson_groups[[number]]), "\n")
   # }
-  all_columns <- c("geometry", "all_fastest_bicycle_go_dutch")
+  all_columns = c("geometry", "all_fastest_bicycle_go_dutch")
 
   # Iterate over each group to process and save the data
   for (number in names(all_CN_geojson_groups)) {
     # Combine all GeoJSON data into one sf object for the current number group
-    combined_CN_geojson <- do.call(rbind, lapply(all_CN_geojson_groups[[number]], function(x) {
+    combined_CN_geojson = do.call(rbind, lapply(all_CN_geojson_groups[[number]], function(x) {
       if (is.list(x) && "data" %in% names(x) && inherits(x$data, "sf")) {
         
         # Round the column 'all_fastest_bicycle_go_dutch' if it exists
         if ("all_fastest_bicycle_go_dutch" %in% names(x$data)) {
-          x$data$all_fastest_bicycle_go_dutch <- round(x$data$all_fastest_bicycle_go_dutch)
+          x$data$all_fastest_bicycle_go_dutch = round(x$data$all_fastest_bicycle_go_dutch)
         }
         
         # Step 3: Add missing columns with NA values
-        missing_cols <- setdiff(all_columns, names(x$data))
+        missing_cols = setdiff(all_columns, names(x$data))
         if (length(missing_cols) > 0) {
-          x$data[missing_cols] <- NA
+          x$data[missing_cols] = NA
         }
 
         # Reorder columns to match the full set of columns
-        x$data <- x$data[, all_columns]
+        x$data = x$data[, all_columns]
 
         return(x$data)
       } else {
