@@ -1,0 +1,436 @@
+---
+format: gfm
+---
+
+```{r}
+library(sfnetworks)
+library(sf)
+library(tidygraph)
+library(tidyverse)
+library(igraph)
+library(mapview)
+library(dplyr)
+library(rgrass)
+source("R/get_orcp_cn.R")
+
+init_grass_environment = function() {
+  gisBase = "/usr/lib/grass78"  # Ensure this is set to your GRASS installation path
+  gisDbase = "/root/grassdata"  # Set to your GRASS database directory
+  location = "OSM_Dundee_City"  # Define your location
+  mapset = "PERMANENT"  # Define your mapset
+  
+  initGRASS(gisBase = gisBase,
+            gisDbase = gisDbase,
+            location = location,
+            mapset = mapset,
+            override = TRUE)
+}
+
+fix_osm_network_connectivity = function(osm_data) {
+  # Temporarily write the data to a file to import to GRASS
+  temp_file = tempfile(fileext = ".geojson")
+  st_write(osm_data, temp_file, delete_dsn = TRUE)
+  
+  # Import the network data into GRASS
+  execGRASS("v.in.ogr", flags = c("overwrite", "o"), 
+            parameters = list(input = temp_file, 
+                              output = "network"))
+  
+  # Clean the network: remove dangles with different thresholds
+  execGRASS("v.clean", flags = c("overwrite"),
+            parameters = list(input = "network", 
+                              output = "fixed_network", 
+                              type = "connect",
+                              threshold = 50))
+
+  
+  # Export the cleaned and fixed network from GRASS
+  execGRASS("v.out.ogr", flags = c("overwrite"), 
+            parameters = list(input = "fixed_network", 
+                              output = temp_file, 
+                              format = "GeoJSON"))
+  
+  # Read the cleaned network back into R
+  cleaned_network = sf::st_read(temp_file)
+  unlink(temp_file)  # Clean up the temporary file
+  
+  return(cleaned_network)
+}
+
+init_grass_environment()
+fix_net_connectivity <- function(file_name, input_dir, output_dir, gisBase, gisDbase, location, mapset) {
+  library(rgrass)
+
+  # Initialize GRASS GIS environment
+  initGRASS(gisBase = gisBase, 
+            gisDbase = gisDbase, 
+            location = location, 
+            mapset = mapset, 
+            override = TRUE)
+  
+  execGRASS("g.gisenv", flags = "s")
+  
+  # Construct input and output file paths
+  input_file <- glue::glue("{input_dir}/{file_name}")
+  output_file <- glue::glue("{output_dir}/{file_name}_fixed.geojson")
+  
+  # Import network data from GeoJSON
+  execGRASS("v.in.ogr", flags = c("overwrite", "o"), 
+            parameters = list(input = input_file, 
+                              output = "network"))
+  
+  # Clean the network
+  execGRASS("v.clean", flags = c("overwrite"),
+            parameters = list(input = "network", 
+                              output = "fixed_network", 
+                              tool = c("break",  "connect"), 
+                              threshold = c(0,  20)))
+  
+  # Export the cleaned network to GeoJSON
+  execGRASS("v.out.ogr", flags = c("overwrite"), 
+            parameters = list(input = "fixed_network", 
+                              output = output_file, 
+                              format = "GeoJSON"))
+  
+  cat("Network", output_file, " is cleaned and export completed successfully.\n")
+}
+```
+
+Load OS layer of Edinburgh
+```{r}
+file_path = "inputdata/open_roads_scotland.gpkg"
+open_roads_scotland = sf::read_sf(file_path) |> sf::st_transform(27700)
+
+lads = sf::read_sf("inputdata/boundaries/la_regions_2023.geojson") |> filter(LAD23NM == "City of Edinburgh") |> sf::st_transform(27700)
+
+open_roads_scotland_edin = open_roads_scotland[sf::st_union(lads), , op = sf::st_intersects]
+```
+
+Load ORCP layer of Edinburgh
+```{r}
+osm = osmactive::get_travel_network("Scotland", boundary = lads, boundary_type = "clipsrc")
+
+cycle_net = osmactive::get_cycling_network(osm)
+drive_net = osmactive::get_driving_network_major(osm)
+cycle_net = osmactive::distance_to_road(cycle_net, drive_net)
+cycle_net = osmactive::classify_cycle_infrastructure(cycle_net)
+# filter cycle_net based on column bicycle is yes dismount adn designated
+cycle_net = cycle_net |>
+dplyr::filter(bicycle %in% c("yes", "dismount", "designated")) |>
+dplyr::filter(cycle_segregation == "Separated cycle track") |>
+dplyr::mutate(length = as.numeric(sf::st_length(geometry))) |>
+dplyr::filter(length > 1) |>
+sf::st_transform(crs = 27700)
+
+st_write(cycle_net, "outputdata/cycle_net.geojson", delete_dsn = TRUE)
+fix_net_connectivity(
+                     file_name = "cycle_net.geojson",
+                     input_dir = "outputdata", 
+                     output_dir = "outputdata", 
+                     gisBase = "/usr/lib/grass78", 
+                     gisDbase = "/root/grassdata", 
+                     location = "OSM_Dundee_City", 
+                     mapset = "PERMANENT")
+
+cycle_net_fixed2 = sf::read_sf("outputdata/cycle_net.geojson_fixed.geojson")
+mapview(cycle_net_fixed2) + mapview(cycle_net, color = "red")
+```
+
+```{r}
+mapview(open_roads_scotland_edin) + mapview(lads) + mapview(cycle_net, color = "red")
+```
+
+TODO: 
+1. remove dangles from cycle_net
+2. imporve connectivity of cycle_net
+3. join cycle_net with open_roads_scotland_edin
+
+Step 1
+
+```{r}
+library(sf)
+library(igraph)
+library(geosphere)
+library(igraph)
+
+sf_to_igraph = function(network_sf) {
+  # network_sf = cycle_net_components_1
+  # Assuming network_sf is LINESTRING
+  points = unique(do.call(rbind, lapply(network_sf$geometry, function(line) {
+    rbind(st_coordinates(line)[1, ], st_coordinates(line)[nrow(st_coordinates(line)), ])
+  })))
+  points = unique(points)
+  edges = do.call(rbind, lapply(network_sf$geometry, function(line) {
+    start = which(points[,1] == st_coordinates(line)[1,1] & points[,2] == st_coordinates(line)[1,2])
+    end = which(points[,1] == st_coordinates(line)[nrow(st_coordinates(line)),1] & points[,2] == st_coordinates(line)[nrow(st_coordinates(line)),2])
+    c(start, end)
+  }))
+  graph = graph_from_edgelist(as.matrix(edges), directed = FALSE)
+  return(graph)
+}
+
+remove_dangles = function(network, percentile = 0.012) {
+
+    network$length = sf::st_length(network)
+    network_g = sf_to_igraph(network)
+    vertex_degrees = degree(network_g)
+
+    dangle_vertices = which(vertex_degrees == 1)
+
+    points = unique(do.call(rbind, lapply(st_geometry(network), function(line) {
+    rbind(st_coordinates(line)[1, ], st_coordinates(line)[nrow(st_coordinates(line)), ])
+    })))
+    # Extract indices of LINESTRINGs to check
+    line_indices = sapply(st_geometry(network), function(line) {
+    coords = st_coordinates(line)
+    c(which(points[,1] == coords[1,1] & points[,2] == coords[1,2]),
+        which(points[,1] == coords[nrow(coords),1] & points[,2] == coords[nrow(coords),2]))
+    })
+
+    # sum of network$length
+    sum_value = sum(network$length)
+    
+    # Median of network$length
+    threshold_length = percentile* sum_value
+    short_dangles = network[(line_indices[1,] %in% dangle_vertices | line_indices[2,] %in% dangle_vertices) & network$length < units::set_units(threshold_length, "meters"), ]
+
+    network_clean = network[!((line_indices[1,] %in% dangle_vertices | line_indices[2,] %in% dangle_vertices) & network$length <  units::set_units(threshold_length, "meters")), ]
+}
+```
+
+```{r}
+library(dplyr)
+cycle_net = cycle_net |> select(geometry)
+cycle_net$length = st_length(cycle_net)
+mapview(cycle_net)
+# Find all components based on a threshold
+cycle_net_components = find_component(cycle_net, threshold = 1)
+
+# Get the list of all unique components
+unique_components = unique(cycle_net_components$component)
+
+# Initialize an empty list to store the cleaned components
+cycle_net_components_clean = list()
+
+# Loop over each unique component
+for (comp in unique_components) {
+  # Filter for the current component and select the geometry column
+  component_data = cycle_net_components |>
+                    filter(component == comp) |>
+                    select(geometry)
+
+  # Calculate the total length after performing a spatial union of the geometries
+  total_length <- sum(st_length(st_union(component_data)))
+
+  tryCatch({
+    # Check if total length is more than 1000 meters
+    if (total_length > units::set_units(200, "meters")) {
+      # Clean the data by removing dangles if length condition is met
+      cleaned_data <- remove_dangles(component_data)
+      # Store only the geometry data in the list
+      cycle_net_components_clean[[length(cycle_net_components_clean) + 1]] <- cleaned_data
+    }
+  }, error = function(e) {
+    # If an error occurs, print a custom error message
+    print(sprintf("Failed to process component %d due to error: %s", comp, e$message))
+  })
+
+}
+
+mapview(cycle_net_components_clean, color = "red") + mapview(cycle_net_components, color = "blue")
+
+cycle_net_clean <- do.call(rbind, cycle_net_components_clean)
+# st_write(cycle_net_clean, "outputdata/cycle_net_components_clean.geojson", delete_dsn = TRUE)
+mapview(cycle_net_clean)
+```
+
+```{r}
+library(sfnetworks)
+library(sf)
+library(tidygraph)
+library(tidyverse)
+library(igraph)
+# Define the URL
+url = "https://github.com/nptscot/npt/releases/download/join_orcp/OS_Edin.geojson"
+OS_inter = read_sf(url)
+
+url = "https://github.com/nptscot/npt/releases/download/join_orcp/OSM_Edin.geojson"
+OSM_inter = sf::read_sf(url)
+
+mapview(OS_inter) + mapview(OSM_inter) + mapview(cycle_net_components_clean, color = "red")
+```
+
+```{r}
+
+
+sf_to_igraph = function(network_sf) {
+  # Assuming network_sf is LINESTRING
+  points = unique(do.call(rbind, lapply(network_sf$geometry, function(line) {
+    rbind(st_coordinates(line)[1, ], st_coordinates(line)[nrow(st_coordinates(line)), ])
+  })))
+  points = unique(points)
+  edges = do.call(rbind, lapply(network_sf$geometry, function(line) {
+    start = which(points[,1] == st_coordinates(line)[1,1] & points[,2] == st_coordinates(line)[1,2])
+    end = which(points[,1] == st_coordinates(line)[nrow(st_coordinates(line)),1] & points[,2] == st_coordinates(line)[nrow(st_coordinates(line)),2])
+    c(start, end)
+  }))
+  graph = graph_from_edgelist(as.matrix(edges), directed = FALSE)
+  return(graph)
+}
+
+
+# Assuming cycle_net_components_1 is already defined and correctly formatted as an sf object
+# Here is how you would call the function:
+g = sf_to_igraph(cycle_net_components_1)  # 1000 meters threshold
+names(g)
+
+
+# Extract points from cycle_net_components_1
+points = unique(do.call(rbind, lapply(st_geometry(cycle_net_components_1), function(line) {
+  rbind(st_coordinates(line)[1, ], st_coordinates(line)[nrow(st_coordinates(line)), ])
+})))
+
+# Create a data frame for plotting in ggplot
+vertex_data = data.frame(
+  id = seq_len(nrow(points)),
+  x = points[, 1],
+  y = points[, 2]
+)
+
+# Map vertex_data id to igraph vertex id
+V(g)$name = vertex_data$id
+
+# Now try the matching and assignment again
+V(g)$x = vertex_data$x[match(V(g)$name, vertex_data$id)]
+V(g)$y = vertex_data$y[match(V(g)$name, vertex_data$id)]
+
+# Edge data from igraph for plotting
+edge_data = get.data.frame(g, what = "edges")
+edge_data$x = V(g)$x[edge_data$from]
+edge_data$y = V(g)$y[edge_data$from]
+edge_data$xend = V(g)$x[edge_data$to]
+edge_data$yend = V(g)$y[edge_data$to]
+
+base_plot = ggplot() +
+  geom_sf(data = cycle_net_components_1, color = "gray") +
+  geom_segment(data = edge_data, aes(x = x, y = y, xend = xend, yend = yend),
+               color = "red", arrow = arrow(length = unit(0.2, "inches"))) +
+  geom_point(data = vertex_data, aes(x = x, y = y), color = "blue", size = 3)
+
+
+library(igraph)
+
+# Calculate the degree of each vertex
+vertex_degrees = degree(g)
+
+# Find vertices that are dangles (degree = 1)
+dangle_vertices = which(vertex_degrees == 1)
+
+# Assuming that LINESTRING endpoints correlate with graph vertices by their order
+# Extract indices of LINESTRINGs to check
+line_indices = sapply(st_geometry(cycle_net_components_1), function(line) {
+  coords = st_coordinates(line)
+  c(which(points[,1] == coords[1,1] & points[,2] == coords[1,2]),
+    which(points[,1] == coords[nrow(coords),1] & points[,2] == coords[nrow(coords),2]))
+})
+
+threshold_length = quantile(cycle_net_components_1$length, 0.20)
+
+# Filter for lines connected to dangle vertices and are shorter than 20 meters
+short_dangles = cycle_net_components_1[(line_indices[1,] %in% dangle_vertices | line_indices[2,] %in% dangle_vertices) & cycle_net_components_1$length < units::set_units(threshold_length, "meters"), ]
+
+# Remove the identified short dangles from the dataset
+cycle_net_components_1_clean = cycle_net_components_1[!((line_indices[1,] %in% dangle_vertices | line_indices[2,] %in% dangle_vertices) & cycle_net_components_1$length <  units::set_units(threshold_length, "meters")), ]
+
+mapview(cycle_net_components_1_clean, color = "blue") + mapview(short_dangles, color = "red")
+```
+
+```{r}
+cycle_net_components_1 = sf::st_union(cycle_net_components_1)
+cycle_net_components_1_sf = st_as_sf(st_sfc(cycle_net_components_1, crs = st_crs(cycle_net_components_1)))
+
+cycle_net_components_1_re = corenet::removeDangles(cycle_net_components_1_sf)
+mapview(cycle_net_components_1_re, color = "red") + mapview(cycle_net_components_1 , color = "blue")
+
+intersection_points = st_intersection(cycle_net_components_1_sf, cycle_net_components_1_sf)
+
+# Filter out non-point geometries if necessary (leaving only the intersection points)
+intersection_points = intersection_points[st_geometry_type(intersection_points) == "POINT", ]
+
+split_lines = lapply(st_geometry(cycle_net_components_1_sf), function(line) {
+  st_split(line, intersection_points)
+})
+
+# Convert the list back to an sf object
+split_lines = do.call(rbind, lapply(split_lines, st_sf))
+
+
+removeDangles = function(network, tolerance = 10) {
+    browser()
+    network_lines = sf::st_cast(network, "LINESTRING")
+
+    # Extract and combine all end points of line segments
+    end_points = do.call(rbind, lapply(network_lines$geometry, function(line) {
+    endpoints = rbind(sf::st_coordinates(line)[1, ], sf::st_coordinates(line)[nrow(sf::st_coordinates(line)), ])
+    sf::st_as_sf(data.frame(x = endpoints[, 1], y = endpoints[, 2]), coords = c("x", "y"), crs = sf::st_crs(network))
+    }))
+
+    # Identify unique end points (potential dangles) using a spatial join to find nearby points
+    buffer_points = sf::st_buffer(end_points, dist = tolerance)
+    overlaps = sf::st_intersects(buffer_points, buffer_points, sparse = FALSE)
+    isolated_points = end_points[rowSums(overlaps) == 1,]
+
+
+    # Filter out road segments that end in these isolated points
+    segments_with_dangles = sapply(sf::st_geometry(network_lines), function(geom) {
+    ends = sf::st_sfc(sf::st_point(sf::st_coordinates(geom)[1,]), sf::st_point(sf::st_coordinates(geom)[nrow(sf::st_coordinates(geom)),]), crs = sf::st_crs(network))
+    any(sf::st_intersects(ends, isolated_points, sparse = FALSE))
+    })
+
+    network_1 = network_lines[!segments_with_dangles, ]
+    network_2 = network_lines[segments_with_dangles, ]
+
+    length_network_1 = sum(sf::st_length(network_1))
+    length_network_2 = sum(sf::st_length(network_2))
+
+    if (length_network_1 > length_network_2) {
+        longer_network = network_1
+    } else {
+        longer_network = network_2
+    }
+
+    return (longer_network)
+}
+
+cycle_net_components_1 = cycle_net_components |> filter(component == 3)  |> select(geometry)
+cycle_net_components_1_re = removeDangles(cycle_net_components_1)
+mapview(cycle_net_components_1_re, color = "red") + mapview(cycle_net_components_1 , color = "blue")
+
+
+
+
+
+cycle_net_components_1 = fix_osm_network_connectivity(cycle_net_components_1)
+
+mapview(cycle_net_components_1 , zcol = "cat")
+
+# remove cycle_net_components_1_re from cycle_net_components_1
+matching_indices = which(st_equals(cycle_net_components_1, cycle_net_components_1_re, sparse = FALSE))
+cycle_net_components_1 = cycle_net_components_1[-matching_indices, ]
+
+mapview(cycle_net_components_1_re, color = "red") + mapview(cycle_net_components_1 , color = "blue")
+
+network_lines = sf::st_cast(cycle_net_components_1, "LINESTRING")
+end_points = find_endpoints(network_lines)
+
+
+buffer_points = sf::st_buffer(end_points, dist = 1)
+overlaps = sf::st_intersects(buffer_points, buffer_points, sparse = FALSE)
+isolated_points = end_points[rowSums(overlaps) == 1,]
+
+# Filter out road segments that end in these isolated points
+segments_with_dangles = sapply(sf::st_geometry(network_lines), function(geom) {
+ends = sf::st_sfc(sf::st_point(sf::st_coordinates(geom)[1,]), sf::st_point(sf::st_coordinates(geom)[nrow(sf::st_coordinates(geom)),]), crs = sf::st_crs(network))
+any(sf::st_intersects(ends, isolated_points, sparse = FALSE))
+    })
+```

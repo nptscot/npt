@@ -16,7 +16,10 @@ date_folder = parameters$date_routing
 output_folder = file.path("outputdata", date_folder)
 
 # # Start with Glasgow:
-region_names = unique(lads$Region)[c(3, 2, 1, 4, 5, 6)]
+region_names = unique(lads$Region)[c(3, 4, 1, 6, 2, 5)] |>
+  # Reverse to build smallest first:
+  rev()
+
 cities_region_names = lapply(
   region_names,
   function(region) {
@@ -31,7 +34,7 @@ region_names_lowercase = snakecase::to_snake_case(region_names)
 
 # Build route networks:
 region = region_names[1]
-for (region in region_names) {
+for (region in region_names[1:6]) {
   message("Processing region: ", region)
   parameters$region = region
   jsonlite::write_json(parameters, "parameters.json", pretty = TRUE)
@@ -62,7 +65,6 @@ osm_national = get_travel_network("Scotland")
 osm_centroids = osm_national |> 
   sf::st_point_on_surface() |> 
   select(osm_id)
-
 
 # Run for each region
 # Set the number of cores to use
@@ -197,12 +199,10 @@ for (region in region_names) {
         `Infrastructure type (detailed)` = detailed_segregation,
         `Level of Service`
       )
-    
     # save file for individual district
     district_name = district_geom$LAD23NM |> 
       snakecase::to_snake_case()
     cbd_filename = paste0(output_folder, "/cbd_layer_", district_name, ".geojson")
-
     sf::write_sf(cbd_layer, cbd_filename, delete_dsn = FALSE)
   }
 }
@@ -235,374 +235,376 @@ system(pmtiles_msg)
 # Generate coherent network ---------------------------------------------------
 
 # Read the open roads data outside the loop for only once
-# Define the path to the file
 
-file_path = "inputdata/open_roads_scotland.gpkg"
-if (!file.exists(file_path)) {
-  setwd("inputdata")
-  system("gh release download OS_network --skip-existing")
-  setwd("..")
-}
-open_roads_scotland = sf::read_sf(file_path)
-sf::st_geometry(open_roads_scotland) = "geometry"
+if (parameters$generate_CN_start) {
+  file_path = "inputdata/open_roads_scotland.gpkg"
+  if (!file.exists(file_path)) {
+    setwd("inputdata")
+    system("gh release download OS_network --skip-existing")
+    setwd("..")
+  }
+  open_roads_scotland = sf::read_sf(file_path)
+  sf::st_geometry(open_roads_scotland) = "geometry"
 
-# num_cores = min(parallel::detectCores() - 1, 10)
-# registerDoParallel(num_cores)
-# Generate the coherent network for the region
-# foreach(region = region_names) %dopar% {
-for (region in region_names) {
-  message("Processing coherent network for region: ", region)
-  region_snake = snakecase::to_snake_case(region)
-  coherent_area = cities_region_names[[region]]
+  file_path = "inputdata/connectivity_fixed_osm.gpkg"
+  if (!file.exists(file_path)) {
+    setwd("inputdata")
+    system("gh release download OSM_fixed --skip-existing")
+    setwd("..")
+  }
+  osm_scotland = sf::read_sf(file_path)
+  sf::st_geometry(osm_scotland) = "geometry"
 
-  cnet_path = file.path(output_folder, region_snake, "combined_network_tile.geojson")
-  combined_net = sf::read_sf(cnet_path) |>
-    sf::st_transform(crs = "EPSG:27700")
+  # num_cores = min(parallel::detectCores() - 1, 10)
+  # registerDoParallel(num_cores)
+  # Generate the coherent network for the region
+  # foreach(region = region_names) %dopar% {
 
-  folder_path = file.path(output_folder, region_snake, "coherent_networks/")
+  message("Generate the city's coherent network for each region with growing")
 
-  if (!dir.exists(folder_path)) {
-    dir.create(folder_path, recursive = TRUE)
+  for (region in region_names) {
+    # region = region_names[5]  "Edinburgh and Lothians"  
+    message("Processing coherent network for region: ", region)
+    region_snake = snakecase::to_snake_case(region)
+    coherent_area = cities_region_names[[region]]
+
+    cnet_path = file.path(output_folder, region_snake, "combined_network_tile.geojson")
+    combined_net = sf::read_sf(cnet_path) |>
+      sf::st_transform(crs = "EPSG:27700")
+
+    folder_path = file.path(output_folder, region_snake, "coherent_networks/")
+
+    if (!dir.exists(folder_path)) {
+      dir.create(folder_path, recursive = TRUE)
+    }
+
+    for (city in coherent_area) {
+      # city = coherent_area[3] "City of Edinburgh"
+      city_filename = snakecase::to_snake_case(city)
+      tryCatch(
+        {
+          message("Generating coherent network for: ", city)
+          city_boundary = filter(lads, LAD23NM == city) |>
+            sf::st_transform(crs = "EPSG:27700")
+
+          combined_net_city_boundary = combined_net[sf::st_union(city_boundary), , op = sf::st_intersects]
+
+          min_percentile_value = stats::quantile(combined_net_city_boundary$all_fastest_bicycle_go_dutch, probs = parameters$coherent_percentile, na.rm = TRUE)
+
+          open_roads_scotland_city_boundary = open_roads_scotland[sf::st_union(city_boundary), , op = sf::st_intersects]
+
+          OS_combined_net_city_boundary = corenet::cohesive_network_prep(
+            base_network = open_roads_scotland_city_boundary,
+            influence_network = combined_net_city_boundary,
+            city_boundary,
+            crs = "EPSG:27700",
+            key_attribute = "road_function",
+            attribute_values = c("A Road", "B Road", "Minor Road")
+          )
+
+          cohesive_network_city_boundary = corenet::corenet(combined_net_city_boundary, OS_combined_net_city_boundary, city_boundary,
+            key_attribute = "all_fastest_bicycle_go_dutch",
+            crs = "EPSG:27700", maxDistPts = 1500, minDistPts = 2, npt_threshold = min_percentile_value,
+            road_scores = list("A Road" = 1, "B Road" = 1, "Minor Road" = 100), n_removeDangles = 6, penalty_value = 1
+          )
+
+          message("Generating Off Road Cycle Path network for: ", city)
+          source("R/get_orcp_cn.R")
+
+          orcp_city_boundary = orcp_network(area = city_boundary, NPT_zones = combined_net_city_boundary, percentile_value = 0.7) 
+
+          OSM_city = osm_scotland[sf::st_union(city_boundary), , op = sf::st_intersects] |> sf::st_transform(27700)
+          OSM_city = OSM_city[!is.na(OSM_city$highway), ]
+
+          orcp_city_boundary = find_orcp_path(orcp_city_boundary, cohesive_network_city_boundary, OSM_city, open_roads_scotland_city_boundary, combined_net_city_boundary)
+
+          # Identify common columns
+          common_columns = intersect(names(cohesive_network_city_boundary), names(orcp_city_boundary))
+
+          # Subset both data frames to common columns
+          cohesive_network_filtered = cohesive_network_city_boundary[common_columns]
+          orcp_city_boundary_filtered = orcp_city_boundary[common_columns]
+
+          if (nrow(cohesive_network_filtered) != 0) {
+            grouped_network = rbind(cohesive_network_filtered, orcp_city_boundary_filtered)
+          } else {
+            grouped_network = orcp_city_boundary_filtered
+          }
+
+          # remove duplicate in grouped_network
+          grouped_network = grouped_network[!duplicated(grouped_network), ]
+
+          # Use city name in the filename
+          corenet::create_coherent_network_PMtiles(folder_path = folder_path, city_filename = glue::glue("{city_filename}_{date_folder}_4"), cohesive_network = grouped_network|> sf::st_transform(4326))
+
+          message("Coherent network for: ", city, " generated successfully")
+
+          # Generate growing networks
+          # Define common parameters
+          network_params = list(
+            key_attribute = "all_fastest_bicycle_go_dutch",
+            crs = "EPSG:27700",
+            maxDistPts = 1500,
+            minDistPts = 2,
+            road_scores = list("A Road" = 1, "B Road" = 1, "Minor Road" = 100),
+            n_removeDangles = 6,
+            penalty_value = 1
+          )
+
+          # Define the varying npt_threshold values
+          max_value = round(stats::quantile(combined_net_city_boundary$all_fastest_bicycle_go_dutch, probs = 0.99, na.rm = TRUE))
+          min_value = round(stats::quantile(combined_net_city_boundary$all_fastest_bicycle_go_dutch, probs = 0.94, na.rm = TRUE))
+
+          
+          if (min_value > 50) {
+            step_size = (max_value - min_value) / 2
+            step_size = -abs(step_size)
+            thresholds = round(seq(max_value, min_value, by = step_size))
+
+            # Generate the networks using varying npt_threshold
+            CN_networks = lapply(thresholds, function(threshold) {
+              message("Generating CN network for threshold: ", threshold)
+              corenet::corenet(
+                combined_net_city_boundary,
+                OS_combined_net_city_boundary,
+                city_boundary,
+                key_attribute = network_params$key_attribute,
+                crs = network_params$crs,
+                maxDistPts = network_params$maxDistPts,
+                minDistPts = network_params$minDistPts,
+                npt_threshold = threshold,
+                road_scores = network_params$road_scores,
+                n_removeDangles = network_params$n_removeDangles,
+                penalty_value = network_params$penalty_value
+              )
+            })
+
+            # Process each generated network
+            for (i in seq_along(CN_networks)) {
+              cn = CN_networks[[i]]
+              threshold = thresholds[i]  # Access the corresponding threshold for each network
+              grouped_network = corenet::coherent_network_group(cn, key_attribute = "all_fastest_bicycle_go_dutch")
+              grouped_network = grouped_network |> dplyr::rename(all_fastest_bicycle_go_dutch = mean_potential)
+
+              # Use city name and threshold in the filename, using the correct threshold
+              city_filename = glue::glue("{snakecase::to_snake_case(city)}_{date_folder}_{i}")
+              corenet::create_coherent_network_PMtiles(folder_path = folder_path, city_filename = city_filename, cohesive_network = grouped_network)
+              message("Coherent network for: ", city, " with threshold ", threshold, " generated successfully")
+            }
+          } else {
+            message("Min value is not greater than 50 Code execution skipped.")
+          }
+        },
+        error = function(e) {
+          message(sprintf("An error occurred with %s: %s", city, e$message))    
+        }
+      )
+    }
   }
 
-  for (city in coherent_area) {
-    city_filename = snakecase::to_snake_case(city)
+  message("Generate the links coherent network for the LAs")
+  # foreach(region = region_names) %dopar% {
+  for (region in region_names) {
+    message("Processing coherent network links for region: ", region)
+    region_snake = snakecase::to_snake_case(region)
+
+    cnet_path = file.path(output_folder, region_snake, "combined_network_tile.geojson")
+    combined_net = sf::read_sf(cnet_path) |>
+      sf::st_transform(crs = "EPSG:27700")
+
+    folder_path = file.path(output_folder, region_snake, "coherent_networks/")
+
+    if (!dir.exists(folder_path)) {
+      dir.create(folder_path, recursive = TRUE)
+    }
+
+
     tryCatch(
       {
-        message("Generating coherent network for: ", city)
-        city_boundary = filter(lads, LAD23NM == city) |>
+        message("Generating coherent network links for: ", region)
+        region_boundary = dplyr::filter(lads, Region == region) |>
           sf::st_transform(crs = "EPSG:27700")
 
-        combined_net_city_boundary = combined_net[sf::st_union(city_boundary), , op = sf::st_intersects]
+        combined_net_region_boundary = combined_net[sf::st_union(region_boundary), , op = sf::st_intersects]
 
-        min_percentile_value = stats::quantile(combined_net_city_boundary$all_fastest_bicycle_go_dutch, probs = parameters$coherent_percentile, na.rm = TRUE)
+        min_percentile_value = stats::quantile(combined_net_region_boundary$all_fastest_bicycle_go_dutch, probs = 0.9, na.rm = TRUE)
 
-        open_roads_scotland_city_boundary = open_roads_scotland[sf::st_union(city_boundary), , op = sf::st_intersects]
+        open_roads_scotland_region_boundary = open_roads_scotland[sf::st_union(region_boundary), , op = sf::st_intersects]
 
-        OS_combined_net_city_boundary = corenet::cohesive_network_prep(
-          base_network = open_roads_scotland_city_boundary,
-          influence_network = combined_net_city_boundary,
-          city_boundary,
+
+        OS_combined_net_region_boundary = corenet::cohesive_network_prep(
+          base_network = open_roads_scotland_region_boundary,
+          influence_network = combined_net_region_boundary,
+          region_boundary,
           crs = "EPSG:27700",
           key_attribute = "road_function",
-          attribute_values = c("A Road", "B Road", "Minor Road")
+          attribute_values = c("A Road", "B Road")
         )
 
-        cohesive_network_city_boundary = corenet::corenet(combined_net_city_boundary, OS_combined_net_city_boundary, city_boundary,
+        cohesive_network_region_boundary = corenet::corenet(combined_net_region_boundary, OS_combined_net_region_boundary, region_boundary,
           key_attribute = "all_fastest_bicycle_go_dutch",
-          crs = "EPSG:27700", maxDistPts = 1500, minDistPts = 2, npt_threshold = min_percentile_value,
-          road_scores = list("A Road" = 1, "B Road" = 1, "Minor Road" = 100), n_removeDangles = 6, penalty_value = 1
+          crs = "EPSG:27700", maxDistPts = 6000, minDistPts = 2500, npt_threshold = min_percentile_value,
+          road_scores = list("A Road" = 1, "B Road" = 1), n_removeDangles = 6, penalty_value = 100000
         )
 
-        message("Generating Off Road Cycle Path network for: ", city)
-        source("R/get_orcp_cn.R")
-        mapview::mapview(combined_net_city_boundary) + mapview::mapview(city_boundary)
-         
-        orcp_city_boundary = orcp_network(area = city_boundary, NPT_zones = combined_net_city_boundary, percentile_value = 0.6)
-        mapview::mapview(orcp_city_boundary, zcol = "all_fastest_bicycle_go_dutch") + mapview::mapview(combined_net_city_boundary)
-        # orcp_city_boundary_zone = orcp_city_boundary[sf::st_union(zonebuilder::zb_zone(city, n_circles = 3)) |> sf::st_transform(27700), , op = sf::st_intersects]
-
-        # Identify common columns
-        common_columns = intersect(names(cohesive_network_city_boundary), names(orcp_city_boundary))
-
-        # Subset both data frames to common columns
-        cohesive_network_filtered = cohesive_network_city_boundary[common_columns]
-        orcp_city_boundary_filtered = orcp_city_boundary[common_columns]
-
-        # Bind the rows
-        grouped_network = rbind(cohesive_network_filtered, orcp_city_boundary_filtered)
-
-        grouped_network = corenet::coherent_network_group(grouped_network, key_attribute = "all_fastest_bicycle_go_dutch")
+        grouped_network = corenet::coherent_network_group(cohesive_network_region_boundary, key_attribute = "all_fastest_bicycle_go_dutch")
         # rename mean_potential in grouped_network as all_fastest_bicycle_go_dutch
         grouped_network = grouped_network |>
           dplyr::rename(all_fastest_bicycle_go_dutch = mean_potential)
-
         # Use city name in the filename
-        corenet::create_coherent_network_PMtiles(folder_path = folder_path, city_filename = glue::glue("{city_filename}_{date_folder}"), cohesive_network = grouped_network)
+        corenet::create_coherent_network_PMtiles(folder_path = folder_path, city_filename = glue::glue("{region_snake}_{date_folder}"), cohesive_network = grouped_network)
 
-        message("Coherent network for: ", city, " generated successfully")
+        message("Coherent network link for: ", region, " generated successfully")
 
-        # Generate growing networks
-        # Define common parameters
-        network_params = list(
-          key_attribute = "all_fastest_bicycle_go_dutch",
-          crs = "EPSG:27700",
-          maxDistPts = 1500,
-          minDistPts = 2,
-          road_scores = list("A Road" = 1, "B Road" = 1, "Minor Road" = 100),
-          n_removeDangles = 6,
-          penalty_value = 1
-        )
-
-        # Define the varying npt_threshold values
-        max_value = round(stats::quantile(combined_net_city_boundary$all_fastest_bicycle_go_dutch, probs = 0.99, na.rm = TRUE))
-        min_value = round(stats::quantile(combined_net_city_boundary$all_fastest_bicycle_go_dutch, probs = 0.94, na.rm = TRUE))
-
-        
-        if (min_value > 50) {
-          step_size = (max_value - min_value) / 2
-          step_size = -abs(step_size)
-          thresholds = round(seq(max_value, min_value, by = step_size))
-
-          # Generate the networks using varying npt_threshold
-          CN_networks = lapply(thresholds, function(threshold) {
-            message("Generating CN network for threshold: ", threshold)
-            corenet::corenet(
-              combined_net_city_boundary,
-              OS_combined_net_city_boundary,
-              city_boundary,
-              key_attribute = network_params$key_attribute,
-              crs = network_params$crs,
-              maxDistPts = network_params$maxDistPts,
-              minDistPts = network_params$minDistPts,
-              npt_threshold = threshold,
-              road_scores = network_params$road_scores,
-              n_removeDangles = network_params$n_removeDangles,
-              penalty_value = network_params$penalty_value
-            )
-          })
-
-          # Process each generated network
-          for (i in seq_along(CN_networks)) {
-            cn = CN_networks[[i]]
-            threshold = thresholds[i]  # Access the corresponding threshold for each network
-            grouped_network = corenet::coherent_network_group(cn, key_attribute = "all_fastest_bicycle_go_dutch")
-            grouped_network = grouped_network |> dplyr::rename(all_fastest_bicycle_go_dutch = mean_potential)
-
-            # Use city name and threshold in the filename, using the correct threshold
-            city_filename = glue::glue("{snakecase::to_snake_case(city)}_{date_folder}_{i}")
-            corenet::create_coherent_network_PMtiles(folder_path = folder_path, city_filename = city_filename, cohesive_network = grouped_network)
-            message("Coherent network for: ", city, " with threshold ", threshold, " generated successfully")
-          }
-        } else {
-          message("Min value is not greater than 50 Code execution skipped.")
-        }
       },
       error = function(e) {
-        message(sprintf("An error occurred with %s: %s", city, e$message))    
+        message(sprintf("An error occurred with %s: %s", region, e$message))    
       }
     )
-  }
-}
-
-# Generate the links coherent network for the LAs
-# foreach(region = region_names) %dopar% {
-for (region in region_names) {
-  message("Processing coherent network links for region: ", region)
-  region_snake = snakecase::to_snake_case(region)
-
-  cnet_path = file.path(output_folder, region_snake, "combined_network_tile.geojson")
-  combined_net = sf::read_sf(cnet_path) |>
-    sf::st_transform(crs = "EPSG:27700")
-
-  folder_path = file.path(output_folder, region_snake, "coherent_networks/")
-
-  if (!dir.exists(folder_path)) {
-    dir.create(folder_path, recursive = TRUE)
-  }
-
-
-  tryCatch(
-    {
-      message("Generating coherent network links for: ", region)
-      region_boundary = dplyr::filter(lads, Region == region) |>
-        sf::st_transform(crs = "EPSG:27700")
-
-      combined_net_region_boundary = combined_net[sf::st_union(region_boundary), , op = sf::st_intersects]
-
-      min_percentile_value = stats::quantile(combined_net_region_boundary$all_fastest_bicycle_go_dutch, probs = 0.9, na.rm = TRUE)
-
-      open_roads_scotland_region_boundary = open_roads_scotland[sf::st_union(region_boundary), , op = sf::st_intersects]
-
-
-      OS_combined_net_region_boundary = corenet::cohesive_network_prep(
-        base_network = open_roads_scotland_region_boundary,
-        influence_network = combined_net_region_boundary,
-        region_boundary,
-        crs = "EPSG:27700",
-        key_attribute = "road_function",
-        attribute_values = c("A Road", "B Road")
-      )
-
-      cohesive_network_region_boundary = corenet::corenet(combined_net_region_boundary, OS_combined_net_region_boundary, region_boundary,
-        key_attribute = "all_fastest_bicycle_go_dutch",
-        crs = "EPSG:27700", maxDistPts = 6000, minDistPts = 2500, npt_threshold = min_percentile_value,
-        road_scores = list("A Road" = 1, "B Road" = 1), n_removeDangles = 6, penalty_value = 100000
-      )
-
-      grouped_network = corenet::coherent_network_group(cohesive_network_region_boundary, key_attribute = "all_fastest_bicycle_go_dutch")
-      # rename mean_potential in grouped_network as all_fastest_bicycle_go_dutch
-      grouped_network = grouped_network |>
-        dplyr::rename(all_fastest_bicycle_go_dutch = mean_potential)
-      # Use city name in the filename
-      corenet::create_coherent_network_PMtiles(folder_path = folder_path, city_filename = glue::glue("{region_snake}_{date_folder}"), cohesive_network = grouped_network)
-
-      message("Coherent network link for: ", region, " generated successfully")
-
-    },
-    error = function(e) {
-      message(sprintf("An error occurred with %s: %s", region, e$message))    
-    }
-  )
-  
-}
-
-# Combine all cohesive networks (CN) into a single file
-no_lists = 1:3
-all_CN_geojson = list()
-all_CN_geojson_groups = list()
-
-# Loop through the subfolders and read GeoJSON files
-subfolders = list.dirs(output_folder, full.names = TRUE, recursive = FALSE)
-for (folder in subfolders) {
-  coherent_networks_path = file.path(folder, "coherent_networks")
-  geojson_files = list.files(coherent_networks_path, pattern = "\\.geojson$", full.names = TRUE)
-  
-  # Initialize a list to track files that have been matched to a number
-  matched_files = list()
-
-  # Loop through each predefined number and match files
-  for (no in no_lists) {
-    # Define a pattern that includes the current number from no_lists
-    number_pattern = sprintf(".*_%s_%d_coherent_network\\.geojson$", date_folder, no)
-    # Find files that match this pattern
-    these_matched_files = grep(number_pattern, geojson_files, value = TRUE)
     
-    # Process each matched file
-    for (geojson_file in these_matched_files) {
-      if (!exists(as.character(no), where = all_CN_geojson_groups)) {
-        all_CN_geojson_groups[[as.character(no)]] = list()
+  }
+
+
+  message("Combine all cohesive networks (CN) into a single file for each growing network")
+
+  no_lists = 1:4
+  all_CN_geojson_groups = list()
+
+  # Function to check if a file starts with any region name
+  starts_with_region = function(filepath) {
+      # Extract the filename from the path
+      filename = basename(filepath)
+      
+      # Check if the filename starts with any of the region names, anchored at the start
+      any(sapply(region_names_lowercase, function(region) grepl(paste0("^", region), filename, ignore.case = TRUE)))
+  }
+
+  # Loop through the subfolders and read GeoJSON files
+  subfolders = list.dirs(output_folder, full.names = TRUE, recursive = FALSE)
+  for (folder in subfolders) {
+    coherent_networks_path = file.path(folder, "coherent_networks")
+    geojson_files = list.files(coherent_networks_path, pattern = "\\.geojson$", full.names = TRUE)
+
+    # Initialize a list to track files that have been matched to a number
+    matched_files = list()
+
+    # Loop through each predefined number and match files
+    for (no in no_lists) {
+      # Define a pattern that includes the current number from no_lists
+      number_pattern = sprintf(".*_%s_%d_coherent_network\\.geojson$", date_folder, no)
+      # Find files that match this pattern
+      these_matched_files = grep(number_pattern, geojson_files, value = TRUE)
+      
+      # Process each matched file
+      for (geojson_file in these_matched_files) {
+        if (!exists(as.character(no), where = all_CN_geojson_groups)) {
+          all_CN_geojson_groups[[as.character(no)]] = list()
+        }
+        # Read and transform the geojson data
+        geojson_data = sf::st_read(geojson_file, quiet = TRUE) |>
+          sf::st_transform(crs = 4326)
+        all_CN_geojson_groups[[as.character(no)]][[length(all_CN_geojson_groups[[as.character(no)]]) + 1]] = list(data = geojson_data, file = geojson_file)
       }
-      # Read and transform the geojson data
-      geojson_data = sf::st_read(geojson_file, quiet = TRUE) |>
-        sf::st_transform(crs = 4326)
-      all_CN_geojson_groups[[as.character(no)]][[length(all_CN_geojson_groups[[as.character(no)]]) + 1]] = list(data = geojson_data, file = geojson_file)
+
+      # Add these files to the overall matched files list
+      matched_files = c(matched_files, these_matched_files)
     }
     
-    # Add these files to the overall matched files list
-    matched_files = c(matched_files, these_matched_files)
-  }
-  
-  # Define a pattern for files with the date but without a specific number
-  general_pattern = sprintf(".*_%s_coherent_network\\.geojson$", date_folder)
-  # Identify files that match the general pattern but are not in the number-specific list
-  general_matched_files = setdiff(grep(general_pattern, geojson_files, value = TRUE), matched_files)
+    if (no == "4") {
+      # Define a pattern for files with the date but without a specific number
+      LAs_link_geojson = sprintf(".*_%s_coherent_network\\.geojson$", date_folder)
+      # Identify files that match the general pattern but are not in the number-specific list
+      LAs_link_geojson_files = setdiff(grep(LAs_link_geojson, geojson_files, value = TRUE), matched_files)
+      
+      combined_sf = bind_rows(lapply(all_CN_geojson_groups[["4"]], function(x) x$data)) 
+      buffered_sf = stplanr::geo_buffer(st_union(combined_sf), crs = "EPSG:27700", dist = 20)
 
-  # Process general matched files
-  for (geojson_file in general_matched_files) {
-    # Read and transform the geojson data
-    geojson_data = sf::st_read(geojson_file, quiet = TRUE) |>
-      sf::st_transform(crs = 4326)
-    all_CN_geojson[[length(all_CN_geojson) + 1]] = geojson_data
-  }
-}
+      # Process general matched files
+      for (geojson_file in LAs_link_geojson_files) {
+        # Read and transform the geojson data
+        geojson_data = sf::st_read(geojson_file, quiet = TRUE) |>
+          sf::st_transform(crs = 27700)
 
-# Print filenames for each group to check the sorting
-for (number in names(all_CN_geojson_groups)) {
-  cat("Group", number, "contains the following files:\n")
-  lapply(all_CN_geojson_groups[[number]], function(x) cat(x$file, "\n"))
-}
+        clipped_sf = sf::st_difference(geojson_data, st_union(buffered_sf)) |>
+          sf::st_transform(crs = 4326)
 
-# Identify common columns across all data frames in the list
-common_columns = Reduce(intersect, lapply(all_CN_geojson, names))
-
-# Modify the list to keep only these common columns
-all_CN_geojson = lapply(all_CN_geojson, function(x) {
-  # Ensure the dataframe is of the correct class
-  if("sf" %in% class(x) && "all_fastest_bicycle_go_dutch" %in% names(x)) {
-    # Round the specified column
-    x$all_fastest_bicycle_go_dutch = round(x$all_fastest_bicycle_go_dutch)
-  }
-  # Return the modified spatial dataframe
-  return(x)
-})
-
-combined_CN_geojson = do.call(rbind, all_CN_geojson)
-# combined_CN = stplanr:::bind_sf(all_CN_geojson)
-plot(combined_CN_geojson$geometry)
-
-# Write the combined GeoJSON to a file
-combined_CN_file = glue::glue("{output_folder}/combined_CN_", length(no_lists) + 1, ".geojson")
-sf::st_write(combined_CN_geojson, combined_CN_file, delete_dsn = TRUE)
-cat("Combined cohesive networks GeoJSON file has been saved to:", combined_CN_file)
-
-# create PMtiles for the combined CN
-combined_CN_pmtiles = glue::glue("{output_folder}/combined_CN_", length(no_lists) + 1, ".pmtiles")
-# Construct the Tippecanoe command
-command_tippecanoe = paste0(
-  'tippecanoe -o ', combined_CN_pmtiles,
-  ' --name="', 'Scottish_Coherent_Networks', '"',
-  ' --layer=coherent_networks',
-  ' --attribution="University of Leeds"',
-  ' --minimum-zoom=6',
-  ' --maximum-zoom=13',
-  ' --maximum-tile-bytes=5000000',
-  ' --simplification=10',
-  ' --buffer=5',
-  ' -rg',
-  ' --force ',
-  combined_CN_file
-)
-
-# Execute the command and capture output
-system_output = system(command_tippecanoe, intern = TRUE)
-
-# Iterate over each group to process and save the data
-for (number in names(all_CN_geojson_groups)) {
-  # Combine all GeoJSON data into one sf object for the current number group
-  combined_CN_geojson = do.call(rbind, lapply(all_CN_geojson_groups[[number]], function(x) {
-    if (is.list(x) && "data" %in% names(x) && inherits(x$data, "sf")) {
-      # Round the column if it exists in the dataframe
-      if ("all_fastest_bicycle_go_dutch" %in% names(x$data)) {
-        x$data$all_fastest_bicycle_go_dutch = round(x$data$all_fastest_bicycle_go_dutch)
+        all_CN_geojson_groups[[as.character(no)]][[length(all_CN_geojson_groups[[as.character(no)]]) + 1]] = list(data = clipped_sf, file = geojson_file)
       }
-      return(x$data)
-    } else {
-      return(NULL)  # or handle differently if the structure is not as expected
     }
-  }))
-  # Define the file path for the combined GeoJSON
-  combined_CN_file = glue::glue("{output_folder}/combined_CN_{number}.geojson")
-  
-  # Write the combined GeoJSON to a file
-  sf::st_write(combined_CN_geojson, combined_CN_file, delete_dsn = TRUE)
-  cat("Combined cohesive networks GeoJSON file for group", number, "has been saved to:", combined_CN_file, "\n")
+  }
 
-  # Define the path for the PMtiles
-  combined_CN_pmtiles = glue::glue("{output_folder}/combined_CN_{number}.pmtiles")
-  
-  # Construct the Tippecanoe command for the current group
-  command_tippecanoe = paste0(
-    'tippecanoe -o ', combined_CN_pmtiles,
-    ' --name="', 'Scottish_Coherent_Networks_', number, '"',
-    ' --layer=coherent_networks',
-    ' --attribution="University of Leeds"',
-    ' --minimum-zoom=6',
-    ' --maximum-zoom=13',
-    ' --maximum-tile-bytes=5000000',
-    ' --simplification=10',
-    ' --buffer=5',
-    ' -rg',
-    ' --force ',
-    combined_CN_file
-  )
+  # Print filenames for each group to check the sorting
+  # for (number in names(all_CN_geojson_groups)) {
+  #   cat("Group", number, "contains the following files:\n")
+  #   lapply(all_CN_geojson_groups[[number]], function(x) cat(x$file, "\n"))
+  # }
+  # for (number in names(all_CN_geojson_groups)) {
+  #   cat("Number of files for group", number, ":", length(all_CN_geojson_groups[[number]]), "\n")
+  # }
+  all_columns = c("geometry", "all_fastest_bicycle_go_dutch")
 
-  # Execute the command and capture output
-  system_output = system(command_tippecanoe, intern = TRUE)
-  cat("Tippecanoe output for group", number, ":\n", system_output, "\n")
+  # Iterate over each group to process and save the data
+  for (number in names(all_CN_geojson_groups)) {
+    # Combine all GeoJSON data into one sf object for the current number group
+    combined_CN_geojson = do.call(rbind, lapply(all_CN_geojson_groups[[number]], function(x) {
+      if (is.list(x) && "data" %in% names(x) && inherits(x$data, "sf")) {
+        
+        # Round the column 'all_fastest_bicycle_go_dutch' if it exists
+        if ("all_fastest_bicycle_go_dutch" %in% names(x$data)) {
+          x$data$all_fastest_bicycle_go_dutch = round(x$data$all_fastest_bicycle_go_dutch)
+        }
+        
+        # Step 3: Add missing columns with NA values
+        missing_cols = setdiff(all_columns, names(x$data))
+        if (length(missing_cols) > 0) {
+          x$data[missing_cols] = NA
+        }
+
+        # Reorder columns to match the full set of columns
+        x$data = x$data[, all_columns]
+
+        return(x$data)
+      } else {
+        return(NULL)
+      }
+    }))
+    # Define the file path for the combined GeoJSON
+    combined_CN_file = glue::glue("{output_folder}/combined_CN_{number}_{date_folder}.geojson")
+    
+    # Write the combined GeoJSON to a file
+    sf::st_write(combined_CN_geojson, combined_CN_file, delete_dsn = TRUE)
+    cat("Combined cohesive networks GeoJSON file for group", number, "has been saved to:", combined_CN_file, "\n")
+
+    # Define the path for the PMtiles
+    combined_CN_pmtiles = glue::glue("{output_folder}/combined_CN_{number}_{date_folder}.pmtiles")
+    
+    # Construct the Tippecanoe command for the current group
+    command_tippecanoe = paste0(
+      'tippecanoe -o ', combined_CN_pmtiles,
+      ' --name="', 'Scottish_Coherent_Networks_', number, '"',
+      ' --layer=coherent_networks',
+      ' --attribution="University of Leeds"',
+      ' --minimum-zoom=6',
+      ' --maximum-zoom=13',
+      ' --maximum-tile-bytes=5000000',
+      ' --simplification=10',
+      ' --buffer=5',
+      ' -rg',
+      ' --force ',
+      combined_CN_file
+    )
+
+    # Execute the command and capture output
+    system_output = system(command_tippecanoe, intern = TRUE)
+    cat("Tippecanoe output for group", number, ":\n", system_output, "\n")
+  }
 }
-
 
 # Combine regional outputs ---------------------------------------------------
-output_folders = list.dirs(output_folder)[-1]
-regional_output_files = list.files(output_folders[1])
-regional_output_files
-
-# set working directory
-setwd("/workspaces/npt")
 
 # Combine regional route networks:
-combined_network_list = lapply(output_folders, function(folder) {
+combined_network_list = lapply(subfolders, function(folder) {
+  message(glue::glue("Processing folder: {folder}"))
   combined_network_file = paste0(folder, "/combined_network_tile.geojson")
   if (file.exists(combined_network_file)) {
     network = sf::read_sf(combined_network_file)
@@ -629,7 +631,6 @@ simplified_network_list = lapply(output_folders, function(folder) {
 simplified_network = dplyr::bind_rows(simplified_network_list)
 dim(simplified_network) # ~400k rows for full build, 33 columns
 sf::write_sf(simplified_network, file.path(output_folder, "simplified_network.geojson"), delete_dsn = TRUE)
-
 
 # Combine zones data:
 # DataZones file path: data_zones.geojson

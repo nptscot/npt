@@ -12,7 +12,7 @@ if (update_github_packages) {
   remotes::install_github("dabreegster/odjitter", subdir = "r")
   remotes::install_github("robinlovelace/ukboundaries")
   remotes::install_github("robinlovelace/simodels")
-  remotes::install_dev("rsgeo")
+  remotes::install_version("rgeos", version = "0.6-3")
   remotes::install_dev("od")
   remotes::install_dev("osmextract")
   remotes::install_github("nptscot/corenet")
