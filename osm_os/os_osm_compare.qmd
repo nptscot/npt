@@ -1,0 +1,307 @@
+---
+format: html
+knitr:
+  opts_chunk:
+    eval: false
+---
+
+In this test, we will compare the coherent network based on the OpenStreetMap data and the OS Open Road data. 
+
+Load the OS Open Road data and the OpenStreetMap data.
+```{r}
+library(tidyverse)
+library(targets)
+library(tidygraph)
+library(osmextract)
+library(foreach)
+library(iterators)
+library(parallel)
+library(doParallel)
+library(mapview)
+library(tmap)
+tar_source()
+
+```
+
+```{r, echo=FALSE}
+#| include: false
+file_path = "/workspaces/npt/inputdata/open_roads_scotland.gpkg"
+# if (!file.exists(file_path)) {
+# setwd("inputdata")
+# system("gh release download OS_network --skip-existing")
+# setwd("..")
+# }
+os = sf::read_sf(file_path)
+sf::st_geometry(os) = "geometry"
+
+file_path = "inputdata/OSM_City of Edinburgh.geojson"
+osm = sf::read_sf(file_path)
+
+# Load NPT data 
+
+combined_net = sf::read_sf("outputdata/2024-09-01/edinburgh_and_lothians/combined_network_tile.geojson") |>
+      sf::st_transform(crs = "EPSG:27700")
+
+parameters = jsonlite::read_json("parameters.json", simplifyVector = T)
+lads = sf::read_sf("inputdata/boundaries/la_regions_2023.geojson")
+date_folder = parameters$date_routing
+output_folder = file.path("outputdata", date_folder)
+
+# # Start with Glasgow:
+region_names = unique(lads$Region)[c(3, 4, 1, 6, 2, 5)] |>
+  # Reverse to build smallest first:
+  rev()
+
+cities_region_names = lapply(
+  region_names,
+  function(region) {
+    cities_in_region = lads |>
+      filter(Region == region) |>
+      pull(LAD23NM) |>
+      unique()
+  }
+)
+names(cities_region_names) = region_names
+region_names_lowercase = snakecase::to_snake_case(region_names)
+```
+Comapre the two networks
+
+```{r, echo=FALSE}
+city = zonebuilder::zb_zone("Edinburgh", n_circles = 2) |> sf::st_transform(crs = "EPSG:27700")
+city = filter(lads, LAD23NM == "City of Edinburgh") |>
+            sf::st_transform(crs = "EPSG:27700")
+
+combined_net_city = combined_net[sf::st_union(city), , op = sf::st_intersects]
+
+os_city = os[sf::st_union(city), , op = sf::st_intersects]
+
+osm_city = osm[sf::st_union(city), , op = sf::st_intersects]
+
+# Create the first map object for os_city
+tm1 <- tm_shape(os_city) +
+  tm_lines(col = "blue") +  # Customize line color if desired
+  tm_layout(title = "Open Roads Scotland")
+
+# Create the second map object for osm_scotland_city
+tm2 <- tm_shape(osm_city) +
+  tm_lines(col = "red") +  # Customize line color if desired
+  tm_layout(title = "OSM Scotland")
+
+# Arrange the two maps side by side
+tmap_arrange(tm1, tm2, ncol = 2)
+
+# save the maps
+tmap_save(tmap_arrange(tm1, tm2, ncol = 2), "osm_os/os_osm_compare.png")
+```
+Compare the main network between the two datasets
+```{r, echo=FALSE}
+os_city_primary = os_city[os_city$road_function %in% c("A Road", "B Road", "Minor Road"), ]
+unique(os$road_classification)
+names(os)
+osm_city_primary = osm_city[osm_city$highway %in% c("primary", "primary_link", "secondary", "secondary_link", "tertiary", "tertiary_link", "unclassified"), ]
+
+tm1 <- tm_shape(os_city_primary) +
+  tm_lines(col = "blue") +  # Customize line color if desired
+  tm_layout(title = "Open Roads Scotland")
+
+# Create the second map object for osm_scotland_city
+tm2 <- tm_shape(osm_city_primary) +
+  tm_lines(col = "red") +  # Customize line color if desired
+  tm_layout(title = "OSM Scotland")
+
+# Arrange the two maps side by side
+tmap_arrange(tm1, tm2, ncol = 2)
+# save the maps
+tmap_save(tmap_arrange(tm1, tm2, ncol = 2), "osm_os/os_osm_compare_primary.png")
+```
+# One major problem is that important streets, like Prince Street in OSM, do not have the proper highway attributes.
+
+
+Use OS to generate the coherent network
+```{r, echo=FALSE}
+min_percentile_value = stats::quantile(combined_net_city$all_fastest_bicycle_go_dutch, probs = 0.7, na.rm = TRUE)
+min_percentile_value = 1000
+OS_combined_net_city = corenet::cohesive_network_prep(
+  base_network = os_city,
+  influence_network = combined_net_city,
+  city,
+  crs = "EPSG:27700",
+  key_attribute = "road_function",
+  attribute_values = c("A Road", "B Road", "Minor Road")
+)
+
+os_cohesive_network_city = corenet::corenet(combined_net_city, OS_combined_net_city, city,
+  key_attribute = "all_fastest_bicycle_go_dutch",
+  crs = "EPSG:27700", maxDistPts = 1500, minDistPts = 2, npt_threshold = min_percentile_value,
+  road_scores = list("A Road" = 1, "B Road" = 1, "Minor Road" = 100), n_removeDangles = 6, penalty_value = 1
+)
+
+# st_write(os_cohesive_network_city, "osm_os/os_cohesive_network.geojson", delete_dsn = TRUE)
+
+# read the network
+os_cohesive_network_city = sf::st_read("osm_os/os_cohesive_network.geojson")
+
+# plot the network
+plot(os_cohesive_network_city$geometry)
+```
+
+Use OSM to generate the coherent network
+
+1. Filter less important or not preferred roads
+
+"highway" != 'trunk'   AND  "highway" != 'motorway'   AND  "highway"  != 'motorway_link'   AND  "highway" != 'construction'   AND  "highway" != 'residential'  AND "highway" != 'steps'  AND "highway" != 'trunk_link'  AND "highway" != 'proposed'  AND "highway"  != 'service'  AND "highway" != 'services'
+
+```{r, echo=FALSE}
+OSM_combined_net_city = corenet::cohesive_network_prep(
+  base_network = osm_city,
+  influence_network = combined_net_city,
+  city,
+  crs = "EPSG:27700",
+  key_attribute = "highway",
+  attribute_values = c("primary", "primary_link", "secondary", "secondary_link", "tertiary", "tertiary_link", "unclassified", "pedestrian", "footway", "cycleway",  "path"))
+
+OSM_combined_net_city = OSM_combined_net_city |> dplyr::rename(road_function = highway)
+
+osm_cohesive_network_simple = corenet::corenet(combined_net_city, OSM_combined_net_city, city,
+  key_attribute = "all_fastest_bicycle_go_dutch",
+  crs = "EPSG:27700", maxDistPts = 1500, minDistPts = 2, npt_threshold = min_percentile_value,
+  road_scores <- list("primary" = 1, "primary_link" = 1, "secondary" = 1, "secondary_link" = 1, "pedestrian" = 1, "footway" = 1, "cycleway" = 1, "unclassified" = 10, "tertiary" = 10, "tertiary_link" = 10, "path" = 100)
+, n_removeDangles = 6, penalty_value = 1
+)
+
+# st_write(osm_cohesive_network_simple, "osm_os/osm_cohesive_network_simple.geojson", delete_dsn = TRUE)
+
+# read the network
+osm_cohesive_network_simple = sf::st_read("osm_os/osm_cohesive_network_simple.geojson")
+
+# plot the network
+plot(osm_cohesive_network_simple$geometry)
+```
+
+2. without filtering by adjusting the road scores
+
+```{r, echo=FALSE}
+OSM_combined_net_city = corenet::cohesive_network_prep(
+  base_network = osm_city,
+  influence_network = combined_net_city,
+  city,
+  crs = "EPSG:27700",
+  key_attribute = "highway",
+  attribute_values = c("primary", "primary_link", "secondary", "secondary_link", "tertiary", "tertiary_link", "residential",  "trunk_link", "trunk",  "unclassified", "pedestrian", "footway", "track", "cycleway",  "path",  "living_street", "bridleway",  "corridor", "road"))
+
+OSM_combined_net_city = OSM_combined_net_city |> dplyr::rename(road_function = highway)
+
+osm_cohesive_network_complex = corenet::corenet(combined_net_city, OSM_combined_net_city, city,
+  key_attribute = "all_fastest_bicycle_go_dutch",
+  crs = "EPSG:27700", maxDistPts = 1500, minDistPts = 2, npt_threshold = min_percentile_value,
+  road_scores <- list("primary" = 1, "primary_link" = 1, "secondary" = 1, "secondary_link" = 1, "pedestrian" = 1, "footway" = 1, "cycleway" = 1, "unclassified" = 10, "tertiary" = 100, "tertiary_link" = 100, "trunk" = 100, "trunk_link" = 100, "track" = 100, "path" = 100, "living_street" = 1000, "bridleway" = 1000, "corridor" = 1000, "road" = 1000, "residential" = 10000), n_removeDangles = 6, penalty_value = 1
+)
+
+st_write(osm_cohesive_network_complex, "osm_os/osm_cohesive_network_complex.geojson", delete_dsn = TRUE)
+
+# read the network
+osm_cohesive_network_complex = sf::st_read("osm_os/osm_cohesive_network_complex.geojson")
+
+# plot the network
+plot(osm_cohesive_network_complex$geometry)
+```
+
+compare the two networks
+```{r}
+os_cohesive_network = sf::st_read("osm_os/os_cohesive_network.geojson")
+osm_cohesive_network_simple = sf::st_read("osm_os/osm_cohesive_network_simple.geojson")
+
+tm1 <- tm_shape(os_cohesive_network_city) +
+  tm_lines(col = "blue") +  # Customize line color if desired
+  tm_layout(title = "Open Roads Scotland")
+
+# Create the second map object for osm_scotland_city
+tm2 <- tm_shape(osm_cohesive_network_simple) +
+  tm_lines(col = "red") +  # Customize line color if desired
+  tm_layout(title = "OSM Scotland")
+
+# Arrange the two maps side by side
+tmap_arrange(tm1, tm2, ncol = 2)
+
+# save the maps
+tmap_save(tmap_arrange(tm1, tm2, ncol = 2), "osm_os/os_osm_compare_cohesive_simple.png")
+```
+
+```{r}
+os_cohesive_network = sf::st_read("osm_os/os_cohesive_network.geojson")
+osm_cohesive_network_complex = sf::st_read("osm_os/osm_cohesive_network_complex.geojson")
+
+tm1 <- tm_shape(os_cohesive_network_city) +
+  tm_lines(col = "blue") +  # Customize line color if desired
+  tm_layout(title = "Open Roads Scotland")
+
+# Create the second map object for osm_scotland_city
+tm2 <- tm_shape(osm_cohesive_network_complex) +
+  tm_lines(col = "red") +  # Customize line color if desired
+  tm_layout(title = "OSM Scotland")
+
+# Arrange the two maps side by side
+tmap_arrange(tm1, tm2, ncol = 2)
+
+# save the maps
+tmap_save(tmap_arrange(tm1, tm2, ncol = 2), "osm_os/os_osm_compare_cohesive_complex.png")
+```
+# Comparison of Coherent Networks Generated from OS Open Road Data and OSM Data
+
+This document compares the coherent network generated based on OS Open Road data with the one based on OpenStreetMap (OSM) data, highlighting their respective advantages and disadvantages.
+
+## Advantages of OS Open Road Data
+
+### 1. Improved Connectivity and Density Representation
+
+- **Accurate Street Density**: The network is more connected and accurately represents the correct density of streets. For example, streets in the city centre are denser than those in the suburbs, reflecting real-world urban patterns.
+
+### 2. Simplified Geometry for Visualization
+
+- **Single-Line Road Representation**: Each road is represented by a single line, simplifying the geometry and making it more efficient for visualization purposes.
+
+## Disadvantages of OS Open Road Data
+
+### Missing Off-Road Paths
+
+- **Lack of Off-Road Paths**: The main disadvantage is the absence of off-road paths. However, a solution has been developed to add these off-road paths to the network.
+
+## Advantages of OSM Data
+
+### 1. Inclusion of Off-Road Paths
+
+- **Natural Inclusion of Off-Road Paths**: The OSM-based coherent network naturally includes off-road paths, saving the need for additional data processing.
+
+### 2. Presence of Specific Streets
+
+- **Constitution Street Included**: OSM data includes Constitution Street, which is ideal to keep according to Sustrans. While OS data does not include this street.
+
+## Disadvantages of OSM Data
+
+### 1. Missing Major Streets
+
+- **Absence of Queen's Drive**: Queen's Drive is not present in the OSM data.
+
+### 2. Inconsistent Highway Attributes
+
+- **Inaccurate Classifications**: Major streets like **Princes Street** have highway attributes with inconsistent classifications, which may lead to inaccuracies in network analysis. This inconsistency is a significant barrier to using OSM data for generating a coherent network, as it cannot be easily fixed using road scores.
+
+```{r}
+osm_princes_street = osm_city[osm_city$name == "Princes Street", ]
+plot(osm_princes_street$geometry)
+print(unique(osm_princes_street$highway))
+
+# [1] NA             "tertiary"     "unclassified" "primary"  
+```
+
+### 3. Multiple Line Representations
+
+- **Redundant Geometries**: Some streets have multiple/parallel lines representing the same road, complicating the visualization.
+
+### 4. Overly Dense Rural Networks
+
+- **Excessive Rural Density**: The network is too dense in rural areas.
+
+## Conclusion
+
+While the OS Open Road data provides a more connected and simplified network ideal for visualization and accurate urban density representation, it lacks certain off-road paths and specific streets like Constitution Street. On the other hand, OSM data includes these paths and streets but suffers from issues such as inaccurate classifications for major roads, redundant geometries, and overly dense representations in rural areas.
