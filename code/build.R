@@ -8,6 +8,7 @@ library(foreach)
 library(iterators)
 library(parallel)
 library(doParallel)
+source("R/get_orcp_cn.R")
 tar_source()
 
 parameters = jsonlite::read_json("parameters.json", simplifyVector = T)
@@ -278,7 +279,7 @@ if (parameters$generate_CN_start) {
       dir.create(folder_path, recursive = TRUE)
     }
 
-    for (city in coherent_area) {
+    for (city in coherent_area[3]) {
       # city = coherent_area[3] "City of Edinburgh"
       city_filename = snakecase::to_snake_case(city)
       tryCatch(
@@ -308,15 +309,26 @@ if (parameters$generate_CN_start) {
             road_scores = list("A Road" = 1, "B Road" = 1, "Minor Road" = 100), n_removeDangles = 6, penalty_value = 1
           )
 
-          message("Generating Off Road Cycle Path network for: ", city)
-          source("R/get_orcp_cn.R")
+          cohesive_network_city_boundary = line_merge(cohesive_network_city_boundary, OS_combined_net_city_boundary, combined_net_city_boundary)
 
+          message("Generating Off Road Cycle Path network for: ", city)
+         
           orcp_city_boundary = orcp_network(area = city_boundary, NPT_zones = combined_net_city_boundary, percentile_value = 0.7) 
 
           OSM_city = osm_scotland[sf::st_union(city_boundary), , op = sf::st_intersects] |> sf::st_transform(27700)
           OSM_city = OSM_city[!is.na(OSM_city$highway), ]
 
           orcp_city_boundary = find_orcp_path(orcp_city_boundary, cohesive_network_city_boundary, OSM_city, open_roads_scotland_city_boundary, combined_net_city_boundary)
+
+          orcp_city_boundary <- orcp_city_boundary |>
+            group_by(component) |>
+            summarize(
+              all_fastest_bicycle_go_dutch = round(mean(all_fastest_bicycle_go_dutch, na.rm = TRUE)),
+              geometry = st_line_merge(st_combine(st_union(geometry)))
+            )
+
+          # Combine the two networks
+          # Check if the two networks have
 
           # Identify common columns
           common_columns = intersect(names(cohesive_network_city_boundary), names(orcp_city_boundary))
@@ -382,6 +394,12 @@ if (parameters$generate_CN_start) {
             # Process each generated network
             for (i in seq_along(CN_networks)) {
               cn = CN_networks[[i]]
+              cn = line_merge(
+                              cn,
+                              OS_combined_net_city_boundary,
+                              combined_net_city_boundary
+                              )
+
               threshold = thresholds[i]  # Access the corresponding threshold for each network
               grouped_network = corenet::coherent_network_group(cn, key_attribute = "all_fastest_bicycle_go_dutch")
               grouped_network = grouped_network |> dplyr::rename(all_fastest_bicycle_go_dutch = mean_potential)
@@ -446,6 +464,11 @@ if (parameters$generate_CN_start) {
           crs = "EPSG:27700", maxDistPts = 6000, minDistPts = 2500, npt_threshold = min_percentile_value,
           road_scores = list("A Road" = 1, "B Road" = 1), n_removeDangles = 6, penalty_value = 100000
         )
+        cohesive_network_region_boundary = line_merge(
+                        cohesive_network_region_boundary,
+                        OS_combined_net_region_boundary,
+                        combined_region_boundary
+                        )
 
         grouped_network = corenet::coherent_network_group(cohesive_network_region_boundary, key_attribute = "all_fastest_bicycle_go_dutch")
         # rename mean_potential in grouped_network as all_fastest_bicycle_go_dutch

@@ -26,7 +26,6 @@ orcp_network = function(area, NPT_zones, length_threshold = 10000, percentile_va
 
     # Get the list of all unique components
     unique_components = unique(cycle_net_components$component)
-
     # Initialize an empty list to store the cleaned components
     cycle_net_components_clean = list()
 
@@ -38,15 +37,15 @@ orcp_network = function(area, NPT_zones, length_threshold = 10000, percentile_va
                         select(geometry)
 
       # Calculate the total length after performing a spatial union of the geometries
-      total_length <- sum(st_length(st_union(component_data)))
+      total_length = sum(st_length(st_union(component_data)))
 
       tryCatch({
         # Check if total length is more than 1000 meters
         if (total_length > units::set_units(200, "meters")) {
           # Clean the data by removing dangles if length condition is met
-          cleaned_data <- remove_dangles(component_data)
+          cleaned_data = remove_dangles(component_data)
           # Store only the geometry data in the list
-          cycle_net_components_clean[[length(cycle_net_components_clean) + 1]] <- cleaned_data
+          cycle_net_components_clean[[length(cycle_net_components_clean) + 1]] = cleaned_data
         }
       }, error = function(e) {
         # If an error occurs, print a custom error message
@@ -55,7 +54,7 @@ orcp_network = function(area, NPT_zones, length_threshold = 10000, percentile_va
 
     }
 
-    cycle_net_clean <- do.call(rbind, cycle_net_components_clean)
+    cycle_net_clean = do.call(rbind, cycle_net_components_clean)
     snapped_lines = sf::st_snap(cycle_net_clean, cycle_net_clean, tolerance = 20)
     snapped_lines_compoenet = find_component(snapped_lines, threshold = 1)
     snapped_lines_compoenet_buffer = sf::st_buffer(snapped_lines_compoenet, dist = 30)
@@ -90,7 +89,7 @@ orcp_network = function(area, NPT_zones, length_threshold = 10000, percentile_va
     return(summarized_data)
 }
 
-create_line <- function(pt1, pt2) {
+create_line = function(pt1, pt2) {
   st_sfc(st_linestring(rbind(st_coordinates(pt1), st_coordinates(pt2))), crs = st_crs(pt1))
 }
 
@@ -160,7 +159,7 @@ find_endpoints = function(rnet) {
 
   # use point_sf crete conve hull
   hull_sf = st_convex_hull(st_combine(points_sf))
-  points_not_within_hull <- points_sf[!st_within(points_sf, hull_sf, sparse = FALSE), ]
+  points_not_within_hull = points_sf[!st_within(points_sf, hull_sf, sparse = FALSE), ]
 
   return(points_sf)
 }
@@ -313,7 +312,7 @@ compute_shortest_paths = function(points_sf, osm_points, rnet, segment_length = 
   return(all_paths)
 }
 
-fix_net_connectivity <- function(file_name, input_dir, output_dir, gisBase, gisDbase, location, mapset) {
+fix_net_connectivity = function(file_name, input_dir, output_dir, gisBase, gisDbase, location, mapset) {
   library(rgrass)
 
   # Initialize GRASS GIS environment
@@ -326,8 +325,8 @@ fix_net_connectivity <- function(file_name, input_dir, output_dir, gisBase, gisD
   execGRASS("g.gisenv", flags = "s")
   
   # Construct input and output file paths
-  input_file <- glue::glue("{input_dir}/{file_name}")
-  output_file <- glue::glue("{output_dir}/{file_name}_fixed.geojson")
+  input_file = glue::glue("{input_dir}/{file_name}")
+  output_file = glue::glue("{output_dir}/{file_name}_fixed.geojson")
   
   # Import network data from GeoJSON
   execGRASS("v.in.ogr", flags = c("overwrite", "o"), 
@@ -400,7 +399,7 @@ remove_dangles = function(network, percentile = 0.012) {
 }
 
 find_orcp_path = function(orcp_city_boundary, cohesive_network_city_boundary, OSM_city, open_roads_scotland_city_boundary, combined_net_city_boundary) {
-
+    # orcp_city_boundary = find_component(orcp_city_boundary, threshold = 1)
     components = unique(orcp_city_boundary$component)
     # mapview::mapview(orcp_city_boundary) + mapview::mapview(cohesive_network_city_boundary, color = "red")
     if (nrow(orcp_city_boundary) > 0) {
@@ -505,21 +504,21 @@ find_orcp_path = function(orcp_city_boundary, cohesive_network_city_boundary, OS
         combined_orcp_path_sf_filtered = combined_orcp_path_sf |>
           filter(st_intersects(geometry, summarized_data$geometry, sparse = FALSE) |> apply(1, any))
   
-        tryCatch({
-          combined_orcp_path_sf_filtered = combined_orcp_path_sf_filtered |> 
-          dplyr::select(-all_fastest_bicycle_go_dutch) |>
-          dplyr::rename(all_fastest_bicycle_go_dutch = mean_all_fastest_bicycle_go_dutch)
-        }, error = function(e) {
-          message(sprintf("Error renaming column: %s", e$message))
-          print(names(combined_orcp_path_sf_filtered))
-        })
+        # tryCatch({
+        #   combined_orcp_path_sf_filtered = combined_orcp_path_sf_filtered |> 
+        #   dplyr::select(-all_fastest_bicycle_go_dutch) |>
+        #   dplyr::rename(all_fastest_bicycle_go_dutch = mean_all_fastest_bicycle_go_dutch)
+        # }, error = function(e) {
+        #   message(sprintf("Error renaming column: %s", e$message))
+        #   print(names(combined_orcp_path_sf_filtered))
+        # })
         
-        tryCatch({
-          orcp_city_boundary = orcp_city_boundary %>% dplyr::rename(all_fastest_bicycle_go_dutch = mean_all_fastest_bicycle_go_dutch)
-        }, error = function(e) {
-          message(sprintf("Error renaming column: %s", e$message))
-          print(names(orcp_city_boundary))
-        })
+        # tryCatch({
+        #   orcp_city_boundary = orcp_city_boundary %>% dplyr::rename(all_fastest_bicycle_go_dutch = mean_all_fastest_bicycle_go_dutch)
+        # }, error = function(e) {
+        #   message(sprintf("Error renaming column: %s", e$message))
+        #   print(names(orcp_city_boundary))
+        # })
 
 
         missing_columns = setdiff(names(combined_orcp_path_sf), names(orcp_city_boundary))
@@ -550,4 +549,37 @@ find_orcp_path = function(orcp_city_boundary, cohesive_network_city_boundary, OS
     }
     
     return(orcp_city_boundary)
+}
+
+
+line_merge = function(cohesive_network_city_boundary, OS_combined_net_city_boundary, combined_net_city_boundary) {
+
+buffer = sf::st_buffer(cohesive_network_city_boundary, dist = 1)
+os_buffer = OS_combined_net_city_boundary[sf::st_union(buffer), , op = sf::st_within]
+
+os_buffer_NPT = stplanr::rnet_merge(os_buffer, combined_net_city_boundary, , max_angle_diff = 10, dist = 15, funs = list(all_fastest_bicycle_go_dutch = mean))    
+
+os_buffer_NPT = corenet::removeDangles(os_buffer_NPT,6)
+
+os_buffer_NPT = sf::st_cast(os_buffer_NPT, "LINESTRING")
+
+os_buffer_NPT_group = os_buffer_NPT |>
+  group_by(name_1) |>
+  summarize(
+    all_fastest_bicycle_go_dutch = round(mean(all_fastest_bicycle_go_dutch, na.rm = TRUE)),  # rounding the mean
+    geometry = st_line_merge(st_combine(st_union(geometry)))
+  )
+
+geometry_types = sf::st_geometry_type(os_buffer_NPT_group)
+os_buffer_NPT_group_linestring = os_buffer_NPT_group[geometry_types == "LINESTRING", ]
+
+# Handle other geometries separately, e.g., POINT or POLYGON
+os_buffer_NPT_group_others = os_buffer_NPT_group[geometry_types != "LINESTRING", ]
+os_buffer_NPT_group_multilinestring = os_buffer_NPT_group[geometry_types == "MULTILINESTRING", ]
+os_buffer_NPT_group_multilinestring = sf::st_cast(os_buffer_NPT_group_multilinestring, "LINESTRING")
+
+# Combine with original LINESTRING geometries
+os_buffer_NPT_group_combined = rbind(os_buffer_NPT_group_linestring, os_buffer_NPT_group_multilinestring)
+
+return(os_buffer_NPT_group_combined)
 }
