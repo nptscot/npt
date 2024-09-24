@@ -305,3 +305,71 @@ print(unique(osm_princes_street$highway))
 ## Conclusion
 
 While the OS Open Road data provides a more connected and simplified network ideal for visualization and accurate urban density representation, it lacks certain off-road paths and specific streets like Constitution Street. On the other hand, OSM data includes these paths and streets but suffers from issues such as inaccurate classifications for major roads, redundant geometries, and overly dense representations in rural areas.
+
+
+
+# clean coherent network
+```{r}
+# load edingburgh as example
+cn_edinburgh = sf::st_read("outputdata/2024-09-01/edinburgh_and_lothians/coherent_networks/city_of_edinburgh_2024-09-01_3_coherent_network.geojson") |> st_transform(crs = "EPSG:27700")
+
+# create a buffer around the network
+cn_edinburgh_buffer = sf::st_buffer(cn_edinburgh, dist = 1)
+
+#find os road within the buffer
+
+os_edinburgh = os[sf::st_union(cn_edinburgh_buffer), , op = sf::st_within]
+
+cn_edinburgh_buffer = sf::st_buffer(cn_edinburgh, dist = 20)
+combined_net_edinburgh = combined_net[sf::st_union(cn_edinburgh_buffer), , op = sf::st_within]
+
+os_edinburgh = corenet::removeDangles(os_edinburgh,6)
+
+os_edinburgh_NPT = stplanr::rnet_merge(os_edinburgh, combined_net_edinburgh, , max_angle_diff = 10, dist = 15, funs = list(all_fastest_bicycle_go_dutch = mean))     
+
+# Convert geometry type from MULTILINESTRING to LINESTRING without merging lines
+os_edinburgh_NPT <- st_cast(os_edinburgh_NPT, "LINESTRING")
+
+# Calculate average all_fastest_bicycle_go_dutch for each name_1 without merging lines
+os_edinburgh_NPT_group <- os_edinburgh_NPT |>
+  group_by(name_1) |>
+  summarize(
+    all_fastest_bicycle_go_dutch = round(mean(all_fastest_bicycle_go_dutch, na.rm = TRUE)),  # rounding the mean
+    geometry = st_line_merge(st_combine(st_union(geometry)))
+  )
+
+dim(os_edinburgh_NPT_group)
+st_write(os_edinburgh_NPT_group, "osm_os/os_edinburgh_NPT_group_1.geojson", delete_dsn = TRUE)
+
+
+line_merge = function(cohesive_network_city_boundary, OS_combined_net_city_boundary, combined_net_city_boundary) {
+
+buffer = sf::st_buffer(cohesive_network_city_boundary, dist = 1)
+os_buffer = OS_combined_net_city_boundary[sf::st_union(buffer), , op = sf::st_within]
+
+os_buffer_NPT = stplanr::rnet_merge(os_buffer, combined_net_city_boundary, , max_angle_diff = 10, dist = 15, funs = list(all_fastest_bicycle_go_dutch = mean))    
+
+os_buffer_NPT = corenet::removeDangles(os_buffer_NPT,6)
+
+os_buffer_NPT <- sf::st_cast(os_buffer_NPT, "LINESTRING")
+
+os_buffer_NPT_group <- os_buffer_NPT |>
+  group_by(name_1) |>
+  summarize(
+    all_fastest_bicycle_go_dutch = round(mean(all_fastest_bicycle_go_dutch, na.rm = TRUE)),  # rounding the mean
+    geometry = st_line_merge(st_combine(st_union(geometry)))
+  )
+}
+
+
+cn = sf::st_read("outputdata/2024-09-01/edinburgh_and_lothians/coherent_networks/city_of_edinburgh_2024-09-01_2_coherent_network.geojson") 
+# cn = sf::st_cast(cn, "LINESTRING")
+geometry_type = sf::st_geometry_type(cn)
+print(unique(geometry_type))
+mapview::mapview(cn)
+st_write(cn, "osm_os/cn.geojson", delete_dsn = TRUE)
+
+cn = sf::st_read("osm_os/cn.geojson")
+geometry_type = sf::st_geometry_type(cn)
+print(unique(geometry_type))
+```

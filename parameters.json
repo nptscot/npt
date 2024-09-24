@@ -10,5 +10,5 @@
   "region_buffer_distance_meters": [5000],
   "region": ["Edinburgh and Lothians"],
   "generate_CN_start": [true],
-  "coherent_percentile": [0.94]
+  "coherent_percentile": [0.94, 0.9]
 }

@@ -554,6 +554,10 @@ find_orcp_path = function(orcp_city_boundary, cohesive_network_city_boundary, OS
 
 line_merge = function(cohesive_network_city_boundary, OS_combined_net_city_boundary, combined_net_city_boundary) {
 
+cohesive_network_city_boundary = sf::st_transform(cohesive_network_city_boundary, crs = 27700)
+OS_combined_net_city_boundary = sf::st_transform(OS_combined_net_city_boundary, crs = 27700)
+combined_net_city_boundary = sf::st_transform(combined_net_city_boundary, crs = 27700)
+
 buffer = sf::st_buffer(cohesive_network_city_boundary, dist = 1)
 os_buffer = OS_combined_net_city_boundary[sf::st_union(buffer), , op = sf::st_within]
 
