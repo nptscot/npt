@@ -261,8 +261,8 @@ if (parameters$generate_CN_start) {
   # Generate the coherent network for the region
   # foreach(region = region_names) %dopar% {
   message("Running corenet_build function")
-  source("code/corenet_build.R")
-  corenet_build(open_roads_scotland, osm_scotland, region_names)
+  source("code/corenet_build_OS.R")
+  corenet_build_OS(open_roads_scotland, osm_scotland, region_names)
 } else {
   message("parameters$generate_CN_start is FALSE, skipping corenet_build.")
 }

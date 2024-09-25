@@ -42,52 +42,18 @@ corenet_build_OSM = function(open_roads_scotland, osm_scotland, region_names) {
             attribute_values = c("primary", "primary_link", "secondary", "secondary_link", "tertiary", "tertiary_link", "unclassified", "pedestrian", "footway", "cycleway",  "path")
           )
 
+          OSM_combined_net_city_boundary = OSM_combined_net_city_boundary |> dplyr::rename(road_function = highway)
+
           cohesive_network_city_boundary = corenet::corenet(combined_net_city_boundary, OSM_combined_net_city_boundary, city_boundary,
             key_attribute = "all_fastest_bicycle_go_dutch",
-            crs = "EPSG:27700", maxDistPts = 4500, minDistPts = 2, npt_threshold = min_percentile_value,
-            road_scores = list("A Road" = 1, "B Road" = 1, "Minor Road" = 100), n_removeDangles = 6, penalty_value = 1
-            road_scores <- list("primary" = 1, "primary_link" = 1, "secondary" = 1, "secondary_link" = 1, "pedestrian" = 1, "footway" = 1, "cycleway" = 1, "unclassified" = 100, "tertiary" = 100, "tertiary_link" = 100, "path" = 100)
+            crs = "EPSG:27700", maxDistPts = 3000, minDistPts = 2, npt_threshold = min_percentile_value,
+            road_scores = list("primary" = 1, "primary_link" = 1, "secondary" = 1, "secondary_link" = 1, "pedestrian" = 1, "footway" = 1, "cycleway" = 1, "unclassified" = 100, "tertiary" = 100, "tertiary_link" = 100, "path" = 100), n_removeDangles = 6, penalty_value = 1, group_column = "osm_id"
           )
-
+mapview::mapview(cohesive_network_city_boundary)
           cohesive_network_city_boundary = line_merge(cohesive_network_city_boundary, OSM_combined_net_city_boundary, combined_net_city_boundary)
 
-          message("Generating Off Road Cycle Path network for: ", city)
-         
-          orcp_city_boundary = orcp_network(area = city_boundary, NPT_zones = combined_net_city_boundary, percentile_value = 0.7) 
-
-          OSM_city = osm_scotland[sf::st_union(city_boundary), , op = sf::st_intersects] |> sf::st_transform(27700)
-          OSM_city = OSM_city[!is.na(OSM_city$highway), ]
-
-          orcp_city_boundary = find_orcp_path(orcp_city_boundary, cohesive_network_city_boundary, OSM_city, osm_scotland_city_boundary, combined_net_city_boundary)
-
-          orcp_city_boundary <- orcp_city_boundary |>
-            group_by(component) |>
-            summarize(
-              all_fastest_bicycle_go_dutch = round(mean(all_fastest_bicycle_go_dutch, na.rm = TRUE)),
-              geometry = st_line_merge(st_combine(st_union(geometry)))
-            )
-
-          # Combine the two networks
-          # Check if the two networks have
-
-          # Identify common columns
-          common_columns = intersect(names(cohesive_network_city_boundary), names(orcp_city_boundary))
-
-          # Subset both data frames to common columns
-          cohesive_network_filtered = cohesive_network_city_boundary[common_columns]
-          orcp_city_boundary_filtered = orcp_city_boundary[common_columns]
-
-          if (nrow(cohesive_network_filtered) != 0) {
-            grouped_network = rbind(cohesive_network_filtered, orcp_city_boundary_filtered)
-          } else {
-            grouped_network = orcp_city_boundary_filtered
-          }
-
-          # remove duplicate in grouped_network
-          grouped_network = grouped_network[!duplicated(grouped_network), ]
-
           # Use city name in the filename
-          corenet::create_coherent_network_PMtiles(folder_path = folder_path, city_filename = glue::glue("{city_filename}_{date_folder}_4"), cohesive_network = grouped_network|> sf::st_transform(4326))
+          corenet::create_coherent_network_PMtiles(folder_path = folder_path, city_filename = glue::glue("{city_filename}_{date_folder}_4"), cohesive_network = cohesive_network_city_boundary|> sf::st_transform(4326))
 
           message("Coherent network for: ", city, " generated successfully")
 
@@ -96,11 +62,12 @@ corenet_build_OSM = function(open_roads_scotland, osm_scotland, region_names) {
           network_params = list(
             key_attribute = "all_fastest_bicycle_go_dutch",
             crs = "EPSG:27700",
-            maxDistPts = 1500,
+            maxDistPts = c(1500, 2500, 3000),
             minDistPts = 2,
-            road_scores = list("A Road" = 1, "B Road" = 1, "Minor Road" = 100),
+            road_scores = list("primary" = 1, "primary_link" = 1, "secondary" = 1, "secondary_link" = 1, "pedestrian" = 1, "footway" = 1, "cycleway" = 1, "unclassified" = 100, "tertiary" = 100, "tertiary_link" = 100, "path" = 100),
             n_removeDangles = 6,
-            penalty_value = 1
+            penalty_value = 1,
+            group_column = "osm_id"
           )
 
           # Define the varying npt_threshold values
@@ -114,22 +81,22 @@ corenet_build_OSM = function(open_roads_scotland, osm_scotland, region_names) {
             thresholds = round(seq(max_value, min_value, by = step_size))
 
             # Generate the networks using varying npt_threshold
-            CN_networks = lapply(thresholds, function(threshold) {
-              message("Generating CN network for threshold: ", threshold)
+            CN_networks = Map(function(threshold, maxDistPt) { 
+              message("Generating CN network for threshold: ", threshold, " and maxDistPt: ", maxDistPt)
               corenet::corenet(
                 combined_net_city_boundary,
                 OSM_combined_net_city_boundary,
                 city_boundary,
                 key_attribute = network_params$key_attribute,
                 crs = network_params$crs,
-                maxDistPts = network_params$maxDistPts,
+                maxDistPts = maxDistPt,
                 minDistPts = network_params$minDistPts,
                 npt_threshold = threshold,
                 road_scores = network_params$road_scores,
                 n_removeDangles = network_params$n_removeDangles,
                 penalty_value = network_params$penalty_value
               )
-            })
+            }, thresholds, network_params$maxDistPts)
 
             # Process each generated network
             for (i in seq_along(CN_networks)) {
@@ -186,24 +153,26 @@ corenet_build_OSM = function(open_roads_scotland, osm_scotland, region_names) {
         osm_scotland_region_boundary = osm_scotland[sf::st_union(region_boundary), , op = sf::st_intersects]
 
 
-        OS_combined_net_region_boundary = corenet::cohesive_network_prep(
+        OSM_combined_net_region_boundary = corenet::cohesive_network_prep(
           base_network = osm_scotland_region_boundary,
           influence_network = combined_net_region_boundary,
           region_boundary,
           crs = "EPSG:27700",
           key_attribute = "highway",
-          attribute_values = c("A Road", "B Road")
+          attribute_values = c("primary", "primary_link", "secondary", "secondary_link", "tertiary", "tertiary_link")
         )
 
-        cohesive_network_region_boundary = corenet::corenet(combined_net_region_boundary, OS_combined_net_region_boundary, region_boundary,
+        OSM_combined_net_region_boundary = OSM_combined_net_region_boundary |> dplyr::rename(road_function = highway)
+
+        cohesive_network_region_boundary = corenet::corenet(combined_net_region_boundary, OSM_combined_net_region_boundary, region_boundary,
           key_attribute = "all_fastest_bicycle_go_dutch",
           crs = "EPSG:27700", maxDistPts = 10000, minDistPts = 2000, npt_threshold = min_percentile_value,
-          road_scores = list("A Road" = 1, "B Road" = 1), n_removeDangles = 6, penalty_value = 1000
+          road_scores = list("primary" = 1, "primary_link" = 1, "secondary" = 1, "secondary_link" = 1, "tertiary",= 10 "tertiary_link" = 10), n_removeDangles = 6, penalty_value = 1000, group_column = "osm_id"
         )
 
         cohesive_network_region_boundary = line_merge(
                         cohesive_network_region_boundary,
-                        OS_combined_net_region_boundary,
+                        OSM_combined_net_region_boundary,
                         combined_net_region_boundary
                         )
 
@@ -242,7 +211,7 @@ corenet_build_OSM = function(open_roads_scotland, osm_scotland, region_names) {
   # Loop through the subfolders and read GeoJSON files
   subfolders = list.dirs(output_folder, full.names = TRUE, recursive = FALSE)
   for (folder in subfolders) {
-    coherent_networks_path = file.path(folder, "coherent_networks")
+    coherent_networks_path = file.path(folder, "coherent_networks_OSM")
     geojson_files = list.files(coherent_networks_path, pattern = "\\.geojson$", full.names = TRUE)
 
     # Initialize a list to track files that have been matched to a number
@@ -279,7 +248,7 @@ corenet_build_OSM = function(open_roads_scotland, osm_scotland, region_names) {
       combined_sf = bind_rows(lapply(all_CN_geojson_groups[["4"]], function(x) x$data)) 
       buffered_sf = stplanr::geo_buffer(sf::st_union(combined_sf), crs = "EPSG:27700", dist = 20)
 
-      buffered_sf <- sf::st_transform(buffered_sf, crs = 27700)
+      buffered_sf = sf::st_transform(buffered_sf, crs = 27700)
 
       # Process general matched files
       for (geojson_file in LAs_link_geojson_files) {

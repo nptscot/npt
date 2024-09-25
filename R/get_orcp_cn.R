@@ -503,23 +503,6 @@ find_orcp_path = function(orcp_city_boundary, cohesive_network_city_boundary, OS
 
         combined_orcp_path_sf_filtered = combined_orcp_path_sf |>
           filter(st_intersects(geometry, summarized_data$geometry, sparse = FALSE) |> apply(1, any))
-  
-        # tryCatch({
-        #   combined_orcp_path_sf_filtered = combined_orcp_path_sf_filtered |> 
-        #   dplyr::select(-all_fastest_bicycle_go_dutch) |>
-        #   dplyr::rename(all_fastest_bicycle_go_dutch = mean_all_fastest_bicycle_go_dutch)
-        # }, error = function(e) {
-        #   message(sprintf("Error renaming column: %s", e$message))
-        #   print(names(combined_orcp_path_sf_filtered))
-        # })
-        
-        # tryCatch({
-        #   orcp_city_boundary = orcp_city_boundary %>% dplyr::rename(all_fastest_bicycle_go_dutch = mean_all_fastest_bicycle_go_dutch)
-        # }, error = function(e) {
-        #   message(sprintf("Error renaming column: %s", e$message))
-        #   print(names(orcp_city_boundary))
-        # })
-
 
         missing_columns = setdiff(names(combined_orcp_path_sf), names(orcp_city_boundary))
 
@@ -553,10 +536,6 @@ find_orcp_path = function(orcp_city_boundary, cohesive_network_city_boundary, OS
 
 
 line_merge = function(cohesive_network_city_boundary, OS_combined_net_city_boundary, combined_net_city_boundary) {
-
-cohesive_network_city_boundary = sf::st_transform(cohesive_network_city_boundary, crs = 27700)
-OS_combined_net_city_boundary = sf::st_transform(OS_combined_net_city_boundary, crs = 27700)
-combined_net_city_boundary = sf::st_transform(combined_net_city_boundary, crs = 27700)
 
 buffer = sf::st_buffer(cohesive_network_city_boundary, dist = 1)
 os_buffer = OS_combined_net_city_boundary[sf::st_union(buffer), , op = sf::st_within]
