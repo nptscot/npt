@@ -182,7 +182,7 @@ corenet_build_OSM = function(osm_scotland, region_names) {
         # grouped_network = grouped_network |>
         #   dplyr::rename(all_fastest_bicycle_go_dutch = mean_potential)
         # Use city name in the filename
-        corenet::create_coherent_network_PMtiles(folder_path = folder_path, city_filename = glue::glue("{region_snake}_{date_folder}"), cohesive_network = grouped_network)
+        corenet::create_coherent_network_PMtiles(folder_path = folder_path, city_filename = glue::glue("{region_snake}_{date_folder}"), cohesive_network = cohesive_network_region_boundary |> sf::st_transform(4326))
 
         message("Coherent network link for: ", region, " generated successfully")
 
