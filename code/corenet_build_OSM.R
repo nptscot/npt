@@ -33,7 +33,7 @@ corenet_build_OSM = function(osm_scotland, region_names) {
 
           osm_scotland_city_boundary = osm_scotland[sf::st_union(city_boundary), , op = sf::st_intersects]
 
-          OSM_combined_net_city_boundary = corenet::cohesive_network_prep(
+          osm_combined_net_city_boundary = corenet::cohesive_network_prep(
             base_network = osm_scotland_city_boundary,
             influence_network = combined_net_city_boundary,
             city_boundary,
@@ -42,15 +42,15 @@ corenet_build_OSM = function(osm_scotland, region_names) {
             attribute_values = c("primary", "primary_link", "secondary", "secondary_link", "tertiary", "tertiary_link", "unclassified", "pedestrian", "footway", "cycleway",  "path")
           )
 
-          OSM_combined_net_city_boundary = OSM_combined_net_city_boundary |> dplyr::rename(road_function = highway)
+          osm_combined_net_city_boundary = osm_combined_net_city_boundary |> dplyr::rename(road_function = highway)
 
-          cohesive_network_city_boundary = corenet::corenet(combined_net_city_boundary, OSM_combined_net_city_boundary, city_boundary,
+          cohesive_network_city_boundary = corenet::corenet(combined_net_city_boundary, osm_combined_net_city_boundary, city_boundary,
             key_attribute = "all_fastest_bicycle_go_dutch",
             crs = "EPSG:27700", maxDistPts = 3000, minDistPts = 2, npt_threshold = min_percentile_value,
             road_scores = list("primary" = 1, "primary_link" = 1, "secondary" = 1, "secondary_link" = 1, "pedestrian" = 1, "footway" = 1, "cycleway" = 1, "unclassified" = 10, "tertiary" = 10, "tertiary_link" = 10, "path" = 100), n_removeDangles = 6, penalty_value = 1, group_column = "name"
           )
 
-          cohesive_network_city_boundary = line_merge(cohesive_network_city_boundary, OSM_combined_net_city_boundary, combined_net_city_boundary, group_column = "name")
+          cohesive_network_city_boundary = line_merge(cohesive_network_city_boundary, osm_combined_net_city_boundary, combined_net_city_boundary, group_column = "name")
 
           # Use city name in the filename
           corenet::create_coherent_network_PMtiles(folder_path = folder_path, city_filename = glue::glue("{city_filename}_{date_folder}_4"), cohesive_network = cohesive_network_city_boundary|> sf::st_transform(4326))
@@ -72,7 +72,7 @@ corenet_build_OSM = function(osm_scotland, region_names) {
 
           # Define the varying npt_threshold values
           max_value = round(stats::quantile(combined_net_city_boundary$all_fastest_bicycle_go_dutch, probs = 0.99, na.rm = TRUE))
-          min_value = round(stats::quantile(combined_net_city_boundary$all_fastest_bicycle_go_dutch, probs = 0.94, na.rm = TRUE))
+          min_value = round(stats::quantile(combined_net_city_boundary$all_fastest_bicycle_go_dutch, probs = 0.95, na.rm = TRUE))
 
           
           if (min_value > 50) {
@@ -85,7 +85,7 @@ corenet_build_OSM = function(osm_scotland, region_names) {
               message("Generating CN network for threshold: ", threshold, " and maxDistPt: ", maxDistPt)
               corenet::corenet(
                 combined_net_city_boundary,
-                OSM_combined_net_city_boundary,
+                osm_combined_net_city_boundary,
                 city_boundary,
                 key_attribute = network_params$key_attribute,
                 crs = network_params$crs,
@@ -94,7 +94,8 @@ corenet_build_OSM = function(osm_scotland, region_names) {
                 npt_threshold = threshold,
                 road_scores = network_params$road_scores,
                 n_removeDangles = network_params$n_removeDangles,
-                penalty_value = network_params$penalty_value
+                penalty_value = network_params$penalty_value,
+                group_column = network_params$group_column
               )
             }, thresholds, network_params$maxDistPts)
 
@@ -104,8 +105,9 @@ corenet_build_OSM = function(osm_scotland, region_names) {
 
               cn = line_merge(
                               cn,
-                              OSM_combined_net_city_boundary,
-                              combined_net_city_boundary
+                              osm_combined_net_city_boundary,
+                              combined_net_city_boundary,
+                              group_column = "name"
                               )
 
               # grouped_network = corenet::coherent_network_group(cn, key_attribute = "all_fastest_bicycle_go_dutch")
@@ -151,7 +153,7 @@ corenet_build_OSM = function(osm_scotland, region_names) {
 
         osm_scotland_region_boundary = osm_scotland[sf::st_union(region_boundary), , op = sf::st_intersects]
 
-        OSM_combined_net_region_boundary = corenet::cohesive_network_prep(
+        osm_combined_net_region_boundary = corenet::cohesive_network_prep(
           base_network = osm_scotland_region_boundary,
           influence_network = combined_net_region_boundary,
           region_boundary,
@@ -160,9 +162,9 @@ corenet_build_OSM = function(osm_scotland, region_names) {
           attribute_values = c("primary", "primary_link", "secondary", "secondary_link")
         )
 
-        OSM_combined_net_region_boundary = OSM_combined_net_region_boundary |> dplyr::rename(road_function = highway)
+        osm_combined_net_region_boundary = osm_combined_net_region_boundary |> dplyr::rename(road_function = highway)
 
-        cohesive_network_region_boundary = corenet::corenet(combined_net_region_boundary, OSM_combined_net_region_boundary, region_boundary,
+        cohesive_network_region_boundary = corenet::corenet(combined_net_region_boundary, osm_combined_net_region_boundary, region_boundary,
           key_attribute = "all_fastest_bicycle_go_dutch",
           crs = "EPSG:27700", maxDistPts = 10000, minDistPts = 2000, npt_threshold = min_percentile_value,
           road_scores = list("primary" = 1, "primary_link" = 1, "secondary" = 1, "secondary_link" = 1), n_removeDangles = 6, penalty_value = 1000, group_column = "name"
@@ -170,8 +172,9 @@ corenet_build_OSM = function(osm_scotland, region_names) {
 
         cohesive_network_region_boundary = line_merge(
                         cohesive_network_region_boundary,
-                        OSM_combined_net_region_boundary,
-                        combined_net_region_boundary
+                        osm_combined_net_region_boundary,
+                        combined_net_region_boundary,
+                        group_column = "name"
                         )
 
         # grouped_network = corenet::coherent_network_group(cohesive_network_region_boundary, key_attribute = "all_fastest_bicycle_go_dutch", n_group = 30)
