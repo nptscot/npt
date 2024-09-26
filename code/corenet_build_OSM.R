@@ -1,4 +1,4 @@
-corenet_build_OSM = function(open_roads_scotland, osm_scotland, region_names) {
+corenet_build_OSM = function(osm_scotland, region_names) {
 
   message("Generate the city's coherent network for each region with growing")
 
@@ -47,10 +47,10 @@ corenet_build_OSM = function(open_roads_scotland, osm_scotland, region_names) {
           cohesive_network_city_boundary = corenet::corenet(combined_net_city_boundary, OSM_combined_net_city_boundary, city_boundary,
             key_attribute = "all_fastest_bicycle_go_dutch",
             crs = "EPSG:27700", maxDistPts = 3000, minDistPts = 2, npt_threshold = min_percentile_value,
-            road_scores = list("primary" = 1, "primary_link" = 1, "secondary" = 1, "secondary_link" = 1, "pedestrian" = 1, "footway" = 1, "cycleway" = 1, "unclassified" = 100, "tertiary" = 100, "tertiary_link" = 100, "path" = 100), n_removeDangles = 6, penalty_value = 1, group_column = "osm_id"
+            road_scores = list("primary" = 1, "primary_link" = 1, "secondary" = 1, "secondary_link" = 1, "pedestrian" = 1, "footway" = 1, "cycleway" = 1, "unclassified" = 10, "tertiary" = 10, "tertiary_link" = 10, "path" = 100), n_removeDangles = 6, penalty_value = 1, group_column = "name"
           )
-mapview::mapview(cohesive_network_city_boundary)
-          cohesive_network_city_boundary = line_merge(cohesive_network_city_boundary, OSM_combined_net_city_boundary, combined_net_city_boundary)
+
+          cohesive_network_city_boundary = line_merge(cohesive_network_city_boundary, OSM_combined_net_city_boundary, combined_net_city_boundary, group_column = "name")
 
           # Use city name in the filename
           corenet::create_coherent_network_PMtiles(folder_path = folder_path, city_filename = glue::glue("{city_filename}_{date_folder}_4"), cohesive_network = cohesive_network_city_boundary|> sf::st_transform(4326))
@@ -67,7 +67,7 @@ mapview::mapview(cohesive_network_city_boundary)
             road_scores = list("primary" = 1, "primary_link" = 1, "secondary" = 1, "secondary_link" = 1, "pedestrian" = 1, "footway" = 1, "cycleway" = 1, "unclassified" = 100, "tertiary" = 100, "tertiary_link" = 100, "path" = 100),
             n_removeDangles = 6,
             penalty_value = 1,
-            group_column = "osm_id"
+            group_column = "name"
           )
 
           # Define the varying npt_threshold values
@@ -107,14 +107,14 @@ mapview::mapview(cohesive_network_city_boundary)
                               OSM_combined_net_city_boundary,
                               combined_net_city_boundary
                               )
-              threshold = thresholds[i]  # Access the corresponding threshold for each network
-              grouped_network = corenet::coherent_network_group(cn, key_attribute = "all_fastest_bicycle_go_dutch")
+
+              # grouped_network = corenet::coherent_network_group(cn, key_attribute = "all_fastest_bicycle_go_dutch")
               # grouped_network = grouped_network |> dplyr::rename(all_fastest_bicycle_go_dutch = mean_potential)
 
               # Use city name and threshold in the filename, using the correct threshold
               city_filename = glue::glue("{snakecase::to_snake_case(city)}_{date_folder}_{i}")
-              corenet::create_coherent_network_PMtiles(folder_path = folder_path, city_filename = city_filename, cohesive_network = grouped_network)
-              message("Coherent network for: ", city, " with threshold ", threshold, " generated successfully")
+              corenet::create_coherent_network_PMtiles(folder_path = folder_path, city_filename = city_filename, cohesive_network = cn |> sf::st_transform(4326))
+              message("Coherent network for: ", city, " with threshold ", thresholds[i] , " generated successfully")
             }
           } else {
             message("Min value is not greater than 50 Code execution skipped.")
@@ -139,7 +139,6 @@ mapview::mapview(cohesive_network_city_boundary)
       dir.create(folder_path, recursive = TRUE)
     }
 
-
     tryCatch(
       {
         message("Generating coherent network links for: ", region)
@@ -152,14 +151,13 @@ mapview::mapview(cohesive_network_city_boundary)
 
         osm_scotland_region_boundary = osm_scotland[sf::st_union(region_boundary), , op = sf::st_intersects]
 
-
         OSM_combined_net_region_boundary = corenet::cohesive_network_prep(
           base_network = osm_scotland_region_boundary,
           influence_network = combined_net_region_boundary,
           region_boundary,
           crs = "EPSG:27700",
           key_attribute = "highway",
-          attribute_values = c("primary", "primary_link", "secondary", "secondary_link", "tertiary", "tertiary_link")
+          attribute_values = c("primary", "primary_link", "secondary", "secondary_link")
         )
 
         OSM_combined_net_region_boundary = OSM_combined_net_region_boundary |> dplyr::rename(road_function = highway)
@@ -167,7 +165,7 @@ mapview::mapview(cohesive_network_city_boundary)
         cohesive_network_region_boundary = corenet::corenet(combined_net_region_boundary, OSM_combined_net_region_boundary, region_boundary,
           key_attribute = "all_fastest_bicycle_go_dutch",
           crs = "EPSG:27700", maxDistPts = 10000, minDistPts = 2000, npt_threshold = min_percentile_value,
-          road_scores = list("primary" = 1, "primary_link" = 1, "secondary" = 1, "secondary_link" = 1, "tertiary",= 10 "tertiary_link" = 10), n_removeDangles = 6, penalty_value = 1000, group_column = "osm_id"
+          road_scores = list("primary" = 1, "primary_link" = 1, "secondary" = 1, "secondary_link" = 1), n_removeDangles = 6, penalty_value = 1000, group_column = "name"
         )
 
         cohesive_network_region_boundary = line_merge(
@@ -176,10 +174,10 @@ mapview::mapview(cohesive_network_city_boundary)
                         combined_net_region_boundary
                         )
 
-        grouped_network = corenet::coherent_network_group(cohesive_network_region_boundary, key_attribute = "all_fastest_bicycle_go_dutch", n_group = 30)
+        # grouped_network = corenet::coherent_network_group(cohesive_network_region_boundary, key_attribute = "all_fastest_bicycle_go_dutch", n_group = 30)
         # rename mean_potential in grouped_network as all_fastest_bicycle_go_dutch
-        grouped_network = grouped_network |>
-          dplyr::rename(all_fastest_bicycle_go_dutch = mean_potential)
+        # grouped_network = grouped_network |>
+        #   dplyr::rename(all_fastest_bicycle_go_dutch = mean_potential)
         # Use city name in the filename
         corenet::create_coherent_network_PMtiles(folder_path = folder_path, city_filename = glue::glue("{region_snake}_{date_folder}"), cohesive_network = grouped_network)
 
@@ -243,7 +241,7 @@ mapview::mapview(cohesive_network_city_boundary)
       # Define a pattern for files with the date but without a specific number
       LAs_link_geojson = sprintf(".*_%s_coherent_network\\.geojson$", date_folder)
       # Identify files that match the general pattern but are not in the number-specific list
-      LAs_link_geojson_files = setdiff(grep(LAs_link_geojson, geojson_files, value = TRUE), matched_files)
+      LAs_link_geojson_files = grep(LAs_link_geojson, geojson_files, value = TRUE)
       
       combined_sf = bind_rows(lapply(all_CN_geojson_groups[["4"]], function(x) x$data)) 
       buffered_sf = stplanr::geo_buffer(sf::st_union(combined_sf), crs = "EPSG:27700", dist = 20)

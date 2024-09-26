@@ -238,22 +238,22 @@ system(pmtiles_msg)
 # Read the open roads data outside the loop for only once
 
 if (parameters$generate_CN_start) {
-  file_path = "inputdata/open_roads_scotland.gpkg"
-  if (!file.exists(file_path)) {
+  os_file_path = "inputdata/open_roads_scotland.gpkg"
+  if (!file.exists(os_file_path)) {
     setwd("inputdata")
     system("gh release download OS_network --skip-existing")
     setwd("..")
   }
-  open_roads_scotland = sf::read_sf(file_path)
-  sf::st_geometry(open_roads_scotland) = "geometry"
+  os_scotland = sf::read_sf(os_file_path)
+  sf::st_geometry(os_scotland) = "geometry"
 
-  file_path = "inputdata/connectivity_fixed_osm.gpkg"
-  if (!file.exists(file_path)) {
+  osm_file_path = "inputdata/connectivity_fixed_osm.gpkg"
+  if (!file.exists(osm_file_path)) {
     setwd("inputdata")
     system("gh release download OSM_fixed --skip-existing")
     setwd("..")
   }
-  osm_scotland = sf::read_sf(file_path)
+  osm_scotland = sf::read_sf(osm_file_path)
   sf::st_geometry(osm_scotland) = "geometry"
 
   # num_cores = min(parallel::detectCores() - 1, 10)
@@ -261,11 +261,19 @@ if (parameters$generate_CN_start) {
   # Generate the coherent network for the region
   # foreach(region = region_names) %dopar% {
   message("Running corenet_build function")
-  source("code/corenet_build_OS.R")
-  corenet_build_OS(open_roads_scotland, osm_scotland, region_names)
+  if (parameters$coherent_sources == "OS") {
+      source("code/corenet_build_OS.R")
+      corenet_build_OS(os_scotland, osm_scotland, region_names)
+  } else if (parameters$coherent_sources == "OSM") {
+      source("code/corenet_build_OSM.R")
+      corenet_build_OSM(osm_scotland, region_names)
+  } else {
+      stop("Invalid value for parameters$coherent_sources. Expected 'OS' or 'OSM'.")
+  }
 } else {
   message("parameters$generate_CN_start is FALSE, skipping corenet_build.")
 }
+
 # Combine regional outputs ---------------------------------------------------
 
 # Combine regional route networks:
@@ -274,7 +282,7 @@ combined_network_list = lapply(subfolders, function(folder) {
   combined_network_file = paste0(folder, "/combined_network_tile.geojson")
   if (file.exists(combined_network_file)) {
     network = sf::read_sf(combined_network_file)
-  }
+  } # nolint
 })
 # TODO: try with stplanr:::bind_sf(combined_network_list)
 combined_network = dplyr::bind_rows(combined_network_list)
