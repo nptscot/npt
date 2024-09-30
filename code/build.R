@@ -255,16 +255,10 @@ if (parameters$generate_CN_start) {
   osm_scotland = sf::read_sf(osm_file_path)
   sf::st_geometry(osm_scotland) = "geometry"
 
-  # num_cores = min(parallel::detectCores() - 1, 10)
-  # registerDoParallel(num_cores)
-  # Generate the coherent network for the region
-  # foreach(region = region_names) %dopar% {
   message("Running corenet_build function")
   if (parameters$coherent_sources == "OS") {
-      source("code/corenet_build_OS.R")
       corenet_build_OS(os_scotland, osm_scotland, region_names)
   } else if (parameters$coherent_sources == "OSM") {
-      source("code/corenet_build_OSM.R")
       corenet_build_OSM(osm_scotland, region_names)
   } else {
       stop("Invalid value for parameters$coherent_sources. Expected 'OS' or 'OSM'.")
