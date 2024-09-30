@@ -44,7 +44,6 @@ for (region in region_names[1:6]) {
 
 # CbD classification of networks ---------------------------------------------
 
-remotes::install_github("nptscot/osmactive")
 library(osmactive)
 # See https://github.com/nptscot/osmactive/blob/main/code/classify-roads.R and traffic-volumes.R
 f_traffic = "scottraffic/final_estimates_Scotland_higherror_discarded.gpkg"
