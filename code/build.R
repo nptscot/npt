@@ -8,7 +8,6 @@ library(foreach)
 library(iterators)
 library(parallel)
 library(doParallel)
-source("R/get_orcp_cn.R")
 tar_source()
 
 parameters = jsonlite::read_json("parameters.json", simplifyVector = T)
