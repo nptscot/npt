@@ -1,4 +1,4 @@
-corenet_build_OSM = function(osm_scotland, region_names) {
+corenet_build_OSM = function(osm_scotland, region_names, cities_region_names) {
 
   message("Generate the city's coherent network for each region with growing")
 

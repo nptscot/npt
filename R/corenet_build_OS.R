@@ -1,4 +1,4 @@
-corenet_build_OS = function(os_scotland, osm_scotland, region_names) {
+corenet_build_OS = function(os_scotland, osm_scotland, region_names,cities_region_names) {
 
   message("Generate the city's coherent network for each region with growing")
 
@@ -171,6 +171,10 @@ corenet_build_OS = function(os_scotland, osm_scotland, region_names) {
     message("Processing coherent network links for region: ", region)
     region_snake = snakecase::to_snake_case(region)
 
+    cnet_path = file.path(output_folder, region_snake, "combined_network_tile.geojson")
+    combined_net = sf::read_sf(cnet_path) |>
+      sf::st_transform(crs = "EPSG:27700")
+      
     folder_path = file.path(output_folder, region_snake, "coherent_networks_OS/")
 
     if (!dir.exists(folder_path)) {
