@@ -201,9 +201,7 @@ corenet_build_OS = function(os_scotland, osm_scotland, region_names,cities_regio
       attribute_values = c("A Road", "B Road")
     )
 
-    os_combined_net_region_boundary = os_combined_net_region_boundary[os_combined_net_region_boundary$form_of_way != "Slip Road" &
-      os_combined_net_region_boundary$form_of_way != "Collapsed Dual Carriageway", 
-    ]
+    os_combined_net_region_boundary = os_combined_net_region_boundary[os_combined_net_region_boundary$form_of_way != "Slip Road", ]
 
     cohesive_network_region_boundary = corenet::corenet(combined_net_region_boundary, os_combined_net_region_boundary, region_boundary,
       key_attribute = "all_fastest_bicycle_go_dutch",
