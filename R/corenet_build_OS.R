@@ -167,14 +167,14 @@ corenet_build_OS = function(os_scotland, osm_scotland, region_names,cities_regio
 
   message("Generate the links coherent network for the LAs")
   # foreach(region = region_names) %dopar% {
-  for (region in region_names) {
+  for (region in region_names[5]) {
     message("Processing coherent network links for region: ", region)
     region_snake = snakecase::to_snake_case(region)
 
     cnet_path = file.path(output_folder, region_snake, "combined_network_tile.geojson")
     combined_net = sf::read_sf(cnet_path) |>
       sf::st_transform(crs = "EPSG:27700")
-      
+
     folder_path = file.path(output_folder, region_snake, "coherent_networks_OS/")
 
     if (!dir.exists(folder_path)) {
@@ -182,48 +182,48 @@ corenet_build_OS = function(os_scotland, osm_scotland, region_names,cities_regio
     }
 
 
-      message("Generating coherent network links for: ", region)
-      region_boundary = dplyr::filter(lads, Region == region) |>
-        sf::st_transform(crs = "EPSG:27700")
+    message("Generating coherent network links for: ", region)
+    region_boundary = dplyr::filter(lads, Region == region) |>
+      sf::st_transform(crs = "EPSG:27700")
 
-      combined_net_region_boundary = combined_net[sf::st_union(region_boundary), , op = sf::st_intersects]
+    combined_net_region_boundary = combined_net[sf::st_union(region_boundary), , op = sf::st_intersects]
 
-      min_percentile_value = stats::quantile(combined_net_region_boundary$all_fastest_bicycle_go_dutch, probs = parameters$coherent_percentile[2], na.rm = TRUE)
+    min_percentile_value = stats::quantile(combined_net_region_boundary$all_fastest_bicycle_go_dutch, probs = parameters$coherent_percentile[2], na.rm = TRUE)
 
-      os_scotland_region_boundary = os_scotland[sf::st_union(region_boundary), , op = sf::st_intersects]
+    os_scotland_region_boundary = os_scotland[sf::st_union(region_boundary), , op = sf::st_intersects]
 
-      os_combined_net_region_boundary = corenet::cohesive_network_prep(
-        base_network = os_scotland_region_boundary,
-        influence_network = combined_net_region_boundary,
-        region_boundary,
-        crs = "EPSG:27700",
-        key_attribute = "road_function",
-        attribute_values = c("A Road", "B Road")
-      )
+    os_combined_net_region_boundary = corenet::cohesive_network_prep(
+      base_network = os_scotland_region_boundary,
+      influence_network = combined_net_region_boundary,
+      region_boundary,
+      crs = "EPSG:27700",
+      key_attribute = "road_function",
+      attribute_values = c("A Road", "B Road")
+    )
 
-      os_combined_net_region_boundary = os_combined_net_region_boundary[os_combined_net_region_boundary$form_of_way != "Slip Road" &
-        os_combined_net_region_boundary$form_of_way != "Collapsed Dual Carriageway", 
-      ]
+    os_combined_net_region_boundary = os_combined_net_region_boundary[os_combined_net_region_boundary$form_of_way != "Slip Road" &
+      os_combined_net_region_boundary$form_of_way != "Collapsed Dual Carriageway", 
+    ]
 
-      cohesive_network_region_boundary = corenet::corenet(combined_net_region_boundary, os_combined_net_region_boundary, region_boundary,
-        key_attribute = "all_fastest_bicycle_go_dutch",
-        crs = "EPSG:27700", maxDistPts = 15000, minDistPts = 1, npt_threshold = min_percentile_value,
-        road_scores = list("A Road" = 1, "B Road" = 1), n_removeDangles = 6, penalty_value = c(100, 10, 10), group_column = "name_1"
-      )
+    cohesive_network_region_boundary = corenet::corenet(combined_net_region_boundary, os_combined_net_region_boundary, region_boundary,
+      key_attribute = "all_fastest_bicycle_go_dutch",
+      crs = "EPSG:27700", maxDistPts = 15000, minDistPts = 1, npt_threshold = min_percentile_value,
+      road_scores = list("A Road" = 1, "B Road" = 1), n_removeDangles = 6, penalty_value = 100000, group_column = "name_1"
+    )
 
-      cohesive_network_region_boundary = line_merge(
-                      cohesive_network_region_boundary,
-                      os_combined_net_region_boundary,
-                      combined_net_region_boundary, 
-                      group_column = "name_1"
-                      ) 
+    cohesive_network_region_boundary = line_merge(
+                    cohesive_network_region_boundary,
+                    os_combined_net_region_boundary,
+                    combined_net_region_boundary, 
+                    group_column = "name_1"
+                    ) 
 
-      cohesive_network_region_boundary = cohesive_network_region_boundary |> select(name_1, all_fastest_bicycle_go_dutch, geometry)
+    cohesive_network_region_boundary = cohesive_network_region_boundary |> select(name_1, all_fastest_bicycle_go_dutch, geometry)
 
-      corenet::create_coherent_network_PMtiles(folder_path = folder_path, city_filename = glue::glue("{region_snake}_{date_folder}"), cohesive_network = cohesive_network_region_boundary |> sf::st_transform(4326))
+    corenet::create_coherent_network_PMtiles(folder_path = folder_path, city_filename = glue::glue("{region_snake}_{date_folder}"), cohesive_network = cohesive_network_region_boundary |> sf::st_transform(4326))
 
-      message("Coherent network link for: ", region, " generated successfully")
-    
+    message("Coherent network link for: ", region, " generated successfully")
+  
   }
 
 
