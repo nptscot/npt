@@ -256,9 +256,9 @@ if (parameters$generate_CN_start) {
 
   message("Running corenet_build function")
   if (parameters$coherent_sources == "OS") {
-      corenet_build_OS(os_scotland, osm_scotland, region_names)
+      corenet_build_OS(os_scotland, osm_scotland, region_names,cities_region_names)
   } else if (parameters$coherent_sources == "OSM") {
-      corenet_build_OSM(osm_scotland, region_names)
+      corenet_build_OSM(osm_scotland, region_names,cities_region_names)
   } else {
       stop("Invalid value for parameters$coherent_sources. Expected 'OS' or 'OSM'.")
   }
@@ -269,6 +269,8 @@ if (parameters$generate_CN_start) {
 # Combine regional outputs ---------------------------------------------------
 
 # Combine regional route networks:
+subfolders = list.dirs(output_folder, full.names = TRUE, recursive = FALSE)
+
 combined_network_list = lapply(subfolders, function(folder) {
   message(glue::glue("Processing folder: {folder}"))
   combined_network_file = paste0(folder, "/combined_network_tile.geojson")
@@ -288,7 +290,7 @@ dim(combined_network) # ~700k rows for full build, 33 columns
 sf::write_sf(combined_network, file.path(output_folder, "combined_network_tile.geojson"), delete_dsn = TRUE)
 
 # Same for simplified_network.geojson:
-simplified_network_list = lapply(output_folders, function(folder) {
+simplified_network_list = lapply(subfolders, function(folder) {
   simplified_network_file = paste0(folder, "/simplified_network.geojson")
   if (file.exists(simplified_network_file)) {
     network = sf::read_sf(simplified_network_file)

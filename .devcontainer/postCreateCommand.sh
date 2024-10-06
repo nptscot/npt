@@ -24,6 +24,9 @@ command -v cargo
 # Install odjitter using cargo
 cargo install --git https://github.com/dabreegster/odjitter --rev 32fb58bf7f0d68afd3b76b88cf6b1272c5c66828
 
+sudo ln -s /root/.cargo/bin/rustc /usr/local/bin/rustc
+sudo ln -s /root/.cargo/bin/cargo /usr/local/bin/cargo
+
 # Ensure R is installed and execute the R script
 Rscript code/install.R
 

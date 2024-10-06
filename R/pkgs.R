@@ -19,6 +19,8 @@ get_pkgs = function() {
   "stplanr", # For sustainable transport planning
   "targets", # For managing targets in a workflow
   "tidyverse", # Includes dplyr, ggplot2, tidyr, stringr etc.
-  "zonebuilder" # For creating zones for spatial analysis
+  "zonebuilder", # For creating zones for spatial analysis
+  "iterators", # For creating iterators
+  "doParallel", # For parallel processing
   )
 }
