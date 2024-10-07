@@ -11,9 +11,6 @@ set -euxo pipefail
 # Check the Linux distro we're running:
 cat /etc/os-release
 
-# Install Rust:
-curl https://sh.rustup.rs -sSf | sh -s -- -y
-
 # Add cargo to the path both temporarily and permanently:
 export PATH="$HOME/.cargo/bin:$PATH"
 echo 'export PATH="$HOME/.cargo/bin:$PATH"' >> ~/.profile
@@ -23,6 +20,9 @@ command -v cargo
 
 # Install odjitter using cargo
 cargo install --git https://github.com/dabreegster/odjitter --rev 32fb58bf7f0d68afd3b76b88cf6b1272c5c66828
+# Add local instance of odjitter to the /usr/local/bin directory:
+which odjitter
+sudo ln -s ~/.cargo/bin/odjitter /usr/local/bin/odjitter
 
 # Ensure R is installed and execute the R script
 Rscript code/install.R
@@ -44,15 +44,5 @@ make -j$(nproc)
 sudo make install
 tippecanoe --version
 
-# Add local instance of odjitter to the /usr/local/bin directory:
-which odjitter
-sudo ln -s ~/.cargo/bin/odjitter /usr/local/bin/odjitter
-
 # Make sure there's a newline at the end of the script
 echo "Script execution completed successfully."
-
-ls -hal ~/.cargo/bin/odjitter
-
-sudo ln -s ~/.cargo/bin/odjitter /usr/local/bin/odjitter
-
-sudo apt install gh

@@ -6,6 +6,12 @@ source("R/pkgs.R")
 pkgs = get_pkgs()
 remotes::install_cran(pkgs)
 
+# rsgeo
+install.packages(
+  'rsgeo', 
+  repos = c('https://josiahparry.r-universe.dev', 'https://cloud.r-project.org')
+)
+
 # Repeated builds can it GitHub API limit, set to TRUE in _targets.R to check for package updates
 if (update_github_packages) {
   remotes::install_dev("cyclestreets")
@@ -16,4 +22,5 @@ if (update_github_packages) {
   remotes::install_dev("od")
   remotes::install_dev("osmextract")
   remotes::install_github("nptscot/corenet")
+  remotes::install_github("nptscot/osmactive")
 }

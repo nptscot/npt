@@ -2,13 +2,14 @@
   "plans": ["fastest", "balanced", "quietest", "ebike"],
   "min_flow": [1],
   "max_to_route": [1000000],
-  "date_routing": ["2024-09-01"],
+  "date_routing": ["2024-10-01"],
   "geo_subset": [false],
   "open_data_build": [false],
   "disag_threshold": [100],
   "min_distance_meters": [500],
   "region_buffer_distance_meters": [5000],
-  "region": ["Glasgow and Strathclyde"],
+  "region": ["Highlands and Islands"],
   "generate_CN_start": [true],
-  "coherent_percentile": [0.94]
+  "coherent_sources": ["OS"],
+  "coherent_percentile": [0.94, 0.9]
 }
