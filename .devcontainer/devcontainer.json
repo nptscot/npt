@@ -31,7 +31,7 @@
 	// "remoteUser": "root"
 
 	// Run the script install-additional-dependencies.sh:
-	"postCreateCommand": "bash ./.devcontainer/postCreateCommand.sh"
+	"postCreateCommand": "apt-get update && apt-get install -y dos2unix && dos2unix ./.devcontainer/postCreateCommand.sh && bash ./.devcontainer/postCreateCommand.sh"
 
 }
 
