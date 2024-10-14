@@ -324,9 +324,13 @@ if (length(all_zones_tile_files) > 0) {
   # Combine the GeoJSON files
   combined_zones_tiles = do.call(rbind, zones_tiles)
   
-  # Write the combined GeoJSON file to the output folder
-  sf::write_sf(combined_zones_tiles, file.path(output_folder, glue::glue("data_zones_{date_folder}.geojson")), delete_dsn = TRUE)
+  # Define the output file name
+  output_file = file.path(output_folder, glue::glue("data_zones_{date_folder}.geojson"))
   
+  # Write the combined GeoJSON file to the output folder
+  sf::write_sf(combined_zones_tiles, output_file, delete_dsn = TRUE)
+  
+  # Message to indicate successful file saving
   message(glue::glue("Combined geojson file saved: {output_file}"))
 } else {
   message("No geojson files found in any of the specified folders.")
@@ -517,6 +521,8 @@ b_med = read_TEAMS("open_data/os_buildings/buildings_med_lsoa_split.Rds")
 b_high = read_TEAMS("open_data/os_buildings/buildings_high_lsoa_split.Rds")
 # TODO: Check zones_tile
 zones = sf::st_drop_geometry(zones_tiles)
+zones = do.call(rbind, zones) 
+zones = sf::st_set_geometry(zones, NULL)
 b_verylow = dplyr::left_join(b_verylow, zones, by = c("geo_code" = "DataZone"))
 b_low = dplyr::left_join(b_low, zones, by = c("geo_code" = "DataZone"))
 b_med = dplyr::left_join(b_med, zones, by = c("geo_code" = "DataZone"))
@@ -581,6 +587,7 @@ tippecanoe_high = paste(
   "--attribution=OS",
   "-zg",
   "--minimum-zoom=15",
+  "--maximum-zoom=15",
   "--extend-zooms-if-still-dropping",
   "--coalesce-smallest-as-needed",
   "--detect-shared-borders",
@@ -601,7 +608,7 @@ tippecanoe_join = paste(
 )
 responce = system(tippecanoe_join, intern = TRUE)
 if (.Platform$OS.type == "unix") {
-  command_cd = glue::glue("cd outputdata/{output_folder}")
+  command_cd = glue::glue("outputdata/{output_folder}")
   command_all = paste(c(
     command_cd, tippecanoe_verylow, tippecanoe_low,
     tippecanoe_med, tippecanoe_high, tippecanoe_join
