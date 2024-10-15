@@ -539,20 +539,20 @@ find_orcp_path = function(orcp_city_boundary, cohesive_network_city_boundary, OS
 }
 
 
-line_merge = function(cohesive_network_city_boundary, OS_combined_net_city_boundary, combined_net_city_boundary, group_column = "name_1") {
+line_merge = function(cohesive_network_city_boundary, os_combined_net_city_boundary, combined_net_city_boundary, group_column = "name_1") {
 
   buffer = sf::st_buffer(cohesive_network_city_boundary, dist = 1)
-  os_buffer = OS_combined_net_city_boundary[sf::st_union(buffer), , op = sf::st_within]
+  os_buffer = os_combined_net_city_boundary[sf::st_union(buffer), , op = sf::st_within]
 
   os_buffer_NPT = stplanr::rnet_merge(os_buffer, combined_net_city_boundary, , max_angle_diff = 10, dist = 15, funs = list(all_fastest_bicycle_go_dutch = mean))    
 
-  os_buffer_NPT = corenet::removeDangles(os_buffer_NPT,6)
 
   os_buffer_NPT = sf::st_cast(os_buffer_NPT, "LINESTRING")
 
   os_buffer_NPT_group = os_buffer_NPT |>
     group_by(!!sym(group_column)) |>
     summarize(
+      road_function = first(road_function),
       all_fastest_bicycle_go_dutch = round(mean(all_fastest_bicycle_go_dutch, na.rm = TRUE)),  # rounding the mean
       geometry = st_line_merge(st_combine(st_union(geometry)))
     )
@@ -570,3 +570,31 @@ line_merge = function(cohesive_network_city_boundary, OS_combined_net_city_bound
 
   return(os_buffer_NPT_group_combined)
 }
+
+
+convert_to_linestrings = function(geometries) {
+  # Check the geometry types
+  geometry_types = sf::st_geometry_type(geometries)
+  
+  # If the unique geometry types are not just LINESTRING, perform the conversion
+  if (!all(unique(geometry_types) == "LINESTRING")) {
+    
+    # Filter out LINESTRING geometries
+    linestrings = geometries[geometry_types == "LINESTRING", ]
+    
+    # Filter out MULTILINESTRING geometries and cast them to LINESTRING
+    multilinestrings = geometries[geometry_types == "MULTILINESTRING", ]
+    multilinestrings = sf::st_cast(multilinestrings, "LINESTRING")
+    
+    # Combine the LINESTRING and converted MULTILINESTRING geometries
+    combined = rbind(linestrings, multilinestrings)
+    
+    # Return combined geometries
+    return(combined)
+    
+  } else {
+    # If all geometries are LINESTRING, return the original geometries
+    return(geometries)
+  }
+}
+
