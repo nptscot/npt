@@ -608,7 +608,7 @@ tippecanoe_join = paste(
 )
 responce = system(tippecanoe_join, intern = TRUE)
 if (.Platform$OS.type == "unix") {
-  command_cd = glue::glue("outputdata/{output_folder}")
+  command_cd = glue::glue("cd outputdata/{date_folder}")
   command_all = paste(c(
     command_cd, tippecanoe_verylow, tippecanoe_low,
     tippecanoe_med, tippecanoe_high, tippecanoe_join

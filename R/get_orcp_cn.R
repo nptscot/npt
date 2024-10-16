@@ -587,7 +587,7 @@ convert_to_linestrings = function(geometries) {
     multilinestrings = sf::st_cast(multilinestrings, "LINESTRING")
     
     # Combine the LINESTRING and converted MULTILINESTRING geometries
-    combined = rbind(linestrings, multilinestrings)
+    combined = dplyr::bind_rows(linestrings, multilinestrings)
     
     # Return combined geometries
     return(combined)
