@@ -39,16 +39,14 @@ corenet_build_OS = function(os_scotland, osm_scotland, region_names,cities_regio
             city_boundary,
             crs = "EPSG:27700",
             key_attribute = "road_function",
-            attribute_values = c("A Road", "B Road", "Minor Road")
+            attribute_values = c("A Road", "B Road", "Minor Road", "Local Road" , "Secondary Access Road" , "Local Access Road" )
           )
 
           cohesive_network_city_boundary = corenet::corenet(combined_net_city_boundary, os_combined_net_city_boundary, city_boundary,
             key_attribute = "all_fastest_bicycle_go_dutch",
             crs = "EPSG:27700", maxDistPts = 3000, minDistPts = 2, npt_threshold = min_percentile_value,
-            road_scores = list("A Road" = 1, "B Road" = 1, "Minor Road" = 100), n_removeDangles = 6, penalty_value = 1, group_column = "name_1"
+            road_scores = list("A Road" = 1, "B Road" = 1, "Minor Road" = 100, "Local Road" = 100, "Secondary Access Road" = 100 , "Local Access Road" = 100), n_removeDangles = 6, penalty_value = 1, group_column = "name_1"
           )
-
-          cohesive_network_city_boundary = line_merge(cohesive_network_city_boundary, os_combined_net_city_boundary, combined_net_city_boundary, group_column = "name_1")
 
           message("Generating Off Road Cycle Path network for: ", city)
          
@@ -67,6 +65,8 @@ corenet_build_OS = function(os_scotland, osm_scotland, region_names,cities_regio
                 geometry = st_line_merge(st_combine(st_union(geometry)))
               )
 
+            orcp_city_boundary$road_function = "Off Road/Detached Cycle Track/Path"
+            orcp_city_boundary$name_1 = orcp_city_boundary$component
             # Combine the two networks
             # Check if the two networks have
 
@@ -75,9 +75,14 @@ corenet_build_OS = function(os_scotland, osm_scotland, region_names,cities_regio
 
             # Subset both data frames to common columns
             cohesive_network_filtered = cohesive_network_city_boundary[common_columns]
+
+            cohesive_network_filtered = line_merge(cohesive_network_filtered, os_combined_net_city_boundary, combined_net_city_boundary, group_column = "name_1")
+
             orcp_city_boundary_filtered = orcp_city_boundary[common_columns]
 
             if (nrow(cohesive_network_filtered) != 0) {
+              orcp_city_boundary_filtered = convert_to_linestrings(orcp_city_boundary_filtered)
+
               grouped_network = rbind(cohesive_network_filtered, orcp_city_boundary_filtered)
             } else {
               grouped_network = orcp_city_boundary_filtered
@@ -88,6 +93,14 @@ corenet_build_OS = function(os_scotland, osm_scotland, region_names,cities_regio
           } else {
             grouped_network = cohesive_network_city_boundary
           }
+
+          grouped_network = grouped_network %>%
+            mutate(road_function = case_when(
+              road_function == "A Road" ~ "Primary",
+              road_function %in% c("B Road", "Minor Road") ~ "Secondary",
+              road_function %in% c("Local Road", "Local Access Road", "Secondary Access Road") ~ "Local Access",
+              TRUE ~ as.character(road_function)  # Keeps other values as they are
+            ))
 
           # Use city name in the filename
           corenet::create_coherent_network_PMtiles(folder_path = folder_path, city_filename = glue::glue("{city_filename}_{date_folder}_4"), cohesive_network = grouped_network|> sf::st_transform(4326))

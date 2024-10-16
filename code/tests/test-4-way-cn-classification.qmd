@@ -1,0 +1,41 @@
+---
+format: gfm
+---
+
+
+```{r}
+#| eval: false
+system("gh release list --repo=nptscot/npt")
+# New coherent network with classification                Latest  CN_class                                                                     about 1 hour ago
+#                                                         Draft                                                                                about 29 days ago
+# osm_example                                                     osm_example 
+```
+
+```{r}
+system("gh release download CN_class --repo=nptscot/npt --clobber")
+list.files("geojson")
+# manually download from: https://github.com/nptscot/npt/releases/tag/CN_class
+cn4 = sf::read_sf("https://github.com/nptscot/npt/releases/download/CN_class/city_of_edinburgh_2024-10-01_4_coherent_network.geojson")
+table(cn4$road_function)
+                    #   Local Access Off Road/Detached Cycle Track/Path 
+                    #            383                                 96 
+                    #        Primary                          Secondary 
+                    #            134                                252 
+# Convert to ordered factor:
+categories_default = unique(cn4$road_function)
+categories_new = categories_default[c(3, 2, 1, 4)]
+cn4$road_function = factor(cn4$road_function, levels = categories_new, ordered = TRUE)
+summary(cn4$road_function)
+library(tmap)
+names(cn4)
+# Explore palettes:
+cols4all::c4a_gui()
+??cols4all
+m = tm_shape(cn4) +
+  tm_lines("road_function", lwd = 4, col.scale = tm_scale(values = "friendly13"))
+m
+tmap_save(m, "cn4.html")
+browseURL("cn4.html")
+system("gh release upload CN_class --repo=nptscot/npt cn4.html --clobber")
+# Share link: https://github.com/nptscot/npt/releases/download/CN_class/cn4.html
+```
