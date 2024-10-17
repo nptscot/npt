@@ -180,7 +180,7 @@ corenet_build_OS = function(os_scotland, osm_scotland, region_names,cities_regio
 
   message("Generate the links coherent network for the LAs")
   # foreach(region = region_names) %dopar% {
-  for (region in region_names[5]) {
+  for (region in region_names) {
     message("Processing coherent network links for region: ", region)
     region_snake = snakecase::to_snake_case(region)
 
