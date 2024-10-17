@@ -20,7 +20,7 @@ region_names = unique(lads$Region)[c(3, 4, 1, 6, 2, 5)] |>
   # Reverse to build smallest first:
   rev()
 # To build just 1 region
-region_names = region_names[5] # Edinburgh
+# region_names = region_names[5] # Edinburgh
 
 cities_region_names = lapply(
   region_names,
