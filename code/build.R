@@ -633,7 +633,7 @@ if (GENERATE_PMTILES) {
     ), collapse = "; ")
     command_all = paste0(command_start, '"', command_all, '"')
   }
-  responce = system(command_all, intern = TRUE)`
+  responce = system(command_all, intern = TRUE)
 
   message(glue::glue("Generated PMTiles for data zones at {output_folder}/data_zones_{date_folder}.pmtiles"))
   message(glue::glue("Generated PMTiles for combined networks at {output_folder}/rnet_{date_folder}.pmtiles"))
