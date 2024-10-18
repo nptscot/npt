@@ -43,6 +43,12 @@ for (region in region_names[1:6]) {
   targets::tar_make()
 }
 
+default_wd = "/workspaces/npt/"
+
+if (getwd() != default_wd) {
+  setwd(default_wd)
+  message("Changed working directory from ", getwd(), " to ", default_wd)
+}
 
 # CbD classification of networks ---------------------------------------------
 GENERATE_CDB = TRUE
