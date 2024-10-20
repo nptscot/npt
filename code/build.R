@@ -623,6 +623,7 @@ if (GENERATE_PMTILES) {
   )
   responce = system(tippecanoe_join, intern = TRUE)
   if (.Platform$OS.type == "unix") {
+    print("Using Unix")
     command_cd = glue::glue("cd outputdata/{date_folder}")
     command_all = paste(c(
       command_cd, tippecanoe_verylow, tippecanoe_low,
@@ -630,9 +631,10 @@ if (GENERATE_PMTILES) {
     ), collapse = "; ")
   } else {
     # Using WSL
+    print("Using WSL")
     dir = getwd()
     command_start = "bash -c "
-    command_cd = paste0("cd /mnt/", tolower(substr(dir, 1, 1)), substr(dir, 3, nchar(dir)), "/outputs")
+    command_cd = paste0("cd ", tolower(substr(dir, 1, 1)), substr(dir, 2, nchar(dir)), "/")
     command_all = paste(c(
       command_cd, tippecanoe_verylow, tippecanoe_low,
       tippecanoe_med, tippecanoe_high, tippecanoe_join
