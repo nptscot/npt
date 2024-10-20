@@ -622,25 +622,16 @@ if (GENERATE_PMTILES) {
     collapse = " "
   )
   responce = system(tippecanoe_join, intern = TRUE)
-  if (.Platform$OS.type == "unix") {
-    print("Using Unix")
-    command_cd = glue::glue("cd outputdata/{date_folder}")
-    command_all = paste(c(
-      command_cd, tippecanoe_verylow, tippecanoe_low,
-      tippecanoe_med, tippecanoe_high, tippecanoe_join
-    ), collapse = "; ")
-  } else {
-    # Using WSL
-    print("Using WSL")
-    dir = getwd()
-    command_start = "bash -c "
-    command_cd = paste0("cd ", tolower(substr(dir, 1, 1)), substr(dir, 2, nchar(dir)), "/")
-    command_all = paste(c(
-      command_cd, tippecanoe_verylow, tippecanoe_low,
-      tippecanoe_med, tippecanoe_high, tippecanoe_join
-    ), collapse = "; ")
-    command_all = paste0(command_start, '"', command_all, '"')
-  }
+
+  dir = getwd()
+  command_start = "bash -c "
+  command_cd = paste0("cd ", tolower(substr(dir, 1, 1)), substr(dir, 2, nchar(dir)), "/")
+  command_all = paste(c(
+    command_cd, tippecanoe_verylow, tippecanoe_low,
+    tippecanoe_med, tippecanoe_high, tippecanoe_join
+  ), collapse = "; ")
+  command_all = paste0(command_start, '"', command_all, '"')
+
   responce = system(command_all, intern = TRUE)
 
   message(glue::glue("Generated PMTiles for data zones at {output_folder}/data_zones_{date_folder}.pmtiles"))
