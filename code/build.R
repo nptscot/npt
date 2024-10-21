@@ -104,7 +104,7 @@ if (GENERATE_CDB) {
       drive_net = osmactive::get_driving_network_major(osm_district)
       cycle_net = osmactive::distance_to_road(cycle_net, drive_net)
       cycle_net = osmactive::classify_cycle_infrastructure(cycle_net, include_mixed_traffic = TRUE)
-      
+    
       drive_net = osmactive::clean_speeds(drive_net)
       # summary(drive_net$maxspeed_clean) # TODO: move to osmactive?
       cycle_net = osmactive::clean_speeds(cycle_net)      
@@ -224,6 +224,8 @@ if (GENERATE_CDB) {
   # Combine all CBD files into a single file
   cbd_files = list.files(output_folder, pattern = "cbd_layer_.*\\.geojson$", full.names = TRUE)
   cbd_layers = lapply(cbd_files, sf::read_sf)
+  # Create an empty cbd_layer
+  cbd_layer = sf::st_sf()
   cbd_layer = do.call(rbind, cbd_layers)
   cbd_filename = paste0(output_folder, "/cbd_layer_", date_folder, ".geojson")
   if (file.exists(cbd_filename)) {
