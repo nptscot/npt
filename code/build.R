@@ -103,7 +103,7 @@ if (GENERATE_CDB) {
       cycle_net = osmactive::get_cycling_network(osm_district)
       drive_net = osmactive::get_driving_network_major(osm_district)
       cycle_net = osmactive::distance_to_road(cycle_net, drive_net)
-      cycle_net = osmactive::classify_cycle_infrastructure(cycle_net)
+      cycle_net = osmactive::classify_cycle_infrastructure(cycle_net, include_mixed_traffic = TRUE)
       
       drive_net = osmactive::clean_speeds(drive_net)
       # summary(drive_net$maxspeed_clean) # TODO: move to osmactive?
@@ -207,7 +207,6 @@ if (GENERATE_CDB) {
           `Traffic volume` = final_traffic,
           `Speed limit` = final_speed,
           `Infrastructure type` = cycle_segregation,
-          `Infrastructure type (detailed)` = detailed_segregation,
           `Level of Service`
         )
       # save file for individual district
@@ -227,7 +226,10 @@ if (GENERATE_CDB) {
   cbd_layers = lapply(cbd_files, sf::read_sf)
   cbd_layer = do.call(rbind, cbd_layers)
   cbd_filename = paste0(output_folder, "/cbd_layer_", date_folder, ".geojson")
-  sf::write_sf(cbd_layer, cbd_filename, delete_dsn = TRUE)
+  if (file.exists(cbd_filename)) {
+    file.remove(cbd_filename)
+  }
+  sf::write_sf(cbd_layer, cbd_filename)
   fs::file_size(cbd_filename)
 
   # PMTiles:
