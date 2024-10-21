@@ -45,7 +45,7 @@ for (region in region_names[1:6]) {
 
 default_wd = "/workspaces/npt/"
 
-if (getwd() != default_wd) {
+if (getwd() != default_wd && dir.exists(default_wd) ) {
   setwd(default_wd)
   message("Changed working directory from ", getwd(), " to ", default_wd)
 }
@@ -97,8 +97,8 @@ if (GENERATE_CDB) {
       district_geom = region_geom |> 
         filter(LAD23NM == district)
       district_centroids = osm_centroids[district_geom, ]
-      district_centroids = sf::st_drop_geometry(district_centroids)
-      osm_district = inner_join(osm_national, district_centroids)
+      osm_district = osm_national |>
+        filter(osm_id %in% district_centroids$osm_id)
       nrow(osm_district) / nrow(osm_national)
       cycle_net = osmactive::get_cycling_network(osm_district)
       drive_net = osmactive::get_driving_network_major(osm_district)
@@ -106,13 +106,14 @@ if (GENERATE_CDB) {
       cycle_net = osmactive::classify_cycle_infrastructure(cycle_net)
       
       drive_net = osmactive::clean_speeds(drive_net)
-      cycle_net = osmactive::clean_speeds(cycle_net)
-      
+      # summary(drive_net$maxspeed_clean) # TODO: move to osmactive?
+      cycle_net = osmactive::clean_speeds(cycle_net)      
       drive_net = osmactive::estimate_traffic(drive_net)
       cycle_net = osmactive::estimate_traffic(cycle_net) |> 
         rename(assumed_traffic_cyclenet = assumed_volume)
       
       # See https://github.com/acteng/network-join-demos
+      # Do we really need this?
       cycle_net_joined_polygons = stplanr::rnet_join(
         rnet_x = cycle_net,
         rnet_y = drive_net |>
