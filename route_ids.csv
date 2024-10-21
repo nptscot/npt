@@ -1,4 +1,14 @@
 nrow,plan,purpose,region,date,id
+100,ebike,utility,Edinburgh and Lothians,2024-09-30,10779
+100,quietest,utility,Edinburgh and Lothians,2024-09-30,10778
+100,fastest,utility,Edinburgh and Lothians,2024-09-30,10777
+100,balanced,utility,Edinburgh and Lothians,2024-09-30,10776
+100,ebike,commute,Edinburgh and Lothians,2024-09-30,10775
+100,balanced,commute,Edinburgh and Lothians,2024-09-30,10774
+100,quietest,commute,Edinburgh and Lothians,2024-09-30,10773
+100,fastest,commute,Edinburgh and Lothians,2024-09-30,10772
+100,ebike,school,Edinburgh and Lothians,2024-09-30,10771
+100,balanced,school,Edinburgh and Lothians,2024-09-30,10770
 100,quietest,school,Edinburgh and Lothians,2024-09-30,10769
 100,fastest,school,Edinburgh and Lothians,2024-09-30,10768
 93472,ebike,utility,Glasgow and Strathclyde,2024-10-01,10755
