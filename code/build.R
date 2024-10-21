@@ -222,9 +222,10 @@ if (GENERATE_CDB) {
 
   # Combine all CBD files into a single file
   cbd_files = list.files(output_folder, pattern = "cbd_layer_.*\\.geojson$", full.names = TRUE)
+  # Create an empty cbd_layers and cbd_layer
+  cbd_layers = sf::st_sf(geometry = st_sfc())
+  cbd_layer = sf::st_sf(geometry = st_sfc())
   cbd_layers = lapply(cbd_files, sf::read_sf)
-  # Create an empty cbd_layer
-  cbd_layer = sf::st_sf()
   cbd_layer = do.call(rbind, cbd_layers)
   cbd_filename = paste0(output_folder, "/cbd_layer_", date_folder, ".geojson")
   if (file.exists(cbd_filename)) {
