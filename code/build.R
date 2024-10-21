@@ -19,7 +19,7 @@ output_folder = file.path("outputdata", date_folder)
 region_names = unique(lads$Region)[c(3, 4, 1, 6, 2, 5)] |>
   # Reverse to build smallest first:
   rev()
-# To build just 1 region
+# To build just 1 region for testing:
 # region_names = region_names[5] # Edinburgh
 
 cities_region_names = lapply(
@@ -45,7 +45,7 @@ for (region in region_names[1:6]) {
 
 default_wd = "/workspaces/npt/"
 
-if (getwd() != default_wd) {
+if (getwd() != default_wd && dir.exists(default_wd) ) {
   setwd(default_wd)
   message("Changed working directory from ", getwd(), " to ", default_wd)
 }
@@ -97,22 +97,23 @@ if (GENERATE_CDB) {
       district_geom = region_geom |> 
         filter(LAD23NM == district)
       district_centroids = osm_centroids[district_geom, ]
-      district_centroids = sf::st_drop_geometry(district_centroids)
-      osm_district = inner_join(osm_national, district_centroids)
+      osm_district = osm_national |>
+        filter(osm_id %in% district_centroids$osm_id)
       nrow(osm_district) / nrow(osm_national)
       cycle_net = osmactive::get_cycling_network(osm_district)
       drive_net = osmactive::get_driving_network_major(osm_district)
       cycle_net = osmactive::distance_to_road(cycle_net, drive_net)
-      cycle_net = osmactive::classify_cycle_infrastructure(cycle_net)
+      cycle_net = osmactive::classify_cycle_infrastructure(cycle_net, include_mixed_traffic = TRUE)
       
       drive_net = osmactive::clean_speeds(drive_net)
-      cycle_net = osmactive::clean_speeds(cycle_net)
-      
+      # summary(drive_net$maxspeed_clean) # TODO: move to osmactive?
+      cycle_net = osmactive::clean_speeds(cycle_net)      
       drive_net = osmactive::estimate_traffic(drive_net)
       cycle_net = osmactive::estimate_traffic(cycle_net) |> 
         rename(assumed_traffic_cyclenet = assumed_volume)
       
       # See https://github.com/acteng/network-join-demos
+      # Do we really need this?
       cycle_net_joined_polygons = stplanr::rnet_join(
         rnet_x = cycle_net,
         rnet_y = drive_net |>
@@ -206,13 +207,16 @@ if (GENERATE_CDB) {
           `Traffic volume` = final_traffic,
           `Speed limit` = final_speed,
           `Infrastructure type` = cycle_segregation,
-          `Infrastructure type (detailed)` = detailed_segregation,
           `Level of Service`
         )
       # save file for individual district
       district_name = district_geom$LAD23NM |> 
         snakecase::to_snake_case()
       cbd_filename = paste0(output_folder, "/cbd_layer_", district_name, ".geojson")
+      # Delete the file if it already exists (delete_dsn issues):
+      if (file.exists(cbd_filename)) {
+        file.remove(cbd_filename)
+      }
       sf::write_sf(cbd_layer, cbd_filename, delete_dsn = FALSE)
     }
   }
@@ -222,7 +226,10 @@ if (GENERATE_CDB) {
   cbd_layers = lapply(cbd_files, sf::read_sf)
   cbd_layer = do.call(rbind, cbd_layers)
   cbd_filename = paste0(output_folder, "/cbd_layer_", date_folder, ".geojson")
-  sf::write_sf(cbd_layer, cbd_filename, delete_dsn = TRUE)
+  if (file.exists(cbd_filename)) {
+    file.remove(cbd_filename)
+  }
+  sf::write_sf(cbd_layer, cbd_filename)
   fs::file_size(cbd_filename)
 
   # PMTiles:
@@ -279,7 +286,23 @@ if (parameters$generate_CN_start) {
   message("parameters$generate_CN_start is FALSE, skipping corenet_build.")
 }
 
-# Combine regional outputs ---------------------------------------------------
+# # Test cn for one LA: ------------------
+# output_folder_region = file.path(output_folder, region_names_lowercase[1])
+# list.files(output_folder_region)
+# output_folder_region_cn = file.path(output_folder_region, "coherent_networks_OS")
+# list.files(output_folder_region_cn)
+# #  [8] "city_of_edinburgh_2024-09-30_4_coherent_network.pmtiles"   
+# # cn_name = glue::glue("{snakecase::to_snake_case(cities_region_names[[1]][1])}_{date_folder}_4_coherent_network.pmtiles")
+# cn_name =  glue::glue("city_of_edinburgh_{date_folder}_4_coherent_network.pmtiles")
+# la_cn_path = file.path(output_folder_region_cn, cn_name)
+# file.exists(la_cn_path)
+# cn_test = sf::read_sf(la_cn_path)
+# names(cn_test)
+# table(cn_test$road_function)
+# mapview::mapview(cn_test, zcol = "road_function")
+
+# Combine regional outputs 
+---------------------------------------------------
 GENERATE_PMTILES = TRUE
 
 if (GENERATE_PMTILES) {
