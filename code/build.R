@@ -214,6 +214,10 @@ if (GENERATE_CDB) {
       district_name = district_geom$LAD23NM |> 
         snakecase::to_snake_case()
       cbd_filename = paste0(output_folder, "/cbd_layer_", district_name, ".geojson")
+      # Delete the file if it already exists (delete_dsn issues):
+      if (file.exists(cbd_filename)) {
+        file.remove(cbd_filename)
+      }
       sf::write_sf(cbd_layer, cbd_filename, delete_dsn = FALSE)
     }
   }
