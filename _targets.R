@@ -1240,6 +1240,7 @@ list(
   }),
   tar_target(simplified_network, {
     cue = tar_cue(mode = "always")
+    sf::sf_use_s2(FALSE)
     rnet_simple = simplify_network(combined_network_tile, parameters, region_boundary)
     make_geojson_zones(rnet_simple, paste0(region_folder, "/simplified_network.geojson"))
     rnet_simple
