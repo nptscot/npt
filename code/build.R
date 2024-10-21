@@ -286,7 +286,23 @@ if (parameters$generate_CN_start) {
   message("parameters$generate_CN_start is FALSE, skipping corenet_build.")
 }
 
-# Combine regional outputs ---------------------------------------------------
+# # Test cn for one LA: ------------------
+# output_folder_region = file.path(output_folder, region_names_lowercase[1])
+# list.files(output_folder_region)
+# output_folder_region_cn = file.path(output_folder_region, "coherent_networks_OS")
+# list.files(output_folder_region_cn)
+# #  [8] "city_of_edinburgh_2024-09-30_4_coherent_network.pmtiles"   
+# # cn_name = glue::glue("{snakecase::to_snake_case(cities_region_names[[1]][1])}_{date_folder}_4_coherent_network.pmtiles")
+# cn_name =  glue::glue("city_of_edinburgh_{date_folder}_4_coherent_network.pmtiles")
+# la_cn_path = file.path(output_folder_region_cn, cn_name)
+# file.exists(la_cn_path)
+# cn_test = sf::read_sf(la_cn_path)
+# names(cn_test)
+# table(cn_test$road_function)
+# mapview::mapview(cn_test, zcol = "road_function")
+
+# Combine regional outputs 
+---------------------------------------------------
 GENERATE_PMTILES = TRUE
 
 if (GENERATE_PMTILES) {
