@@ -1240,8 +1240,13 @@ list(
   }),
   tar_target(simplified_network, {
     cue = tar_cue(mode = "always")
+    # TODO (nice to have): replace with global setting (needs testing):
+    use_sf_s2_status = sf::sf_use_s2()
+    sf::sf_use_s2(FALSE)
     rnet_simple = simplify_network(combined_network_tile, parameters, region_boundary)
     make_geojson_zones(rnet_simple, paste0(region_folder, "/simplified_network.geojson"))
+    # Restore previous status
+    sf::sf_use_s2(use_sf_s2_status)
     rnet_simple
   }),
   tar_target(pmtiles_school, {
