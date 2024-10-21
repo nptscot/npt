@@ -1,4 +1,6 @@
 nrow,plan,purpose,region,date,id
+100,quietest,school,Edinburgh and Lothians,2024-09-30,10769
+100,fastest,school,Edinburgh and Lothians,2024-09-30,10768
 93472,ebike,utility,Glasgow and Strathclyde,2024-10-01,10755
 93472,quietest,utility,Glasgow and Strathclyde,2024-10-01,10754
 93472,fastest,utility,Glasgow and Strathclyde,2024-10-01,10753
