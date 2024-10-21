@@ -1,8 +1,8 @@
 {
   "plans": ["fastest", "balanced", "quietest", "ebike"],
   "min_flow": [1],
-  "max_to_route": [1000000],
-  "date_routing": ["2024-10-01"],
+  "max_to_route": [100],
+  "date_routing": ["2024-09-30"],
   "geo_subset": [false],
   "open_data_build": [false],
   "disag_threshold": [100],
