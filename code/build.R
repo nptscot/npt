@@ -104,7 +104,6 @@ if (GENERATE_CDB) {
       drive_net = osmactive::get_driving_network_major(osm_district)
       cycle_net = osmactive::distance_to_road(cycle_net, drive_net)
       cycle_net = osmactive::classify_cycle_infrastructure(cycle_net, include_mixed_traffic = TRUE)
-    
       drive_net = osmactive::clean_speeds(drive_net)
       # summary(drive_net$maxspeed_clean) # TODO: move to osmactive?
       cycle_net = osmactive::clean_speeds(cycle_net)      
