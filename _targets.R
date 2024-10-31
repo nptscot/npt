@@ -97,6 +97,11 @@ list(
       filter(LAD23NM == parameters$region) |>
       st_union()
   ),
+  tar_target(region_name,
+    local_authorities |>
+      filter(LAD23NM == parameters$region) |>
+      pull(Region)
+  ),
   tar_target(
     region_boundary_buffered,
     region_boundary |>
@@ -748,7 +753,6 @@ tar_target(rs_school, {
     od_utility_combined
   }),
   tar_target(rs_utility_fastest, {
-    length(done_commute_ebike) # Do school routing first
     rs = get_routes(
       od = od_utility_combined |> dplyr::slice_max(n = parameters$max_to_route, order_by = all, with_ties = FALSE),
       plans = "fastest",
@@ -793,7 +797,6 @@ tar_target(rs_school, {
     length(rs_utility_ebike) # Hack for scheduling
   }),
   tar_target(rs_utility_balanced, {
-    length(done_commute_balanced)
     rs = get_routes(
       od = od_utility_combined,
       plans = "balanced",
@@ -1147,7 +1150,7 @@ tar_target(rs_school, {
     # TODO (nice to have): replace with global setting (needs testing):
     use_sf_s2_status = sf::sf_use_s2()
     sf::sf_use_s2(FALSE)
-    rnet_simple = simplify_network(combined_network_tile, parameters, region_boundary)
+    rnet_simple = simplify_network(combined_network_tile, region_name, region_boundary)
     make_geojson_zones(rnet_simple, paste0(region_folder, "/simplified_network.geojson"))
     # Restore previous status
     sf::sf_use_s2(use_sf_s2_status)
@@ -1271,68 +1274,6 @@ tar_target(rs_school, {
         command_cd, tippecanoe_verylow, tippecanoe_low,
         tippecanoe_med, tippecanoe_high, tippecanoe_join
       ), collapse = "; ")
-      command_all = paste0(command_start, '"', command_all, '"')
-    }
-    responce = system(command_all, intern = TRUE)
-    responce
-  }),
-  tar_target(pmtiles_rnet, {
-    check = length(combined_network_tile)
-    command_tippecanoe = paste("tippecanoe -o rnet.pmtiles",
-      "--name=rnet",
-      "--layer=rnet",
-      "--attribution=UniverstyofLeeds",
-      "--minimum-zoom=6",
-      "--maximum-zoom=13",
-      "--drop-smallest-as-needed",
-      "--maximum-tile-bytes=5000000",
-      "--simplification=10",
-      "--buffer=5",
-      "--force  combined_network_tile.geojson",
-      collapse = " "
-    )
-
-    if (.Platform$OS.type == "unix") {
-      command_cd = "cd outputdata"
-      command_all = paste(c(command_cd, command_tippecanoe), collapse = "; ")
-    } else {
-      # Using WSL
-      dir = getwd()
-      command_start = "bash -c "
-      command_cd = paste0("cd /mnt/", tolower(substr(dir, 1, 1)), substr(dir, 3, nchar(dir)), "/outputdata")
-
-      command_all = paste(c(command_cd, command_tippecanoe), collapse = "; ")
-      command_all = paste0(command_start, '"', command_all, '"')
-    }
-    responce = system(command_all, intern = TRUE)
-    responce
-  }),
-  tar_target(pmtiles_rnet_simplified, {
-    check = length(simplified_network)
-    command_tippecanoe = paste("tippecanoe -o rnet_simplified.pmtiles",
-      "--name=rnet",
-      "--layer=rnet",
-      "--attribution=UniverstyofLeeds",
-      "--minimum-zoom=6",
-      "--maximum-zoom=13",
-      "--drop-smallest-as-needed",
-      "--maximum-tile-bytes=5000000",
-      "--simplification=10",
-      "--buffer=5",
-      "--force  simplified_network.geojson",
-      collapse = " "
-    )
-
-    if (.Platform$OS.type == "unix") {
-      command_cd = "cd outputdata"
-      command_all = paste(c(command_cd, command_tippecanoe), collapse = "; ")
-    } else {
-      # Using WSL
-      dir = getwd()
-      command_start = "bash -c "
-      command_cd = paste0("cd /mnt/", tolower(substr(dir, 1, 1)), substr(dir, 3, nchar(dir)), "/outputdata")
-
-      command_all = paste(c(command_cd, command_tippecanoe), collapse = "; ")
       command_all = paste0(command_start, '"', command_all, '"')
     }
     responce = system(command_all, intern = TRUE)
