@@ -65,7 +65,13 @@ corenet_build_OS = function(os_scotland, osm_scotland, region_names,cities_regio
                 geometry = st_line_merge(st_combine(st_union(geometry)))
               )
 
-            orcp_city_boundary$road_function = "Off Road/Detached Cycle Track/Path"
+            orcp_city_boundary$road_function = case_when(
+                  orcp_city_boundary$all_fastest_bicycle_go_dutch > 2000 ~ "Primary",
+                  orcp_city_boundary$all_fastest_bicycle_go_dutch > 500 & orcp_city_boundary$all_fastest_bicycle_go_dutch <= 2000 ~ "Secondary",
+                  orcp_city_boundary$all_fastest_bicycle_go_dutch <= 500 ~ "Local Access",
+                  TRUE ~ "Off Road/Detached Cycle Track/Path"  # default fallback, if needed
+                )
+
             orcp_city_boundary$name_1 = orcp_city_boundary$component
             # Combine the two networks
             # Check if the two networks have
