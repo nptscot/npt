@@ -752,91 +752,44 @@ tar_target(rs_school, {
 
     od_utility_combined
   }),
-  tar_target(rs_utility_fastest, {
-    rs = get_routes(
-      od = od_utility_combined |> dplyr::slice_max(n = parameters$max_to_route, order_by = all, with_ties = FALSE),
-      plans = "fastest",
-      purpose = "utility",
-      folder = region_folder,
-      date = parameters$date_routing,
-      segments = "both"
-    )
-    rs
-  }),
-  tar_target(done_utility_fastest, {
-    length(rs_utility_fastest) # Hack for scheduling
-  }),
-  tar_target(rs_utility_quietest, {
-    length(done_utility_fastest)
-    rs = get_routes(
+  tar_target(rs_utility,
+    get_routes(
       od = od_utility_combined,
-      plans = "quietest",
+      plans = plans,
       purpose = "utility",
       folder = region_folder,
       date = parameters$date_routing,
       segments = "both"
-    )
-    rs
-  }),
-  tar_target(done_utility_quietest, {
-    length(rs_utility_quietest) # Hack for scheduling
-  }),
-  tar_target(rs_utility_ebike, {
-    length(done_utility_quietest)
-    rs = get_routes(
-      od = od_utility_combined,
-      plans = "ebike",
-      purpose = "utility",
-      folder = region_folder,
-      date = parameters$date_routing,
-      segments = "both"
-    )
-    rs
-  }),
-  tar_target(done_utility_ebike, {
-    length(rs_utility_ebike) # Hack for scheduling
-  }),
-  tar_target(rs_utility_balanced, {
-    rs = get_routes(
-      od = od_utility_combined,
-      plans = "balanced",
-      purpose = "utility",
-      folder = region_folder,
-      date = parameters$date_routing,
-      segments = "both"
-    )
-    rs
-  }),
-  tar_target(done_utility_balanced, {
-    length(rs_utility_balanced) # Hack for scheduling
-  }),
-
+    ),
+  pattern = map(plans),
+  iteration = "list"
+  ),
 
   # Utility routing post-processing -----------------------------------------
 
   tar_target(r_utility_fastest, {
-    rs_utility_fastest[[1]]$routes
+    rs_utility[[1]][[1]]$routes
   }),
   tar_target(r_utility_quietest, {
-    rs_utility_quietest[[1]]$routes
+    rs_utility[[3]][[1]]$routes
   }),
   tar_target(r_utility_ebike, {
-    rs_utility_ebike[[1]]$routes
+    rs_utility[[4]][[1]]$routes
   }),
   tar_target(r_utility_balanced, {
-    rs_utility_balanced[[1]]$routes
+    rs_utility[[2]][[1]]$routes
   }),
   tar_target(rnet_gq_utility_fastest, {
-    segments2rnet(rs_utility_fastest[[1]]$segments)
+    segments2rnet(rs_utility[[1]][[1]]$segments)
   }),
   tar_target(rnet_gq_utility_quietest, {
-    segments2rnet(rs_utility_quietest[[1]]$segments)
+    segments2rnet(rs_utility[[3]][[1]]$segments)
   }),
   tar_target(rnet_gq_utility_ebike, {
-    segments2rnet(rs_utility_ebike[[1]]$segments)
+    segments2rnet(rs_utility[[4]][[1]]$segments)
   }),
   tar_target(rnet_gq_utility_balanced, {
-    segments2rnet(rs_utility_balanced[[1]]$segments)
+    segments2rnet(rs_utility[[2]][[1]]$segments)
   }),
 
   # Utility Uptake ----------------------------------------------------------
