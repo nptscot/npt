@@ -104,7 +104,7 @@ list(
   ),
   tar_target(zones_boundary_buffered, {
     z = readRDS("inputdata/DataZones.Rds") # 6976 zones
-    z_centroids = sf::st_centroid(z)
+    z_centroids = sf::st_point_on_surface(z)
     z_centroids_within = z_centroids[region_boundary_buffered, ]
     z[z[[1]] %in% z_centroids_within[[1]], ]
   }),
