@@ -251,18 +251,11 @@ tar_target(rs_school, {
 
   # Commute routing post-processing -----------------------------------------
 
-  tar_target(r_commute_fastest, {
-    rs_commute[[1]][[1]]$routes
-  }),
-  tar_target(r_commute_quietest, {
-    rs_commute[[3]][[1]]$routes
-  }),
-  tar_target(r_commute_ebike, {
-    rs_commute[[4]][[1]]$routes
-  }),
-  tar_target(r_commute_balanced, {
-    rs_commute[[2]][[1]]$routes
-  }),
+  tar_target(r_commute,
+    rs_commute[[1]]$routes,
+    pattern = map(rs_commute),
+    iteration = "list"
+  ),
   tar_target(rnet_gq_commute_fastest, {
     segments2rnet(rs_commute[[1]][[1]]$segments)
   }),
@@ -306,22 +299,22 @@ tar_target(rs_school, {
   # Commute Uptake ----------------------------------------------------------
 
   tar_target(uptake_commute_fastest, {
-    r_commute_fastest |>
+    r_commute[[1]] |>
       aadt_adjust(purpose = "commute", aadt_parameters = aadt_parameters) |>
       get_uptake_scenarios()
   }),
   tar_target(uptake_commute_quietest, {
-    r_commute_quietest |>
+    r_commute[[3]] |>
       aadt_adjust(purpose = "commute", aadt_parameters = aadt_parameters) |>
       get_uptake_scenarios()
   }),
   tar_target(uptake_commute_ebike, {
-    r_commute_ebike |>
+    r_commute[[4]] |>
       aadt_adjust(purpose = "commute", aadt_parameters = aadt_parameters) |>
       get_uptake_scenarios()
   }),
   tar_target(uptake_commute_balanced, {
-    r_commute_balanced |>
+    r_commute[[2]] |>
       aadt_adjust(purpose = "commute", aadt_parameters = aadt_parameters) |>
       get_uptake_scenarios()
   }),
