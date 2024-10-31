@@ -25,7 +25,7 @@ pkgs = get_pkgs()
 
 
 tar_option_set(
-  controller = crew::crew_controller_local(workers = 1),
+  controller = crew::crew_controller_local(workers = 4),
   memory = "transient",
   garbage_collection = TRUE,
   storage = "worker",
@@ -235,92 +235,45 @@ tar_target(rs_school, {
 
   # Commute routing ---------------------------------------------------------
 
-  tar_target(rs_commute_fastest, {
-    length(done_school_ebike) # Do school routing first
-    rs = get_routes(
+  tar_target(rs_commute, {
+    get_routes(
       od = od_commute_subset,
-      plans = "fastest",
+      plans = plans,
       purpose = "commute",
       folder = region_folder,
       date = parameters$date_routing,
       segments = "both"
     )
-    rs
-  }),
-  tar_target(done_commute_fastest, {
-    length(rs_commute_fastest) # Hack for scheduling
-  }),
-  tar_target(rs_commute_balanced, {
-    length(done_commute_fastest)
-    rs = get_routes(
-      od = od_commute_subset,
-      plans = "balanced",
-      purpose = "commute",
-      folder = region_folder,
-      date = parameters$date_routing,
-      segments = "both"
-    )
-    rs
-  }),
-  tar_target(done_commute_balanced, {
-    length(rs_commute_balanced) # Hack for scheduling
-  }),
-  tar_target(rs_commute_quietest, {
-    length(done_commute_fastest)
-    rs = get_routes(
-      od = od_commute_subset,
-      plans = "quietest",
-      purpose = "commute",
-      folder = region_folder,
-      date = parameters$date_routing,
-      segments = "both"
-    )
-    rs
-  }),
-  tar_target(done_commute_quietest, {
-    length(rs_commute_quietest) # Hack for scheduling
-  }),
-  tar_target(rs_commute_ebike, {
-    length(done_commute_quietest)
-    rs = get_routes(
-      od = od_commute_subset,
-      plans = "ebike",
-      purpose = "commute",
-      folder = region_folder,
-      date = parameters$date_routing,
-      segments = "both"
-    )
-    rs
-  }),
-  tar_target(done_commute_ebike, {
-    length(rs_commute_ebike) # Hack for scheduling
-  }),
+  },
+  pattern = map(plans),
+  iteration = "list"
+  ),
 
   # Commute routing post-processing -----------------------------------------
 
   tar_target(r_commute_fastest, {
-    rs_commute_fastest[[1]]$routes
+    rs_commute[[1]][[1]]$routes
   }),
   tar_target(r_commute_quietest, {
-    rs_commute_quietest[[1]]$routes
+    rs_commute[[3]][[1]]$routes
   }),
   tar_target(r_commute_ebike, {
-    rs_commute_ebike[[1]]$routes
+    rs_commute[[4]][[1]]$routes
   }),
   tar_target(r_commute_balanced, {
-    rs_commute_balanced[[1]]$routes
+    rs_commute[[2]][[1]]$routes
   }),
   tar_target(rnet_gq_commute_fastest, {
-    segments2rnet(rs_commute_fastest[[1]]$segments)
+    segments2rnet(rs_commute[[1]][[1]]$segments)
   }),
   tar_target(rnet_gq_commute_quietest, {
-    segments2rnet(rs_commute_quietest[[1]]$segments)
+    segments2rnet(rs_commute[[3]][[1]]$segments)
   }),
   tar_target(rnet_gq_commute_ebike, {
-    segments2rnet(rs_commute_ebike[[1]]$segments)
+    segments2rnet(rs_commute[[4]][[1]]$segments)
   }),
   tar_target(rnet_gq_commute_balanced, {
-    segments2rnet(rs_commute_balanced[[1]]$segments)
+    segments2rnet(rs_commute[[2]][[1]]$segments)
   }),
 
   # School routing post-processing -----------------------------------------
