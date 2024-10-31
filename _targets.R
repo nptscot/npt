@@ -27,13 +27,14 @@ pkgs = get_pkgs()
 tar_option_set(
   controller = crew::crew_controller_local(workers = 4),
   memory = "transient",
-  garbage_collection = TRUE,
   storage = "worker",
   retrieval = "worker",
   packages = pkgs,
-  format = "rds", # default storage format
+  format = "rds" # default storage format
   # See https://books.ropensci.org/targets/performance.html#memory:
-  garbage_collection = 1 # collect garbage after each target
+  # Turn off when memory is not an issue as it's slow: 
+  # https://github.com/ropensci/targets/issues/1349
+  # garbage_collection = FALSE
 )
 
 # Targets -----------------------------------------------------------------
@@ -89,20 +90,12 @@ list(
     unique(local_authorities$Region)
   ),
 
-  # Case study area:
-  tar_target(
-    local_authorities_region,
-    {
-      local_authorities_region = local_authorities |>
-        filter(Region == parameters$region)
-      sf::write_sf(local_authorities_region, file.path(region_folder, "local_authorities_region.geojson"), delete_dsn = TRUE)
-      local_authorities_region
-    }
-  ),
+  # Case study area
   tar_target(
     region_boundary,
-    local_authorities_region
-    |> sf::st_union()
+    local_authorities |>
+      filter(LAD23NM == parameters$region) |>
+      st_union()
   ),
   tar_target(
     region_boundary_buffered,
