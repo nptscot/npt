@@ -1,4 +1,7 @@
 nrow,plan,purpose,region,date,id
+100,ebike,commute,City of Edinburgh,2024-10-01,10793
+100,balanced,school,City of Edinburgh,2024-10-01,10789
+100,quietest,school,City of Edinburgh,2024-10-01,10785
 100,ebike,utility,Edinburgh and Lothians,2024-09-30,10779
 100,quietest,utility,Edinburgh and Lothians,2024-09-30,10778
 100,fastest,utility,Edinburgh and Lothians,2024-09-30,10777
