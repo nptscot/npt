@@ -31,7 +31,9 @@ tar_option_set(
   storage = "worker",
   retrieval = "worker",
   packages = pkgs,
-  format = "rds" # default storage format
+  format = "rds", # default storage format
+  # See https://books.ropensci.org/targets/performance.html#memory:
+  garbage_collection = 1 # collect garbage after each target
 )
 
 # Targets -----------------------------------------------------------------
