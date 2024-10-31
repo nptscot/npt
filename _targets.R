@@ -275,7 +275,24 @@ list(
   }),
   tar_target(done_school_ebike, {
     length(rs_school_ebike) # Hack for scheduling
-  })
+  }),
+
+  tar_target(plans, {
+    parameters$plans
+  }),
+
+tar_target(rs_school, {
+  get_routes(
+    od = od_school |> slice_max(n = parameters$max_to_route, order_by = all, with_ties = FALSE),
+                  plans = plans,
+                  purpose = "school",
+                  folder = region_folder,
+                  date = parameters$date_routing,
+                  segments = "both")
+  },
+  pattern = map(plans),
+  iteration = "list"
+  )
   
   # ,
 
