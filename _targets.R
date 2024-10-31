@@ -115,7 +115,7 @@ list(
   }),
   tar_target(zones, {
     z = zones_boundary_buffered
-    z_centroids = sf::st_centroid(z)
+    z_centroids = sf::st_point_on_surface(z)
     z_centroids_within = z_centroids[region_boundary, ]
     z[z[[1]] %in% z_centroids_within[[1]], ]
   }),
