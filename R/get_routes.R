@@ -2,8 +2,8 @@ get_routes = function(od, plans, purpose = "work", folder = ".", batch = TRUE, n
   if (nrow(od) < 50) {
     batch = FALSE
   }
-  browser()
   route_list = sapply(plans, function(x) NULL)
+  # For debugging:
   plan = plans[1]
   for (plan in plans) {
     message("Getting the ", plan, " routes for ", purpose, " journeys")
@@ -32,7 +32,7 @@ get_routes = function(od, plans, purpose = "work", folder = ".", batch = TRUE, n
         purpose = purpose,
         # Remove the first 23 characters from folder:
         region = str_sub(folder, 23),
-        date = str_sub(folder, 12, 21),
+        date = str_sub(folder, 12, 21)
       )
       route_id_old = readr::read_csv("route_ids.csv")
       route_id_old$date = as.character(route_id_old$date)
