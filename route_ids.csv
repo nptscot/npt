@@ -1,4 +1,7 @@
 nrow,plan,purpose,region,date,id
+100,balanced,utility,clackmannanshire,2024-10-01,10818
+100,balanced,commute,clackmannanshire,2024-10-01,10813
+100,fastest,commute,clackmannanshire,2024-10-01,10810
 100,ebike,commute,City of Edinburgh,2024-10-01,10793
 100,balanced,school,City of Edinburgh,2024-10-01,10789
 100,quietest,school,City of Edinburgh,2024-10-01,10785

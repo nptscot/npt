@@ -42,6 +42,9 @@ if (GENERATE_CDB) {
 
   library(osmactive)
   # See https://github.com/nptscot/osmactive/blob/main/code/classify-roads.R and traffic-volumes.R
+  # TODO: Change to V6:
+  "final_estimates_Scotland.gpkg"
+  # https://github.com/nptscot/scottraffic/releases
   f_traffic = "scottraffic/final_estimates_Scotland_higherror_discarded.gpkg"
   if (!file.exists(f_traffic)) {
     system("gh repo clone nptscot/scottraffic")
@@ -67,19 +70,11 @@ if (GENERATE_CDB) {
   registerDoParallel(num_cores)
   region = la_names[1]
   cbd_filename = glue::glue(output_folder, "/cbd_layer_{date_folder}.geojson")
-
-  for (region in la_names) {
-  # foreach(region = la_names) %dopar% {
-    message("Processing region: ", region)
-    region_geom = lads |> 
-      filter(Region == region)
-    district_names = region_geom$LAD23NM
+  district = la_names[1]
+  for (district in la_names) {
+    message("Processing region: ", district)
     
-    # Run for each district within each Scottish region
-    district = district_names[1]
-    for (district in district_names) {
-      message("Processing district: ", district)
-      district_geom = region_geom |> 
+      district_geom = lads |> 
         filter(LAD23NM == district)
       district_centroids = osm_centroids[district_geom, ]
       osm_district = osm_national |>
@@ -202,7 +197,6 @@ if (GENERATE_CDB) {
         file.remove(cbd_filename)
       }
       sf::write_sf(cbd_layer, cbd_filename, delete_dsn = FALSE)
-    }
   }
 
   # Combine all CBD files into a single file

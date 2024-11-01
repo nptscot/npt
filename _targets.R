@@ -229,9 +229,7 @@ tar_target(rs_school, {
   },
   pattern = map(plans),
   iteration = "list"
-  )
-  
-  ,
+  ),
 
   # Commute routing ---------------------------------------------------------
 
