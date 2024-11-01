@@ -84,7 +84,7 @@ orcp_network = function(area, NPT_zones, length_threshold = 10000, percentile_va
           dplyr::summarize(mean_all_fastest_bicycle_go_dutch = mean(all_fastest_bicycle_go_dutch, na.rm = TRUE),
                           total_length = sum(as.numeric(sf::st_length(geometry)), na.rm = TRUE))
 
-      min_percentile_value = stats::quantile(summarized_data$mean_all_fastest_bicycle_go_dutch, probs = 0.6, na.rm = TRUE)
+      min_percentile_value = stats::quantile(summarized_data$mean_all_fastest_bicycle_go_dutch, probs = 0.5, na.rm = TRUE)
       
       summarized_data = summarized_data |> dplyr::filter(mean_all_fastest_bicycle_go_dutch > min_percentile_value)
 
