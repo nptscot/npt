@@ -219,6 +219,10 @@ list(
   }),
 
 tar_target(rs_school, {
+  tar_load(od_school)
+  tar_load(plans)
+  tar_load(parameters)
+  tar_load(region_folder)
   get_routes(
     od = od_school |> slice_max(n = parameters$max_to_route, order_by = all, with_ties = FALSE),
                   plans = plans,
