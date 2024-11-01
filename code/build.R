@@ -13,14 +13,15 @@ tar_source()
 parameters = jsonlite::read_json("parameters.json", simplifyVector = T)
 lads = sf::read_sf("inputdata/boundaries/la_regions_2023.geojson")
 # To test for a single local authority:
-# lads = lads |> filter(LAD23NM %in% c("City of Edinburgh"))
+lads = lads |> filter(LAD23NM %in% c("City of Edinburgh", "Clackmannanshire"))
 date_folder = parameters$date_routing
+la_names = lads$LAD23NM
 output_folder = file.path("outputdata", date_folder)
-region_names_lowercase = snakecase::to_snake_case(region_names)
+la_names_lowercase = snakecase::to_snake_case(la_names)
 
 # Build route networks:
-region = region_names[1]
-for (region in region_names[1:6]) {
+region = la_names[1]
+for (region in la_names) {
   message("Processing region: ", region)
   parameters$local_authority = region
   jsonlite::write_json(parameters, "parameters.json", pretty = TRUE)
@@ -64,11 +65,11 @@ if (GENERATE_CDB) {
   # Set the number of cores to use
   num_cores = min(parallel::detectCores() - 1, 10)
   registerDoParallel(num_cores)
-  region = region_names[1]
+  region = la_names[1]
   cbd_filename = glue::glue(output_folder, "/cbd_layer_{date_folder}.geojson")
 
-  for (region in region_names) {
-  # foreach(region = region_names) %dopar% {
+  for (region in la_names) {
+  # foreach(region = la_names) %dopar% {
     message("Processing region: ", region)
     region_geom = lads |> 
       filter(Region == region)
@@ -262,9 +263,9 @@ if (parameters$generate_CN_start) {
 
   message("Running corenet_build function")
   if (parameters$coherent_sources == "OS") {
-      corenet_build_OS(os_scotland, osm_scotland, region_names,cities_region_names)
+      corenet_build_OS(os_scotland, osm_scotland, la_names,cities_la_names)
   } else if (parameters$coherent_sources == "OSM") {
-      corenet_build_OSM(osm_scotland, region_names,cities_region_names)
+      corenet_build_OSM(osm_scotland, la_names,cities_la_names)
   } else {
       stop("Invalid value for parameters$coherent_sources. Expected 'OS' or 'OSM'.")
   }
@@ -273,12 +274,12 @@ if (parameters$generate_CN_start) {
 }
 
 # # Test cn for one LA: ------------------
-# output_folder_region = file.path(output_folder, region_names_lowercase[1])
+# output_folder_region = file.path(output_folder, la_names_lowercase[1])
 # list.files(output_folder_region)
 # output_folder_region_cn = file.path(output_folder_region, "coherent_networks_OS")
 # list.files(output_folder_region_cn)
 # #  [8] "city_of_edinburgh_2024-09-30_4_coherent_network.pmtiles"   
-# # cn_name = glue::glue("{snakecase::to_snake_case(cities_region_names[[1]][1])}_{date_folder}_4_coherent_network.pmtiles")
+# # cn_name = glue::glue("{snakecase::to_snake_case(cities_la_names[[1]][1])}_{date_folder}_4_coherent_network.pmtiles")
 # cn_name =  glue::glue("city_of_edinburgh_{date_folder}_4_coherent_network.pmtiles")
 # la_cn_path = file.path(output_folder_region_cn, cn_name)
 # file.exists(la_cn_path)
@@ -329,7 +330,7 @@ if (GENERATE_PMTILES) {
   all_zones_tile_files = list()
 
   # Iterate over each region to collect all GeoJSON files
-  for (region in region_names_lowercase) {
+  for (region in la_names_lowercase) {
     # Define the region folder path
     region_folder = file.path(output_folder, region)
     
@@ -392,7 +393,7 @@ if (GENERATE_PMTILES) {
   combined_network_list = list()
 
   # Iterate over each region to collect all relevant files
-  for (region in region_names_lowercase) {
+  for (region in la_names_lowercase) {
     # Define the region folder path
     region_folder = file.path(output_folder, region)
     
