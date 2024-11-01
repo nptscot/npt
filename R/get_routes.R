@@ -2,7 +2,9 @@ get_routes = function(od, plans, purpose = "work", folder = ".", batch = TRUE, n
   if (nrow(od) < 50) {
     batch = FALSE
   }
+  browser()
   route_list = sapply(plans, function(x) NULL)
+  plan = plans[1]
   for (plan in plans) {
     message("Getting the ", plan, " routes for ", purpose, " journeys")
     file_name = glue::glue("routes_{purpose}_{plan}.csv.gz")
@@ -24,8 +26,14 @@ get_routes = function(od, plans, purpose = "work", folder = ".", batch = TRUE, n
       #     id = 9905
       #   }
       # Add to database of saved routes:
-      p = jsonlite::read_json("parameters.json", simplifyVector = TRUE)
-      route_id_new = data.frame(nrow = nrow(od), plan = plan, purpose = purpose, region = p$region, date = p$date_routing)
+      route_id_new = data.frame(
+        nrow = nrow(od),
+        plan = plan,
+        purpose = purpose,
+        # Remove the first 23 characters from folder:
+        region = str_sub(folder, 23),
+        date = str_sub(folder, 12, 21),
+      )
       route_id_old = readr::read_csv("route_ids.csv")
       route_id_old$date = as.character(route_id_old$date)
       route_id = inner_join(route_id_new, route_id_old)
