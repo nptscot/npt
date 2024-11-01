@@ -64,7 +64,7 @@ list(
   tar_target(
     region_folder,
     {
-      region_name_lower = snakecase::to_snake_case(parameters$region)
+      region_name_lower = snakecase::to_snake_case(parameters$local_authority)
       folder_name = file.path(dir_local, region_name_lower)
       dir.create(file.path(folder_name), recursive = TRUE, showWarnings = FALSE)
       folder_name
@@ -94,12 +94,12 @@ list(
   tar_target(
     region_boundary,
     local_authorities |>
-      filter(LAD23NM == parameters$region) |>
+      filter(LAD23NM == parameters$local_authority) |>
       st_union()
   ),
   tar_target(region_name,
     local_authorities |>
-      filter(LAD23NM == parameters$region) |>
+      filter(LAD23NM == parameters$local_authority) |>
       pull(Region)
   ),
   tar_target(
@@ -972,7 +972,7 @@ tar_target(rs_school, {
     z$population_density = round(z$Total_population / z$area)
     z$area = NULL
 
-    make_geojson_zones(z, file.path(region_folder, paste0("data_zones_", parameters$region, ".geojson")))
+    make_geojson_zones(z, file.path(region_folder, paste0("data_zones_", parameters$local_authority, ".geojson")))
     z
   }),
   tar_target(zones_dasymetric_tile, {

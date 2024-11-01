@@ -12,33 +12,17 @@ tar_source()
 
 parameters = jsonlite::read_json("parameters.json", simplifyVector = T)
 lads = sf::read_sf("inputdata/boundaries/la_regions_2023.geojson")
+# To test for a single local authority:
+# lads = lads |> filter(LAD23NM %in% c("City of Edinburgh"))
 date_folder = parameters$date_routing
 output_folder = file.path("outputdata", date_folder)
-
-# # Start with Glasgow:
-region_names = unique(lads$Region)[c(3, 4, 1, 6, 2, 5)] |>
-  # Reverse to build smallest first:
-  rev()
-# To build just 1 region for testing:
-# region_names = region_names[5] # Edinburgh
-
-cities_region_names = lapply(
-  region_names,
-  function(region) {
-    cities_in_region = lads |>
-      filter(Region == region) |>
-      pull(LAD23NM) |>
-      unique()
-  }
-)
-names(cities_region_names) = region_names
 region_names_lowercase = snakecase::to_snake_case(region_names)
 
 # Build route networks:
 region = region_names[1]
 for (region in region_names[1:6]) {
   message("Processing region: ", region)
-  parameters$region = region
+  parameters$local_authority = region
   jsonlite::write_json(parameters, "parameters.json", pretty = TRUE)
   targets::tar_make()
 }

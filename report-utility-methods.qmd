@@ -873,7 +873,7 @@ ggplot() +
   theme_void()
 ```
 
-The output of the SIM model, for `r parameters$region` is shown below.
+The output of the SIM model, for `r parameters$local_authority` is shown below.
 
 ```{r}
 #| label: sim-shopping-output-original

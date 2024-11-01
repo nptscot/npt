@@ -4,7 +4,7 @@
 
 simplify_network = function(rnet_y, region_name, region_boundary) {
   # Read spatial data directly from URLs into sf objects
-  # Build file path and URL based on parameters$region
+  # Build file path and URL based on parameters$local_authority
   region_snake_case = snakecase::to_snake_case(region_name)
   base_name = paste0("OS_Scotland_Network_", region_snake_case, ".geojson")
   rnet_x_f = file.path("inputdata", base_name)
