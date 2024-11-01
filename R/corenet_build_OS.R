@@ -65,7 +65,17 @@ corenet_build_OS = function(os_scotland, osm_scotland, region_names,cities_regio
                 geometry = st_line_merge(st_combine(st_union(geometry)))
               )
 
-            orcp_city_boundary$road_function = "Off Road/Detached Cycle Track/Path"
+            p_90 = quantile(orcp_city_boundary$all_fastest_bicycle_go_dutch, 0.90, na.rm = TRUE)
+            p_25 = quantile(orcp_city_boundary$all_fastest_bicycle_go_dutch, 0.25, na.rm = TRUE)
+
+            # Update road function based on percentile thresholds
+            orcp_city_boundary$road_function = case_when(
+              orcp_city_boundary$all_fastest_bicycle_go_dutch > p_90 ~ "Primary",
+              orcp_city_boundary$all_fastest_bicycle_go_dutch > p_25 & orcp_city_boundary$all_fastest_bicycle_go_dutch <= p_90 ~ "Secondary",
+              orcp_city_boundary$all_fastest_bicycle_go_dutch <= p_25 ~ "Local Access",
+              TRUE ~ "Local Access"  
+            )
+
             orcp_city_boundary$name_1 = orcp_city_boundary$component
             # Combine the two networks
             # Check if the two networks have
