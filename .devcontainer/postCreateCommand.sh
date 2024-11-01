@@ -44,5 +44,14 @@ make -j$(nproc)
 sudo make install
 tippecanoe --version
 
+# Install git and GitHub CLI (gh)
+apt-get install -y git
+apt-get install -y gh
+
+# Configure git settings
+git config --global core.autocrlf input
+git config --global core.fileMode false
+git update-index --refresh
+
 # Make sure there's a newline at the end of the script
 echo "Script execution completed successfully."

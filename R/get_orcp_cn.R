@@ -14,7 +14,7 @@ orcp_network = function(area, NPT_zones, length_threshold = 10000, percentile_va
       # filter cycle_net based on column bicycle is yes dismount adn designated
       cycle_net = cycle_net |>
         dplyr::filter(bicycle %in% c("yes", "dismount", "designated")) |>
-        dplyr::filter(cycle_segregation == "Separated cycle track") |>
+        dplyr::filter(cycle_segregation %in% c("Off Road Cycleway")) |>
         dplyr::mutate(length = as.numeric(sf::st_length(geometry))) |>
         dplyr::filter(length > 1) |>
         sf::st_transform(crs = 27700)
@@ -64,16 +64,18 @@ orcp_network = function(area, NPT_zones, length_threshold = 10000, percentile_va
       cycle_net_clean_length = cycle_net_clean_components |>
           dplyr::group_by(component) |>
           dplyr::summarize(
-                            total_length = sum(as.numeric(sf::st_length(geometry)), na.rm = TRUE))  
+                            total_length = sum(as.numeric(sf::st_length(geometry)), na.rm = TRUE)
+                          )  
 
       min_percentile_value = stats::quantile(cycle_net_clean_length$total_length, probs = 0.8, na.rm = TRUE)
-      cycle_net_f = cycle_net_clean_length |> dplyr::filter(total_length > min_percentile_value)
+      cycle_net_f = cycle_net_clean_length |> 
+                    dplyr::filter(total_length > min_percentile_value)
 
       filtered_OS_zones = cycle_net_f |> 
                           sf::st_transform(27700) |> 
                           sf::st_zm()
 
-      cycle_net_NPT = stplanr::rnet_merge(filtered_OS_zones, NPT_zones, , max_angle_diff = 10, dist = 1, segment_length = 5, funs = list(all_fastest_bicycle_go_dutch = mean))       
+      cycle_net_NPT = stplanr::rnet_merge(filtered_OS_zones, NPT_zones,max_angle_diff = 10, dist = 1, segment_length = 5, funs = list(all_fastest_bicycle_go_dutch = mean))       
 
       # cycle_net_NPT = sf::st_join(filtered_OS_zones, NPT_zones, join = st_intersects)
 
@@ -82,7 +84,7 @@ orcp_network = function(area, NPT_zones, length_threshold = 10000, percentile_va
           dplyr::summarize(mean_all_fastest_bicycle_go_dutch = mean(all_fastest_bicycle_go_dutch, na.rm = TRUE),
                           total_length = sum(as.numeric(sf::st_length(geometry)), na.rm = TRUE))
 
-      min_percentile_value = stats::quantile(summarized_data$mean_all_fastest_bicycle_go_dutch, probs = 0.6, na.rm = TRUE)
+      min_percentile_value = stats::quantile(summarized_data$mean_all_fastest_bicycle_go_dutch, probs = 0.5, na.rm = TRUE)
       
       summarized_data = summarized_data |> dplyr::filter(mean_all_fastest_bicycle_go_dutch > min_percentile_value)
 
