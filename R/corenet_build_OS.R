@@ -53,6 +53,8 @@ corenet_build_OS = function(os_scotland, osm_scotland, la_names) {
       osm_city = osm_city[!is.na(osm_city$highway), ]
 
       orcp_city_boundary = find_orcp_path(orcp_city_boundary, cohesive_network_city_boundary, osm_city, os_scotland_city_boundary, combined_net_city_boundary)
+      # rename mean_all_fastest_bicycle_go_dutch as all_fastest_bicycle_go_dutch
+      orcp_city_boundary = orcp_city_boundary |> dplyr::rename(all_fastest_bicycle_go_dutch = mean_all_fastest_bicycle_go_dutch)
 
       orcp_city_boundary = orcp_city_boundary |>
         group_by(component) |>
@@ -379,4 +381,5 @@ corenet_build_OS = function(os_scotland, osm_scotland, la_names) {
     system_output = system(command_tippecanoe, intern = TRUE)
     cat("Tippecanoe output for group", number, ":\n", system_output, "\n")
   }
+}
 }
