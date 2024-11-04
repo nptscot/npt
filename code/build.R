@@ -13,7 +13,7 @@ tar_source()
 parameters = jsonlite::read_json("parameters.json", simplifyVector = T)
 lads = sf::read_sf("inputdata/boundaries/la_regions_2023.geojson")
 # To test for a single local authority:
-lads = lads |> filter(LAD23NM %in% c("City of Edinburgh", "Clackmannanshire"))
+# lads = lads |> filter(LAD23NM %in% c("City of Edinburgh", "Clackmannanshire"))
 date_folder = parameters$date_routing
 la_names = lads$LAD23NM
 output_folder = file.path("outputdata", date_folder)
