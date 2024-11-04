@@ -1,4 +1,10 @@
 nrow,plan,purpose,region,date,id
+100,balanced,utility,city_of_edinburgh,2024-11-30,11014
+100,balanced,commute,city_of_edinburgh,2024-11-30,11011
+100,quietest,school,city_of_edinburgh,2024-11-30,11009
+100,balanced,utility,clackmannanshire,2024-11-30,11005
+100,quietest,commute,clackmannanshire,2024-11-30,11003
+100,ebike,school,clackmannanshire,2024-11-30,11001
 100,quietest,utility,city_of_edinburgh,2024-11-30,10878
 100,quietest,commute,city_of_edinburgh,2024-11-30,10876
 100,balanced,school,city_of_edinburgh,2024-11-30,10871
