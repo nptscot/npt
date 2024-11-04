@@ -1,4 +1,15 @@
-get_routes = function(od, plans, purpose = "work", folder = ".", batch = TRUE, nrow_batch = 100, date = NULL, segments = TRUE, c2k = c("id", "distances", "quietness", "gradient_smooth")) {
+get_routes = function(
+  od,
+  plans,
+  purpose = "work",
+  folder = ".",
+  batch = TRUE,
+  nrow_batch = 100,
+  date = NULL,
+  segments = TRUE,
+  c2k = c("id", "distances", "quietness", "gradient_smooth"),
+  max_wait_time = 10
+  ) {
   if (nrow(od) < 50) {
     batch = FALSE
   }
@@ -39,6 +50,10 @@ get_routes = function(od, plans, purpose = "work", folder = ".", batch = TRUE, n
       route_id = inner_join(route_id_new, route_id_old)
       if (nrow(route_id) == 0) {
         existing_route = FALSE
+        # Wait a random amount of time between 0 and 10 seconds to avoid overloading the server:
+        time_to_wait = runif(1, 0, max_wait_time)
+        message("Waiting for ", time_to_wait, " seconds")
+        Sys.sleep(time_to_wait)
         id = cyclestreets::batch(
           desire_lines = od,
           id = id,
