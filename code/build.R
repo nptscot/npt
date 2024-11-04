@@ -237,22 +237,6 @@ if (GENERATE_CDB) {
 # Read the open roads data outside the loop for only once
 
 if (parameters$generate_CN_start) {
-  lads = sf::read_sf("inputdata/boundaries/la_regions_2023.geojson")
-  region_names = unique(lads$Region)[c(3, 4, 1, 6, 2, 5)] |>
-    # Reverse to build smallest first:
-    rev()
-
-  cities_region_names = lapply(
-    region_names,
-    function(region) {
-      cities_in_region = lads |>
-        filter(Region == region) |>
-        pull(LAD23NM) |>
-        unique()
-    }
-  )
-
-  region_names_lowercase = snakecase::to_snake_case(region_names)
 
   os_file_path = "inputdata/open_roads_scotland.gpkg"
   if (!file.exists(os_file_path)) {
@@ -274,7 +258,7 @@ if (parameters$generate_CN_start) {
 
   message("Running corenet_build function")
   if (parameters$coherent_sources == "OS") {
-      corenet_build_OS(os_scotland, osm_scotland, region_names, cities_region_names)
+      corenet_build_OS(os_scotland, osm_scotland, la_names)
   } else if (parameters$coherent_sources == "OSM") {
       corenet_build_OSM(osm_scotland, region_names, cities_region_names)
   } else {
