@@ -233,72 +233,6 @@ if (GENERATE_CDB) {
   print(glue::glue("Generating PMTiles at {output_folder}/cbd_layer_{date_folder}.pmtiles"))
 }
 
-# Generate coherent network -------------------------------------------------
-# Read the open roads data outside the loop for only once
-
-if (parameters$generate_CN_start) {
-  lads = sf::read_sf("inputdata/boundaries/la_regions_2023.geojson")
-  region_names = unique(lads$Region)[c(3, 4, 1, 6, 2, 5)] |>
-    # Reverse to build smallest first:
-    rev()
-
-  cities_region_names = lapply(
-    region_names,
-    function(region) {
-      cities_in_region = lads |>
-        filter(Region == region) |>
-        pull(LAD23NM) |>
-        unique()
-    }
-  )
-
-  region_names_lowercase = snakecase::to_snake_case(region_names)
-
-  os_file_path = "inputdata/open_roads_scotland.gpkg"
-  if (!file.exists(os_file_path)) {
-    setwd("inputdata")
-    system("gh release download OS_network --skip-existing")
-    setwd("..")
-  }
-  os_scotland = sf::read_sf(os_file_path)
-  sf::st_geometry(os_scotland) = "geometry"
-
-  osm_file_path = "inputdata/connectivity_fixed_osm.gpkg"
-  if (!file.exists(osm_file_path)) {
-    setwd("inputdata")
-    system("gh release download OSM_fixed --skip-existing")
-    setwd("..")
-  }
-  osm_scotland = sf::read_sf(osm_file_path)
-  sf::st_geometry(osm_scotland) = "geometry"
-
-  message("Running corenet_build function")
-  if (parameters$coherent_sources == "OS") {
-      corenet_build_OS(os_scotland, osm_scotland, region_names, cities_region_names)
-  } else if (parameters$coherent_sources == "OSM") {
-      corenet_build_OSM(osm_scotland, region_names, cities_region_names)
-  } else {
-      stop("Invalid value for parameters$coherent_sources. Expected 'OS' or 'OSM'.")
-  }
-} else {
-  message("parameters$generate_CN_start is FALSE, skipping corenet_build.")
-}
-
-# # Test cn for one LA: ------------------
-# output_folder_la_name = file.path(output_folder, la_names_lowercase[1])
-# list.files(output_folder_la_name)
-# output_folder_la_name_cn = file.path(output_folder_la_name, "coherent_networks_OS")
-# list.files(output_folder_la_name_cn)
-# #  [8] "city_of_edinburgh_2024-09-30_4_coherent_network.pmtiles"   
-# # cn_name = glue::glue("{snakecase::to_snake_case(cities_la_names[[1]][1])}_{date_folder}_4_coherent_network.pmtiles")
-# cn_name =  glue::glue("city_of_edinburgh_{date_folder}_4_coherent_network.pmtiles")
-# la_cn_path = file.path(output_folder_la_name_cn, cn_name)
-# file.exists(la_cn_path)
-# cn_test = sf::read_sf(la_cn_path)
-# names(cn_test)
-# table(cn_test$road_function)
-# mapview::mapview(cn_test, zcol = "road_function")
-
 # Combine regional outputs 
 ---------------------------------------------------
 GENERATE_PMTILES = TRUE
@@ -664,6 +598,58 @@ if (GENERATE_PMTILES) {
   message(glue::glue("Generated PMTiles for dasymetric data level high at {output_folder}/dasymetric_high.pmtiles"))
   message(glue::glue("Joined PMTiles for all dasymetric data levels at {output_folder}/dasymetric.pmtiles"))
 }
+
+# Generate coherent network -------------------------------------------------
+# Read the open roads data outside the loop for only once
+
+if (parameters$generate_CN_start) {
+
+  os_file_path = "inputdata/open_roads_scotland.gpkg"
+  if (!file.exists(os_file_path)) {
+    setwd("inputdata")
+    system("gh release download OS_network --skip-existing")
+    setwd("..")
+  }
+  os_scotland = sf::read_sf(os_file_path)
+  sf::st_geometry(os_scotland) = "geometry"
+
+  osm_file_path = "inputdata/connectivity_fixed_osm.gpkg"
+  if (!file.exists(osm_file_path)) {
+    setwd("inputdata")
+    system("gh release download OSM_fixed --skip-existing")
+    setwd("..")
+  }
+  osm_scotland = sf::read_sf(osm_file_path)
+  sf::st_geometry(osm_scotland) = "geometry"
+
+  message("Running corenet_build function")
+  if (parameters$coherent_sources == "OS") {
+      corenet_build_OS(os_scotland, osm_scotland, region_names, cities_region_names)
+  } else if (parameters$coherent_sources == "OSM") {
+      corenet_build_OSM(osm_scotland, region_names, cities_region_names)
+  } else {
+      stop("Invalid value for parameters$coherent_sources. Expected 'OS' or 'OSM'.")
+  }
+} else {
+  message("parameters$generate_CN_start is FALSE, skipping corenet_build.")
+}
+
+# # Test cn for one LA: ------------------
+# output_folder_la_name = file.path(output_folder, la_names_lowercase[1])
+# list.files(output_folder_la_name)
+# output_folder_la_name_cn = file.path(output_folder_la_name, "coherent_networks_OS")
+# list.files(output_folder_la_name_cn)
+# #  [8] "city_of_edinburgh_2024-09-30_4_coherent_network.pmtiles"   
+# # cn_name = glue::glue("{snakecase::to_snake_case(cities_la_names[[1]][1])}_{date_folder}_4_coherent_network.pmtiles")
+# cn_name =  glue::glue("city_of_edinburgh_{date_folder}_4_coherent_network.pmtiles")
+# la_cn_path = file.path(output_folder_la_name_cn, cn_name)
+# file.exists(la_cn_path)
+# cn_test = sf::read_sf(la_cn_path)
+# names(cn_test)
+# table(cn_test$road_function)
+# mapview::mapview(cn_test, zcol = "road_function")
+
+
 
 PUSH_TO_GITHUB = TRUE
 
