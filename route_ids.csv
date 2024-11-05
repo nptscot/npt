@@ -1,4 +1,7 @@
 nrow,plan,purpose,region,date,id
+111504,ebike,utility,Edinburgh and Lothians,2024-11-01,11221
+111504,quietest,utility,Edinburgh and Lothians,2024-11-01,11220
+111504,fastest,utility,Edinburgh and Lothians,2024-11-01,11218
 111504,balanced,utility,Edinburgh and Lothians,2024-11-01,11217
 90716,ebike,commute,Edinburgh and Lothians,2024-11-01,11216
 218877,fastest,commute,Glasgow and Strathclyde,2024-11-01,11214
