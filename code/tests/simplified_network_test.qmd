@@ -13,8 +13,84 @@ library(foreach)
 library(iterators)
 library(parallel)
 library(doParallel)
+library(mapview)
 tar_source()
+```
 
+
+```{r}
+# get off road from osm to os, simple combine
+zone = zonebuilder::zb_zone("Edinburgh", n_circles = 3) |> sf::st_transform(crs = "EPSG:27700")
+
+os_file_path = "inputdata/open_roads_scotland.gpkg"
+os_scotland = sf::read_sf(os_file_path)
+sf::st_geometry(os_scotland) = "geometry"
+
+os_scotland = os_scotland[sf::st_union(zone), , op = sf::st_within]
+
+osm_file_path = "inputdata/connectivity_fixed_osm.gpkg"
+osm_scotland = sf::read_sf(osm_file_path)
+sf::st_geometry(osm_scotland) = "geometry"
+
+osm_scotland = osm_scotland[sf::st_union(zone), , op = sf::st_within]
+
+os_scotland = os_scotland |> sf::st_transform(crs = "EPSG:27700") |> dplyr::select(geometry)
+osm_scotland = osm_scotland |> sf::st_transform(crs = "EPSG:27700")
+
+rnet_merged_all_geos = geos::as_geos_geometry(os_scotland)
+
+rnet_merged_all_geos_buffer = geos::geos_buffer(rnet_merged_all_geos, distance = 30, params = geos::geos_buffer_params(quad_segs = 4))
+
+rnet_merged_all_projected_buffer = sf::st_as_sf(rnet_merged_all_geos_buffer)
+
+osm_scotland_subset = osm_scotland[sf::st_union(rnet_merged_all_projected_buffer), , op = sf::st_within]
+
+osm_scotland_rest = osm_scotland[!osm_scotland$geometry %in% osm_scotland_subset$geometry, ]
+
+os_scotland = dplyr::bind_rows(osm_scotland_rest, os_scotland)
+```
+
+```{r}
+parameters = jsonlite::read_json("parameters.json", simplifyVector = T)
+lads = sf::read_sf("inputdata/boundaries/la_regions_2023.geojson")
+# To test for a single local authority:
+# lads = lads |> filter(LAD23NM %in% c("City of Edinburgh", "Clackmannanshire"))
+date_folder = parameters$date_routing
+la_names = lads$LAD23NM
+output_folder = file.path("outputdata", date_folder)
+la_names_lowercase = snakecase::to_snake_case(la_names)
+```
+
+```{r}
+la_name = la_names[1]
+for (la_name in la_names) {
+  message("Processing la_name: ", la_name)
+  la_name_lowercase = snakecase::to_snake_case(la_name)
+  lads_la_name = lads |> filter(LAD23NM == la_name)
+  os_scotland_la_name = os_scotland[sf::st_union(lads_la_name), , op = sf::st_intersects]
+  # save os_scotland_la_name
+  os_scotland_la_name_f = file.path("inputdata", paste0("os_", la_name_lowercase, "_osm_orcp.geojson"))
+  
+  sf::st_write(os_scotland_la_name, os_scotland_la_name_f, delete_dsn = T)
+}
+```
+
+```{r}
+region_snake_case = snakecase::to_snake_case(region_names[1])
+base_name = paste0("OS_Scotland_Network_", region_snake_case, ".geojson")
+rnet_x_f = file.path("inputdata", base_name)
+rnet_x = sf::read_sf(rnet_x_f) |> sf::st_transform(crs = "EPSG:27700")
+
+osm_file_path = "inputdata/connectivity_fixed_osm.gpkg"
+osm_scotland = sf::read_sf(osm_file_path)
+sf::st_geometry(osm_scotland) = "geometry"
+
+
+
+```
+
+
+```{r}
 zone = zonebuilder::zb_zone("Edinburgh", n_circles = 3) |> sf::st_transform(crs = "EPSG:27700")
 rnet_edingburgh = sf::st_read("outputdata/2024-11-01/edinburgh_and_lothians/combined_network_tile.geojson") |> sf::st_transform(crs = "EPSG:27700")
 rnet_edingburgh_zone = rnet_edingburgh[sf::st_union(zone), , op = sf::st_intersects]
