@@ -1,0 +1,29 @@
+---
+format: gfm
+---
+
+# create a exmaple network
+
+```{r}
+library(tidyverse)
+library(targets)
+library(tidygraph)
+library(osmextract)
+library(foreach)
+library(iterators)
+library(parallel)
+library(doParallel)
+tar_source()
+
+zone = zonebuilder::zb_zone("Edinburgh", n_circles = 3) |> sf::st_transform(crs = "EPSG:27700")
+rnet_edingburgh = sf::st_read("outputdata/2024-11-01/edinburgh_and_lothians/combined_network_tile.geojson") |> sf::st_transform(crs = "EPSG:27700")
+rnet_edingburgh_zone = rnet_edingburgh[sf::st_union(zone), , op = sf::st_intersects]
+parameters$region[[1]] = "Edinburgh and Lothians"
+
+os_file_path = "inputdata/open_roads_scotland.gpkg"
+sf::st_geometry(os_scotland) = "geometry"
+
+system.time({
+rnet_simple = simplify_network(rnet_edingburgh_zone, parameters, region_boundary = zone)
+})
+```

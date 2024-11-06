@@ -8,12 +8,9 @@ simplify_network = function(rnet_y, parameters, region_boundary) {
   region_snake_case = snakecase::to_snake_case(parameters$region[[1]])
   base_name = paste0("OS_Scotland_Network_", region_snake_case, ".geojson")
   rnet_x_f = file.path("inputdata", base_name)
-  rnet_x = sf::read_sf(rnet_x_f)
-  # rnet_x = geojsonsf::geojson_sf(rnet_x_f) # bit faster
+  rnet_x = sf::read_sf(rnet_x_f) |> sf::st_transform(crs = "EPSG:27700")
 
-  # Transform the spatial data to a different coordinate reference system (EPSG:27700)
-  # TODO: uncomment:
-  rnet_x = rnet_x[region_boundary, ] # TODO: is this needed? Can remove if not
+  rnet_x = rnet_x[region_boundary |> sf::st_transform(crs = "EPSG:27700") , ] # TODO: is this needed? Can remove if not
   rnet_xp = sf::st_transform(rnet_x, "EPSG:27700")
   rnet_yp = sf::st_transform(rnet_y, "EPSG:27700")
 
@@ -88,11 +85,11 @@ simplify_network = function(rnet_y, parameters, region_boundary) {
   rnet_merged_all_projected_buffer = sf::st_as_sf(rnet_merged_all_geos_buffer)
 
   # Transform the coordinate reference system of 'rnet_merged_all' to WGS 84 (EPSG:4326).
-  rnet_merged_all_buffer = sf::st_transform(rnet_merged_all_projected_buffer, "EPSG:4326")
+  # rnet_merged_all_buffer = sf::st_transform(rnet_merged_all_projected_buffer, "EPSG:4326")
 
   # Subsetting another dataset 'rnet_y' based on the spatial relation with 'rnet_merged_all_buffer'.
   # It selects features from 'rnet_y' that are within the boundaries of 'rnet_merged_all_buffer'.
-  rnet_y_subset = rnet_y[rnet_merged_all_buffer, , op = sf::st_within]
+  rnet_y_subset = rnet_y[rnet_merged_all_projected_buffer, , op = sf::st_within]
 
   # Filter 'rnet_y' to exclude geometries within 'within_join'
   rnet_y_rest = rnet_y[!rnet_y$geometry %in% rnet_y_subset$geometry, ]
