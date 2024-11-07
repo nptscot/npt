@@ -1243,6 +1243,7 @@ list(
     # TODO (nice to have): replace with global setting (needs testing):
     use_sf_s2_status = sf::sf_use_s2()
     sf::sf_use_s2(FALSE)
+    # Debugging the function:
     rnet_simple = simplify_network(combined_network_tile, parameters, region_boundary)
     make_geojson_zones(rnet_simple, paste0(region_folder, "/simplified_network.geojson"))
     # Restore previous status

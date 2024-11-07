@@ -73,11 +73,7 @@ simplify_network = function(rnet_y, parameters, region_boundary) {
   rnet_merged_all_geos_buffer = geos::geos_buffer(rnet_merged_all_geos, distance = 30, params = geos::geos_buffer_params(quad_segs = 4))
 
   # Converting the buffered GEOS geometry back to an sf object.
-  browser()
   rnet_merged_all_projected_buffer = sf::st_as_sf(rnet_merged_all_geos_buffer)
-
-  # Transform the coordinate reference system of 'rnet_merged_all' to WGS 84 (EPSG:4326).
-  # rnet_merged_all_buffer = sf::st_transform(rnet_merged_all_projected_buffer, "EPSG:4326")
 
   # Subsetting another dataset 'rnet_y' based on the spatial relation with 'rnet_merged_all_buffer'.
   # It selects features from 'rnet_y' that are within the boundaries of 'rnet_merged_all_buffer'.
