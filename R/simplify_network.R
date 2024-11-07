@@ -66,17 +66,8 @@ simplify_network = function(rnet_y, parameters, region_boundary) {
   rnet_merged_all = rnet_merged_all |>
     dplyr::filter_at(columns_to_check, any_vars(!is.na(.)))
 
-  # Selecting only the geometry column from the 'rnet_merged_all' dataset.
-  rnet_merged_all_only_geometry = rnet_merged_all |> dplyr::select(geometry)
-
-  # Merging all geometries into a single geometry using st_union from the sf package.
-  rnet_merged_all_union = sf::st_union(rnet_merged_all_only_geometry)
-
-  # Transforming the merged geometry to a specific coordinate reference system (CRS), EPSG:27700.
-  rnet_merged_all_projected = sf::st_transform(rnet_merged_all_union, "EPSG:27700")
-
   # Converting the projected geometry into a GEOS geometry. GEOS is a library used for spatial operations.
-  rnet_merged_all_geos = geos::as_geos_geometry(rnet_merged_all_projected)
+  rnet_merged_all_geos = geos::as_geos_geometry(rnet_merged_all)
 
   # Creating a buffer around the GEOS geometry. This expands the geometry by a specified distance (in meters).
   rnet_merged_all_geos_buffer = geos::geos_buffer(rnet_merged_all_geos, distance = 30, params = geos::geos_buffer_params(quad_segs = 4))
@@ -90,13 +81,14 @@ simplify_network = function(rnet_y, parameters, region_boundary) {
 
   # Subsetting another dataset 'rnet_y' based on the spatial relation with 'rnet_merged_all_buffer'.
   # It selects features from 'rnet_y' that are within the boundaries of 'rnet_merged_all_buffer'.
-  rnet_y_subset = rnet_y[rnet_merged_all_projected_buffer, , op = sf::st_within]
+  rnet_y_subset = sf::st_intersection(rnet_yp, rnet_merged_all)
 
   # Filter 'rnet_y' to exclude geometries within 'within_join'
-  rnet_y_rest = rnet_y[!rnet_y$geometry %in% rnet_y_subset$geometry, ]
+  rnet_y_rest = rnet_yp[!rnet_yp$geometry %in% rnet_y_subset$geometry, ]
 
   # Transform the CRS of the 'rnet_merged_all' object to WGS 84 (EPSG:4326)
   rnet_merged_all = sf::st_transform(rnet_merged_all, "EPSG:4326")
+  rnet_y_rest = sf::st_transform(rnet_y_rest, "EPSG:4326")
 
   # Combine 'rnet_y_rest' and 'rnet_merged_all' into a single dataset
   simplified_network = dplyr::bind_rows(rnet_y_rest, rnet_merged_all)
