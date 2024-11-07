@@ -1,4 +1,7 @@
 nrow,plan,purpose,region,date,id
+218877,ebike,commute,Glasgow and Strathclyde,2024-11-01,11312
+218877,balanced,commute,Glasgow and Strathclyde,2024-11-01,11303
+218877,quietest,commute,Glasgow and Strathclyde,2024-11-01,11302
 111504,ebike,utility,Edinburgh and Lothians,2024-11-01,11221
 111504,quietest,utility,Edinburgh and Lothians,2024-11-01,11220
 111504,fastest,utility,Edinburgh and Lothians,2024-11-01,11218
