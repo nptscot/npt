@@ -15,14 +15,14 @@ lads = sf::read_sf("inputdata/boundaries/la_regions_2023.geojson")
 mapview::mapview(lads)
 # To test for a single local authority:
 lads = lads |>
-  filter(LAD23NM %in% c("City of Edinburgh", "Edinburgh and Lothians"))
+  filter(LAD23NM %in% c("City of Edinburgh", "West Lothian"))
 date_folder = parameters$date_routing
 la_names = lads$LAD23NM
 output_folder = file.path("outputdata", date_folder)
 la_names_lowercase = snakecase::to_snake_case(la_names)
 
 # Build route networks:
-la_name = la_names[1]
+la_name = la_names[2]
 for (la_name in la_names) {
   message("Processing la_name: ", la_name)
   parameters$local_authority = la_name
