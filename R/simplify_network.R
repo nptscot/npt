@@ -82,6 +82,7 @@ simplify_network = function(rnet_y, parameters, region_boundary) {
   rnet_merged_all_geos_buffer = geos::geos_buffer(rnet_merged_all_geos, distance = 30, params = geos::geos_buffer_params(quad_segs = 4))
 
   # Converting the buffered GEOS geometry back to an sf object.
+  browser()
   rnet_merged_all_projected_buffer = sf::st_as_sf(rnet_merged_all_geos_buffer)
 
   # Transform the coordinate reference system of 'rnet_merged_all' to WGS 84 (EPSG:4326).
