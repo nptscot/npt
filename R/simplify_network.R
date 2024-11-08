@@ -78,10 +78,10 @@ simplify_network = function(rnet_y, parameters, region_boundary) {
   # Subsetting another dataset 'rnet_y' based on the spatial relation with 'rnet_merged_all_buffer'.
   # It selects features from 'rnet_y' that are within the boundaries of 'rnet_merged_all_buffer'.
   # rnet_y_subset = sf::st_intersection(rnet_yp, rnet_merged_all_projected_buffer)
-  browser()
+  # browser()
   rnet_yp_points = sf::st_point_on_surface(rnet_yp)
-  rnet_y_points_subset = rnet_y_points[rnet_merged_all_projected_buffer, ]
-  rnet_y_subset = rnet_yp[rnet_y_points_subset, ]
+  rnet_yp_points_subset = rnet_yp_points[rnet_merged_all_projected_buffer, ]
+  rnet_y_subset = rnet_yp[rnet_yp_points_subset, ]
 
   # Filter 'rnet_y' to exclude geometries within 'within_join'
   rnet_y_rest = rnet_yp[!rnet_yp$geometry %in% rnet_y_subset$geometry, ]
