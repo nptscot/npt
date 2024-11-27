@@ -19,9 +19,8 @@ if (!"corenet" %in% installed.packages()) {
 library(targets) # Needed to make targets work
 library(magrittr) # Light load of |>
 library(sf) # Needed for sf support
-library(httr)
 set.seed(2023)
-set_config(timeout(seconds = 600))
+httr::set_config(httr::timeout(seconds = 600))
 tar_source()
 pkgs = get_pkgs()
 
