@@ -36,7 +36,7 @@ region_names_lowercase = snakecase::to_snake_case(region_names)
 
 # Build route networks:
 region = region_names[1]
-for (region in region_names[1:6]) {
+for (region in region_names[6]) {
   message("Processing region: ", region)
   parameters$region = region
   jsonlite::write_json(parameters, "parameters.json", pretty = TRUE)
@@ -198,15 +198,20 @@ if (GENERATE_CDB) {
 
       #     
       cycle_net_traffic = level_of_service(cycle_net_traffic)
-      
+            
       cbd_layer = cycle_net_traffic |>
         transmute(
           osm_id,
           highway,
-          `Traffic volume` = final_traffic,
           `Speed limit` = final_speed,
           `Infrastructure type` = cycle_segregation,
-          `Level of Service`
+          `Level of Service`,
+          `Traffic volume category` = case_when(
+            final_traffic >= 0 & final_traffic <= 1999 ~ "0 to 1999",
+            final_traffic >= 2000 & final_traffic <= 3999 ~ "2000 to 3999",
+            final_traffic >= 4000 ~ "4000+",
+            TRUE ~ NA_character_
+          )
         )
       # save file for individual district
       district_name = district_geom$LAD23NM |> 
