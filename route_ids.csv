@@ -1,14 +1,5 @@
 nrow,plan,purpose,region,date,id
-991,quietest,school,clackmannanshire,2024-11-29,11476
-1789,balanced,utility,clackmannanshire,NA,11471
-1657,ebike,commute,clackmannanshire,NA,11468
-991,balanced,school,clackmannanshire,NA,11462
-4140,ebike,commute,dumfries_and_galloway,NA,11332
-987,ebike,school,dumfries_and_galloway,NA,11328
-987,fastest,school,dumfries_and_galloway,NA,11325
-1789,fastest,utility,clackmannanshire,NA,11324
-1657,balanced,commute,clackmannanshire,NA,11318
-991,quietest,school,clackmannanshire,NA,11316
+18924,quietest,utility,city_of_edinburgh,2024-11-31,11366
 100,balanced,utility,city_of_edinburgh,2024-11-30,11014
 100,balanced,commute,city_of_edinburgh,2024-11-30,11011
 100,quietest,school,city_of_edinburgh,2024-11-30,11009
