@@ -57,12 +57,12 @@ if (GENERATE_CDB) {
 
   library(osmactive)
   # See https://github.com/nptscot/osmactive/blob/main/code/classify-roads.R and traffic-volumes.R
-  f_traffic = "scottraffic/final_estimates_Scotland_higherror_discarded.gpkg"
+  f_traffic = "scottraffic/final_estimates_Scotland.gpkg"
   if (!file.exists(f_traffic)) {
     system("gh repo clone nptscot/scottraffic")
     setwd("scottraffic")
     system("gh release list")
-    system("gh release download v5 --clobber")
+    system("gh release download v6 --clobber")
     setwd("..")
   }
   traffic_volumes_scotland = sf::read_sf(f_traffic)
