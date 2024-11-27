@@ -60,15 +60,17 @@ if (GENERATE_CDB) {
   f_traffic = "scottraffic/final_estimates_Scotland.gpkg"
   if (!file.exists(f_traffic)) {
     system("gh repo clone nptscot/scottraffic")
+    file.remove(f_traffic)
     setwd("scottraffic")
     system("gh release list")
-    system("gh release download v6 --clobber")
+    system("gh release download v6")
     setwd("..")
   }
   traffic_volumes_scotland = sf::read_sf(f_traffic)
 
-  # Generate cycle_net - this is slow, we should save the file
-  osm_national = get_travel_network("Scotland", force_download = T)
+  # Generate cycle_net: forcing update:
+  # osm_national = get_travel_network("Scotland", force_download = TRUE)
+  osm_national = get_travel_network("Scotland")
   # saveRDS(osm_national, "inputdata/osm_national_2024_05_23")
 
   # Generate road segment midpoints
