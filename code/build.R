@@ -15,7 +15,7 @@ lads = sf::read_sf("inputdata/boundaries/la_regions_2023.geojson")
 mapview::mapview(lads)
 # To test for a single local authority:
 lads = lads |>
-  filter(LAD23NM %in% c("City of Edinburgh", "West Lothian"))
+  filter(LAD23NM %in% c("Clackmannanshire"))
 date_folder = parameters$date_routing
 la_names = lads$LAD23NM
 output_folder = file.path("outputdata", date_folder)
