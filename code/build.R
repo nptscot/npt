@@ -207,8 +207,8 @@ if (GENERATE_CDB) {
           `Infrastructure type` = cycle_segregation,
           `Level of Service`,
           `Traffic volume category` = case_when(
-            final_traffic >= 0 & final_traffic <= 1999.5 ~ "0 to 1999",
-            final_traffic >= 1999.5 & final_traffic <= 3999.5 ~ "2000 to 3999",
+           final_traffic >= 0 & final_traffic < 1999.5 ~ "0 to 1999",
+            final_traffic >= 1999.5 & final_traffic < 3999.5 ~ "2000 to 3999",
             final_traffic >= 3999.5 ~ "4000+",
             TRUE ~ NA_character_
           )
