@@ -21,7 +21,7 @@ library(magrittr) # Light load of |>
 library(sf) # Needed for sf support
 library(httr)
 set.seed(2023)
-set_config(timeout(seconds = 2))
+set_config(timeout(seconds = 600))
 tar_source()
 pkgs = get_pkgs()
 
