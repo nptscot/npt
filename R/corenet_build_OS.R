@@ -353,12 +353,17 @@ corenet_build_OS = function(os_scotland, osm_scotland, region_names,cities_regio
         return(NULL)
       }
     }))
-    # Define the file path for the combined GeoJSON
-    combined_CN_file = glue::glue("{output_folder}/combined_CN_{number}_{date_folder}_OS.geojson")
+    # Define the file paths for the combined GeoJSON and GeoPackage
+    combined_CN_geojson_file = glue::glue("{output_folder}/combined_CN_{number}_{date_folder}_OS.geojson")
+    combined_CN_gpkg_file = glue::glue("{output_folder}/combined_CN_{number}_{date_folder}_OS.gpkg")
 
-    # Write the combined GeoJSON to a file
-    sf::st_write(combined_CN_geojson, combined_CN_file, delete_dsn = TRUE)
-    cat("Combined cohesive networks GeoJSON file for group", number, "has been saved to:", combined_CN_file, "\n")
+    # Write the combined data to GeoJSON and GeoPackage files
+    sf::st_write(combined_CN_geojson, combined_CN_geojson_file, delete_dsn = TRUE)
+    sf::st_write(combined_CN_geojson, combined_CN_gpkg_file, delete_dsn = TRUE)
+
+    # Print messages indicating where the files have been saved
+    cat("Combined cohesive networks GeoJSON file for group", number, "has been saved to:", combined_CN_geojson_file, "\n")
+    cat("Combined cohesive networks GeoPackage file for group", number, "has been saved to:", combined_CN_gpkg_file, "\n")
 
     # Define the path for the PMtiles
     combined_CN_pmtiles = glue::glue("{output_folder}/combined_CN_{number}_{date_folder}_OS.pmtiles")
@@ -376,7 +381,7 @@ corenet_build_OS = function(os_scotland, osm_scotland, region_names,cities_regio
       ' --buffer=5',
       ' -rg',
       ' --force ',
-      combined_CN_file
+      combined_CN_geojson_file
     )
 
     # Execute the command and capture output
