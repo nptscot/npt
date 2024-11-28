@@ -212,6 +212,8 @@ if (GENERATE_CDB) {
            final_traffic >= 0 & final_traffic < 1999.5 ~ "0 to 1999",
             final_traffic >= 1999.5 & final_traffic < 3999.5 ~ "2000 to 3999",
             final_traffic >= 3999.5 ~ "4000+",
+            `Infrastructure type` == "Off road cycleway" ~ NA_character_,
+            highway %in% c("footway", "path", "pedestrian", "steps") ~ NA_character_,
             TRUE ~ NA_character_
           )
         )
@@ -228,6 +230,10 @@ if (GENERATE_CDB) {
   }
 
   # Combine all CBD files into a single file
+  # Remove combined file if it already exists:
+  if (file.exists(cbd_filename)) {
+    file.remove(cbd_filename)
+  }
   cbd_files = list.files(output_folder, pattern = "cbd_layer_.*\\.geojson$", full.names = TRUE)
   # Create an empty cbd_layers and cbd_layer
   cbd_layers = sf::st_sf(geometry = st_sfc())
@@ -235,9 +241,6 @@ if (GENERATE_CDB) {
   cbd_layers = lapply(cbd_files, sf::read_sf)
   cbd_layer = do.call(rbind, cbd_layers)
   cbd_filename = paste0(output_folder, "/cbd_layer_", date_folder, ".geojson")
-  if (file.exists(cbd_filename)) {
-    file.remove(cbd_filename)
-  }
   sf::write_sf(cbd_layer, cbd_filename)
   fs::file_size(cbd_filename)
 
@@ -691,9 +694,6 @@ if (PUSH_TO_GITHUB) {
       parameters$max_to_route > 20e3
   is_linux = Sys.info()[["sysname"]] == "Linux"
   if (full_build) {
-    v = paste0("v", Sys.Date(), "_commit_", commit$commit)
-    v = gsub(pattern = " |:", replacement = "-", x = v)
-    # Or latest release:
     setwd(glue::glue(getwd(),"/", output_folder))
     system("gh release list")
     v = glue::glue("v{date_folder}")
