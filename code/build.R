@@ -212,8 +212,6 @@ if (GENERATE_CDB) {
            final_traffic >= 0 & final_traffic < 1999.5 ~ "0 to 1999",
             final_traffic >= 1999.5 & final_traffic < 3999.5 ~ "2000 to 3999",
             final_traffic >= 3999.5 ~ "4000+",
-            `Infrastructure type` == "Off road cycleway" ~ NA_character_,
-            highway %in% c("footway", "path", "pedestrian", "steps") ~ NA_character_,
             TRUE ~ NA_character_
           )
         )
@@ -241,6 +239,15 @@ if (GENERATE_CDB) {
   cbd_layers = lapply(cbd_files, sf::read_sf)
   cbd_layer = do.call(rbind, cbd_layers)
   cbd_filename = paste0(output_folder, "/cbd_layer_", date_folder, ".geojson")
+  # Update traffic volumes for off road cycleways
+  cbd_layer = cbd_layer |>
+    mutate(
+      `Traffic volume category` = case_when(
+        `Infrastructure type` == "Off Road Cycleway" ~ NA_character_,
+        highway %in% c("footway", "path", "pedestrian", "steps") ~ NA_character_,
+        TRUE ~ `Traffic volume category`
+      )
+    )
   sf::write_sf(cbd_layer, cbd_filename)
   fs::file_size(cbd_filename)
 
