@@ -321,7 +321,7 @@ if (parameters$generate_CN_start) {
 # mapview::mapview(cn_test, zcol = "road_function")
 
 # Combine regional outputs 
----------------------------------------------------
+
 GENERATE_PMTILES = TRUE
 
 if (GENERATE_PMTILES) {
