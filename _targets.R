@@ -20,6 +20,7 @@ library(targets) # Needed to make targets work
 library(magrittr) # Light load of |>
 library(sf) # Needed for sf support
 set.seed(2023)
+httr::set_config(httr::timeout(seconds = 6000))
 tar_source()
 pkgs = get_pkgs()
 
@@ -726,7 +727,6 @@ list(
     os_pois_subset[region_boundary_buffered, ] |>
       sf::st_transform("EPSG:27700")
   }),
-
   tar_target(grid, {
     grid = readRDS("./inputdata/grid_scot.Rds")
     grid = sf::st_transform(grid, "EPSG:4326")
@@ -776,14 +776,13 @@ list(
   # Combined utility trip purposes --------------------------------------------
 
   tar_target(od_utility_combined, {
-
     od_utility_combined = rbind(od_shopping, od_visiting, od_leisure) |>
       dplyr::slice_max(n = parameters$max_to_route, order_by = all, with_ties = FALSE)
     sum(od_utility_combined$bicycle) / sum(od_utility_combined$all)
 
     # Get % cycling for commuting per zone
     # pcycle_regional = sum(commute_stats$comm_orig_bicycle, na.rm = TRUE) /
-      # sum(commute_stats$comm_orig_all, na.rm = TRUE)
+    # sum(commute_stats$comm_orig_all, na.rm = TRUE)
     pcycle_national = 0.016
 
     commute_stats_minimal = commute_stats |>
@@ -792,7 +791,7 @@ list(
       dplyr::transmute(
         DataZone,
         multiplier = (comm_orig_bicycle / comm_orig_all) /
-         pcycle_national
+          pcycle_national
       ) |>
       # 0 to 0.1:
       dplyr::mutate(multiplier = case_when(
@@ -978,7 +977,7 @@ list(
 
   tar_target(utility_stats_baseline, {
     stats = sf::st_drop_geometry(od_utility_combined)
-     stats = stats[, c(
+    stats = stats[, c(
       "startDZ", "endDZ", "purpose", "all", "car",
       "foot", "bicycle", "public_transport", "taxi"
     )]
@@ -1243,6 +1242,7 @@ list(
     # TODO (nice to have): replace with global setting (needs testing):
     use_sf_s2_status = sf::sf_use_s2()
     sf::sf_use_s2(FALSE)
+    # Debugging the function:
     rnet_simple = simplify_network(combined_network_tile, parameters, region_boundary)
     make_geojson_zones(rnet_simple, paste0(region_folder, "/simplified_network.geojson"))
     # Restore previous status
@@ -1279,7 +1279,6 @@ list(
     responce = system(command_all, intern = TRUE)
     responce
   }),
-
   tar_target(pmtiles_buildings, {
     check = length(zones_dasymetric_tile)
 
@@ -1440,7 +1439,7 @@ list(
 
     message("Saving outputs for ", parameters$date_routing)
 
-    saveRDS(od_commute_subset, file.path(region_folder, "od_commute_subset.Rds"))  
+    saveRDS(od_commute_subset, file.path(region_folder, "od_commute_subset.Rds"))
     saveRDS(zones_stats, file.path(region_folder, "zones_stats.Rds"))
     saveRDS(school_stats, file.path(region_folder, "school_stats.Rds"))
 
@@ -1452,7 +1451,6 @@ list(
     sf::write_sf(combined_network, file.path(region_folder, "combined_network.gpkg"), delete_dsn = TRUE)
     as.character(Sys.Date())
   }),
-
   tar_target(metadata, {
     # TODO: generate build summary
     # metadata_all = tar_meta()
