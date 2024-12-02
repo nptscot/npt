@@ -1,4 +1,24 @@
 nrow,plan,purpose,region,date,id
+6943,ebike,commute,Scotland South,2024-12-01,11588
+6943,balanced,commute,Scotland South,2024-12-01,11587
+6943,quietest,commute,Scotland South,2024-12-01,11586
+6943,fastest,commute,Scotland South,2024-12-01,11585
+1607,ebike,school,Scotland South,2024-12-01,11584
+1607,balanced,school,Scotland South,2024-12-01,11583
+1607,quietest,school,Scotland South,2024-12-01,11582
+1607,fastest,school,Scotland South,2024-12-01,11581
+15258,ebike,utility,Highlands and Islands,2024-12-01,11580
+15258,quietest,utility,Highlands and Islands,2024-12-01,11579
+15258,fastest,utility,Highlands and Islands,2024-12-01,11577
+15258,balanced,utility,Highlands and Islands,2024-12-01,11576
+8138,ebike,commute,Highlands and Islands,2024-12-01,11575
+8138,balanced,commute,Highlands and Islands,2024-12-01,11574
+8138,quietest,commute,Highlands and Islands,2024-12-01,11573
+8138,fastest,commute,Highlands and Islands,2024-12-01,11572
+3228,ebike,school,Highlands and Islands,2024-12-01,11571
+3228,balanced,school,Highlands and Islands,2024-12-01,11570
+3228,quietest,school,Highlands and Islands,2024-12-01,11569
+3228,fastest,school,Highlands and Islands,2024-12-01,11568
 93472,ebike,utility,Glasgow and Strathclyde,2024-12-01,11541
 93472,quietest,utility,Glasgow and Strathclyde,2024-12-01,11540
 93472,fastest,utility,Glasgow and Strathclyde,2024-12-01,11539
