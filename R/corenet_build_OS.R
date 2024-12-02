@@ -239,19 +239,23 @@ corenet_build_OS = function(os_scotland, osm_scotland, la_names) {
   )
 
   # Define the file path for the combined GeoJSON
-  combined_CN_file = glue::glue("{output_folder}/combined_CN_{date_folder}_OS.geojson")
+  combined_CN_geojson_file = glue::glue("{output_folder}/combined_CN_{date_folder}_OS.geojson")
+  combined_CN_gpkg_file = glue::glue("{output_folder}/combined_CN_{date_folder}_OS.gpkg")
+  # Write the combined data to GeoJSON and GeoPackage files
+  sf::st_write(final_la_coherent, combined_CN_geojson_file, delete_dsn = TRUE)
+  sf::st_write(final_la_coherent, combined_CN_gpkg_file, delete_dsn = TRUE)
 
-  # Write the combined GeoJSON to a file
-  sf::st_write(combined_CN_geojson, combined_CN_file, delete_dsn = TRUE)
-  cat("Combined cohesive networks GeoJSON file for group has been saved to:", combined_CN_file, "\n")
+  # Print messages indicating where the files have been saved
+  cat("Combined cohesive networks GeoJSON file for group has been saved to:", combined_CN_geojson_file, "\n")
+  cat("Combined cohesive networks GeoPackage file for group has been saved to:", combined_CN_gpkg_file, "\n")
 
   # Define the path for the PMtiles
-  combined_CN_pmtiles = glue::glue("{output_folder}/combined_CN_{number}_{date_folder}_OS.pmtiles")
+  combined_CN_pmtiles = glue::glue("{output_folder}/combined_CN_{date_folder}_OS.pmtiles")
   
   # Construct the Tippecanoe command for the current group
   command_tippecanoe = paste0(
     'tippecanoe -o ', combined_CN_pmtiles,
-    ' --name="', 'Scottish_Coherent_Networks_', number, '"',
+    ' --name="', 'Scottish_Coherent_Networks', 
     ' --layer=coherent_networks',
     ' --attribution="University of Leeds"',
     ' --minimum-zoom=6',
@@ -261,11 +265,11 @@ corenet_build_OS = function(os_scotland, osm_scotland, la_names) {
     ' --buffer=5',
     ' -rg',
     ' --force ',
-    combined_CN_file
+    combined_CN_geojson_file
   )
 
   # Execute the command and capture output
   system_output = system(command_tippecanoe, intern = TRUE)
-  cat("Tippecanoe output for group", number, ":\n", system_output, "\n")
+  cat("Tippecanoe output for group :\n", system_output, "\n")
   
 }

@@ -8,12 +8,9 @@ simplify_network = function(rnet_y, region_name, region_boundary) {
   region_snake_case = snakecase::to_snake_case(region_name)
   base_name = paste0("OS_Scotland_Network_", region_snake_case, ".geojson")
   rnet_x_f = file.path("inputdata", base_name)
-  rnet_x = sf::read_sf(rnet_x_f)
-  # rnet_x = geojsonsf::geojson_sf(rnet_x_f) # bit faster
+  rnet_x = sf::read_sf(rnet_x_f) |> sf::st_transform(crs = "EPSG:27700")
 
-  # Transform the spatial data to a different coordinate reference system (EPSG:27700)
-  # TODO: uncomment:
-  rnet_x = rnet_x[region_boundary, ] # TODO: is this needed? Can remove if not
+  rnet_x = rnet_x[region_boundary |> sf::st_transform(crs = "EPSG:27700") , ] # TODO: is this needed? Can remove if not
   rnet_xp = sf::st_transform(rnet_x, "EPSG:27700")
   rnet_yp = sf::st_transform(rnet_y, "EPSG:27700")
 
@@ -69,17 +66,8 @@ simplify_network = function(rnet_y, region_name, region_boundary) {
   rnet_merged_all = rnet_merged_all |>
     dplyr::filter_at(columns_to_check, any_vars(!is.na(.)))
 
-  # Selecting only the geometry column from the 'rnet_merged_all' dataset.
-  rnet_merged_all_only_geometry = rnet_merged_all |> dplyr::select(geometry)
-
-  # Merging all geometries into a single geometry using st_union from the sf package.
-  rnet_merged_all_union = sf::st_union(rnet_merged_all_only_geometry)
-
-  # Transforming the merged geometry to a specific coordinate reference system (CRS), EPSG:27700.
-  rnet_merged_all_projected = sf::st_transform(rnet_merged_all_union, "EPSG:27700")
-
   # Converting the projected geometry into a GEOS geometry. GEOS is a library used for spatial operations.
-  rnet_merged_all_geos = geos::as_geos_geometry(rnet_merged_all_projected)
+  rnet_merged_all_geos = geos::as_geos_geometry(rnet_merged_all)
 
   # Creating a buffer around the GEOS geometry. This expands the geometry by a specified distance (in meters).
   rnet_merged_all_geos_buffer = geos::geos_buffer(rnet_merged_all_geos, distance = 30, params = geos::geos_buffer_params(quad_segs = 4))
@@ -87,18 +75,20 @@ simplify_network = function(rnet_y, region_name, region_boundary) {
   # Converting the buffered GEOS geometry back to an sf object.
   rnet_merged_all_projected_buffer = sf::st_as_sf(rnet_merged_all_geos_buffer)
 
-  # Transform the coordinate reference system of 'rnet_merged_all' to WGS 84 (EPSG:4326).
-  rnet_merged_all_buffer = sf::st_transform(rnet_merged_all_projected_buffer, "EPSG:4326")
-
   # Subsetting another dataset 'rnet_y' based on the spatial relation with 'rnet_merged_all_buffer'.
   # It selects features from 'rnet_y' that are within the boundaries of 'rnet_merged_all_buffer'.
-  rnet_y_subset = rnet_y[rnet_merged_all_buffer, , op = sf::st_within]
+  # rnet_y_subset = sf::st_intersection(rnet_yp, rnet_merged_all_projected_buffer)
+  # browser()
+  rnet_yp_points = sf::st_point_on_surface(rnet_yp)
+  rnet_yp_points_subset = rnet_yp_points[rnet_merged_all_projected_buffer, ]
+  rnet_y_subset = rnet_yp[rnet_yp_points_subset, ]
 
   # Filter 'rnet_y' to exclude geometries within 'within_join'
-  rnet_y_rest = rnet_y[!rnet_y$geometry %in% rnet_y_subset$geometry, ]
+  rnet_y_rest = rnet_yp[!rnet_yp$geometry %in% rnet_y_subset$geometry, ]
 
   # Transform the CRS of the 'rnet_merged_all' object to WGS 84 (EPSG:4326)
   rnet_merged_all = sf::st_transform(rnet_merged_all, "EPSG:4326")
+  rnet_y_rest = sf::st_transform(rnet_y_rest, "EPSG:4326")
 
   # Combine 'rnet_y_rest' and 'rnet_merged_all' into a single dataset
   simplified_network = dplyr::bind_rows(rnet_y_rest, rnet_merged_all)

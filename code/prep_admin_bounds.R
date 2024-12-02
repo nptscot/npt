@@ -18,7 +18,31 @@ library(sf)
 # la = sf::read_sf("la.gpkg")
 # plot(la)
 
-la = sf::read_sf("https://services1.arcgis.com/ESMARspQHYMw9BZ9/arcgis/rest/services/Local_Authority_Districts_December_2023_Boundaries_UK_BSC/FeatureServer/0/query?outFields=*&where=1%3D1&f=geojson")
+
+# Boundary options: 
+# https://www.ons.gov.uk/methodology/geography/geographicalproducts/digitalboundaries
+    # (BFC) Full resolution - clipped to the coastline (Mean High Water mark)
+    # (BFE) Full resolution - extent of the realm (usually this is the Mean Low Water mark but, in some cases, boundaries extend beyond this to include offshore islands)
+    # (BGC) Generalised (20m) - clipped to the coastline (Mean High Water mark)
+    # (BUC) Ultra Generalised (500m) - clipped to the coastline (Mean High Water mark)
+
+
+la_bsc = sf::read_sf("https://services1.arcgis.com/ESMARspQHYMw9BZ9/arcgis/rest/services/Local_Authority_Districts_December_2023_Boundaries_UK_BSC/FeatureServer/0/query?outFields=*&where=1%3D1&f=geojson")
+la_bfe = sf::read_sf("https://services1.arcgis.com/ESMARspQHYMw9BZ9/arcgis/rest/services/Local_Authority_Districts_December_2023_Boundaries_UK_BFE/FeatureServer/0/query?outFields=*&where=1%3D1&f=geojson")
+
+# BFE version is 50x larger than BSC
+object.size(la_bfe) |> as.numeric() /
+  object.size(la_bsc) |> as.numeric() 
+
+la_bfe_simplified = rmapshaper::ms_simplify(la_bfe, keep = 0.02)
+
+# BFE version is now 1.4x larger than BSC
+object.size(la_bfe_simplified) |> as.numeric() /
+  object.size(la_bsc) |> as.numeric()
+
+mapview::mapview(la_bsc) + mapview::mapview(la_bfe_simplified)
+
+la = la_bfe_simplified
 
 la = la[, c("LAD23CD", "LAD23NM")]
 # LAs in Scotland, CD starts with "S":
@@ -75,10 +99,11 @@ la_regions |>
 # check for NAs: 
 la_regions[is.na(la_regions$Region),]
 
+sf::write_sf(la_regions, "la_regions_scotland_bfe_simplified_2023.geojson", delete_dsn = TRUE)
+sf::write_sf(la, "la_uk_bfe_simplified_2023.geojson", delete_dsn = TRUE)
+
 # system("gh release upload boundaries-2024 las_scotland_2023.geojson las_2023.geojson --clobber")
-dir.create("inputdata/boundaries", showWarnings = FALSE)
-sf::write_sf(la_regions, "inputdata/boundaries/la_regions_2023.geojson", delete_dsn = TRUE)
-sf::write_sf(la, "inputdata/boundaries/las_2023.geojson", delete_dsn = TRUE)
+system("gh release upload boundaries-2024 la_regions_scotland_bfe_simplified_2023.geojson la_uk_bfe_simplified_2023.geojson --clobber")
 
 # https://github.com/nptscot/npt/releases/download/boundaries-2024/las_2023.geojson
 

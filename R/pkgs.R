@@ -21,6 +21,7 @@ get_pkgs = function() {
   "tidyverse", # Includes dplyr, ggplot2, tidyr, stringr etc.
   "zonebuilder", # For creating zones for spatial analysis
   "iterators", # For creating iterators
-  "doParallel" # For parallel processing
+  "doParallel", # For parallel processing
+  "httr"
   )
 }

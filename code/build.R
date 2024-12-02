@@ -11,11 +11,7 @@ library(doParallel)
 tar_source()
 
 parameters = jsonlite::read_json("parameters.json", simplifyVector = T)
-lads = sf::read_sf("inputdata/boundaries/la_regions_2023.geojson")
-mapview::mapview(lads)
-# To test for a single local authority:
-lads = lads |>
-  filter(LAD23NM %in% c("Clackmannanshire"))
+lads = sf::read_sf("inputdata/boundaries/la_regions_scotland_bfe_simplified_2023.geojson")
 date_folder = parameters$date_routing
 la_names = lads$LAD23NM
 output_folder = file.path("outputdata", date_folder)
@@ -44,21 +40,20 @@ if (GENERATE_CDB) {
 
   library(osmactive)
   # See https://github.com/nptscot/osmactive/blob/main/code/classify-roads.R and traffic-volumes.R
-  # TODO: Change to V6:
-  "final_estimates_Scotland.gpkg"
-  # https://github.com/nptscot/scottraffic/releases
-  f_traffic = "scottraffic/final_estimates_Scotland_higherror_discarded.gpkg"
+  f_traffic = "scottraffic/final_estimates_Scotland.gpkg"
   if (!file.exists(f_traffic)) {
     system("gh repo clone nptscot/scottraffic")
+    file.remove(f_traffic)
     setwd("scottraffic")
     system("gh release list")
-    system("gh release download v5 --clobber")
+    system("gh release download v6")
     setwd("..")
   }
   traffic_volumes_scotland = sf::read_sf(f_traffic)
 
-  # Generate cycle_net - this is slow, we should save the file
-  osm_national = get_travel_network("Scotland", force_download = T)
+  # Generate cycle_net: forcing update:
+  # osm_national = get_travel_network("Scotland", force_download = TRUE)
+  osm_national = get_travel_network("Scotland")
   # saveRDS(osm_national, "inputdata/osm_national_2024_05_23")
 
   # Generate road segment midpoints
@@ -180,15 +175,20 @@ if (GENERATE_CDB) {
 
       #     
       cycle_net_traffic = level_of_service(cycle_net_traffic)
-      
+            
       cbd_layer = cycle_net_traffic |>
         transmute(
           osm_id,
           highway,
-          `Traffic volume` = final_traffic,
           `Speed limit` = final_speed,
           `Infrastructure type` = cycle_segregation,
-          `Level of Service`
+          `Level of Service`,
+          `Traffic volume category` = case_when(
+           final_traffic >= 0 & final_traffic < 1999.5 ~ "0 to 1999",
+            final_traffic >= 1999.5 & final_traffic < 3999.5 ~ "2000 to 3999",
+            final_traffic >= 3999.5 ~ "4000+",
+            TRUE ~ NA_character_
+          )
         )
       # save file for individual district
       district_name = district_geom$LAD23NM |> 
@@ -202,6 +202,10 @@ if (GENERATE_CDB) {
   }
 
   # Combine all CBD files into a single file
+  # Remove combined file if it already exists:
+  if (file.exists(cbd_filename)) {
+    file.remove(cbd_filename)
+  }
   cbd_files = list.files(output_folder, pattern = "cbd_layer_.*\\.geojson$", full.names = TRUE)
   # Create an empty cbd_layers and cbd_layer
   cbd_layers = sf::st_sf(geometry = st_sfc())
@@ -209,9 +213,15 @@ if (GENERATE_CDB) {
   cbd_layers = lapply(cbd_files, sf::read_sf)
   cbd_layer = do.call(rbind, cbd_layers)
   cbd_filename = paste0(output_folder, "/cbd_layer_", date_folder, ".geojson")
-  if (file.exists(cbd_filename)) {
-    file.remove(cbd_filename)
-  }
+  # Update traffic volumes for off road cycleways
+  cbd_layer = cbd_layer |>
+    mutate(
+      `Traffic volume category` = case_when(
+        `Infrastructure type` == "Off Road Cycleway" ~ NA_character_,
+        highway %in% c("footway", "path", "pedestrian", "steps") ~ NA_character_,
+        TRUE ~ `Traffic volume category`
+      )
+    )
   sf::write_sf(cbd_layer, cbd_filename)
   fs::file_size(cbd_filename)
 
@@ -286,7 +296,7 @@ if (parameters$generate_CN_start) {
 # mapview::mapview(cn_test, zcol = "road_function")
 
 # Combine regional outputs 
----------------------------------------------------
+
 GENERATE_PMTILES = TRUE
 
 if (GENERATE_PMTILES) {
@@ -666,9 +676,6 @@ if (PUSH_TO_GITHUB) {
       parameters$max_to_route > 20e3
   is_linux = Sys.info()[["sysname"]] == "Linux"
   if (full_build) {
-    v = paste0("v", Sys.Date(), "_commit_", commit$commit)
-    v = gsub(pattern = " |:", replacement = "-", x = v)
-    # Or latest release:
     setwd(glue::glue(getwd(),"/", output_folder))
     system("gh release list")
     v = glue::glue("v{date_folder}")
