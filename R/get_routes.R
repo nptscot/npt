@@ -1,8 +1,21 @@
-get_routes = function(od, plans, purpose = "work", folder = ".", batch = TRUE, nrow_batch = 100, date = NULL, segments = TRUE, c2k = c("id", "distances", "quietness", "gradient_smooth")) {
+get_routes = function(
+  od,
+  plans,
+  purpose = "work",
+  folder = ".",
+  batch = TRUE,
+  nrow_batch = 100,
+  date = NULL,
+  segments = TRUE,
+  c2k = c("id", "distances", "quietness", "gradient_smooth"),
+  max_wait_time = 10
+  ) {
   if (nrow(od) < 50) {
     batch = FALSE
   }
   route_list = sapply(plans, function(x) NULL)
+  # For debugging:
+  plan = plans[1]
   for (plan in plans) {
     message("Getting the ", plan, " routes for ", purpose, " journeys")
     file_name = glue::glue("routes_{purpose}_{plan}.csv.gz")
@@ -24,13 +37,23 @@ get_routes = function(od, plans, purpose = "work", folder = ".", batch = TRUE, n
       #     id = 9905
       #   }
       # Add to database of saved routes:
-      p = jsonlite::read_json("parameters.json", simplifyVector = TRUE)
-      route_id_new = data.frame(nrow = nrow(od), plan = plan, purpose = purpose, region = p$region, date = p$date_routing)
+      route_id_new = data.frame(
+        nrow = nrow(od),
+        plan = plan,
+        purpose = purpose,
+        # Remove the first 23 characters from folder:
+        region = str_sub(folder, 23),
+        date = str_sub(folder, 12, 21)
+      )
       route_id_old = readr::read_csv("route_ids.csv")
       route_id_old$date = as.character(route_id_old$date)
       route_id = inner_join(route_id_new, route_id_old)
       if (nrow(route_id) == 0) {
         existing_route = FALSE
+        # Wait a random amount of time between 0 and 10 seconds to avoid overloading the server:
+        time_to_wait = runif(1, 0, max_wait_time)
+        message("Waiting for ", time_to_wait, " seconds")
+        Sys.sleep(time_to_wait)
         id = cyclestreets::batch(
           desire_lines = od,
           id = id,
