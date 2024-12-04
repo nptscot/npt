@@ -57,7 +57,7 @@ if (GENERATE_CDB) {
 
   library(osmactive)
   # See https://github.com/nptscot/osmactive/blob/main/code/classify-roads.R and traffic-volumes.R
-  f_traffic = "scottraffic/final_estimates_Scotland_20241202.gpkg"
+  f_traffic = "scottraffic/final_estimates_Scotland_20241202_crs4326.gpkg"
   if (!file.exists(f_traffic)) {
     system("gh repo clone nptscot/scottraffic")
     file.remove(f_traffic)
@@ -191,7 +191,12 @@ if (GENERATE_CDB) {
       cycle_net_traffic = cycle_net_traffic |>
         mutate(
           final_traffic = case_when(
-            detailed_segregation == "Cycle track" ~ 0,
+            cycle_segregation == "Off Road Cycleway" ~ NA,
+            # TODO: Check if shared footways or tracks should be NA
+            # Default: no, because it's useful to know the traffic level on parallel road
+            # cycle_segregation == "Segregated Track (Wide)" ~ NA,
+            # cycle_segregation == "Segregated Track (Narrow)" ~ NA,
+            # cycle_segregation == "Shared Footway" ~ NA,
             highway %in% c("residential", "service") & road_classification %in% c("A Road", "B Road", "Classified Unnumbered") & pred_flows >= 4000 ~ assumed_traffic,
             !is.na(pred_flows) ~ pred_flows,
             TRUE ~ assumed_traffic
@@ -233,14 +238,18 @@ if (GENERATE_CDB) {
     file.remove(cbd_filename)
   }
   cbd_files = list.files(output_folder, pattern = "cbd_layer_.*\\.geojson$", full.names = TRUE)
+  # check the length of cbd_files should equal to length of lads$LAD23NM
+  if (length(cbd_files) != length(lads$LAD23NM)) {
+    stop("Number of CBD files does not match number of districts.")
+  }
   # Create an empty cbd_layers and cbd_layer
   cbd_layers = sf::st_sf(geometry = st_sfc())
-  cbd_layer = sf::st_sf(geometry = st_sfc())
+  cbd_layer_f = sf::st_sf(geometry = st_sfc())
   cbd_layers = lapply(cbd_files, sf::read_sf)
-  cbd_layer = do.call(rbind, cbd_layers)
+  cbd_layer_f = do.call(rbind, cbd_layers)
   cbd_filename = paste0(output_folder, "/cbd_layer_", date_folder, ".geojson")
   # Update traffic volumes for off road cycleways
-  cbd_layer = cbd_layer |>
+  cbd_layer_f = cbd_layer_f |>
     mutate(
       `Traffic volume category` = case_when(
         `Infrastructure type` == "Off Road Cycleway" ~ NA_character_,
@@ -248,7 +257,7 @@ if (GENERATE_CDB) {
         TRUE ~ `Traffic volume category`
       )
     )
-  sf::write_sf(cbd_layer, cbd_filename)
+  sf::write_sf(cbd_layer_f, cbd_filename, delete_dsn = FALSE)
   fs::file_size(cbd_filename)
 
   # PMTiles:
