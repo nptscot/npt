@@ -63,10 +63,10 @@ list(
     }
   ),
   tar_target(
-    region_folder,
+    la_folder,
     {
-      region_name_lower = snakecase::to_snake_case(parameters$local_authority)
-      folder_name = file.path(dir_local, region_name_lower)
+      la_name_lower = snakecase::to_snake_case(parameters$local_authority)
+      folder_name = file.path(dir_local, la_name_lower)
       dir.create(file.path(folder_name), recursive = TRUE, showWarnings = FALSE)
       folder_name
     }
@@ -87,37 +87,37 @@ list(
     }
   ),
   tar_target(
-    region_names,
+    la_names,
     unique(local_authorities$Region)
   ),
 
   # Case study area
   tar_target(
-    region_boundary,
+    la_boundary,
     local_authorities |>
       filter(LAD23NM == parameters$local_authority) |>
       st_union()
   ),
-  tar_target(region_name,
+  tar_target(la_name,
     local_authorities |>
       filter(LAD23NM == parameters$local_authority) |>
       pull(Region)
   ),
   tar_target(
-    region_boundary_buffered,
-    region_boundary |>
+    la_boundary_buffered,
+    la_boundary |>
       stplanr::geo_buffer(dist = parameters$region_buffer_distance)
   ),
   tar_target(zones_boundary_buffered, {
     z = readRDS("inputdata/DataZones.Rds") # 6976 zones
     z_centroids = sf::st_point_on_surface(z)
-    z_centroids_within = z_centroids[region_boundary_buffered, ]
+    z_centroids_within = z_centroids[la_boundary_buffered, ]
     z[z[[1]] %in% z_centroids_within[[1]], ]
   }),
   tar_target(zones, {
     z = zones_boundary_buffered
     z_centroids = sf::st_point_on_surface(z)
-    z_centroids_within = z_centroids[region_boundary, ]
+    z_centroids_within = z_centroids[la_boundary, ]
     z[z[[1]] %in% z_centroids_within[[1]], ]
   }),
   tar_target(od_national, {
@@ -147,7 +147,7 @@ list(
     } else {
       spo = readRDS("inputdata/oas.Rds")
     }
-    spo[region_boundary, ]
+    spo[la_boundary, ]
   }),
   tar_target(subpoints_destinations, {
     # source("data-raw/get_wpz.R")
@@ -163,7 +163,7 @@ list(
       spd = read_TEAMS("secure_data/OS/os_poi.Rds")
       spd = spd[spd$workplace, ]
     }
-    spd[region_boundary_buffered, ]
+    spd[la_boundary_buffered, ]
   }),
   tar_target(od_commute_jittered, {
     # od_jittered = od_national # for no jittering
@@ -204,7 +204,7 @@ list(
     } else {
       schools_dl = read_TEAMS("secure_data/schools/school_dl_sub30km.Rds")
     }
-    schools_dl = schools_dl[region_boundary_buffered, op = sf::st_within]
+    schools_dl = schools_dl[la_boundary_buffered, op = sf::st_within]
     schools_dl$dist_euclidean_jittered = round(as.numeric(sf::st_length(schools_dl)))
     schools_dl = schools_dl |>
       filter(dist_euclidean_jittered < 10000) |>
@@ -224,7 +224,7 @@ tar_target(rs_school, {
     od = od_school |> slice_max(n = parameters$max_to_route, order_by = all, with_ties = FALSE),
                   plans = plans,
                   purpose = "school",
-                  folder = region_folder,
+                  folder = la_folder,
                   date = parameters$date_routing,
                   segments = "both")
   },
@@ -239,7 +239,7 @@ tar_target(rs_school, {
       od = od_commute_subset,
       plans = plans,
       purpose = "commute",
-      folder = region_folder,
+      folder = la_folder,
       date = parameters$date_routing,
       segments = "both"
     )
@@ -368,28 +368,28 @@ tar_target(rs_school, {
     rnet = uptake_school_fastest
     rnet = rnet[rnet$schooltype == "primary", ]
     rnet = stplanr::overline2(rnet, c("bicycle", "bicycle_go_dutch", "bicycle_ebike"))
-    saveRDS(rnet, paste0(region_folder, "/rnet_primary_school_fastest.Rds"))
+    saveRDS(rnet, paste0(la_folder, "/rnet_primary_school_fastest.Rds"))
     rnet
   }),
   tar_target(rnet_primary_quietest, {
     rnet = uptake_school_quietest
     rnet = rnet[rnet$schooltype == "primary", ]
     rnet = stplanr::overline2(rnet, c("bicycle", "bicycle_go_dutch", "bicycle_ebike"))
-    saveRDS(rnet, paste0(region_folder, "/rnet_primary_school_quietest.Rds"))
+    saveRDS(rnet, paste0(la_folder, "/rnet_primary_school_quietest.Rds"))
     rnet
   }),
   tar_target(rnet_primary_ebike, {
     rnet = uptake_school_ebike
     rnet = rnet[rnet$schooltype == "primary", ]
     rnet = stplanr::overline2(rnet, c("bicycle", "bicycle_go_dutch", "bicycle_ebike"))
-    saveRDS(rnet, paste0(region_folder, "/rnet_primary_school_ebike.Rds"))
+    saveRDS(rnet, paste0(la_folder, "/rnet_primary_school_ebike.Rds"))
     rnet
   }),
   tar_target(rnet_primary_balanced, {
     rnet = uptake_school_balanced
     rnet = rnet[rnet$schooltype == "primary", ]
     rnet = stplanr::overline2(rnet, c("bicycle", "bicycle_go_dutch", "bicycle_ebike"))
-    saveRDS(rnet, paste0(region_folder, "/rnet_primary_school_balanced.Rds"))
+    saveRDS(rnet, paste0(la_folder, "/rnet_primary_school_balanced.Rds"))
     rnet
   }),
 
@@ -399,28 +399,28 @@ tar_target(rs_school, {
     rnet = uptake_school_fastest
     rnet = rnet[rnet$schooltype == "secondary", ]
     rnet = stplanr::overline2(rnet, c("bicycle", "bicycle_go_dutch", "bicycle_ebike"))
-    saveRDS(rnet, paste0(region_folder, "/rnet_primary_school_fastest.Rds"))
+    saveRDS(rnet, paste0(la_folder, "/rnet_primary_school_fastest.Rds"))
     rnet
   }),
   tar_target(rnet_secondary_quietest, {
     rnet = uptake_school_quietest
     rnet = rnet[rnet$schooltype == "secondary", ]
     rnet = stplanr::overline2(rnet, c("bicycle", "bicycle_go_dutch", "bicycle_ebike"))
-    saveRDS(rnet, paste0(region_folder, "/rnet_primary_school_quietest.Rds"))
+    saveRDS(rnet, paste0(la_folder, "/rnet_primary_school_quietest.Rds"))
     rnet
   }),
   tar_target(rnet_secondary_ebike, {
     rnet = uptake_school_ebike
     rnet = rnet[rnet$schooltype == "secondary", ]
     rnet = stplanr::overline2(rnet, c("bicycle", "bicycle_go_dutch", "bicycle_ebike"))
-    saveRDS(rnet, paste0(region_folder, "/rnet_primary_school_ebike.Rds"))
+    saveRDS(rnet, paste0(la_folder, "/rnet_primary_school_ebike.Rds"))
     rnet
   }),
   tar_target(rnet_secondary_balanced, {
     rnet = uptake_school_balanced
     rnet = rnet[rnet$schooltype == "secondary", ]
     rnet = stplanr::overline2(rnet, c("bicycle", "bicycle_go_dutch", "bicycle_ebike"))
-    saveRDS(rnet, paste0(region_folder, "/rnet_primary_school_balanced.Rds"))
+    saveRDS(rnet, paste0(la_folder, "/rnet_primary_school_balanced.Rds"))
     rnet
   }),
 
@@ -599,11 +599,11 @@ tar_target(rs_school, {
 
   # Now covered in build.R:
   # tar_target(zones_stats_json, {
-  #   export_zone_json(zones_stats, "DataZone", path = region_folder)
+  #   export_zone_json(zones_stats, "DataZone", path = la_folder)
   # }),
 
   # tar_target(school_stats_json, {
-  #   export_zone_json(school_stats, "SeedCode", path = region_folder)
+  #   export_zone_json(school_stats, "SeedCode", path = la_folder)
   # }),
 
   # Shopping OD ---------------------------------------------------------
@@ -618,29 +618,29 @@ tar_target(rs_school, {
   }),
   tar_target(os_pois, {
     check = length(parameters)
-    check = length(region_boundary)
+    check = length(la_boundary)
     # Get shopping destinations from secure OS data
     path_teams = Sys.getenv("NPT_TEAMS_PATH")
     os_pois_raw = readRDS(file.path(path_teams, "secure_data/OS/os_poi.Rds"))
     os_pois_subset = os_pois_raw |>
       mutate(groupname = as.character(groupname))
-    os_pois_subset[region_boundary_buffered, ] |>
+    os_pois_subset[la_boundary_buffered, ] |>
       sf::st_transform("EPSG:27700")
   }),
   tar_target(grid, {
     grid = readRDS("./inputdata/grid_scot.Rds")
     grid = sf::st_transform(grid, "EPSG:4326")
-    grid = grid[region_boundary_buffered, ]
+    grid = grid[la_boundary_buffered, ]
     grid |> sf::st_transform("EPSG:27700")
   }),
   tar_target(oas, {
     oas = readRDS("./inputdata/oas.Rds")
-    oas[region_boundary, ]
+    oas[la_boundary, ]
   }),
   tar_target(intermediate_zones, {
     izs = sf::read_sf("inputdata/SG_IntermediateZone_Bdry_2011.gpkg")
     izs_centroids = sf::st_centroid(izs)
-    izs_centroids_within = izs_centroids[region_boundary |> sf::st_transform(27700), ]
+    izs_centroids_within = izs_centroids[la_boundary |> sf::st_transform(27700), ]
     izs[izs[[1]] %in% izs_centroids_within[[1]], ]
   }),
 
@@ -747,7 +747,7 @@ tar_target(rs_school, {
       od = od_utility_combined,
       plans = plans,
       purpose = "utility",
-      folder = region_folder,
+      folder = la_folder,
       date = parameters$date_routing,
       segments = "both"
     ),
@@ -969,7 +969,7 @@ tar_target(rs_school, {
     z$population_density = round(z$Total_population / z$area)
     z$area = NULL
 
-    make_geojson_zones(z, file.path(region_folder, paste0("data_zones_", parameters$local_authority, ".geojson")))
+    make_geojson_zones(z, file.path(la_folder, paste0("data_zones_", parameters$local_authority, ".geojson")))
     z
   }),
   tar_target(zones_dasymetric_tile, {
@@ -997,7 +997,7 @@ tar_target(rs_school, {
   }),
   tar_target(school_points, {
     schools = sf::read_sf("inputdata/Schools/school_locations.geojson")
-    make_geojson_zones(schools, file.path(region_folder, "school_locations.geojson"))
+    make_geojson_zones(schools, file.path(la_folder, "school_locations.geojson"))
     schools
   }),
 
@@ -1084,7 +1084,7 @@ tar_target(rs_school, {
     nms = names(rnet_tile)[!names(rnet_tile) %in% nms_end]
     rnet_tile = rnet_tile[c(nms[order(nms)], nms_end)]
 
-    make_geojson_zones(rnet_tile, paste0(region_folder, "/combined_network_tile.geojson"))
+    make_geojson_zones(rnet_tile, paste0(la_folder, "/combined_network_tile.geojson"))
 
     rnet_tile
   }),
@@ -1093,11 +1093,17 @@ tar_target(rs_school, {
     # TODO (nice to have): replace with global setting (needs testing):
     use_sf_s2_status = sf::sf_use_s2()
     sf::sf_use_s2(FALSE)
-    rnet_simple = simplify_network(combined_network_tile, region_name, region_boundary)
-    make_geojson_zones(rnet_simple, paste0(region_folder, "/simplified_network.geojson"))
+    rnet_simple = simplify_network(combined_network_tile, la_name, la_boundary)
+    make_geojson_zones(rnet_simple, paste0(la_folder, "/simplified_network.geojson"))
     # Restore previous status
     sf::sf_use_s2(use_sf_s2_status)
     rnet_simple
+  }),
+  tar_target(corenetwork, {
+    cue = tar_cue(mode = "always")
+    rnet_core = core_network(os_scotland, osm_scotland, la_name, output_folder)
+    make_geojson_zones(rnet_core, paste0(la_folder, "/core_network.geojson"))
+    rnet_core
   }),
   tar_target(pmtiles_school, {
     check = length(school_points)
@@ -1227,16 +1233,16 @@ tar_target(rs_school, {
 
     message("Saving outputs for ", parameters$date_routing)
 
-    saveRDS(od_commute_subset, file.path(region_folder, "od_commute_subset.Rds"))
-    saveRDS(zones_stats, file.path(region_folder, "zones_stats.Rds"))
-    saveRDS(school_stats, file.path(region_folder, "school_stats.Rds"))
+    saveRDS(od_commute_subset, file.path(la_folder, "od_commute_subset.Rds"))
+    saveRDS(zones_stats, file.path(la_folder, "zones_stats.Rds"))
+    saveRDS(school_stats, file.path(la_folder, "school_stats.Rds"))
 
     # Save GeoPackage versions (just fastest for now):
-    sf::write_sf(rnet_commute_fastest, file.path(region_folder, "rnet_commute_fastest.gpkg"))
-    sf::write_sf(rnet_primary_fastest, file.path(region_folder, "rnet_primary_fastest.gpkg"))
-    sf::write_sf(rnet_secondary_fastest, file.path(region_folder, "rnet_secondary_fastest.gpkg"))
-    sf::write_sf(rnet_utility_fastest, file.path(region_folder, "rnet_utility_fastest.gpkg"))
-    sf::write_sf(combined_network, file.path(region_folder, "combined_network.gpkg"), delete_dsn = TRUE)
+    sf::write_sf(rnet_commute_fastest, file.path(la_folder, "rnet_commute_fastest.gpkg"))
+    sf::write_sf(rnet_primary_fastest, file.path(la_folder, "rnet_primary_fastest.gpkg"))
+    sf::write_sf(rnet_secondary_fastest, file.path(la_folder, "rnet_secondary_fastest.gpkg"))
+    sf::write_sf(rnet_utility_fastest, file.path(la_folder, "rnet_utility_fastest.gpkg"))
+    sf::write_sf(combined_network, file.path(la_folder, "combined_network.gpkg"), delete_dsn = TRUE)
     as.character(Sys.Date())
   }),
   tar_target(metadata, {

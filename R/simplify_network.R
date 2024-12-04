@@ -2,15 +2,15 @@
 #' @param combined_network combined_network
 #' @param parameters parameters
 
-simplify_network = function(rnet_y, region_name, region_boundary) {
+simplify_network = function(rnet_y, la_name, la_boundary) {
   # Read spatial data directly from URLs into sf objects
   # Build file path and URL based on parameters$local_authority
-  region_snake_case = snakecase::to_snake_case(region_name)
+  region_snake_case = snakecase::to_snake_case(la_name)
   base_name = paste0("OS_Scotland_Network_", region_snake_case, ".geojson")
   rnet_x_f = file.path("inputdata", base_name)
   rnet_x = sf::read_sf(rnet_x_f) |> sf::st_transform(crs = "EPSG:27700")
 
-  rnet_x = rnet_x[region_boundary |> sf::st_transform(crs = "EPSG:27700") , ] # TODO: is this needed? Can remove if not
+  rnet_x = rnet_x[la_boundary |> sf::st_transform(crs = "EPSG:27700") , ] # TODO: is this needed? Can remove if not
   rnet_xp = sf::st_transform(rnet_x, "EPSG:27700")
   rnet_yp = sf::st_transform(rnet_y, "EPSG:27700")
 

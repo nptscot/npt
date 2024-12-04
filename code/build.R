@@ -18,7 +18,27 @@ output_folder = file.path("outputdata", date_folder)
 la_names_lowercase = snakecase::to_snake_case(la_names)
 
 # Build route networks:
-la_name = la_names[2]
+la_name = la_names[1]
+
+# load file for corenet
+os_file_path = "inputdata/open_roads_scotland.gpkg"
+if (!file.exists(os_file_path)) {
+  setwd("inputdata")
+  system("gh release download OS_network --skip-existing")
+  setwd("..")
+}
+os_scotland = sf::read_sf(os_file_path)
+sf::st_geometry(os_scotland) = "geometry"
+
+osm_file_path = "inputdata/connectivity_fixed_osm.gpkg"
+if (!file.exists(osm_file_path)) {
+  setwd("inputdata")
+  system("gh release download OSM_fixed --skip-existing")
+  setwd("..")
+}
+osm_scotland = sf::read_sf(osm_file_path)
+sf::st_geometry(osm_scotland) = "geometry"
+
 for (la_name in la_names) {
   message("Processing la_name: ", la_name)
   parameters$local_authority = la_name
@@ -245,40 +265,6 @@ if (GENERATE_CDB) {
   print(glue::glue("Generating PMTiles at {output_folder}/cbd_layer_{date_folder}.pmtiles"))
 }
 
-# Generate coherent network -------------------------------------------------
-# Read the open roads data outside the loop for only once
-
-if (parameters$generate_CN_start) {
-
-  os_file_path = "inputdata/open_roads_scotland.gpkg"
-  if (!file.exists(os_file_path)) {
-    setwd("inputdata")
-    system("gh release download OS_network --skip-existing")
-    setwd("..")
-  }
-  os_scotland = sf::read_sf(os_file_path)
-  sf::st_geometry(os_scotland) = "geometry"
-
-  osm_file_path = "inputdata/connectivity_fixed_osm.gpkg"
-  if (!file.exists(osm_file_path)) {
-    setwd("inputdata")
-    system("gh release download OSM_fixed --skip-existing")
-    setwd("..")
-  }
-  osm_scotland = sf::read_sf(osm_file_path)
-  sf::st_geometry(osm_scotland) = "geometry"
-
-  message("Running corenet_build function")
-  if (parameters$coherent_sources == "OS") {
-      corenet_build_OS(os_scotland, osm_scotland, la_names)
-  } else if (parameters$coherent_sources == "OSM") {
-      corenet_build_OSM(osm_scotland, region_names, cities_region_names)
-  } else {
-      stop("Invalid value for parameters$coherent_sources. Expected 'OS' or 'OSM'.")
-  }
-} else {
-  message("parameters$generate_CN_start is FALSE, skipping corenet_build.")
-}
 
 # # Test cn for one LA: ------------------
 # output_folder_la_name = file.path(output_folder, la_names_lowercase[1])
@@ -321,6 +307,16 @@ if (GENERATE_PMTILES) {
   dim(combined_network) # ~700k rows for full build, 33 columns
   sf::write_sf(combined_network, file.path(output_folder, "combined_network_tile.geojson"), delete_dsn = TRUE)
 
+  # same for core_network.geojson:
+  core_network_list = lapply(subfolders, function(folder) {
+    core_network_file = paste0(folder, "/core_network.geojson")
+    if (file.exists(core_network_file)) {
+      network = sf::read_sf(core_network_file)
+    }
+  })
+  core_network = dplyr::bind_rows(core_network_list)
+  sf::write_sf(core_network, file.path(output_folder, "core_network.geojson"), delete_dsn = TRUE)
+  
   # Same for simplified_network.geojson:
   simplified_network_list = lapply(subfolders, function(folder) {
     simplified_network_file = paste0(folder, "/simplified_network.geojson")
