@@ -1,4 +1,4 @@
-core_network = function(os_scotland, osm_scotland, la_name, output_folder) {
+core_network = function(os_scotland, osm_scotland, la_name, output_folder, date_folder) {
 
     message("Processing coherent network for LA: ", la_name)
     la_name_snake = snakecase::to_snake_case(la_name)
@@ -7,11 +7,7 @@ core_network = function(os_scotland, osm_scotland, la_name, output_folder) {
     combined_net = sf::read_sf(cnet_path) |>
         sf::st_transform(crs = "EPSG:27700")
 
-    folder_path = file.path(output_folder, la_name_snake, "coherent_networks_OS/")
-
-    if (!dir.exists(folder_path)) {
-        dir.create(folder_path, recursive = TRUE)
-    }
+    folder_path = file.path(output_folder, la_name_snake)
 
     tryCatch(
         {
@@ -102,7 +98,7 @@ core_network = function(os_scotland, osm_scotland, la_name, output_folder) {
             ))
 
         # Use la_name name in the filename
-        corenet::create_coherent_network_PMtiles(folder_path = folder_path, city_filename = glue::glue("{la_name_filename}_{date_folder}"), cohesive_network = grouped_network|> sf::st_transform(4326))
+        corenet::create_coherent_network_PMtiles(folder_path = folder_path, city_filename = glue::glue("{la_name_snake}_{date_folder}"), cohesive_network = grouped_network|> sf::st_transform(4326))
 
         message("Coherent network for: ", la_name, " generated successfully")
         },
