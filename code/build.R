@@ -233,6 +233,10 @@ if (GENERATE_CDB) {
     file.remove(cbd_filename)
   }
   cbd_files = list.files(output_folder, pattern = "cbd_layer_.*\\.geojson$", full.names = TRUE)
+  # check the length of cbd_files should equal to length of lads$LAD23NM
+  if (length(cbd_files) != length(lads$LAD23NM)) {
+    stop("Number of CBD files does not match number of districts.")
+  }
   # Create an empty cbd_layers and cbd_layer
   cbd_layers = sf::st_sf(geometry = st_sfc())
   cbd_layer_f = sf::st_sf(geometry = st_sfc())
