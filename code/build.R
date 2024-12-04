@@ -63,7 +63,7 @@ if (GENERATE_CDB) {
     file.remove(f_traffic)
     setwd("scottraffic")
     system("gh release list")
-    system("gh release download v6")
+    system("gh release download v7")
     setwd("..")
   }
   traffic_volumes_scotland = sf::read_sf(f_traffic)

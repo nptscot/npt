@@ -1,4 +1,52 @@
 nrow,plan,purpose,region,date,id
+93459,ebike,utility,Glasgow and Strathclyde,2024-12-01,11879
+93459,quietest,utility,Glasgow and Strathclyde,2024-12-01,11858
+93459,fastest,utility,Glasgow and Strathclyde,2024-12-01,11848
+93459,balanced,utility,Glasgow and Strathclyde,2024-12-01,11839
+219088,ebike,commute,Glasgow and Strathclyde,2024-12-01,11790
+219088,balanced,commute,Glasgow and Strathclyde,2024-12-01,11753
+219088,quietest,commute,Glasgow and Strathclyde,2024-12-01,11724
+219088,fastest,commute,Glasgow and Strathclyde,2024-12-01,11703
+111586,ebike,utility,Edinburgh and Lothians,2024-12-01,11702
+111586,quietest,utility,Edinburgh and Lothians,2024-12-01,11701
+111586,fastest,utility,Edinburgh and Lothians,2024-12-01,11700
+111586,balanced,utility,Edinburgh and Lothians,2024-12-01,11662
+90721,ebike,commute,Edinburgh and Lothians,2024-12-01,11659
+90721,balanced,commute,Edinburgh and Lothians,2024-12-01,11650
+90721,quietest,commute,Edinburgh and Lothians,2024-12-01,11633
+90721,fastest,commute,Edinburgh and Lothians,2024-12-01,11624
+9425,ebike,school,Edinburgh and Lothians,2024-12-01,11623
+9425,balanced,school,Edinburgh and Lothians,2024-12-01,11622
+9425,quietest,school,Edinburgh and Lothians,2024-12-01,11621
+9425,fastest,school,Edinburgh and Lothians,2024-12-01,11620
+51171,ebike,utility,"Tayside, Central and Fife",2024-12-01,11619
+51171,quietest,utility,"Tayside, Central and Fife",2024-12-01,11618
+51171,fastest,utility,"Tayside, Central and Fife",2024-12-01,11617
+51171,balanced,utility,"Tayside, Central and Fife",2024-12-01,11616
+65848,ebike,commute,"Tayside, Central and Fife",2024-12-01,11615
+65848,balanced,commute,"Tayside, Central and Fife",2024-12-01,11614
+65848,quietest,commute,"Tayside, Central and Fife",2024-12-01,11613
+65848,fastest,commute,"Tayside, Central and Fife",2024-12-01,11612
+11451,ebike,school,"Tayside, Central and Fife",2024-12-01,11611
+11451,balanced,school,"Tayside, Central and Fife",2024-12-01,11610
+11451,quietest,school,"Tayside, Central and Fife",2024-12-01,11609
+11451,fastest,school,"Tayside, Central and Fife",2024-12-01,11608
+20992,ebike,utility,Aberdeen and North East,2024-12-01,11607
+20992,quietest,utility,Aberdeen and North East,2024-12-01,11606
+20992,fastest,utility,Aberdeen and North East,2024-12-01,11605
+20992,balanced,utility,Aberdeen and North East,2024-12-01,11604
+32989,ebike,commute,Aberdeen and North East,2024-12-01,11603
+32989,balanced,commute,Aberdeen and North East,2024-12-01,11602
+32989,quietest,commute,Aberdeen and North East,2024-12-01,11601
+32989,fastest,commute,Aberdeen and North East,2024-12-01,11600
+4525,ebike,school,Aberdeen and North East,2024-12-01,11599
+4525,balanced,school,Aberdeen and North East,2024-12-01,11598
+4525,quietest,school,Aberdeen and North East,2024-12-01,11597
+4525,fastest,school,Aberdeen and North East,2024-12-01,11596
+9536,ebike,utility,Scotland South,2024-12-01,11595
+9536,quietest,utility,Scotland South,2024-12-01,11593
+9536,fastest,utility,Scotland South,2024-12-01,11592
+9536,balanced,utility,Scotland South,2024-12-01,11591
 6943,ebike,commute,Scotland South,2024-12-01,11588
 6943,balanced,commute,Scotland South,2024-12-01,11587
 6943,quietest,commute,Scotland South,2024-12-01,11586
