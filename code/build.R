@@ -191,7 +191,12 @@ if (GENERATE_CDB) {
       cycle_net_traffic = cycle_net_traffic |>
         mutate(
           final_traffic = case_when(
-            detailed_segregation == "Cycle track" ~ 0,
+            cycle_segregation == "Off Road Cycleway" ~ NA,
+            # TODO: Check if shared footways or tracks should be NA
+            # Default: no, because it's useful to know the traffic level on parallel road
+            # cycle_segregation == "Segregated Track (Wide)" ~ NA,
+            # cycle_segregation == "Segregated Track (Narrow)" ~ NA,
+            # cycle_segregation == "Shared Footway" ~ NA,
             highway %in% c("residential", "service") & road_classification %in% c("A Road", "B Road", "Classified Unnumbered") & pred_flows >= 4000 ~ assumed_traffic,
             !is.na(pred_flows) ~ pred_flows,
             TRUE ~ assumed_traffic
