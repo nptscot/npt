@@ -57,7 +57,7 @@ if (GENERATE_CDB) {
 
   library(osmactive)
   # See https://github.com/nptscot/osmactive/blob/main/code/classify-roads.R and traffic-volumes.R
-  f_traffic = "scottraffic/final_estimates_Scotland_20241202.gpkg"
+  f_traffic = "scottraffic/final_estimates_Scotland_20241202_crs4326.gpkg"
   if (!file.exists(f_traffic)) {
     system("gh repo clone nptscot/scottraffic")
     file.remove(f_traffic)
@@ -235,12 +235,12 @@ if (GENERATE_CDB) {
   cbd_files = list.files(output_folder, pattern = "cbd_layer_.*\\.geojson$", full.names = TRUE)
   # Create an empty cbd_layers and cbd_layer
   cbd_layers = sf::st_sf(geometry = st_sfc())
-  cbd_layer = sf::st_sf(geometry = st_sfc())
+  cbd_layer_f = sf::st_sf(geometry = st_sfc())
   cbd_layers = lapply(cbd_files, sf::read_sf)
-  cbd_layer = do.call(rbind, cbd_layers)
+  cbd_layer_f = do.call(rbind, cbd_layers)
   cbd_filename = paste0(output_folder, "/cbd_layer_", date_folder, ".geojson")
   # Update traffic volumes for off road cycleways
-  cbd_layer = cbd_layer |>
+  cbd_layer_f = cbd_layer_f |>
     mutate(
       `Traffic volume category` = case_when(
         `Infrastructure type` == "Off Road Cycleway" ~ NA_character_,
@@ -248,7 +248,7 @@ if (GENERATE_CDB) {
         TRUE ~ `Traffic volume category`
       )
     )
-  sf::write_sf(cbd_layer, cbd_filename)
+  sf::write_sf(cbd_layer_f, cbd_filename, delete_dsn = FALSE)
   fs::file_size(cbd_filename)
 
   # PMTiles:
