@@ -57,7 +57,7 @@ if (GENERATE_CDB) {
 
   library(osmactive)
   # See https://github.com/nptscot/osmactive/blob/main/code/classify-roads.R and traffic-volumes.R
-  f_traffic = "scottraffic/final_estimates_Scotland.gpkg"
+  f_traffic = "scottraffic/final_estimates_Scotland_20241202.gpkg"
   if (!file.exists(f_traffic)) {
     system("gh repo clone nptscot/scottraffic")
     file.remove(f_traffic)
