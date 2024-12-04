@@ -20,7 +20,7 @@ library(targets) # Needed to make targets work
 library(magrittr) # Light load of |>
 library(sf) # Needed for sf support
 set.seed(2023)
-httr::set_config(httr::timeout(seconds = 6000))
+httr::set_config(httr::timeout(seconds = 60000))
 tar_source()
 pkgs = get_pkgs()
 
