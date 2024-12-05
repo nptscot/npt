@@ -203,7 +203,6 @@ if (GENERATE_CDB) {
           )
         )
 
-      #     
       cycle_net_traffic = level_of_service(cycle_net_traffic)
             
       cbd_layer = cycle_net_traffic |>
