@@ -3,7 +3,7 @@ corenet_build_OS = function(os_scotland, osm_scotland, region_names,cities_regio
   message("Generate the city's coherent network for each region with growing")
 
   for (region in region_names) {
-    # region = region_names[3]  "Edinburgh and Lothians"  
+    # region = region_names[6]  "Edinburgh and Lothians"  
     message("Processing coherent network for region: ", region)
     region_snake = snakecase::to_snake_case(region)
     coherent_area = cities_region_names[[region]]
@@ -19,7 +19,7 @@ corenet_build_OS = function(os_scotland, osm_scotland, region_names,cities_regio
     }
 
     for (city in coherent_area) {
-      # city = coherent_area[5] "City of Edinburgh"
+      # city = coherent_area[6] "City of Edinburgh"
       city_filename = snakecase::to_snake_case(city)
       tryCatch(
         {
@@ -90,7 +90,8 @@ corenet_build_OS = function(os_scotland, osm_scotland, region_names,cities_regio
 
             orcp_city_boundary_filtered = orcp_city_boundary[common_columns]
 
-            if (nrow(cohesive_network_filtered) != 0) {
+            if (!is.null(cohesive_network_filtered) && nrow(cohesive_network_filtered) > 0) {
+            # if (nrow(cohesive_network_filtered) != 0) {
               orcp_city_boundary_filtered = convert_to_linestrings(orcp_city_boundary_filtered)
 
               grouped_network = rbind(cohesive_network_filtered, orcp_city_boundary_filtered)
@@ -168,9 +169,6 @@ corenet_build_OS = function(os_scotland, osm_scotland, region_names,cities_regio
                               os_combined_net_city_boundary,
                               combined_net_city_boundary
                               )
-
-              # grouped_network = corenet::coherent_network_group(cn, key_attribute = "all_fastest_bicycle_go_dutch")
-              # grouped_network = grouped_network |> dplyr::rename(all_fastest_bicycle_go_dutch = mean_potential)
 
               cn = cn |>
                 mutate(road_function = case_when(

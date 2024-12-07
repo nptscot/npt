@@ -444,11 +444,11 @@ find_orcp_path = function(orcp_city_boundary, cohesive_network_city_boundary, OS
                         next
                     }
                     
-                    path_buffered = sf::st_buffer(path, dist = 1)
+                    path_buffered = sf::st_buffer(path, dist = 3)
                     combined_net_city_boundary_path = combined_net_city_boundary[sf::st_union(path_buffered), , op = sf::st_intersects]
                     
                     path_npt = stplanr::rnet_merge(path, combined_net_city_boundary_path, max_angle_diff = 10, dist = 1, segment_length = 5, funs = list(all_fastest_bicycle_go_dutch = mean))
-                    
+                
                     path_mean = mean(path_npt$all_fastest_bicycle_go_dutch, na.rm = TRUE)
                     
                     if (!is.nan(path_mean) && !is.na(path_mean) && path_mean >= 50) {
