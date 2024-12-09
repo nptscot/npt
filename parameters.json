@@ -8,7 +8,7 @@
   "disag_threshold": [100],
   "min_distance_meters": [500],
   "region_buffer_distance_meters": [5000],
-  "local_authority": ["Dundee City"],
+  "local_authority": ["Glasgow City"],
   "generate_CN_start": [true],
   "coherent_sources": ["OS"],
   "coherent_percentile": [0.94, 0.9]

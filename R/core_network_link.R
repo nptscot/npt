@@ -1,7 +1,8 @@
 core_network_link = function(os_scotland, osm_scotland, output_folder, date_folder) {
 
-  message("Generate the links coherent network for the LAs")
-  all_corenet_link = sf::st_sf(geometry = st_sfc())
+  all_corenet_link = sf::st_sf(geometry = st_sfc()) 
+  st_crs(all_corenet_link) = 27700
+  
   lads = sf::read_sf("inputdata/boundaries/la_regions_2023.geojson")
   region_names = unique(lads$Region)[c(3, 4, 1, 6, 2, 5)] |>
     # Reverse to build smallest first:
@@ -60,8 +61,6 @@ core_network_link = function(os_scotland, osm_scotland, output_folder, date_fold
       ))
 
     all_corenet_link = rbind(all_corenet_link, cohesive_network_region_boundary)
-    corenet::create_coherent_network_PMtiles(folder_path = output_folder, city_filename = glue::glue("{region_snake}_{date_folder}"), cohesive_network = cohesive_network_region_boundary |> sf::st_transform(4326))
-
     message("Coherent network link for: ", region, " generated successfully")
   }
   all_corenet_link

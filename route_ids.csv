@@ -1,4 +1,16 @@
 nrow,plan,purpose,region,date,id
+52495,fastest,commute,glasgow_city,2024-12-02,12022
+16125,fastest,school,glasgow_city,2024-12-02,12018
+5476,quietest,utility,perth_and_kinross,2024-12-02,12015
+5186,quietest,commute,perth_and_kinross,2024-12-02,12012
+1913,quietest,school,perth_and_kinross,2024-12-02,12009
+1913,ebike,school,perth_and_kinross,2024-12-02,12007
+17718,quietest,utility,fife,2024-12-02,12003
+22076,quietest,commute,fife,2024-12-02,12000
+4756,ebike,school,fife,2024-12-02,11997
+4202,balanced,utility,east_dunbartonshire,2024-12-02,11991
+2940,quietest,commute,east_dunbartonshire,2024-12-02,11988
+6867,fastest,school,east_dunbartonshire,2024-12-02,11982
 4985,quietest,utility,dundee_city,2024-12-02,11979
 9861,fastest,commute,dundee_city,2024-12-02,11974
 2087,balanced,school,dundee_city,2024-12-02,11971
