@@ -198,7 +198,6 @@ if (GENERATE_CDB) {
           )
         )
 
-      #     
       cycle_net_traffic = level_of_service(cycle_net_traffic)
             
       cbd_layer = cycle_net_traffic |>
@@ -247,7 +246,7 @@ if (GENERATE_CDB) {
     mutate(
       `Traffic volume category` = case_when(
         `Infrastructure type` == "Off Road Cycleway" ~ NA_character_,
-        highway %in% c("footway", "path", "pedestrian", "steps") ~ NA_character_,
+        # highway %in% c("footway", "pedestrian", "steps") ~ NA_character_,
         TRUE ~ `Traffic volume category`
       )
     )

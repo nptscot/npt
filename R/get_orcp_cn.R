@@ -81,12 +81,12 @@ orcp_network = function(area, NPT_zones, length_threshold = 10000, percentile_va
 
       summarized_data = cycle_net_NPT |>
           dplyr::group_by(component) |>
-          dplyr::summarize(mean_all_fastest_bicycle_go_dutch = mean(all_fastest_bicycle_go_dutch, na.rm = TRUE),
+          dplyr::summarize(all_fastest_bicycle_go_dutch = mean(all_fastest_bicycle_go_dutch, na.rm = TRUE),
                           total_length = sum(as.numeric(sf::st_length(geometry)), na.rm = TRUE))
 
-      min_percentile_value = stats::quantile(summarized_data$mean_all_fastest_bicycle_go_dutch, probs = 0.5, na.rm = TRUE)
+      min_percentile_value = stats::quantile(summarized_data$all_fastest_bicycle_go_dutch, probs = 0.5, na.rm = TRUE)
       
-      summarized_data = summarized_data |> dplyr::filter(mean_all_fastest_bicycle_go_dutch > min_percentile_value)
+      summarized_data = summarized_data |> dplyr::filter(all_fastest_bicycle_go_dutch >= min_percentile_value)
 
     return(summarized_data)
   }, error = function(e) {
@@ -444,11 +444,11 @@ find_orcp_path = function(orcp_city_boundary, cohesive_network_city_boundary, OS
                         next
                     }
                     
-                    path_buffered = sf::st_buffer(path, dist = 1)
+                    path_buffered = sf::st_buffer(path, dist = 3)
                     combined_net_city_boundary_path = combined_net_city_boundary[sf::st_union(path_buffered), , op = sf::st_intersects]
                     
                     path_npt = stplanr::rnet_merge(path, combined_net_city_boundary_path, max_angle_diff = 10, dist = 1, segment_length = 5, funs = list(all_fastest_bicycle_go_dutch = mean))
-                    
+                
                     path_mean = mean(path_npt$all_fastest_bicycle_go_dutch, na.rm = TRUE)
                     
                     if (!is.nan(path_mean) && !is.na(path_mean) && path_mean >= 50) {
@@ -467,72 +467,77 @@ find_orcp_path = function(orcp_city_boundary, cohesive_network_city_boundary, OS
             }
         }
 
-        all_orcp_path_sf = list()
+        if (length(components) > 0) {        
+          all_orcp_path_sf = list()
 
-        for (component_id in components) {
-            y_range = length(all_paths_dict[[component_id]])
+          for (component_id in components) {
+              y_range = length(all_paths_dict[[component_id]])
 
-            # Skip the rest of the loop if y_range is 0
-            if (y_range == 0) {
-                next
-            }
+              # Skip the rest of the loop if y_range is 0
+              if (y_range == 0) {
+                  next
+              }
 
-            for (y in 1:y_range) {
-                # Extract the sf object if it's not NULL
-                if (!is.null(all_paths_dict[[component_id]][[y]])) {
-                    # Assuming 'all_orcp_path_sf' is initialized earlier as a list
-                    all_orcp_path_sf[[length(all_orcp_path_sf) + 1]] = all_paths_dict[[component_id]][[y]]
-                }
-            }
-        }
-
-        combined_orcp_path_sf = do.call(rbind, all_orcp_path_sf)
-        combined_orcp_path_sf = lapply(combined_orcp_path_sf[, 1], st_sfc, crs = 27700)
-        geometries = lapply(combined_orcp_path_sf, function(sfc) { sfc[[1]] })
-        combined_sfc = st_sfc(geometries, crs = 27700) 
-        combined_orcp_path_sf = st_sf(geometry = combined_sfc)
-
-        combined_orcp_path_sf_buffered = st_buffer(combined_orcp_path_sf, dist = 2)
-        intersects = st_intersects(combined_orcp_path_sf_buffered, combined_net_city_boundary, sparse = FALSE)
-
-        combined_orcp_path_sf$all_fastest_bicycle_go_dutch = combined_net_city_boundary$all_fastest_bicycle_go_dutch[apply(intersects, 1, function(x) which(x)[1])]
-
-        summarized_data = combined_orcp_path_sf |> 
-        dplyr::group_by(geometry) |> dplyr::summarize(total_all_fastest_bicycle_go_dutch = sum(all_fastest_bicycle_go_dutch, na.rm = TRUE),
-                          total_length = sum(as.numeric(sf::st_length(geometry)), na.rm = TRUE))
-
-        min_percentile_value = stats::quantile(summarized_data$total_all_fastest_bicycle_go_dutch, probs = 0.6, na.rm = TRUE)
-        
-        summarized_data = summarized_data |> dplyr::filter(total_all_fastest_bicycle_go_dutch > min_percentile_value)
-
-        summarized_data = summarized_data |> dplyr::filter(total_length > 10)
-
-        combined_orcp_path_sf_filtered = combined_orcp_path_sf |>
-          filter(st_intersects(geometry, summarized_data$geometry, sparse = FALSE) |> apply(1, any))
-
-        missing_columns = setdiff(names(combined_orcp_path_sf), names(orcp_city_boundary))
-
-        if (length(missing_columns) > 0) {
-          for (col in missing_columns) {
-            orcp_city_boundary[[col]] = NA
+              for (y in 1:y_range) {
+                  # Extract the sf object if it's not NULL
+                  if (!is.null(all_paths_dict[[component_id]][[y]])) {
+                      # Assuming 'all_orcp_path_sf' is initialized earlier as a list
+                      all_orcp_path_sf[[length(all_orcp_path_sf) + 1]] = all_paths_dict[[component_id]][[y]]
+                  }
+              }
           }
-        }
 
-        # Now check for missing columns in orcp_city_boundary_component compared to combined_orcp_path_sf
-        missing_columns = setdiff(names(orcp_city_boundary), names(combined_orcp_path_sf))
+          combined_orcp_path_sf = do.call(rbind, all_orcp_path_sf)
+          combined_orcp_path_sf = lapply(combined_orcp_path_sf[, 1], st_sfc, crs = 27700)
+          geometries = lapply(combined_orcp_path_sf, function(sfc) { sfc[[1]] })
+          combined_sfc = st_sfc(geometries, crs = 27700) 
+          combined_orcp_path_sf = st_sf(geometry = combined_sfc)
 
-        if (length(missing_columns) > 0) {
-          for (col in missing_columns) {
-            combined_orcp_path_sf[[col]] = NA
+          combined_orcp_path_sf_buffered = st_buffer(combined_orcp_path_sf, dist = 2)
+          intersects = st_intersects(combined_orcp_path_sf_buffered, combined_net_city_boundary, sparse = FALSE)
+
+          combined_orcp_path_sf$all_fastest_bicycle_go_dutch = combined_net_city_boundary$all_fastest_bicycle_go_dutch[apply(intersects, 1, function(x) which(x)[1])]
+
+          summarized_data = combined_orcp_path_sf |> 
+          dplyr::group_by(geometry) |> dplyr::summarize(total_all_fastest_bicycle_go_dutch = sum(all_fastest_bicycle_go_dutch, na.rm = TRUE),
+                            total_length = sum(as.numeric(sf::st_length(geometry)), na.rm = TRUE))
+
+          min_percentile_value = stats::quantile(summarized_data$total_all_fastest_bicycle_go_dutch, probs = 0.6, na.rm = TRUE)
+          
+          summarized_data = summarized_data |> dplyr::filter(total_all_fastest_bicycle_go_dutch > min_percentile_value)
+
+          summarized_data = summarized_data |> dplyr::filter(total_length > 10)
+
+          combined_orcp_path_sf_filtered = combined_orcp_path_sf |>
+            filter(st_intersects(geometry, summarized_data$geometry, sparse = FALSE) |> apply(1, any))
+
+          missing_columns = setdiff(names(combined_orcp_path_sf), names(orcp_city_boundary))
+
+          if (length(missing_columns) > 0) {
+            for (col in missing_columns) {
+              orcp_city_boundary[[col]] = NA
+            }
           }
-        }
+
+          # Now check for missing columns in orcp_city_boundary_component compared to combined_orcp_path_sf
+          missing_columns = setdiff(names(orcp_city_boundary), names(combined_orcp_path_sf))
+
+          if (length(missing_columns) > 0) {
+            for (col in missing_columns) {
+              combined_orcp_path_sf[[col]] = NA
+            }
+          }
 
 
-        # Combine all_paths_sf with orcp_city_boundary_component
-        # fliter orcp_city_boundary_component based on updated components list
-        orcp_city_boundary_withpath = orcp_city_boundary |>
-          filter(component %in% components)
-        orcp_city_boundary = rbind(orcp_city_boundary_withpath, combined_orcp_path_sf)
+          # Combine all_paths_sf with orcp_city_boundary_component
+          # fliter orcp_city_boundary_component based on updated components list
+          orcp_city_boundary_withpath = orcp_city_boundary |>
+            filter(component %in% components)
+          orcp_city_boundary = rbind(orcp_city_boundary_withpath, combined_orcp_path_sf)
+        } else {
+          message("No component is available for processing.")
+          orcp_city_boundary = orcp_city_boundary
+        }  
     } else {
         cat("orcp_city_boundary is empty, skipping processing.\n")
     }
