@@ -7,7 +7,7 @@ core_network = function(os_scotland, osm_scotland, la_name, output_folder, date_
     combined_net = sf::read_sf(cnet_path) |>
         sf::st_transform(crs = "EPSG:27700")
 
-    folder_path = file.path(output_folder, la_name_snake)
+    folder_path = file.path(output_folder, la_name_snake, "") 
 
     tryCatch(
         {
@@ -39,7 +39,7 @@ core_network = function(os_scotland, osm_scotland, la_name, output_folder, date_
         
         orcp_la_name_boundary = orcp_network(area = la_name_boundary, NPT_zones = combined_net_la_name_boundary, percentile_value = 0.7) 
 
-        if (!is.null(orcp_la_name_boundary)) {
+        if (!is.null(orcp_la_name_boundary) && nrow(orcp_la_name_boundary) > 0) {
             osm_la_name = osm_scotland[sf::st_union(la_name_boundary), , op = sf::st_intersects] |> sf::st_transform(27700)
             osm_la_name = osm_la_name[!is.na(osm_la_name$highway), ]
 
@@ -75,7 +75,7 @@ core_network = function(os_scotland, osm_scotland, la_name, output_folder, date_
 
             orcp_la_name_boundary_filtered = orcp_la_name_boundary[common_columns]
 
-            if (nrow(cohesive_network_filtered) != 0) {
+            if (!is.null(cohesive_network_filtered) && nrow(cohesive_network_filtered) > 0) {
             orcp_la_name_boundary_filtered = convert_to_linestrings(orcp_la_name_boundary_filtered)
 
             grouped_network = rbind(cohesive_network_filtered, orcp_la_name_boundary_filtered)

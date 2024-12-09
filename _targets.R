@@ -1099,13 +1099,12 @@ tar_target(rs_school, {
     sf::sf_use_s2(use_sf_s2_status)
     rnet_simple
   }),
-  # tar_target(corenetwork, {
-  #   cue = tar_cue(mode = "always")
-  #   date_folder = parameters$date_routing
-  #   la_name = parameters$local_authority
-  #   rnet_core = core_network(os_scotland, osm_scotland, la_name, output_folder = dir_local, date_folder)
-  #   rnet_core
-  # }),
+  tar_target(corenetwork, {
+    cue = tar_cue(mode = "always")
+    date_folder = parameters$date_routing
+    la_name = parameters$local_authority
+    core_network(os_scotland, osm_scotland, la_name, dir_local, date_folder)
+  }),
   tar_target(pmtiles_school, {
     check = length(school_points)
     command_tippecanoe = paste("tippecanoe -o schools.pmtiles",
