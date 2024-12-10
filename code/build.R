@@ -39,11 +39,11 @@ if (!file.exists(osm_file_path)) {
 osm_scotland = sf::read_sf(osm_file_path)
 sf::st_geometry(osm_scotland) = "geometry"
 
-for (la_name in la_names) {
+for (la_name in la_names[1]) {
   message("Processing la_name: ", la_name)
   parameters$local_authority = la_name
   jsonlite::write_json(parameters, "parameters.json", pretty = TRUE)
-  targets::tar_make()
+  targets::tar_make(names = "corenetwork")
 }
 
 default_wd = "/workspaces/npt/"
@@ -316,14 +316,52 @@ if (GENERATE_PMTILES) {
   sf::write_sf(combined_network, file.path(output_folder, "combined_network_tile.geojson"), delete_dsn = TRUE)
 
   # same for core_network.geojson:
+  core_network_link(os_scotland, osm_scotland, output_folder, date_folder)
   core_network_list = lapply(subfolders, function(folder) {
-    core_network_file = paste0(folder, "/core_network.geojson")
-    if (file.exists(core_network_file)) {
-      network = sf::read_sf(core_network_file)
+    # Get the list of files ending with _coherent_network.geojson
+    core_network_file = list.files(
+      path = folder, 
+      pattern = "_coherent_network\\.geojson$", 
+      full.names = TRUE
+    )
+
+    # Check if we found any matching files
+    if (length(core_network_file) > 0) {
+      # Read the first matching file
+      network = sf::read_sf(core_network_file[1])
+      return(network)
+    } else {
+      # If no file found, return NULL or some other indicator
+      return(NULL)
     }
   })
-  core_network = dplyr::bind_rows(core_network_list)
-  sf::write_sf(core_network, file.path(output_folder, "core_network.geojson"), delete_dsn = TRUE)
+
+  core_network_la = dplyr::bind_rows(core_network_list) |>st_transform(27700)
+
+  core_network_links_file = list.files(
+    path = output_folder, 
+    pattern = "_coherent_network\\.geojson$", 
+    full.names = TRUE
+  )
+  core_network_links = sf::read_sf(core_network_links_file) |>st_transform(27700)
+
+  buffered_sf = stplanr::geo_buffer(sf::st_union(core_network_la), crs = "EPSG:27700", dist = 20)
+  clipped_sf = sf::st_difference(core_network_links, sf::st_union(buffered_sf)) 
+
+  # combine clipped_sf with core_network_la
+  combined_core_network = dplyr::bind_rows(core_network_la, clipped_sf)
+
+  select_columns = c("geometry", "all_fastest_bicycle_go_dutch", "road_function", "name_1")
+  combined_core_network = combined_core_network |> select(select_columns)
+  combined_core_network = combined_core_network |>
+    mutate(road_function = case_when(
+      road_function == "A Road" ~ "Primary",
+      road_function %in% c("B Road", "Minor Road") ~ "Secondary",
+      road_function %in% c("Local Road", "Local Access Road", "Secondary Access Road") ~ "Local Access",
+      TRUE ~ as.character(road_function)  # Keeps other values as they are
+    ))
+    
+  sf::write_sf(combined_core_network, file.path(output_folder, "core_network.geojson"), delete_dsn = TRUE)
   
   # Same for simplified_network.geojson:
   simplified_network_list = lapply(subfolders, function(folder) {

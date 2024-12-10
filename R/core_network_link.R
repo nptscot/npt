@@ -63,5 +63,5 @@ core_network_link = function(os_scotland, osm_scotland, output_folder, date_fold
     all_corenet_link = rbind(all_corenet_link, cohesive_network_region_boundary)
     message("Coherent network link for: ", region, " generated successfully")
   }
-  all_corenet_link
+  corenet::create_coherent_network_PMtiles(folder_path = output_folder, city_filename = glue::glue("/combined_{date_folder}"), cohesive_network = all_corenet_link |> sf::st_transform(4326))
 }
