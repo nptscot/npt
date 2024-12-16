@@ -71,6 +71,20 @@ list(
       folder_name
     }
   ),
+  tar_target(osm_file, command = "inputdata/connectivity_fixed_osm.gpkg", format = "file"),
+  tar_target(osm_scotland, {
+  sf::read_sf(osm_file)
+  }),
+  tar_target(os_file, command = "inputdata/open_roads_scotland.gpkg", format = "file"),
+  tar_target(os_scotland, {
+    sf::read_sf(os_file)
+  }),
+  tar_target(
+    lads,
+    {
+    lads = sf::read_sf("inputdata/boundaries/la_regions_scotland_bfe_simplified_2023.geojson")
+    }
+  ),
   tar_target(aadt_file, command = "data-raw/AADT_factors.csv", format = "file"),
   tar_target(aadt_parameters, {
     readr::read_csv(aadt_file)
@@ -1099,23 +1113,21 @@ tar_target(rs_school, {
     sf::sf_use_s2(use_sf_s2_status)
     rnet_simple
   }),
-  tar_target(
-    corenetwork,
-    {
-      message("Working dir: ", getwd())
-      date_folder = parameters$date_routing
-      la_name = parameters$local_authority
-      rnet_CN = core_network(
-        os_scotland, 
-        osm_scotland, 
-        la_name, 
-        output_folder = file.path("outputdata", parameters$date_routing), 
-        date_folder
-      )
-      rnet_CN
-    },
+  tar_target(coherent_network, {
     cue = tar_cue(mode = "always")
-  ),
+    date_folder = parameters$date_routing
+    la_name = parameters$local_authority
+    rnet_core = core_network(
+      os_scotland, 
+      osm_scotland, 
+      combined_network_tile,
+      la_name = parameters$local_authority, 
+      parameters,
+      lads
+    )   
+    rnet_core 
+  }), 
+
   tar_target(pmtiles_school, {
     check = length(school_points)
     command_tippecanoe = paste("tippecanoe -o schools.pmtiles",
@@ -1254,6 +1266,7 @@ tar_target(rs_school, {
     sf::write_sf(rnet_secondary_fastest, file.path(la_folder, "rnet_secondary_fastest.gpkg"))
     sf::write_sf(rnet_utility_fastest, file.path(la_folder, "rnet_utility_fastest.gpkg"))
     sf::write_sf(combined_network, file.path(la_folder, "combined_network.gpkg"), delete_dsn = TRUE)
+    sf::write_sf(coherent_network, file.path(la_folder, "core_network.geojson"), delete_dsn = TRUE)
     as.character(Sys.Date())
   }),
   tar_target(metadata, {

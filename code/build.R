@@ -16,34 +16,15 @@ date_folder = parameters$date_routing
 la_names = lads$LAD23NM
 output_folder = file.path("outputdata", date_folder)
 la_names_lowercase = snakecase::to_snake_case(la_names)
-
+mapview::mapview(lads)
 # Build route networks:
 la_name = la_names[1]
 
-# load file for corenet
-os_file_path = "inputdata/open_roads_scotland.gpkg"
-if (!file.exists(os_file_path)) {
-  setwd("inputdata")
-  system("gh release download OS_network --skip-existing")
-  setwd("..")
-}
-os_scotland = sf::read_sf(os_file_path)
-sf::st_geometry(os_scotland) = "geometry"
-
-osm_file_path = "inputdata/connectivity_fixed_osm.gpkg"
-if (!file.exists(osm_file_path)) {
-  setwd("inputdata")
-  system("gh release download OSM_fixed --skip-existing")
-  setwd("..")
-}
-osm_scotland = sf::read_sf(osm_file_path)
-sf::st_geometry(osm_scotland) = "geometry"
-
-for (la_name in la_names[1]) {
+for (la_name in la_names) {
   message("Processing la_name: ", la_name)
   parameters$local_authority = la_name
   jsonlite::write_json(parameters, "parameters.json", pretty = TRUE)
-  targets::tar_make(names = "corenetwork")
+  targets::tar_make()
 }
 
 default_wd = "/workspaces/npt/"
@@ -321,7 +302,7 @@ if (GENERATE_PMTILES) {
     # Get the list of files ending with _coherent_network.geojson
     core_network_file = list.files(
       path = folder, 
-      pattern = "_coherent_network\\.geojson$", 
+      pattern = "core_network\\.geojson$", 
       full.names = TRUE
     )
 
@@ -340,7 +321,7 @@ if (GENERATE_PMTILES) {
 
   core_network_links_file = list.files(
     path = output_folder, 
-    pattern = "_coherent_network\\.geojson$", 
+    pattern = "core_network\\.geojson$", 
     full.names = TRUE
   )
   core_network_links = sf::read_sf(core_network_links_file) |>st_transform(27700)

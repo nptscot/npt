@@ -1,14 +1,11 @@
-core_network = function(os_scotland, osm_scotland, la_name, output_folder, date_folder) {
+core_network = function(os_scotland, osm_scotland, combined_network_tile, la_name, parameters, lads) {
 
-    message("Processing coherent network for LA: ", la_name)
-    la_name_snake = snakecase::to_snake_case(la_name)
-
-    cnet_path = file.path(output_folder, la_name_snake, "combined_network_tile.geojson")
-    combined_net = sf::read_sf(cnet_path) |>
+    sf::st_geometry(os_scotland) = "geometry"
+    sf::st_geometry(osm_scotland) = "geometry"
+    
+    combined_net = combined_network_tile |>
         sf::st_transform(crs = "EPSG:27700")
-
-    folder_path = file.path(output_folder, la_name_snake, "") 
-
+    
     tryCatch(
         {
         la_name_boundary = filter(lads, LAD23NM == la_name) |>
@@ -34,8 +31,6 @@ core_network = function(os_scotland, osm_scotland, la_name, output_folder, date_
             crs = "EPSG:27700", maxDistPts = 3000, minDistPts = 2, npt_threshold = min_percentile_value,
             road_scores = list("A Road" = 1, "B Road" = 1, "Minor Road" = 100, "Local Road" = 100, "Secondary Access Road" = 100 , "Local Access Road" = 100), n_removeDangles = 6, penalty_value = 1, group_column = "name_1"
         )
-
-        message("Generating Off Road Cycle Path network for: ", la_name)
         
         orcp_la_name_boundary = orcp_network(area = la_name_boundary, NPT_zones = combined_net_la_name_boundary, percentile_value = 0.7) 
 
@@ -89,7 +84,7 @@ core_network = function(os_scotland, osm_scotland, la_name, output_folder, date_
             grouped_network = cohesive_network_la_name_boundary
         }
 
-        grouped_network = grouped_network %>%
+        grouped_network = grouped_network |>
             mutate(road_function = case_when(
             road_function == "A Road" ~ "Primary",
             road_function %in% c("B Road", "Minor Road") ~ "Secondary",
@@ -97,13 +92,11 @@ core_network = function(os_scotland, osm_scotland, la_name, output_folder, date_
             TRUE ~ as.character(road_function)  # Keeps other values as they are
             ))
 
-        # Use la_name name in the filename
-        corenet::create_coherent_network_PMtiles(folder_path = folder_path, city_filename = glue::glue("{la_name_snake}_{date_folder}"), cohesive_network = grouped_network|> sf::st_transform(4326))
-
         message("Coherent network for: ", la_name, " generated successfully")
         },
         error = function(e) {
         message(sprintf("An error occurred with %s: %s", la_name, e$message))    
         }
     )
+    corenetwork = grouped_network
 }
