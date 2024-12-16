@@ -34,7 +34,11 @@ core_network = function(os_scotland, osm_scotland, combined_network_tile, la_nam
         
         orcp_la_name_boundary = orcp_network(area = la_name_boundary, NPT_zones = combined_net_la_name_boundary, percentile_value = 0.7) 
 
-        if (!is.null(orcp_la_name_boundary) && nrow(orcp_la_name_boundary) > 0) {
+        cohesive_network_la_name_boundary_centroid = sf::st_centroid(st_union(cohesive_network_la_name_boundary))
+        orcp_la_name_boundary_centroid = sf::st_centroid(st_union(orcp_la_name_boundary))
+        distance_orcp_to_cn = sf::st_distance(cohesive_network_la_name_boundary_centroid, orcp_la_name_boundary_centroid) 
+
+        if (!is.null(orcp_la_name_boundary) && nrow(orcp_la_name_boundary) > 0 && (distance_orcp_to_cn <= units::set_units(5000, "m"))) {
             osm_la_name = osm_scotland[sf::st_union(la_name_boundary), , op = sf::st_intersects] |> sf::st_transform(27700)
             osm_la_name = osm_la_name[!is.na(osm_la_name$highway), ]
 
