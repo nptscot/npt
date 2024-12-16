@@ -56,7 +56,7 @@ corenet_build_OS = function(os_scotland, osm_scotland, region_names,cities_regio
           orcp_city_boundary_centroid = sf::st_centroid(st_union(orcp_city_boundary))
           distance_orcp_to_cn = sf::st_distance(cohesive_network_city_boundary_centroid, orcp_city_boundary_centroid) 
 
-          if (!is.null(orcp_city_boundary) && nrow(orcp_city_boundary) > 0 && (distance_orcp_to_cn <= 5000)) {
+          if (!is.null(orcp_city_boundary) && nrow(orcp_city_boundary) > 0 && (distance_orcp_to_cn <= units::set_units(5000, "m"))) {
             osm_city = osm_scotland[sf::st_union(city_boundary), , op = sf::st_intersects] |> sf::st_transform(27700)
             osm_city = osm_city[!is.na(osm_city$highway), ]
 
