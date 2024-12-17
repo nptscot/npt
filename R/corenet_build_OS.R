@@ -139,7 +139,15 @@ corenet_build_OS = function(os_scotland, osm_scotland, region_names,cities_regio
           max_value = round(stats::quantile(combined_net_city_boundary$all_fastest_bicycle_go_dutch, probs = 0.99, na.rm = TRUE))
           min_value = round(stats::quantile(combined_net_city_boundary$all_fastest_bicycle_go_dutch, probs = 0.94, na.rm = TRUE))
 
-          
+          os_combined_net_city_boundary = corenet::cohesive_network_prep(
+          base_network = os_scotland_city_boundary,
+          influence_network = combined_net_city_boundary,
+          city_boundary,
+          crs = "EPSG:27700",
+          key_attribute = "road_function",
+          attribute_values = c("A Road", "B Road", "Minor Road")
+          )
+
           if (min_value > 50) {
             step_size = (max_value - min_value) / 2
             step_size = -abs(step_size)
