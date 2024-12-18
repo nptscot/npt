@@ -13,32 +13,16 @@ tar_source()
 parameters = jsonlite::read_json("parameters.json", simplifyVector = T)
 lads = sf::read_sf("inputdata/boundaries/la_regions_scotland_bfe_simplified_2023.geojson")
 date_folder = parameters$date_routing
+la_names = lads$LAD23NM
 output_folder = file.path("outputdata", date_folder)
-
-# # Start with Glasgow:
-region_names = unique(lads$Region)[c(3, 4, 1, 6, 2, 5)] |>
-  # Reverse to build smallest first:
-  rev()
-# To build just 1 region for testing:
-# region_names = region_names[5] # Edinburgh
-
-cities_region_names = lapply(
-  region_names,
-  function(region) {
-    cities_in_region = lads |>
-      filter(Region == region) |>
-      pull(LAD23NM) |>
-      unique()
-  }
-)
-names(cities_region_names) = region_names
-region_names_lowercase = snakecase::to_snake_case(region_names)
+la_names_lowercase = snakecase::to_snake_case(la_names)
 
 # Build route networks:
-region = region_names[1]
-for (region in region_names[1:6]) {
-  message("Processing region: ", region)
-  parameters$region = region
+la_name = la_names[1]
+
+for (la_name in la_names) {
+  message("Processing la_name: ", la_name)
+  parameters$local_authority = la_name
   jsonlite::write_json(parameters, "parameters.json", pretty = TRUE)
   targets::tar_make()
 }
@@ -78,25 +62,17 @@ if (GENERATE_CDB) {
     sf::st_point_on_surface() |> 
     select(osm_id)
 
-  # Run for each region
+  # Run for each la_name
   # Set the number of cores to use
   num_cores = min(parallel::detectCores() - 1, 10)
   registerDoParallel(num_cores)
-  region = region_names[1]
+  la_name = la_names[1]
   cbd_filename = glue::glue(output_folder, "/cbd_layer_{date_folder}.geojson")
-
-  for (region in region_names) {
-  # foreach(region = region_names) %dopar% {
-    message("Processing region: ", region)
-    region_geom = lads |> 
-      filter(Region == region)
-    district_names = region_geom$LAD23NM
+  district = la_names[1]
+  for (district in la_names) {
+    message("Processing la_name: ", district)
     
-    # Run for each district within each Scottish region
-    district = district_names[1]
-    for (district in district_names) {
-      message("Processing district: ", district)
-      district_geom = region_geom |> 
+      district_geom = lads |> 
         filter(LAD23NM == district)
       district_centroids = osm_centroids[district_geom, ]
       osm_district = osm_national |>
@@ -160,11 +136,11 @@ if (GENERATE_CDB) {
           )
         )
       
-      traffic_volumes_region = traffic_volumes_scotland[district_geom, ] # this is now a simple district outline
+      traffic_volumes_la_name = traffic_volumes_scotland[district_geom, ] # this is now a simple district outline
       cycle_net_traffic_polygons = stplanr::rnet_join(
         max_angle_diff = 30,
         rnet_x = cycle_net_joined,
-        rnet_y = traffic_volumes_region |>
+        rnet_y = traffic_volumes_la_name |>
           transmute(
             name_1, road_classification, pred_flows
           ) |>
@@ -228,7 +204,6 @@ if (GENERATE_CDB) {
         file.remove(cbd_filename)
       }
       sf::write_sf(cbd_layer, cbd_filename, delete_dsn = FALSE)
-    }
   }
 
   # Combine all CBD files into a single file
@@ -279,49 +254,16 @@ if (GENERATE_CDB) {
   print(glue::glue("Generating PMTiles at {output_folder}/cbd_layer_{date_folder}.pmtiles"))
 }
 
-# Generate coherent network -------------------------------------------------
-# Read the open roads data outside the loop for only once
-
-if (parameters$generate_CN_start) {
-  os_file_path = "inputdata/open_roads_scotland.gpkg"
-  if (!file.exists(os_file_path)) {
-    setwd("inputdata")
-    system("gh release download OS_network --skip-existing")
-    setwd("..")
-  }
-  os_scotland = sf::read_sf(os_file_path)
-  sf::st_geometry(os_scotland) = "geometry"
-
-  osm_file_path = "inputdata/connectivity_fixed_osm.gpkg"
-  if (!file.exists(osm_file_path)) {
-    setwd("inputdata")
-    system("gh release download OSM_fixed --skip-existing")
-    setwd("..")
-  }
-  osm_scotland = sf::read_sf(osm_file_path)
-  sf::st_geometry(osm_scotland) = "geometry"
-
-  message("Running corenet_build function")
-  if (parameters$coherent_sources == "OS") {
-      corenet_build_OS(os_scotland, osm_scotland, region_names,cities_region_names)
-  } else if (parameters$coherent_sources == "OSM") {
-      corenet_build_OSM(osm_scotland, region_names,cities_region_names)
-  } else {
-      stop("Invalid value for parameters$coherent_sources. Expected 'OS' or 'OSM'.")
-  }
-} else {
-  message("parameters$generate_CN_start is FALSE, skipping corenet_build.")
-}
 
 # # Test cn for one LA: ------------------
-# output_folder_region = file.path(output_folder, region_names_lowercase[1])
-# list.files(output_folder_region)
-# output_folder_region_cn = file.path(output_folder_region, "coherent_networks_OS")
-# list.files(output_folder_region_cn)
+# output_folder_la_name = file.path(output_folder, la_names_lowercase[1])
+# list.files(output_folder_la_name)
+# output_folder_la_name_cn = file.path(output_folder_la_name, "coherent_networks_OS")
+# list.files(output_folder_la_name_cn)
 # #  [8] "city_of_edinburgh_2024-09-30_4_coherent_network.pmtiles"   
-# # cn_name = glue::glue("{snakecase::to_snake_case(cities_region_names[[1]][1])}_{date_folder}_4_coherent_network.pmtiles")
+# # cn_name = glue::glue("{snakecase::to_snake_case(cities_la_names[[1]][1])}_{date_folder}_4_coherent_network.pmtiles")
 # cn_name =  glue::glue("city_of_edinburgh_{date_folder}_4_coherent_network.pmtiles")
-# la_cn_path = file.path(output_folder_region_cn, cn_name)
+# la_cn_path = file.path(output_folder_la_name_cn, cn_name)
 # file.exists(la_cn_path)
 # cn_test = sf::read_sf(la_cn_path)
 # names(cn_test)
@@ -354,6 +296,37 @@ if (GENERATE_PMTILES) {
   dim(combined_network) # ~700k rows for full build, 33 columns
   sf::write_sf(combined_network, file.path(output_folder, "combined_network_tile.geojson"), delete_dsn = TRUE)
 
+  # same for core_network.geojson:
+  core_network_links = core_network_link(os_scotland, osm_scotland, output_folder, date_folder)
+  core_network_links = sf::read_sf("outputdata/2024-12-02/combined_2024-12-02_coherent_network.geojson") |> st_transform(27700)
+  core_network_list = lapply(subfolders, function(folder) {
+    message(glue::glue("Processing folder: {folder}"))
+    # Get the list of files ending with _coherent_network.geojson
+    core_network_file = paste0(folder, "/core_network.geojson")
+    if (file.exists(core_network_file)) {
+      network = sf::read_sf(core_network_file)
+    } 
+  })
+  core_networks = dplyr::bind_rows(core_network_list)
+
+  buffered_sf = stplanr::geo_buffer(sf::st_union(core_networks), crs = "EPSG:27700", dist = 20)
+  clipped_sf = sf::st_difference(core_network_links, sf::st_union(buffered_sf)) 
+
+  # combine clipped_sf with core_networks
+  combined_core_network = dplyr::bind_rows(core_networks, clipped_sf)
+
+  select_columns = c("geometry", "all_fastest_bicycle_go_dutch", "road_function", "name_1")
+  combined_core_network = combined_core_network |> select(select_columns)
+  combined_core_network = combined_core_network |>
+    mutate(road_function = case_when(
+      road_function == "A Road" ~ "Primary",
+      road_function %in% c("B Road", "Minor Road") ~ "Secondary",
+      road_function %in% c("Local Road", "Local Access Road", "Secondary Access Road") ~ "Local Access",
+      TRUE ~ as.character(road_function)  # Keeps other values as they are
+    ))
+    
+  corenet::create_coherent_network_PMtiles(folder_path = output_folder, city_filename = glue::glue("/combined_core_network_", date_folder, ".geojson"), cohesive_network = combined_core_network |> sf::st_transform(4326))
+
   # Same for simplified_network.geojson:
   simplified_network_list = lapply(subfolders, function(folder) {
     simplified_network_file = paste0(folder, "/simplified_network.geojson")
@@ -369,13 +342,13 @@ if (GENERATE_PMTILES) {
   # DataZones file path: data_zones.geojson
   all_zones_tile_files = list()
 
-  # Iterate over each region to collect all GeoJSON files
-  for (region in region_names_lowercase) {
-    # Define the region folder path
-    region_folder = file.path(output_folder, region)
+  # Iterate over each la_name to collect all GeoJSON files
+  for (la_name in la_names_lowercase) {
+    # Define the la_name folder path
+    la_name_folder = file.path(output_folder, la_name)
     
-    # List GeoJSON files in the region folder
-    zones_tile_files = list.files(region_folder, pattern = "data_zones.*\\.geojson$", full.names = TRUE)
+    # List GeoJSON files in the la_name folder
+    zones_tile_files = list.files(la_name_folder, pattern = "data_zones.*\\.geojson$", full.names = TRUE)
     
     # Append the files to the list
     all_zones_tile_files = c(all_zones_tile_files, zones_tile_files)
@@ -432,37 +405,37 @@ if (GENERATE_PMTILES) {
   rnet_utility_fastest_list = list()
   combined_network_list = list()
 
-  # Iterate over each region to collect all relevant files
-  for (region in region_names_lowercase) {
-    # Define the region folder path
-    region_folder = file.path(output_folder, region)
+  # Iterate over each la_name to collect all relevant files
+  for (la_name in la_names_lowercase) {
+    # Define the la_name folder path
+    la_name_folder = file.path(output_folder, la_name)
     
     # Read and combine RDS files
-    if (file.exists(file.path(region_folder, "od_commute_subset.Rds"))) {
-      od_commute_subsets[[region]] = readRDS(file.path(region_folder, "od_commute_subset.Rds"))
+    if (file.exists(file.path(la_name_folder, "od_commute_subset.Rds"))) {
+      od_commute_subsets[[la_name]] = readRDS(file.path(la_name_folder, "od_commute_subset.Rds"))
     }
-    if (file.exists(file.path(region_folder, "zones_stats.Rds"))) {
-      zones_stats_list[[region]] = readRDS(file.path(region_folder, "zones_stats.Rds"))
+    if (file.exists(file.path(la_name_folder, "zones_stats.Rds"))) {
+      zones_stats_list[[la_name]] = readRDS(file.path(la_name_folder, "zones_stats.Rds"))
     }
-    if (file.exists(file.path(region_folder, "school_stats.Rds"))) {
-      school_stats_list[[region]] = readRDS(file.path(region_folder, "school_stats.Rds"))
+    if (file.exists(file.path(la_name_folder, "school_stats.Rds"))) {
+      school_stats_list[[la_name]] = readRDS(file.path(la_name_folder, "school_stats.Rds"))
     }
 
     # Read and combine GeoPackage files
-    if (file.exists(file.path(region_folder, "rnet_commute_fastest.gpkg"))) {
-      rnet_commute_fastest_list[[region]] = sf::st_read(file.path(region_folder, "rnet_commute_fastest.gpkg"))
+    if (file.exists(file.path(la_name_folder, "rnet_commute_fastest.gpkg"))) {
+      rnet_commute_fastest_list[[la_name]] = sf::st_read(file.path(la_name_folder, "rnet_commute_fastest.gpkg"))
     }
-    if (file.exists(file.path(region_folder, "rnet_primary_fastest.gpkg"))) {
-      rnet_primary_fastest_list[[region]] = sf::st_read(file.path(region_folder, "rnet_primary_fastest.gpkg"))
+    if (file.exists(file.path(la_name_folder, "rnet_primary_fastest.gpkg"))) {
+      rnet_primary_fastest_list[[la_name]] = sf::st_read(file.path(la_name_folder, "rnet_primary_fastest.gpkg"))
     }
-    if (file.exists(file.path(region_folder, "rnet_secondary_fastest.gpkg"))) {
-      rnet_secondary_fastest_list[[region]] = sf::st_read(file.path(region_folder, "rnet_secondary_fastest.gpkg"))
+    if (file.exists(file.path(la_name_folder, "rnet_secondary_fastest.gpkg"))) {
+      rnet_secondary_fastest_list[[la_name]] = sf::st_read(file.path(la_name_folder, "rnet_secondary_fastest.gpkg"))
     }
-    if (file.exists(file.path(region_folder, "rnet_utility_fastest.gpkg"))) {
-      rnet_utility_fastest_list[[region]] = sf::st_read(file.path(region_folder, "rnet_utility_fastest.gpkg"))
+    if (file.exists(file.path(la_name_folder, "rnet_utility_fastest.gpkg"))) {
+      rnet_utility_fastest_list[[la_name]] = sf::st_read(file.path(la_name_folder, "rnet_utility_fastest.gpkg"))
     }
-    if (file.exists(file.path(region_folder, "combined_network.gpkg"))) {
-      combined_network_list[[region]] = sf::st_read(file.path(region_folder, "combined_network.gpkg"))
+    if (file.exists(file.path(la_name_folder, "combined_network.gpkg"))) {
+      combined_network_list[[la_name]] = sf::st_read(file.path(la_name_folder, "combined_network.gpkg"))
     }
   }
 
