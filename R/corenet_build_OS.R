@@ -52,7 +52,11 @@ corenet_build_OS = function(os_scotland, osm_scotland, region_names,cities_regio
          
           orcp_city_boundary = orcp_network(area = city_boundary, NPT_zones = combined_net_city_boundary, percentile_value = 0.7) 
 
-          if (!is.null(orcp_city_boundary) && nrow(orcp_city_boundary) > 0) {
+          cohesive_network_city_boundary_centroid = sf::st_centroid(sf::st_union(cohesive_network_city_boundary))
+          orcp_city_boundary_centroid = sf::st_centroid(st_union(orcp_city_boundary))
+          distance_orcp_to_cn = sf::st_distance(cohesive_network_city_boundary_centroid, orcp_city_boundary_centroid) 
+
+          if (!is.null(orcp_city_boundary) && nrow(orcp_city_boundary) > 0 && (distance_orcp_to_cn <= units::set_units(5000, "m"))) {
             osm_city = osm_scotland[sf::st_union(city_boundary), , op = sf::st_intersects] |> sf::st_transform(27700)
             osm_city = osm_city[!is.na(osm_city$highway), ]
 
@@ -135,7 +139,15 @@ corenet_build_OS = function(os_scotland, osm_scotland, region_names,cities_regio
           max_value = round(stats::quantile(combined_net_city_boundary$all_fastest_bicycle_go_dutch, probs = 0.99, na.rm = TRUE))
           min_value = round(stats::quantile(combined_net_city_boundary$all_fastest_bicycle_go_dutch, probs = 0.94, na.rm = TRUE))
 
-          
+          os_combined_net_city_boundary = corenet::cohesive_network_prep(
+          base_network = os_scotland_city_boundary,
+          influence_network = combined_net_city_boundary,
+          city_boundary,
+          crs = "EPSG:27700",
+          key_attribute = "road_function",
+          attribute_values = c("A Road", "B Road", "Minor Road")
+          )
+
           if (min_value > 50) {
             step_size = (max_value - min_value) / 2
             step_size = -abs(step_size)
