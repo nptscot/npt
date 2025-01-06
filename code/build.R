@@ -232,10 +232,6 @@ if (GENERATE_CDB) {
   }
 
   # Combine all CBD files into a single file
-  # Remove combined file if it already exists:
-  if (file.exists(cbd_filename)) {
-    file.remove(cbd_filename)
-  }
   cbd_files = list.files(output_folder, pattern = "cbd_layer_.*\\.geojson$", full.names = TRUE)
   # check the length of cbd_files should equal to length of lads$LAD23NM
   if (length(cbd_files) != length(lads$LAD23NM)) {
