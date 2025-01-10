@@ -39,18 +39,18 @@ orcp_network = function(area, NPT_zones, length_threshold = 10000, percentile_va
         # Calculate the total length after performing a spatial union of the geometries
         total_length = sum(st_length(st_union(component_data)))
 
-        tryCatch({
-          # Check if total length is more than 1000 meters
-          if (total_length > units::set_units(200, "meters")) {
-            # Clean the data by removing dangles if length condition is met
-            cleaned_data = remove_dangles(component_data)
-            # Store only the geometry data in the list
-            cycle_net_components_clean[[length(cycle_net_components_clean) + 1]] = cleaned_data
-          }
-        }, error = function(e) {
-          # If an error occurs, print a custom error message
-          print(sprintf("Failed to process component %d due to error: %s", comp, e$message))
-        })
+        # tryCatch({
+        # Check if total length is more than 1000 meters
+        if (total_length > units::set_units(200, "meters")) {
+          # Clean the data by removing dangles if length condition is met
+          cleaned_data = remove_dangles(component_data)
+          # Store only the geometry data in the list
+          cycle_net_components_clean[[length(cycle_net_components_clean) + 1]] = cleaned_data
+        }
+        # }, error = function(e) {
+        #   # If an error occurs, print a custom error message
+        #   print(sprintf("Failed to process component %d due to error: %s", comp, e$message))
+        # })
 
       }
 
@@ -248,6 +248,7 @@ calculate_paths_from_point_dist = function(network, point, target_point, path_ty
 }
 
 compute_shortest_paths = function(points_sf, osm_points, rnet, segment_length = 10) {
+  library(igraph)
   hull_sf = st_convex_hull(st_combine(osm_points))
   buffer_distance = 500 
   buffered_hull_sf = st_buffer(hull_sf, dist = buffer_distance)
@@ -272,12 +273,12 @@ compute_shortest_paths = function(points_sf, osm_points, rnet, segment_length = 
   
   # Assign component IDs to nodes and edges
   network = network |>
-    activate("nodes") |>
+    sfnetworks::activate("nodes") |>
     mutate(component_id = as.numeric(components$membership))
   
   network = network |>
-    activate("edges") |>
-    mutate(component_id = as.numeric(components$membership[head_of(network_igraph, E(network_igraph))]))
+    sfnetworks::activate("edges") |>
+    mutate(component_id = as.numeric(components$membership[igraph::head_of(network_igraph, E(network_igraph))]))
   
   # Initialize an empty list to store paths
   all_paths = list()
@@ -287,8 +288,8 @@ compute_shortest_paths = function(points_sf, osm_points, rnet, segment_length = 
     start_point = points_sf[i, ]
     end_point = osm_points |> filter(index_points_sf == i)
     
-    start_node = sf::st_nearest_feature(start_point, network |> activate("nodes") |> st_as_sf())
-    end_node = sf::st_nearest_feature(end_point, network |> activate("nodes") |> st_as_sf())
+    start_node = sf::st_nearest_feature(start_point, network |> sfnetworks::activate("nodes") |> st_as_sf())
+    end_node = sf::st_nearest_feature(end_point, network |> sfnetworks::activate("nodes") |> st_as_sf())
     
     # Compute the shortest path
     paths_from_point = sfnetworks::st_network_paths(
@@ -301,7 +302,7 @@ compute_shortest_paths = function(points_sf, osm_points, rnet, segment_length = 
     
     # Extract edges from the path for visualization
     edges_in_path = network |>
-      activate("edges") |>
+      sfnetworks::activate("edges") |>
       filter(row_number() %in% unlist(paths_from_point$edge_paths[[1]])) |>
       sf::st_as_sf()
     
@@ -310,8 +311,8 @@ compute_shortest_paths = function(points_sf, osm_points, rnet, segment_length = 
       start_point = start_point,
       end_point = end_point,
       path_edges = edges_in_path,
-      start_node_geom = network |> activate("nodes") |> slice(start_node) |> st_as_sf(),
-      end_node_geom = network |> activate("nodes") |> slice(end_node) |> st_as_sf()
+      start_node_geom = network |> sfnetworks::activate("nodes") |> slice(start_node) |> st_as_sf(),
+      end_node_geom = network |> sfnetworks::activate("nodes") |> slice(end_node) |> st_as_sf()
     )
   }
   
@@ -372,7 +373,7 @@ sf_to_igraph = function(network_sf) {
     end = which(points[,1] == st_coordinates(line)[nrow(st_coordinates(line)),1] & points[,2] == st_coordinates(line)[nrow(st_coordinates(line)),2])
     c(start, end)
   }))
-  graph = graph_from_edgelist(as.matrix(edges), directed = FALSE)
+  graph = igraph::graph_from_edgelist(as.matrix(edges), directed = FALSE)
   return(graph)
 }
 
@@ -380,7 +381,7 @@ remove_dangles = function(network, percentile = 0.012) {
 
     network$length = sf::st_length(network)
     network_g = sf_to_igraph(network)
-    vertex_degrees = degree(network_g)
+    vertex_degrees = igraph::degree	(network_g)
 
     dangle_vertices = which(vertex_degrees == 1)
 
@@ -486,7 +487,8 @@ find_orcp_path = function(orcp_city_boundary, cohesive_network_city_boundary, OS
                   }
               }
           }
-
+          
+        if (length(all_orcp_path_sf) > 0) {
           combined_orcp_path_sf = do.call(rbind, all_orcp_path_sf)
           combined_orcp_path_sf = lapply(combined_orcp_path_sf[, 1], st_sfc, crs = 27700)
           geometries = lapply(combined_orcp_path_sf, function(sfc) { sfc[[1]] })
@@ -494,18 +496,40 @@ find_orcp_path = function(orcp_city_boundary, cohesive_network_city_boundary, OS
           combined_orcp_path_sf = st_sf(geometry = combined_sfc)
 
           combined_orcp_path_sf_buffered = st_buffer(combined_orcp_path_sf, dist = 2)
-          intersects = st_intersects(combined_orcp_path_sf_buffered, combined_net_city_boundary, sparse = FALSE)
-
-          combined_orcp_path_sf$all_fastest_bicycle_go_dutch = combined_net_city_boundary$all_fastest_bicycle_go_dutch[apply(intersects, 1, function(x) which(x)[1])]
+          
+          # Check if both spatial objects have features
+          if (nrow(combined_orcp_path_sf_buffered) > 0 && nrow(combined_net_city_boundary) > 0) {
+            intersects = st_intersects(combined_orcp_path_sf_buffered, combined_net_city_boundary, sparse = FALSE)
+            
+            if (!is.null(dim(intersects)) && all(dim(intersects) > 0)) {
+              first_intersections = apply(intersects, 1, function(x) which(x)[1])
+              
+              # Initialize with NA
+              combined_orcp_path_sf$all_fastest_bicycle_go_dutch = NA
+              
+              # Assign values where intersections exist
+              valid_indices = !is.na(first_intersections)
+              combined_orcp_path_sf$all_fastest_bicycle_go_dutch[valid_indices] = 
+                combined_net_city_boundary$all_fastest_bicycle_go_dutch[first_intersections[valid_indices]]
+            } else {
+              warning("No intersections found. 'all_fastest_bicycle_go_dutch' set to NA for all features.")
+              combined_orcp_path_sf$all_fastest_bicycle_go_dutch = NA
+            }
+          } else {
+            warning("One or both spatial objects have no features. 'all_fastest_bicycle_go_dutch' set to NA.")
+            combined_orcp_path_sf$all_fastest_bicycle_go_dutch = NA
+          }
 
           summarized_data = combined_orcp_path_sf |> 
-          dplyr::group_by(geometry) |> dplyr::summarize(total_all_fastest_bicycle_go_dutch = sum(all_fastest_bicycle_go_dutch, na.rm = TRUE),
-                            total_length = sum(as.numeric(sf::st_length(geometry)), na.rm = TRUE))
+            dplyr::group_by(geometry) |> 
+            dplyr::summarize(
+              total_all_fastest_bicycle_go_dutch = sum(all_fastest_bicycle_go_dutch, na.rm = TRUE),
+              total_length = sum(as.numeric(sf::st_length(geometry)), na.rm = TRUE)
+            )
 
           min_percentile_value = stats::quantile(summarized_data$total_all_fastest_bicycle_go_dutch, probs = 0.6, na.rm = TRUE)
           
           summarized_data = summarized_data |> dplyr::filter(total_all_fastest_bicycle_go_dutch > min_percentile_value)
-
           summarized_data = summarized_data |> dplyr::filter(total_length > 10)
 
           combined_orcp_path_sf_filtered = combined_orcp_path_sf |>
@@ -528,16 +552,19 @@ find_orcp_path = function(orcp_city_boundary, cohesive_network_city_boundary, OS
             }
           }
 
-
           # Combine all_paths_sf with orcp_city_boundary_component
-          # fliter orcp_city_boundary_component based on updated components list
+          # Filter orcp_city_boundary_component based on updated components list
           orcp_city_boundary_withpath = orcp_city_boundary |>
             filter(component %in% components)
           orcp_city_boundary = rbind(orcp_city_boundary_withpath, combined_orcp_path_sf)
         } else {
           message("No component is available for processing.")
           orcp_city_boundary = orcp_city_boundary
-        }  
+        }
+      } else {
+        message("No component is available for processing.")
+        orcp_city_boundary = orcp_city_boundary
+      } 
     } else {
         cat("orcp_city_boundary is empty, skipping processing.\n")
     }
@@ -604,4 +631,5 @@ convert_to_linestrings = function(geometries) {
     return(geometries)
   }
 }
+
 

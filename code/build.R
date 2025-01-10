@@ -8,10 +8,14 @@ library(foreach)
 library(iterators)
 library(parallel)
 library(doParallel)
+library(dplyr)
+library(corenet)
+library(igraph)
 tar_source()
 
+
 parameters = jsonlite::read_json("parameters.json", simplifyVector = T)
-lads = sf::read_sf("inputdata/boundaries/la_regions_scotland_bfe_simplified_2023.geojson")
+lads = sf::read_sf("inputdata/boundaries/la_regions_scotland_bfe_simplified_2023.geojson") |> st_transform(27700)
 date_folder = parameters$date_routing
 la_names = lads$LAD23NM
 output_folder = file.path("outputdata", date_folder)

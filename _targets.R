@@ -71,13 +71,27 @@ list(
       folder_name
     }
   ),
-  tar_target(osm_file, command = "inputdata/connectivity_fixed_osm.gpkg", format = "file"),
-  tar_target(osm_scotland, {
-  sf::read_sf(osm_file)
+  tar_target(
+  osm_file,
+  command = {
+    la_name_lower = snakecase::to_snake_case(parameters$local_authority)
+    glue::glue("inputdata/osm/osm_{la_name_lower}.gpkg")  
+  },
+  format = "file"
+  ),
+  tar_target(osm_la, {
+  sf::read_sf(osm_file) |> sf::st_transform(27700)
   }),
-  tar_target(os_file, command = "inputdata/open_roads_scotland.gpkg", format = "file"),
-  tar_target(os_scotland, {
-    sf::read_sf(os_file)
+  tar_target(
+    os_file, 
+    command = {
+      la_name_lower = snakecase::to_snake_case(parameters$local_authority)
+      glue::glue("inputdata/os/os_scotland_roadwidth_pavewidth_{la_name_lower}.gpkg") 
+  },
+  format = "file"
+  ),
+  tar_target(os_la, {
+    sf::read_sf(os_file) |> sf::st_transform(27700)
   }),
   tar_target(
     lads,
@@ -1115,19 +1129,16 @@ tar_target(rs_school, {
   }),
   tar_target(coherent_network, {
     cue = tar_cue(mode = "always")
-    date_folder = parameters$date_routing
-    la_name = parameters$local_authority
+    message("Creating coherent network")
     rnet_core = core_network(
-      os_scotland, 
-      osm_scotland, 
-      combined_network_tile,
-      la_name = parameters$local_authority, 
-      parameters,
-      lads
-    )   
-    rnet_core 
-  }), 
-
+      os_la = os_la, 
+      osm_la = osm_la, 
+      combined_network_tile = combined_network_tile,
+      lads = lads,
+      parameters = parameters,
+      la_name = parameters$local_authority)
+    rnet_core
+  }),
   tar_target(pmtiles_school, {
     check = length(school_points)
     command_tippecanoe = paste("tippecanoe -o schools.pmtiles",
