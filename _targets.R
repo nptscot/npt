@@ -106,19 +106,18 @@ list(
   tar_target(
     local_authorities,
     {
-      if (!file.exists("inputdata/boundaries/la_regions_2023.geojson")) {
-        download.file("https://github.com/nptscot/npt/releases/download/boundaries-2024/las_scotland_2023.geojson",
-          destfile = "inputdata/boundaries/la_regions_2023.geojson"
+      if (!file.exists("inputdata/boundaries/la_regions_scotland_bfe_simplified_2023.geojson")) {
+        download.file("https://github.com/nptscot/npt/releases/download/boundaries-2024/la_regions_scotland_bfe_simplified_2023.geojson",
+          destfile = "inputdata/boundaries/la_regions_scotland_bfe_simplified_2023.geojson"
         )
       }
-      sf::read_sf("inputdata/boundaries/la_regions_2023.geojson")
+      sf::read_sf("inputdata/boundaries/la_regions_scotland_bfe_simplified_2023.geojson")
     }
   ),
   tar_target(
     la_names,
-    unique(local_authorities$Region)
+    unique(local_authorities$LAD23NM)
   ),
-
   # Case study area
   tar_target(
     la_boundary,
@@ -129,7 +128,7 @@ list(
   tar_target(la_name,
     local_authorities |>
       filter(LAD23NM == parameters$local_authority) |>
-      pull(Region)
+      pull(LAD23NM)
   ),
   tar_target(
     la_boundary_buffered,
@@ -1121,7 +1120,7 @@ tar_target(rs_school, {
     # TODO (nice to have): replace with global setting (needs testing):
     use_sf_s2_status = sf::sf_use_s2()
     sf::sf_use_s2(FALSE)
-    rnet_simple = simplify_network(combined_network_tile, la_name, la_boundary)
+    rnet_simple = simplify_network(rnet_x = os_la, rnet_y = combined_network_tile)
     make_geojson_zones(rnet_simple, paste0(la_folder, "/simplified_network.geojson"))
     # Restore previous status
     sf::sf_use_s2(use_sf_s2_status)
