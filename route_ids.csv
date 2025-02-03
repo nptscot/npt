@@ -1,4 +1,17 @@
 nrow,plan,purpose,region,date,id
+987,quietest,school,SWESTRANS,2025-02-01,12542
+987,fastest,school,SWESTRANS,2025-02-01,12541
+581,ebike,utility,ZetTrans,2025-02-01,12540
+581,quietest,utility,ZetTrans,2025-02-01,12539
+581,fastest,utility,ZetTrans,2025-02-01,12538
+581,balanced,utility,ZetTrans,2025-02-01,12537
+270,ebike,commute,ZetTrans,2025-02-01,12536
+270,balanced,commute,ZetTrans,2025-02-01,12535
+270,quietest,commute,ZetTrans,2025-02-01,12534
+270,fastest,commute,ZetTrans,2025-02-01,12533
+104,ebike,school,ZetTrans,2025-02-01,12532
+104,balanced,school,ZetTrans,2025-02-01,12531
+104,quietest,school,ZetTrans,2025-02-01,12530
 104,fastest,school,ZetTrans,2025-02-01,12529
 93459,ebike,utility,Glasgow and Strathclyde,2025-01-01,12120
 93459,quietest,utility,Glasgow and Strathclyde,2025-01-01,12119
