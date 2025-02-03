@@ -77,7 +77,9 @@ la_to_region_lookup = tibble::tribble(
     "SESTRAN", "West Lothian",
     
     # SPT
-    "SPT", "Argyll and Bute",
+    # Moray and most of the Argyll and Bute area (Helensburgh and Lomond is covered by SPT)
+    # Source: https://home.scotland-excel.org.uk/about-us/our-members/highlands-and-islands-transport-partnership-hitrans/
+    # "SPT", "Argyll and Bute",
     "SPT", "East Ayrshire",
     "SPT", "East Dunbartonshire",
     "SPT", "East Renfrewshire",
@@ -110,6 +112,11 @@ la_regions |>
 
 # check for NAs: 
 la_regions[is.na(la_regions$Region),]
+
+# Check for duplicates:
+la_regions |>
+  count(LAD23NM) |>
+  filter(n > 1)
 
 # Save for future reference:
 sf::write_sf(la_regions, "la_regions_scotland_bfe_simplified_2023.geojson", delete_dsn = TRUE)
