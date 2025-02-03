@@ -53,45 +53,54 @@ la_scotland = la[grepl("^S", la$LAD23CD),]
 
 la_to_region_lookup = tibble::tribble(
     ~Region, ~LAD23NM,
-    "Aberdeen and North East", "Aberdeenshire",
-    "Aberdeen and North East", "Aberdeen City",
-    "Aberdeen and North East", "Moray",
-    # "Highlands and Islands",
-    # Argyll and Bute, Eilean Siar (Western Isles), Highland, Orkney, Shetland
-    "Highlands and Islands", "Argyll and Bute",
-    "Highlands and Islands", "Na h-Eileanan Siar",
-    "Highlands and Islands", "Highland",
-    "Highlands and Islands", "Orkney Islands",
-    "Highlands and Islands", "Shetland Islands",
-    # Tayside, Central and Fife	Angus, Clackmannanshire, Dundee City, Falkirk, Fife, Perth and Kinross, Stirling    
-    "Tayside, Central and Fife", "Angus",
-    "Tayside, Central and Fife", "Clackmannanshire",
-    "Tayside, Central and Fife", "Dundee City",
-    "Tayside, Central and Fife", "Falkirk",
-    "Tayside, Central and Fife", "Fife",
-    "Tayside, Central and Fife", "Perth and Kinross",
-    "Tayside, Central and Fife", "Stirling",
-    # Edinburgh and Lothians	City of Edinburgh, East Lothian, Midlothian, West Lothian
-    "Edinburgh and Lothians", "City of Edinburgh",
-    "Edinburgh and Lothians", "East Lothian",
-    "Edinburgh and Lothians", "Midlothian",
-    "Edinburgh and Lothians", "West Lothian",
-    # Glasgow and Strathclyde	East Ayrshire, East Dunbartonshire, East Renfrewshire, Glasgow City, Inverclyde, North Ayrshire, North Lanarkshire, Renfrewshire, South Ayrshire, South Lanarkshire, West Dunbartonshire
-    "Glasgow and Strathclyde", "East Ayrshire",
-    "Glasgow and Strathclyde", "East Dunbartonshire",
-    "Glasgow and Strathclyde", "East Renfrewshire",
-    "Glasgow and Strathclyde", "Glasgow City",
-    "Glasgow and Strathclyde", "Inverclyde",
-    "Glasgow and Strathclyde", "North Ayrshire",
-    "Glasgow and Strathclyde", "North Lanarkshire",
-    "Glasgow and Strathclyde", "Renfrewshire",
-    "Glasgow and Strathclyde", "South Ayrshire",
-    "Glasgow and Strathclyde", "South Lanarkshire",
-    "Glasgow and Strathclyde", "West Dunbartonshire",
-    # Scotland South	Dumfries and Galloway, Scottish Borders
-    "Scotland South", "Dumfries and Galloway",
-    "Scotland South", "Scottish Borders"
+    # HITRANS
+    "HITRANS", "Highland",
+    "HITRANS", "Moray",
+    "HITRANS", "Orkney Islands",
+    "HITRANS", "Na h-Eileanan Siar",
+    "HITRANS", "Argyll and Bute", 
+    
+    # Nestrans
+    "Nestrans", "Aberdeen City",
+    "Nestrans", "Aberdeenshire",
+    
+    # SESTRAN
+    "SESTRAN", "City of Edinburgh",
+    "SESTRAN", "Clackmannanshire",
+    "SESTRAN", "East Lothian",
+    "SESTRAN", "Falkirk",
+    "SESTRAN", "Fife",
+    "SESTRAN", "Midlothian",
+    "SESTRAN", "Scottish Borders",
+    "SESTRAN", "West Lothian",
+    
+    # SPT
+    "SPT", "Argyll and Bute",
+    "SPT", "East Ayrshire",
+    "SPT", "East Dunbartonshire",
+    "SPT", "East Renfrewshire",
+    "SPT", "Glasgow City",
+    "SPT", "Inverclyde",
+    "SPT", "North Ayrshire",
+    "SPT", "North Lanarkshire",
+    "SPT", "Renfrewshire",
+    "SPT", "South Ayrshire",
+    "SPT", "South Lanarkshire",
+    "SPT", "West Dunbartonshire",
+    
+    # SWESTRANS
+    "SWESTRANS", "Dumfries and Galloway",
+    
+    # Tactran
+    "Tactran", "Angus",
+    "Tactran", "Dundee City",
+    "Tactran", "Perth and Kinross",
+    "Tactran", "Stirling",
+    
+    # ZetTrans
+    "ZetTrans", "Shetland Islands"
 )
+
 la_regions = dplyr::left_join(la_scotland, la_to_region_lookup)
 la_regions |>
   select(Region) |>
