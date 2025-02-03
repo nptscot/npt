@@ -117,15 +117,29 @@ la_regions[is.na(la_regions$Region),]
 la_regions |>
   count(LAD23NM) |>
   filter(n > 1)
+  
+scottish_regions = la_regions |>
+  group_by(Region) |>
+  summarise(`Number of LAs` = n(), `LAs` = paste(LAD23NM, collapse = ", ")) |>
+  arrange(desc(`Number of LAs`))
+
 
 # Save for future reference:
 sf::write_sf(la_regions, "la_regions_scotland_bfe_simplified_2023.geojson", delete_dsn = TRUE)
 sf::write_sf(la, "la_uk_bfe_simplified_2023.geojson", delete_dsn = TRUE)
+sf::write_sf(scottish_regions, "scottish_regions.geojson", delete_dsn = TRUE)
 
-system("gh release upload boundaries-2024 la_regions_scotland_bfe_simplified_2023.geojson la_uk_bfe_simplified_2023.geojson --clobber")
+system("gh release upload boundaries-2024 la_regions_scotland_bfe_simplified_2023.geojson --clobber")
+system("gh release upload boundaries-2024 la_uk_bfe_simplified_2023.geojson --clobber")
+system("gh release upload boundaries-2024 scottish_regions.geojson --clobber")
 # Resulting dataset: 
 # https://github.com/nptscot/npt/releases/download/boundaries-2024/la_regions_scotland_bfe_simplified_2023.geojson
-mapview::mapview(sf::read_sf("https://github.com/nptscot/npt/releases/download/boundaries-2024/la_regions_scotland_bfe_simplified_2023.geojson"))
+
+# Test reading the data back in:
+la_regions = sf::read_sf("https://github.com/nptscot/npt/releases/download/boundaries-2024/la_regions_scotland_bfe_simplified_2023.geojson")
+mapview::mapview(la_regions, zcol = "Region")
+scottish_regions = sf::read_sf("https://github.com/nptscot/npt/releases/download/boundaries-2024/scottish_regions.geojson")
+mapview::mapview(scottish_regions)
 
 # https://github.com/nptscot/npt/releases/download/boundaries-2024/las_2023.geojson
 
