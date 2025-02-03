@@ -4,6 +4,7 @@ path = "D:/OneDrive - University of Leeds/Data/Admin Boundaries/"
 path_la = "Local_Authority_Districts_(December_2022)_Boundaries_UK_BFC.zip"
 
 library(sf)
+library(dplyr)
 
 
 # LA
@@ -42,7 +43,7 @@ object.size(la_bfe_simplified) |> as.numeric() /
 
 mapview::mapview(la_bsc) + mapview::mapview(la_bfe_simplified)
 
-la = la_bfe_simplified
+la = la_bsc
 
 la = la[, c("LAD23CD", "LAD23NM")]
 # LAs in Scotland, CD starts with "S":
