@@ -8,9 +8,19 @@ simplify_network = function(rnet_y, parameters, region_boundary) {
   region_snake_case = snakecase::to_snake_case(parameters$region[[1]])
   base_name = paste0("OS_Scotland_Network_", region_snake_case, ".geojson")
   rnet_x_f = file.path("inputdata", base_name)
-  rnet_x = sf::read_sf(rnet_x_f) |> sf::st_transform(crs = "EPSG:27700")
 
-  rnet_x = rnet_x[region_boundary |> sf::st_transform(crs = "EPSG:27700") , ] # TODO: is this needed? Can remove if not
+  if (!dir.exists("inputdata")) {
+    dir.create("inputdata")
+  }
+
+  if (!file.exists(rnet_x_f)) {
+    download_url = paste0("https://github.com/nptscot/inputdata/releases/download/os_rtps/", base_name)
+    download.file(url = download_url, destfile = rnet_x_f, mode = "wb")
+  }
+
+  rnet_x = sf::read_sf(rnet_x_f) |>
+    sf::st_transform(crs = "EPSG:27700")
+
   rnet_xp = sf::st_transform(rnet_x, "EPSG:27700")
   rnet_yp = sf::st_transform(rnet_y, "EPSG:27700")
 

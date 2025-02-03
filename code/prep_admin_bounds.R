@@ -4,6 +4,7 @@ path = "D:/OneDrive - University of Leeds/Data/Admin Boundaries/"
 path_la = "Local_Authority_Districts_(December_2022)_Boundaries_UK_BFC.zip"
 
 library(sf)
+library(dplyr)
 
 
 # LA
@@ -30,9 +31,10 @@ library(sf)
 la_bsc = sf::read_sf("https://services1.arcgis.com/ESMARspQHYMw9BZ9/arcgis/rest/services/Local_Authority_Districts_December_2023_Boundaries_UK_BSC/FeatureServer/0/query?outFields=*&where=1%3D1&f=geojson")
 la_bfe = sf::read_sf("https://services1.arcgis.com/ESMARspQHYMw9BZ9/arcgis/rest/services/Local_Authority_Districts_December_2023_Boundaries_UK_BFE/FeatureServer/0/query?outFields=*&where=1%3D1&f=geojson")
 
-# BFE version is 50x larger than BSC
+# BFE version is 50x larger than BSC but we need the BFE version for the islands
 object.size(la_bfe) |> as.numeric() /
   object.size(la_bsc) |> as.numeric() 
+
 
 la_bfe_simplified = rmapshaper::ms_simplify(la_bfe, keep = 0.02)
 
@@ -42,7 +44,7 @@ object.size(la_bfe_simplified) |> as.numeric() /
 
 mapview::mapview(la_bsc) + mapview::mapview(la_bfe_simplified)
 
-la = la_bfe_simplified
+la = la_bsc
 
 la = la[, c("LAD23CD", "LAD23NM")]
 # LAs in Scotland, CD starts with "S":
@@ -53,57 +55,70 @@ la_scotland = la[grepl("^S", la$LAD23CD),]
 
 la_to_region_lookup = tibble::tribble(
     ~Region, ~LAD23NM,
-    "Aberdeen and North East", "Aberdeenshire",
-    "Aberdeen and North East", "Aberdeen City",
-    "Aberdeen and North East", "Moray",
-    # "Highlands and Islands",
-    # Argyll and Bute, Eilean Siar (Western Isles), Highland, Orkney, Shetland
-    "Highlands and Islands", "Argyll and Bute",
-    "Highlands and Islands", "Na h-Eileanan Siar",
-    "Highlands and Islands", "Highland",
-    "Highlands and Islands", "Orkney Islands",
-    "Highlands and Islands", "Shetland Islands",
-    # Tayside, Central and Fife	Angus, Clackmannanshire, Dundee City, Falkirk, Fife, Perth and Kinross, Stirling    
-    "Tayside, Central and Fife", "Angus",
-    "Tayside, Central and Fife", "Clackmannanshire",
-    "Tayside, Central and Fife", "Dundee City",
-    "Tayside, Central and Fife", "Falkirk",
-    "Tayside, Central and Fife", "Fife",
-    "Tayside, Central and Fife", "Perth and Kinross",
-    "Tayside, Central and Fife", "Stirling",
-    # Edinburgh and Lothians	City of Edinburgh, East Lothian, Midlothian, West Lothian
-    "Edinburgh and Lothians", "City of Edinburgh",
-    "Edinburgh and Lothians", "East Lothian",
-    "Edinburgh and Lothians", "Midlothian",
-    "Edinburgh and Lothians", "West Lothian",
-    # Glasgow and Strathclyde	East Ayrshire, East Dunbartonshire, East Renfrewshire, Glasgow City, Inverclyde, North Ayrshire, North Lanarkshire, Renfrewshire, South Ayrshire, South Lanarkshire, West Dunbartonshire
-    "Glasgow and Strathclyde", "East Ayrshire",
-    "Glasgow and Strathclyde", "East Dunbartonshire",
-    "Glasgow and Strathclyde", "East Renfrewshire",
-    "Glasgow and Strathclyde", "Glasgow City",
-    "Glasgow and Strathclyde", "Inverclyde",
-    "Glasgow and Strathclyde", "North Ayrshire",
-    "Glasgow and Strathclyde", "North Lanarkshire",
-    "Glasgow and Strathclyde", "Renfrewshire",
-    "Glasgow and Strathclyde", "South Ayrshire",
-    "Glasgow and Strathclyde", "South Lanarkshire",
-    "Glasgow and Strathclyde", "West Dunbartonshire",
-    # Scotland South	Dumfries and Galloway, Scottish Borders
-    "Scotland South", "Dumfries and Galloway",
-    "Scotland South", "Scottish Borders"
+    # HITRANS
+    "HITRANS", "Highland",
+    "HITRANS", "Moray",
+    "HITRANS", "Orkney Islands",
+    "HITRANS", "Na h-Eileanan Siar",
+    "HITRANS", "Argyll and Bute", 
+    
+    # Nestrans
+    "Nestrans", "Aberdeen City",
+    "Nestrans", "Aberdeenshire",
+    
+    # SESTRAN
+    "SESTRAN", "City of Edinburgh",
+    "SESTRAN", "Clackmannanshire",
+    "SESTRAN", "East Lothian",
+    "SESTRAN", "Falkirk",
+    "SESTRAN", "Fife",
+    "SESTRAN", "Midlothian",
+    "SESTRAN", "Scottish Borders",
+    "SESTRAN", "West Lothian",
+    
+    # SPT
+    "SPT", "Argyll and Bute",
+    "SPT", "East Ayrshire",
+    "SPT", "East Dunbartonshire",
+    "SPT", "East Renfrewshire",
+    "SPT", "Glasgow City",
+    "SPT", "Inverclyde",
+    "SPT", "North Ayrshire",
+    "SPT", "North Lanarkshire",
+    "SPT", "Renfrewshire",
+    "SPT", "South Ayrshire",
+    "SPT", "South Lanarkshire",
+    "SPT", "West Dunbartonshire",
+    
+    # SWESTRANS
+    "SWESTRANS", "Dumfries and Galloway",
+    
+    # Tactran
+    "Tactran", "Angus",
+    "Tactran", "Dundee City",
+    "Tactran", "Perth and Kinross",
+    "Tactran", "Stirling",
+    
+    # ZetTrans
+    "ZetTrans", "Shetland Islands"
 )
+
 la_regions = dplyr::left_join(la_scotland, la_to_region_lookup)
 la_regions |>
   select(Region) |>
-  plot()
+  mapview::mapview(zcol = "Region")
+
 # check for NAs: 
 la_regions[is.na(la_regions$Region),]
 
+# Save for future reference:
 sf::write_sf(la_regions, "la_regions_scotland_bfe_simplified_2023.geojson", delete_dsn = TRUE)
 sf::write_sf(la, "la_uk_bfe_simplified_2023.geojson", delete_dsn = TRUE)
 
-# system("gh release upload boundaries-2024 las_scotland_2023.geojson las_2023.geojson --clobber")
 system("gh release upload boundaries-2024 la_regions_scotland_bfe_simplified_2023.geojson la_uk_bfe_simplified_2023.geojson --clobber")
+# Resulting dataset: 
+# https://github.com/nptscot/npt/releases/download/boundaries-2024/la_regions_scotland_bfe_simplified_2023.geojson
+mapview::mapview(sf::read_sf("https://github.com/nptscot/npt/releases/download/boundaries-2024/la_regions_scotland_bfe_simplified_2023.geojson"))
 
 # https://github.com/nptscot/npt/releases/download/boundaries-2024/las_2023.geojson
 
