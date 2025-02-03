@@ -31,9 +31,10 @@ library(dplyr)
 la_bsc = sf::read_sf("https://services1.arcgis.com/ESMARspQHYMw9BZ9/arcgis/rest/services/Local_Authority_Districts_December_2023_Boundaries_UK_BSC/FeatureServer/0/query?outFields=*&where=1%3D1&f=geojson")
 la_bfe = sf::read_sf("https://services1.arcgis.com/ESMARspQHYMw9BZ9/arcgis/rest/services/Local_Authority_Districts_December_2023_Boundaries_UK_BFE/FeatureServer/0/query?outFields=*&where=1%3D1&f=geojson")
 
-# BFE version is 50x larger than BSC
+# BFE version is 50x larger than BSC but we need the BFE version for the islands
 object.size(la_bfe) |> as.numeric() /
   object.size(la_bsc) |> as.numeric() 
+
 
 la_bfe_simplified = rmapshaper::ms_simplify(la_bfe, keep = 0.02)
 
@@ -105,15 +106,19 @@ la_to_region_lookup = tibble::tribble(
 la_regions = dplyr::left_join(la_scotland, la_to_region_lookup)
 la_regions |>
   select(Region) |>
-  plot()
+  mapview::mapview(zcol = "Region")
+
 # check for NAs: 
 la_regions[is.na(la_regions$Region),]
 
+# Save for future reference:
 sf::write_sf(la_regions, "la_regions_scotland_bfe_simplified_2023.geojson", delete_dsn = TRUE)
 sf::write_sf(la, "la_uk_bfe_simplified_2023.geojson", delete_dsn = TRUE)
 
-# system("gh release upload boundaries-2024 las_scotland_2023.geojson las_2023.geojson --clobber")
 system("gh release upload boundaries-2024 la_regions_scotland_bfe_simplified_2023.geojson la_uk_bfe_simplified_2023.geojson --clobber")
+# Resulting dataset: 
+# https://github.com/nptscot/npt/releases/download/boundaries-2024/la_regions_scotland_bfe_simplified_2023.geojson
+mapview::mapview(sf::read_sf("https://github.com/nptscot/npt/releases/download/boundaries-2024/la_regions_scotland_bfe_simplified_2023.geojson"))
 
 # https://github.com/nptscot/npt/releases/download/boundaries-2024/las_2023.geojson
 
