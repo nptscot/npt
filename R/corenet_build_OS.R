@@ -110,7 +110,7 @@ corenet_build_OS = function(os_scotland, osm_scotland, region_names,cities_regio
           }
 
           grouped_network = grouped_network |>
-            mutate(road_function = case_when(
+            mutate(road_function_npt = case_when(
               road_function == "A Road" ~ "Primary",
               road_function %in% c("B Road", "Minor Road") ~ "Secondary",
               # road_function %in% c("Local Road", "Local Access Road", "Secondary Access Road") ~ "Local Access",
@@ -183,10 +183,10 @@ corenet_build_OS = function(os_scotland, osm_scotland, region_names,cities_regio
                               )
 
               cn = cn |>
-                mutate(road_function = case_when(
+                mutate(road_function_npt = case_when(
                   road_function == "A Road" ~ "Primary",
                   road_function %in% c("B Road", "Minor Road") ~ "Secondary",
-                  road_function %in% c("Local Road", "Local Access Road", "Secondary Access Road") ~ "Local Access",
+                  # road_function %in% c("Local Road", "Local Access Road", "Secondary Access Road") ~ "Local Access",
                   TRUE ~ as.character(road_function)  # Keeps other values as they are
                 ))
               # Use city name and threshold in the filename, using the correct threshold
@@ -258,10 +258,10 @@ corenet_build_OS = function(os_scotland, osm_scotland, region_names,cities_regio
 
 
     cohesive_network_region_boundary = cohesive_network_region_boundary |>
-      mutate(road_function = case_when(
+      mutate(road_function_npt = case_when(
         road_function == "A Road" ~ "Primary",
         road_function %in% c("B Road", "Minor Road") ~ "Secondary",
-        road_function %in% c("Local Road", "Local Access Road", "Secondary Access Road") ~ "Local Access",
+        # road_function %in% c("Local Road", "Local Access Road", "Secondary Access Road") ~ "Local Access",
         TRUE ~ as.character(road_function)  # Keeps other values as they are
       ))
 
@@ -384,10 +384,10 @@ corenet_build_OS = function(os_scotland, osm_scotland, region_names,cities_regio
     combined_CN_gpkg_file = glue::glue("{output_folder}/combined_CN_{number}_{date_folder}_OS.gpkg")
 
     combined_CN_geojson = combined_CN_geojson |>
-      mutate(road_function = case_when(
+      mutate(road_function_npt = case_when(
         road_function == "A Road" ~ "Primary",
         road_function %in% c("B Road", "Minor Road") ~ "Secondary",
-        road_function %in% c("Local Road", "Local Access Road", "Secondary Access Road") ~ "Local Access",
+        # road_function %in% c("Local Road", "Local Access Road", "Secondary Access Road") ~ "Local Access",
         TRUE ~ as.character(road_function)  # Keeps other values as they are
       ))
 
