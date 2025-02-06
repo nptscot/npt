@@ -44,7 +44,7 @@ object.size(la_bfe_simplified) |> as.numeric() /
 
 mapview::mapview(la_bsc) + mapview::mapview(la_bfe_simplified)
 
-la = la_bsc
+la = la_bfe_simplified
 
 la = la[, c("LAD23CD", "LAD23NM")]
 # LAs in Scotland, CD starts with "S":

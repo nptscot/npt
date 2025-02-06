@@ -39,14 +39,14 @@ corenet_build_OS = function(os_scotland, osm_scotland, region_names,cities_regio
             city_boundary,
             crs = "EPSG:27700",
             key_attribute = "road_function",
-            attribute_values = c("A Road", "B Road", "Minor Road", "Local Road" , "Secondary Access Road" , "Local Access Road" )
+            attribute_values = c("A Road", "B Road", "Minor Road") # , "Local Road" , "Secondary Access Road" , "Local Access Road" 
           )
 
           cohesive_network_city_boundary = corenet::corenet(combined_net_city_boundary, os_combined_net_city_boundary, city_boundary,
             key_attribute = "all_fastest_bicycle_go_dutch",
             crs = "EPSG:27700", maxDistPts = 3000, minDistPts = 2, npt_threshold = min_percentile_value,
-            road_scores = list("A Road" = 1, "B Road" = 1, "Minor Road" = 100, "Local Road" = 100, "Secondary Access Road" = 100 , "Local Access Road" = 100), n_removeDangles = 6, penalty_value = 1, group_column = "name_1"
-          )
+            road_scores = list("A Road" = 1, "B Road" = 1, "Minor Road" = 100), n_removeDangles = 6, penalty_value = 1, group_column = "name_1"
+          ) # , "Local Road" = 100, "Secondary Access Road" = 100 , "Local Access Road" = 100
 
           message("Generating Off Road Cycle Path network for: ", city)
          
@@ -110,10 +110,10 @@ corenet_build_OS = function(os_scotland, osm_scotland, region_names,cities_regio
           }
 
           grouped_network = grouped_network |>
-            mutate(road_function = case_when(
+            mutate(road_function_npt = case_when(
               road_function == "A Road" ~ "Primary",
               road_function %in% c("B Road", "Minor Road") ~ "Secondary",
-              road_function %in% c("Local Road", "Local Access Road", "Secondary Access Road") ~ "Local Access",
+              # road_function %in% c("Local Road", "Local Access Road", "Secondary Access Road") ~ "Local Access",
               TRUE ~ as.character(road_function)  # Keeps other values as they are
             ))
             
@@ -183,10 +183,10 @@ corenet_build_OS = function(os_scotland, osm_scotland, region_names,cities_regio
                               )
 
               cn = cn |>
-                mutate(road_function = case_when(
+                mutate(road_function_npt = case_when(
                   road_function == "A Road" ~ "Primary",
                   road_function %in% c("B Road", "Minor Road") ~ "Secondary",
-                  road_function %in% c("Local Road", "Local Access Road", "Secondary Access Road") ~ "Local Access",
+                  # road_function %in% c("Local Road", "Local Access Road", "Secondary Access Road") ~ "Local Access",
                   TRUE ~ as.character(road_function)  # Keeps other values as they are
                 ))
               # Use city name and threshold in the filename, using the correct threshold
@@ -258,10 +258,10 @@ corenet_build_OS = function(os_scotland, osm_scotland, region_names,cities_regio
 
 
     cohesive_network_region_boundary = cohesive_network_region_boundary |>
-      mutate(road_function = case_when(
+      mutate(road_function_npt = case_when(
         road_function == "A Road" ~ "Primary",
         road_function %in% c("B Road", "Minor Road") ~ "Secondary",
-        road_function %in% c("Local Road", "Local Access Road", "Secondary Access Road") ~ "Local Access",
+        # road_function %in% c("Local Road", "Local Access Road", "Secondary Access Road") ~ "Local Access",
         TRUE ~ as.character(road_function)  # Keeps other values as they are
       ))
 
@@ -384,10 +384,10 @@ corenet_build_OS = function(os_scotland, osm_scotland, region_names,cities_regio
     combined_CN_gpkg_file = glue::glue("{output_folder}/combined_CN_{number}_{date_folder}_OS.gpkg")
 
     combined_CN_geojson = combined_CN_geojson |>
-      mutate(road_function = case_when(
+      mutate(road_function_npt = case_when(
         road_function == "A Road" ~ "Primary",
         road_function %in% c("B Road", "Minor Road") ~ "Secondary",
-        road_function %in% c("Local Road", "Local Access Road", "Secondary Access Road") ~ "Local Access",
+        # road_function %in% c("Local Road", "Local Access Road", "Secondary Access Road") ~ "Local Access",
         TRUE ~ as.character(road_function)  # Keeps other values as they are
       ))
 
