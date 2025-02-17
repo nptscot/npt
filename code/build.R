@@ -71,6 +71,9 @@ if (GENERATE_CDB) {
   # Generate cycle_net: forcing update:
   # osm_national = get_travel_network("Scotland", force_download = TRUE)
   osm_national = get_travel_network("Scotland")
+  if (nrow(osm_national) < 100000) {
+    stop("The current OSM data for Scotland might be incomplete. Please re-downloading with force_download = TRUE.")
+  }
   # saveRDS(osm_national, "inputdata/osm_national_2024_05_23")
 
   # Generate road segment midpoints
