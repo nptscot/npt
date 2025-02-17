@@ -3,7 +3,7 @@ corenet_build_OS = function(os_scotland, osm_scotland, region_names,cities_regio
   message("Generate the city's coherent network for each region with growing")
 
   for (region in region_names) {
-    # region = region_names[6]  "Edinburgh and Lothians"  
+    # region = region_names[5]  "SESTRAN"  
     message("Processing coherent network for region: ", region)
     region_snake = snakecase::to_snake_case(region)
     coherent_area = cities_region_names[[region]]
@@ -114,9 +114,9 @@ corenet_build_OS = function(os_scotland, osm_scotland, region_names,cities_regio
               road_function == "A Road" ~ "Primary",
               road_function %in% c("B Road", "Minor Road") ~ "Secondary",
               # road_function %in% c("Local Road", "Local Access Road", "Secondary Access Road") ~ "Local Access",
-              TRUE ~ as.character(road_function)  # Keeps other values as they are
+              TRUE ~ "Secondary" 
             ))
-            
+
           # Use city name in the filename
           corenet::create_coherent_network_PMtiles(folder_path = folder_path, city_filename = glue::glue("{city_filename}_{date_folder}_4"), cohesive_network = grouped_network|> sf::st_transform(4326))
 
@@ -187,7 +187,7 @@ corenet_build_OS = function(os_scotland, osm_scotland, region_names,cities_regio
                   road_function == "A Road" ~ "Primary",
                   road_function %in% c("B Road", "Minor Road") ~ "Secondary",
                   # road_function %in% c("Local Road", "Local Access Road", "Secondary Access Road") ~ "Local Access",
-                  TRUE ~ as.character(road_function)  # Keeps other values as they are
+                  TRUE ~ "Secondary" 
                 ))
               # Use city name and threshold in the filename, using the correct threshold
               city_filename = glue::glue("{snakecase::to_snake_case(city)}_{date_folder}_{i}")
@@ -262,7 +262,7 @@ corenet_build_OS = function(os_scotland, osm_scotland, region_names,cities_regio
         road_function == "A Road" ~ "Primary",
         road_function %in% c("B Road", "Minor Road") ~ "Secondary",
         # road_function %in% c("Local Road", "Local Access Road", "Secondary Access Road") ~ "Local Access",
-        TRUE ~ as.character(road_function)  # Keeps other values as they are
+        TRUE ~ "Secondary" 
       ))
 
     cohesive_network_region_boundary = cohesive_network_region_boundary |> select(name_1, all_fastest_bicycle_go_dutch, road_function, geometry)
@@ -388,7 +388,7 @@ corenet_build_OS = function(os_scotland, osm_scotland, region_names,cities_regio
         road_function == "A Road" ~ "Primary",
         road_function %in% c("B Road", "Minor Road") ~ "Secondary",
         # road_function %in% c("Local Road", "Local Access Road", "Secondary Access Road") ~ "Local Access",
-        TRUE ~ as.character(road_function)  # Keeps other values as they are
+        TRUE ~ "Secondary" 
       ))
 
     # Write the combined data to GeoJSON and GeoPackage files
