@@ -23,4 +23,6 @@ if (update_github_packages) {
   remotes::install_dev("osmextract")
   remotes::install_github("nptscot/corenet")
   remotes::install_github("nptscot/osmactive")
+  install.packages("pak")
+  pak::pak("JosiahParry/anime/r")
 }

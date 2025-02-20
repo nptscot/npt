@@ -4,7 +4,7 @@ library(tidygraph)
 library(tidyverse)
 library(igraph)
 
-orcp_network = function(area, NPT_zones, length_threshold = 10000, percentile_value = 0.6) {
+orcp_network = function(area, NPT_zones, length_threshold = 10000, percentile_value = 0.6, params = NULL) {
     tryCatch({
       osm = osmactive::get_travel_network("Scotland", boundary = area, boundary_type = "clipsrc")
       cycle_net = osmactive::get_cycling_network(osm)
@@ -74,6 +74,24 @@ orcp_network = function(area, NPT_zones, length_threshold = 10000, percentile_va
       filtered_OS_zones = cycle_net_f |> 
                           sf::st_transform(27700) |> 
                           sf::st_zm()
+
+      results_list = purrr::map(params, function(p) {
+          corenet::anime_join(
+          source_data = p$source,
+          target_data = p$target,
+          attribute = p$attribute,
+          new_name = p$new_name,
+          agg_fun = p$agg_fun,
+          weights = p$weights,
+          angle_tolerance = 35,
+          distance_tolerance = 15
+        )
+      })
+
+
+      cycle_net_NPT = reduce(results_list, function(x, y) {
+        left_join(x, y, by = "id")
+      }, .init = filtered_OS_zones)
 
       cycle_net_NPT = stplanr::rnet_merge(filtered_OS_zones, NPT_zones,max_angle_diff = 10, dist = 1, segment_length = 5, funs = list(all_fastest_bicycle_go_dutch = mean))       
 
