@@ -8,6 +8,7 @@ library(foreach)
 library(iterators)
 library(parallel)
 library(doParallel)
+library(osmactive)
 tar_source()
 
 parameters = jsonlite::read_json("parameters.json", simplifyVector = T)
@@ -16,7 +17,7 @@ date_folder = parameters$date_routing
 output_folder = file.path("outputdata", date_folder)
 
 # # Start with Glasgow:
-region_names = unique(lads$Region)[c(3, 4, 1, 6, 2, 5)] |>
+region_names = unique(lads$Region)[c(3, 4, 1, 6, 2, 5, 7)] |>
   # Reverse to build smallest first:
   rev()
 # To build just 1 region for testing:
@@ -54,8 +55,6 @@ if (getwd() != default_wd && dir.exists(default_wd) ) {
 GENERATE_CDB = TRUE
 
 if (GENERATE_CDB) {
-
-  library(osmactive)
   # See https://github.com/nptscot/osmactive/blob/main/code/classify-roads.R and traffic-volumes.R
   f_traffic = "scottraffic/final_estimates_Scotland_20241202_crs4326.gpkg"
   if (!file.exists(f_traffic)) {
@@ -70,7 +69,10 @@ if (GENERATE_CDB) {
 
   # Generate cycle_net: forcing update:
   # osm_national = get_travel_network("Scotland", force_download = TRUE)
-  osm_national = get_travel_network("Scotland")
+  osm_national = osmactive::get_travel_network("Scotland")
+  if (nrow(osm_national) < 100000) {
+    stop("The current OSM data for Scotland might be incomplete. Please re-downloading with force_download = TRUE.")
+  }
   # saveRDS(osm_national, "inputdata/osm_national_2024_05_23")
 
   # Generate road segment midpoints
@@ -233,6 +235,7 @@ if (GENERATE_CDB) {
 
   # Combine all CBD files into a single file
   cbd_files = list.files(output_folder, pattern = "cbd_layer_.*\\.geojson$", full.names = TRUE)
+  cbd_files = cbd_files[!grepl("cbd_layer_\\d{4}-\\d{2}-\\d{2}\\.geojson$", cbd_files)]
   # check the length of cbd_files should equal to length of lads$LAD23NM
   if (length(cbd_files) != length(lads$LAD23NM)) {
     stop("Number of CBD files does not match number of districts.")

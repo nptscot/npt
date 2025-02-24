@@ -3,7 +3,7 @@ corenet_build_OS = function(os_scotland, osm_scotland, region_names,cities_regio
   message("Generate the city's coherent network for each region with growing")
 
   for (region in region_names) {
-    # region = region_names[6]  "Edinburgh and Lothians"  
+    # region = region_names[7]  Nestrans"  "ZetTrans"  "SWESTRANS" "Tactran"   "SESTRAN"   "HITRANS"  "SPT" 
     message("Processing coherent network for region: ", region)
     region_snake = snakecase::to_snake_case(region)
     coherent_area = cities_region_names[[region]]
@@ -19,11 +19,13 @@ corenet_build_OS = function(os_scotland, osm_scotland, region_names,cities_regio
     }
 
     for (city in coherent_area) {
-      # city = coherent_area[6] "City of Edinburgh"
+      # city = coherent_area[1] "City of Edinburgh"
       city_filename = snakecase::to_snake_case(city)
       tryCatch(
         {
           message("Generating coherent network for: ", city)
+          path_cache_env = new.env(parent = emptyenv())
+
           city_boundary = filter(lads, LAD23NM == city) |>
             sf::st_transform(crs = "EPSG:27700")
 
@@ -45,11 +47,11 @@ corenet_build_OS = function(os_scotland, osm_scotland, region_names,cities_regio
           cohesive_network_city_boundary = corenet::corenet(combined_net_city_boundary, os_combined_net_city_boundary, city_boundary,
             key_attribute = "all_fastest_bicycle_go_dutch",
             crs = "EPSG:27700", maxDistPts = 3000, minDistPts = 2, npt_threshold = min_percentile_value,
-            road_scores = list("A Road" = 1, "B Road" = 1, "Minor Road" = 100), n_removeDangles = 6, penalty_value = 1, group_column = "name_1"
+            road_scores = list("A Road" = 1, "B Road" = 1, "Minor Road" = 100), n_removeDangles = 6, penalty_value = 1, group_column = "name_1", max_path_weight = 100
           ) # , "Local Road" = 100, "Secondary Access Road" = 100 , "Local Access Road" = 100
 
           message("Generating Off Road Cycle Path network for: ", city)
-         
+
           orcp_city_boundary = orcp_network(area = city_boundary, NPT_zones = combined_net_city_boundary, percentile_value = 0.7) 
 
           cohesive_network_city_boundary_centroid = sf::st_centroid(sf::st_union(cohesive_network_city_boundary))
@@ -61,13 +63,16 @@ corenet_build_OS = function(os_scotland, osm_scotland, region_names,cities_regio
             osm_city = osm_city[!is.na(osm_city$highway), ]
 
             orcp_city_boundary = find_orcp_path(orcp_city_boundary, cohesive_network_city_boundary, osm_city, os_scotland_city_boundary, combined_net_city_boundary)
-            
+
             orcp_city_boundary = orcp_city_boundary |>
               group_by(component) |>
               summarize(
+                total_bicycle = sum(all_fastest_bicycle_go_dutch, na.rm = TRUE),
                 all_fastest_bicycle_go_dutch = round(mean(all_fastest_bicycle_go_dutch, na.rm = TRUE)),
                 geometry = sf::st_line_merge(st_combine(st_union(geometry)))
-              )
+              ) |>
+              filter(total_bicycle >= 250) |>
+              select(-total_bicycle)
 
             p_90 = quantile(orcp_city_boundary$all_fastest_bicycle_go_dutch, 0.90, na.rm = TRUE)
             p_25 = quantile(orcp_city_boundary$all_fastest_bicycle_go_dutch, 0.25, na.rm = TRUE)
@@ -114,9 +119,9 @@ corenet_build_OS = function(os_scotland, osm_scotland, region_names,cities_regio
               road_function == "A Road" ~ "Primary",
               road_function %in% c("B Road", "Minor Road") ~ "Secondary",
               # road_function %in% c("Local Road", "Local Access Road", "Secondary Access Road") ~ "Local Access",
-              TRUE ~ as.character(road_function)  # Keeps other values as they are
+              TRUE ~ "Secondary" 
             ))
-            
+
           # Use city name in the filename
           corenet::create_coherent_network_PMtiles(folder_path = folder_path, city_filename = glue::glue("{city_filename}_{date_folder}_4"), cohesive_network = grouped_network|> sf::st_transform(4326))
 
@@ -187,7 +192,7 @@ corenet_build_OS = function(os_scotland, osm_scotland, region_names,cities_regio
                   road_function == "A Road" ~ "Primary",
                   road_function %in% c("B Road", "Minor Road") ~ "Secondary",
                   # road_function %in% c("Local Road", "Local Access Road", "Secondary Access Road") ~ "Local Access",
-                  TRUE ~ as.character(road_function)  # Keeps other values as they are
+                  TRUE ~ "Secondary" 
                 ))
               # Use city name and threshold in the filename, using the correct threshold
               city_filename = glue::glue("{snakecase::to_snake_case(city)}_{date_folder}_{i}")
@@ -208,6 +213,7 @@ corenet_build_OS = function(os_scotland, osm_scotland, region_names,cities_regio
   message("Generate the links coherent network for the LAs")
   # foreach(region = region_names) %dopar% {
   for (region in region_names) {
+    # region = region_names[5]  "SESTRAN"
     message("Processing coherent network links for region: ", region)
     region_snake = snakecase::to_snake_case(region)
 
@@ -241,12 +247,30 @@ corenet_build_OS = function(os_scotland, osm_scotland, region_names,cities_regio
       attribute_values = c("A Road", "B Road")
     )
 
-    os_combined_net_region_boundary = os_combined_net_region_boundary[os_combined_net_region_boundary$form_of_way != "Slip Road", ]
+    # os_combined_net_region_boundary = os_combined_net_region_boundary[os_combined_net_region_boundary$form_of_way != "Slip Road", ]
 
+    # os_combined_net_region_boundary <- os_combined_net_region_boundary |>
+    #   group_by(road_classification_number) |>
+    #   mutate(
+    #     # Flag to_remove = TRUE if any row has both primary_route == TRUE and trunk_road == TRUE
+    #     to_remove = any(primary_route & trunk_road)
+    #   ) |>
+    #   ungroup() |>
+    #   # Keep only rows where to_remove is FALSE
+    #   filter(!to_remove) |>
+    #   select(-to_remove)
+
+    # os_combined_net_region_boundary = os_combined_net_region_boundary[
+    #   os_combined_net_region_boundary$primary_route != "TRUE" & 
+    #   os_combined_net_region_boundary$trunk_road != "TRUE", 
+    # ]
+
+    path_cache_env = new.env(parent = emptyenv())
+    
     cohesive_network_region_boundary = corenet::corenet(combined_net_region_boundary, os_combined_net_region_boundary, region_boundary,
       key_attribute = "all_fastest_bicycle_go_dutch",
-      crs = "EPSG:27700", maxDistPts = 15000, minDistPts = 1, npt_threshold = min_percentile_value,
-      road_scores = list("A Road" = 1, "B Road" = 1), n_removeDangles = 6, penalty_value = 100000, group_column = "name_1"
+      crs = "EPSG:27700", maxDistPts = 25000, minDistPts = 500, npt_threshold = min_percentile_value,
+      road_scores = list("A Road" = 1, "B Road" = 1), n_removeDangles = 6, penalty_value = 10000, group_column = "name_1", max_path_weight = 100000
     )
 
     cohesive_network_region_boundary = line_merge(
@@ -262,7 +286,7 @@ corenet_build_OS = function(os_scotland, osm_scotland, region_names,cities_regio
         road_function == "A Road" ~ "Primary",
         road_function %in% c("B Road", "Minor Road") ~ "Secondary",
         # road_function %in% c("Local Road", "Local Access Road", "Secondary Access Road") ~ "Local Access",
-        TRUE ~ as.character(road_function)  # Keeps other values as they are
+        TRUE ~ "Secondary" 
       ))
 
     cohesive_network_region_boundary = cohesive_network_region_boundary |> select(name_1, all_fastest_bicycle_go_dutch, road_function, geometry)
@@ -388,7 +412,7 @@ corenet_build_OS = function(os_scotland, osm_scotland, region_names,cities_regio
         road_function == "A Road" ~ "Primary",
         road_function %in% c("B Road", "Minor Road") ~ "Secondary",
         # road_function %in% c("Local Road", "Local Access Road", "Secondary Access Road") ~ "Local Access",
-        TRUE ~ as.character(road_function)  # Keeps other values as they are
+        TRUE ~ "Secondary" 
       ))
 
     # Write the combined data to GeoJSON and GeoPackage files
