@@ -444,6 +444,39 @@ corenet_build_OS = function(os_scotland, osm_scotland, region_names,cities_regio
 
     # Execute the command and capture output
     system_output = system(command_tippecanoe, intern = TRUE)
+
+    # Include urban classification in core net generation
+    SG_UrbanRural = sf::read_sf("inputdata/SG_UrbanRural_2020/SG_UrbanRural_2020/SG_UrbanRural_2020.shp") |>
+      sf::st_transform(crs = "EPSG:4326")
+
+    CN_with_UR2Class = lapply(c(1, 2), function(class) {
+      st_intersection(combined_CN_geojson, SG_UrbanRural[SG_UrbanRural$UR2Class == class, ]) |> 
+        transform(UR2Class = class)
+    }) |> 
+      do.call(what = rbind)
+
+    CN_with_UR2Class_file = glue::glue("{output_folder}/combined_CN_{number}_{date_folder}_OS_UR2Class")
+    sf::st_write(CN_with_UR2Class, glue::glue(CN_with_UR2Class_file, ".geojson"), delete_dsn = TRUE)
+    sf::st_write(CN_with_UR2Class, glue::glue(CN_with_UR2Class_file, ".gpkg"), delete_dsn = TRUE)
+
+    # Construct the Tippecanoe command for the current group
+    command_tippecanoe = paste0(
+      'tippecanoe -o ', glue::glue("{output_folder}/combined_CN_{number}_{date_folder}_OS_UR2Class.pmtiles"),
+      ' --name="', 'Scottish_Coherent_Networks_', number, '"',
+      ' --layer=coherent_networks',
+      ' --attribution="University of Leeds"',
+      ' --minimum-zoom=6',
+      ' --maximum-zoom=13',
+      ' --maximum-tile-bytes=5000000',
+      ' --simplification=10',
+      ' --buffer=5',
+      ' -rg',
+      ' --force ',
+      glue::glue("{output_folder}/combined_CN_{number}_{date_folder}_OS_UR2Class.geojson")
+    )
+
+    # Execute the command and capture output
+    system_output = system(command_tippecanoe, intern = TRUE)
     cat("Tippecanoe output for group", number, ":\n", system_output, "\n")
   }
 }
