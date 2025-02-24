@@ -39,7 +39,7 @@ simplify_network = function(rnet_y, parameters, region_boundary) {
               )
 
   results_list = purrr::map(params, function(p) {
-    anime_join(
+    corenet::anime_join(
       source_data = p$source,
       target_data = p$target,
       attribute = p$attribute,

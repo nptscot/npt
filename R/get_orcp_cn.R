@@ -4,9 +4,9 @@ library(tidygraph)
 library(tidyverse)
 library(igraph)
 
-orcp_network = function(area, NPT_zones, length_threshold = 10000, percentile_value = 0.6, params = NULL) {
+orcp_network = function(area, NPT_zones, length_threshold = 10000, percentile_value = 0.6) {
     tryCatch({
-      osm = osmactive::get_travel_network("Scotland", boundary = area, boundary_type = "clipsrc")
+      osm = osmactive::get_travel_network("Scotland", boundary = area, boundary_type = "clipsrc", force_download = TRUE)
       cycle_net = osmactive::get_cycling_network(osm)
       drive_net = osmactive::get_driving_network_major(osm)
       cycle_net = osmactive::distance_to_road(cycle_net, drive_net)
@@ -74,6 +74,22 @@ orcp_network = function(area, NPT_zones, length_threshold = 10000, percentile_va
       filtered_OS_zones = cycle_net_f |> 
                           sf::st_transform(27700) |> 
                           sf::st_zm()
+
+    NPT_zones = sf::st_cast(NPT_zones, "LINESTRING")
+    filtered_OS_zones = sf::st_cast(filtered_OS_zones, "LINESTRING")
+    NPT_zones$id = 1:nrow(NPT_zones)
+    filtered_OS_zones$id = 1:nrow(filtered_OS_zones)
+                              
+      params = list(
+          list(
+            source = NPT_zones,
+            target = filtered_OS_zones,
+            attribute = "all_fastest_bicycle_go_dutch",
+            new_name = "all_fastest_bicycle_go_dutch",
+            agg_fun = sum,
+            weights = c("target_weighted")
+          )
+        )
 
       results_list = purrr::map(params, function(p) {
           corenet::anime_join(
@@ -569,9 +585,40 @@ line_merge = function(cohesive_network_city_boundary, os_combined_net_city_bound
   buffer = sf::st_buffer(cohesive_network_city_boundary, dist = 1)
   os_buffer = os_combined_net_city_boundary[sf::st_union(buffer), , op = sf::st_within]
 
-  os_buffer_NPT = stplanr::rnet_merge(os_buffer, combined_net_city_boundary, , max_angle_diff = 10, dist = 15, funs = list(all_fastest_bicycle_go_dutch = mean))    
+  params = list(
+                list(
+                  source = combined_net_city_boundary,
+                  target = os_buffer,
+                  attribute = "all_fastest_bicycle_go_dutch",
+                  new_name = "all_fastest_bicycle_go_dutch",
+                  agg_fun = sum,
+                  weights = c("target_weighted")
+                )
+              )
+
+  results_list = purrr::map(params, function(p) {
+    corenet::anime_join(
+      source_data = p$source,
+      target_data = p$target,
+      attribute = p$attribute,
+      new_name = p$new_name,
+      agg_fun = p$agg_fun,
+      weights = p$weights,
+      angle_tolerance = 35,
+      distance_tolerance = 15
+    )
+  })
 
 
+  os_buffer_NPT = reduce(results_list, function(x, y) {
+    left_join(x, y, by = "id")
+  }, .init = os_buffer)  
+
+
+  if (!"all_fastest_bicycle_go_dutch" %in% names(os_buffer_NPT)) {
+    os_buffer_NPT$all_fastest_bicycle_go_dutch = os_buffer_NPT$all_fastest_bicycle_go_dutch.x
+  }
+  
   os_buffer_NPT = sf::st_cast(os_buffer_NPT, "LINESTRING")
 
   os_buffer_NPT_group = os_buffer_NPT |>

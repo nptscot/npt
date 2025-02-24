@@ -3,7 +3,7 @@ corenet_build_OS = function(os_scotland, osm_scotland, region_names,cities_regio
   message("Generate the city's coherent network for each region with growing")
 
   for (region in region_names) {
-    # region = region_names[5]  Nestrans"  "ZetTrans"  "SWESTRANS" "Tactran"   "SESTRAN"   "HITRANS"  "SPT" 
+    # region = region_names[7]  Nestrans"  "ZetTrans"  "SWESTRANS" "Tactran"   "SESTRAN"   "HITRANS"  "SPT" 
     message("Processing coherent network for region: ", region)
     region_snake = snakecase::to_snake_case(region)
     coherent_area = cities_region_names[[region]]
@@ -19,7 +19,7 @@ corenet_build_OS = function(os_scotland, osm_scotland, region_names,cities_regio
     }
 
     for (city in coherent_area) {
-      # city = coherent_area[6] "City of Edinburgh"
+      # city = coherent_area[1] "City of Edinburgh"
       city_filename = snakecase::to_snake_case(city)
       tryCatch(
         {
@@ -51,17 +51,8 @@ corenet_build_OS = function(os_scotland, osm_scotland, region_names,cities_regio
           ) # , "Local Road" = 100, "Secondary Access Road" = 100 , "Local Access Road" = 100
 
           message("Generating Off Road Cycle Path network for: ", city)
-          params = list(
-              list(
-                source = NPT_zones,
-                target = filtered_OS_zones,
-                attribute = "all_fastest_bicycle_go_dutch",
-                new_name = "all_fastest_bicycle_go_dutch",
-                agg_fun = sum,
-                weights = c("target_weighted")
-              )
-            )
-          orcp_city_boundary = orcp_network(area = city_boundary, NPT_zones = combined_net_city_boundary, percentile_value = 0.7, params = params) 
+
+          orcp_city_boundary = orcp_network(area = city_boundary, NPT_zones = combined_net_city_boundary, percentile_value = 0.7) 
 
           cohesive_network_city_boundary_centroid = sf::st_centroid(sf::st_union(cohesive_network_city_boundary))
           orcp_city_boundary_centroid = sf::st_centroid(st_union(orcp_city_boundary))
@@ -279,9 +270,9 @@ corenet_build_OS = function(os_scotland, osm_scotland, region_names,cities_regio
     cohesive_network_region_boundary = corenet::corenet(combined_net_region_boundary, os_combined_net_region_boundary, region_boundary,
       key_attribute = "all_fastest_bicycle_go_dutch",
       crs = "EPSG:27700", maxDistPts = 25000, minDistPts = 500, npt_threshold = min_percentile_value,
-      road_scores = list("A Road" = 1, "B Road" = 1), n_removeDangles = 6, penalty_value = 10000, group_column = "name_1", max_path_weight = 10000
+      road_scores = list("A Road" = 1, "B Road" = 1), n_removeDangles = 6, penalty_value = 10000, group_column = "name_1", max_path_weight = 100000
     )
-    
+
     cohesive_network_region_boundary = line_merge(
                     cohesive_network_region_boundary,
                     os_combined_net_region_boundary,
