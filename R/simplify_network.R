@@ -24,36 +24,27 @@ simplify_network = function(rnet_y, parameters, region_boundary) {
   rnet_xp = sf::st_transform(rnet_x, "EPSG:27700")
   rnet_yp = sf::st_transform(rnet_y, "EPSG:27700")
 
-  # TODO: do we need to do the step mentioned in the comment below?:
-  # Subsetting 'rnet_xp' to include only those features that are within the buffer created around 'rnet_yp'.
+  # Extract column names from the rnet_yp
+  name_list = names(rnet_yp)
 
-  params = list(
-                list(
-                  source = rnet_yp,
-                  target = rnet_xp,
-                  attribute = "all_fastest_bicycle_go_dutch",
-                  new_name = "all_fastest_bicycle_go_dutch",
-                  agg_fun = sum,
-                  weights = c("target_weighted")
-                )
-              )
+  # Initialize an empty list
+  funs = list()
 
-  results_list = purrr::map(params, function(p) {
-    corenet::anime_join(
-      source_data = p$source,
-      target_data = p$target,
-      attribute = p$attribute,
-      new_name = p$new_name,
-      agg_fun = p$agg_fun,
-      weights = p$weights,
-      angle_tolerance = 35,
-      distance_tolerance = 15
-    )
-  })
+  # Loop through each name and assign it a function based on specific conditions
+  for (name in name_list) {
+    if (name == "geometry") {
+      next # Skip the current iteration
+    } else if (name %in% c("gradient", "quietness")) {
+      funs[[name]] = mean
+    } else {
+      funs[[name]] = sum
+    }
+  }
 
-  rnet_merged_all = reduce(results_list, function(x, y) {
-    left_join(x, y, by = "id")
-  }, .init = rnet_xp)
+  # Merge the spatial objects rnet_xp and rnet_yp based on specified parameters
+  dist = 20
+  angle = 15
+  rnet_merged_all = stplanr::rnet_merge(rnet_xp, rnet_yp, dist = dist, funs = funs, max_angle_diff = angle, segment_length = 20)
 
   # Remove unnecessary columns from the merged spatial object
   rnet_merged_all = rnet_merged_all[, !(names(rnet_merged_all) %in% c("identifier", "length_x"))]
@@ -73,10 +64,6 @@ simplify_network = function(rnet_y, parameters, region_boundary) {
   # Round all numeric columns in 'rnet_merged_all' to 0 decimal places
   rnet_merged_all = rnet_merged_all |>
     mutate(across(where(is.numeric), ~ round(.x, 0)))
-
-  # Prepare a list of columns to check for NA, excluding 'geometry'
-  rnet_yp_list = as.list(names(rnet_yp))
-  columns_to_check = unlist(rnet_yp_list[rnet_yp_list != "geometry"])
 
   # Filter out rows in 'rnet_merged_all' where all specified are NA
   rnet_merged_all = rnet_merged_all |>
