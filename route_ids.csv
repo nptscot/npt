@@ -1,4 +1,8 @@
 nrow,plan,purpose,region,date,id
+104,quietest,school,ZetTrans,2025-03-01,12628
+104,fastest,school,ZetTrans,2025-03-01,12627
+17490,quietest,school,SESTRAN,2025-03-01,12626
+17490,fastest,school,SESTRAN,2025-03-01,12625
 17622,ebike,utility,Nestrans,2025-03-01,12624
 17622,quietest,utility,Nestrans,2025-03-01,12623
 17622,fastest,utility,Nestrans,2025-03-01,12622
