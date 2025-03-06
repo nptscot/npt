@@ -1,11 +1,11 @@
-library(sfnetworks)
-library(sf)
-library(tidygraph)
-library(tidyverse)
-library(igraph)
-
 orcp_network = function(area, NPT_zones, length_threshold = 10000, percentile_value = 0.6) {
+    library(sfnetworks)
+    library(sf)
+    library(tidygraph)
+    library(tidyverse)
+    library(igraph)
     tryCatch({
+      options(timeout=30000)
       osm = osmactive::get_travel_network("Scotland", boundary = area, boundary_type = "clipsrc", force_download = TRUE)
       cycle_net = osmactive::get_cycling_network(osm)
       drive_net = osmactive::get_driving_network_major(osm)
