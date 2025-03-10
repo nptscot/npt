@@ -13,6 +13,7 @@ tar_source()
 
 parameters = jsonlite::read_json("parameters.json", simplifyVector = T)
 lads = sf::read_sf("inputdata/boundaries/la_regions_scotland_bfe_simplified_2023.geojson")
+
 date_folder = parameters$date_routing
 output_folder = file.path("outputdata", date_folder)
 
