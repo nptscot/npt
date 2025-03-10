@@ -12,7 +12,10 @@ library(osmactive)
 tar_source()
 
 parameters = jsonlite::read_json("parameters.json", simplifyVector = T)
-lads = sf::read_sf("inputdata/boundaries/la_regions_scotland_bfe_simplified_2023.geojson")
+if (!file.exists("la_regions_scotland_bfe_simplified_2023.geojson")) {
+  system("gh release download boundaries-2024 --pattern la_regions_scotland_bfe_simplified_2023.geojson")
+}
+lads = sf::read_sf("la_regions_scotland_bfe_simplified_2023.geojson")
 
 date_folder = parameters$date_routing
 output_folder = file.path("outputdata", date_folder)
