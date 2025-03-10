@@ -56,7 +56,7 @@ GENERATE_CDB = TRUE
 
 if (GENERATE_CDB) {
   # See https://github.com/nptscot/osmactive/blob/main/code/classify-roads.R and traffic-volumes.R
-  f_traffic = "scottraffic/final_estimates_Scotland_20241202_crs4326.gpkg"
+  f_traffic = "scottraffic/final_estimates_Scotland_higherror_discarded_2025-03.gpkg"
   if (!file.exists(f_traffic)) {
     system("gh repo clone nptscot/scottraffic")
     file.remove(f_traffic)
@@ -65,10 +65,12 @@ if (GENERATE_CDB) {
     system("gh release download v7")
     setwd("..")
   }
-  traffic_volumes_scotland = sf::read_sf(f_traffic)
+  traffic_volumes_scotland = sf::read_sf(f_traffic) |> 
+    sf::st_transform(4326) 
 
   # Generate cycle_net: forcing update:
   # osm_national = get_travel_network("Scotland", force_download = TRUE)
+  options(timeout=30000)
   osm_national = osmactive::get_travel_network("Scotland")
   if (nrow(osm_national) < 100000) {
     stop("The current OSM data for Scotland might be incomplete. Please re-downloading with force_download = TRUE.")
