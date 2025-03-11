@@ -48,13 +48,6 @@ for (region in region_names) {
   targets::tar_make()
 }
 
-default_wd = "/workspaces/npt/"
-
-if (getwd() != default_wd && dir.exists(default_wd) ) {
-  setwd(default_wd)
-  message("Changed working directory from ", getwd(), " to ", default_wd)
-}
-
 # CbD classification of networks ---------------------------------------------
 GENERATE_CDB = TRUE
 
@@ -63,17 +56,15 @@ if (GENERATE_CDB) {
   f_traffic = "scottraffic/final_estimates_Scotland_higherror_discarded_2025-03.gpkg"
   if (!file.exists(f_traffic)) {
     system("gh repo clone nptscot/scottraffic")
-    file.remove(f_traffic)
     setwd("scottraffic")
     system("gh release list")
-    system("gh release download v7")
+    system("gh release download v9 --clobber")
     setwd("..")
   }
   traffic_volumes_scotland = sf::read_sf(f_traffic) |> 
     sf::st_transform(4326) 
 
   # Generate cycle_net: forcing update:
-  # osm_national = get_travel_network("Scotland", force_download = TRUE)
   options(timeout=30000)
   osm_national = osmactive::get_travel_network("Scotland")
   if (nrow(osm_national) < 100000) {
