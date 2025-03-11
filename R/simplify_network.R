@@ -13,8 +13,7 @@ simplify_network = function(rnet_y, parameters, region_boundary) {
   }
 
   if (!file.exists(rnet_x_f)) {
-    download_url = paste0("https://github.com/nptscot/inputdata/releases/download/os_rtps/", base_name)
-    download.file(url = download_url, destfile = rnet_x_f, mode = "wb")
+    stop("Download the latest inputdata")
   }
 
   rnet_x = sf::read_sf(rnet_x_f) |>
