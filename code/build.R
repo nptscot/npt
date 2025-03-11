@@ -11,6 +11,9 @@ library(doParallel)
 library(osmactive)
 tar_source()
 
+month = Sys.Date() |>
+  as.character() |>
+  str_sub(end = 7)
 parameters = jsonlite::read_json("parameters.json", simplifyVector = T)
 if (!file.exists("la_regions_scotland_bfe_simplified_2023.geojson")) {
   system("gh release download boundaries-2024 --pattern la_regions_scotland_bfe_simplified_2023.geojson")
@@ -66,11 +69,19 @@ if (GENERATE_CDB) {
 
   # Generate cycle_net: forcing update:
   options(timeout=30000)
-  osm_national = osmactive::get_travel_network("Scotland")
+  osm_national_file = glue::glue("osm_national_{month}.gpkg")
+  if (!file.exists(osm_national_file)) {
+    osm_national = osmactive::get_travel_network("Scotland")
+    sf::write_sf(osm_national_file)
+  } else {
+    osm_national = read_sf(osm_national_file)
+  }
   if (nrow(osm_national) < 100000) {
     stop("The current OSM data for Scotland might be incomplete. Please re-downloading with force_download = TRUE.")
   }
   # saveRDS(osm_national, "inputdata/osm_national_2024_05_23")
+  osm_test = osm_national |>
+    filter(osm_id %in% 4871777)
 
   # Generate road segment midpoints
   osm_centroids = osm_national |> 
