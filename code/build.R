@@ -276,7 +276,7 @@ if (GENERATE_CDB) {
     "--maximum-zoom=13",
     "--drop-smallest-as-needed",
     "--maximum-tile-bytes=2000000",
-    "--simplification=10",
+    # "--simplification=10",
     "--buffer=5",
     glue::glue("--force  {cbd_filename}"),
     collapse = " "
