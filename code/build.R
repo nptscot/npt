@@ -72,7 +72,7 @@ if (GENERATE_CDB) {
   osm_national_file = glue::glue("osm_national_{month}.gpkg")
   if (!file.exists(osm_national_file)) {
     osm_national = osmactive::get_travel_network("Scotland")
-    sf::write_sf(osm_national_file)
+    sf::write_sf(osm_national, osm_national_file)
   } else {
     osm_national = read_sf(osm_national_file)
   }
