@@ -11,8 +11,15 @@ library(doParallel)
 library(osmactive)
 tar_source()
 
+month = Sys.Date() |>
+  as.character() |>
+  str_sub(end = 7)
 parameters = jsonlite::read_json("parameters.json", simplifyVector = T)
-lads = sf::read_sf("inputdata/boundaries/la_regions_scotland_bfe_simplified_2023.geojson")
+if (!file.exists("la_regions_scotland_bfe_simplified_2023.geojson")) {
+  system("gh release download boundaries-2024 --pattern la_regions_scotland_bfe_simplified_2023.geojson")
+}
+lads = sf::read_sf("la_regions_scotland_bfe_simplified_2023.geojson")
+
 date_folder = parameters$date_routing
 output_folder = file.path("outputdata", date_folder)
 
@@ -37,18 +44,11 @@ region_names_lowercase = snakecase::to_snake_case(region_names)
 
 # Build route networks:
 region = region_names[1]
-for (region in region_names[1:6]) {
+for (region in region_names) {
   message("Processing region: ", region)
   parameters$region = region
   jsonlite::write_json(parameters, "parameters.json", pretty = TRUE)
   targets::tar_make()
-}
-
-default_wd = "/workspaces/npt/"
-
-if (getwd() != default_wd && dir.exists(default_wd) ) {
-  setwd(default_wd)
-  message("Changed working directory from ", getwd(), " to ", default_wd)
 }
 
 # CbD classification of networks ---------------------------------------------
@@ -56,24 +56,32 @@ GENERATE_CDB = TRUE
 
 if (GENERATE_CDB) {
   # See https://github.com/nptscot/osmactive/blob/main/code/classify-roads.R and traffic-volumes.R
-  f_traffic = "scottraffic/final_estimates_Scotland_20241202_crs4326.gpkg"
+  f_traffic = "scottraffic/final_estimates_Scotland_higherror_discarded_2025-03.gpkg"
   if (!file.exists(f_traffic)) {
     system("gh repo clone nptscot/scottraffic")
-    file.remove(f_traffic)
     setwd("scottraffic")
     system("gh release list")
-    system("gh release download v7")
+    system("gh release download v9 --clobber")
     setwd("..")
   }
-  traffic_volumes_scotland = sf::read_sf(f_traffic)
+  traffic_volumes_scotland = sf::read_sf(f_traffic) |> 
+    sf::st_transform(4326) 
 
   # Generate cycle_net: forcing update:
-  # osm_national = get_travel_network("Scotland", force_download = TRUE)
-  osm_national = osmactive::get_travel_network("Scotland")
+  options(timeout=30000)
+  osm_national_file = glue::glue("osm_national_{month}.gpkg")
+  if (!file.exists(osm_national_file)) {
+    osm_national = osmactive::get_travel_network("Scotland")
+    sf::write_sf(osm_national, osm_national_file)
+  } else {
+    osm_national = read_sf(osm_national_file)
+  }
   if (nrow(osm_national) < 100000) {
     stop("The current OSM data for Scotland might be incomplete. Please re-downloading with force_download = TRUE.")
   }
   # saveRDS(osm_national, "inputdata/osm_national_2024_05_23")
+  osm_test = osm_national |>
+    filter(osm_id %in% 4871777)
 
   # Generate road segment midpoints
   osm_centroids = osm_national |> 
@@ -268,7 +276,7 @@ if (GENERATE_CDB) {
     "--maximum-zoom=13",
     "--drop-smallest-as-needed",
     "--maximum-tile-bytes=2000000",
-    "--simplification=10",
+    # "--simplification=10",
     "--buffer=5",
     glue::glue("--force  {cbd_filename}"),
     collapse = " "

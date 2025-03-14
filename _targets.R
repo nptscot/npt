@@ -72,16 +72,11 @@ list(
   tar_target(aadt_parameters, {
     readr::read_csv(aadt_file)
   }),
+  # See build.R:
+  tar_target(boundaries_file, "la_regions_scotland_bfe_simplified_2023.geojson", format = "file"),
   tar_target(
     local_authorities,
-    {
-      if (!file.exists("inputdata/boundaries/la_regions_scotland_bfe_simplified_2023.geojson")) {
-        download.file("https://github.com/nptscot/npt/releases/download/boundaries-2024/la_regions_scotland_bfe_simplified_2023.geojson",
-          destfile = "inputdata/boundaries/la_regions_scotland_bfe_simplified_2023.geojson"
-        )
-      }
-      sf::read_sf("inputdata/boundaries/la_regions_scotland_bfe_simplified_2023.geojson")
-    }
+    sf::read_sf(boundaries_file)
   ),
   tar_target(
     region_names,

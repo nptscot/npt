@@ -1,126 +1,118 @@
-library(sfnetworks)
-library(sf)
-library(tidygraph)
-library(tidyverse)
-library(igraph)
-
 orcp_network = function(area, NPT_zones, length_threshold = 10000, percentile_value = 0.6) {
-    tryCatch({
-      osm = osmactive::get_travel_network("Scotland", boundary = area, boundary_type = "clipsrc", force_download = TRUE)
-      cycle_net = osmactive::get_cycling_network(osm)
-      drive_net = osmactive::get_driving_network_major(osm)
-      cycle_net = osmactive::distance_to_road(cycle_net, drive_net)
-      cycle_net = osmactive::classify_cycle_infrastructure(cycle_net)
-      # filter cycle_net based on column bicycle is yes dismount adn designated
-      cycle_net = cycle_net |>
-        dplyr::filter(bicycle %in% c("yes", "dismount", "designated")) |>
-        dplyr::filter(cycle_segregation %in% c("Off Road Cycleway")) |>
-        dplyr::mutate(length = as.numeric(sf::st_length(geometry))) |>
-        dplyr::filter(length > 1) |>
-        sf::st_transform(crs = 27700)
+  tryCatch({
+    options(timeout=30000)
+    osm = osmactive::get_travel_network("Scotland", boundary = area, boundary_type = "clipsrc", force_download = TRUE)
+    cycle_net = osmactive::get_cycling_network(osm)
+    drive_net = osmactive::get_driving_network_major(osm)
+    cycle_net = osmactive::distance_to_road(cycle_net, drive_net)
+    cycle_net = osmactive::classify_cycle_infrastructure(cycle_net)
+    # filter cycle_net based on column bicycle is yes dismount and designated
+    cycle_net = cycle_net |>
+      dplyr::filter(bicycle %in% c("yes", "dismount", "designated")) |>
+      dplyr::filter(cycle_segregation %in% c("Off Road Cycleway")) |>
+      dplyr::mutate(length = as.numeric(sf::st_length(geometry))) |>
+      dplyr::filter(length > 1) |>
+      sf::st_transform(crs = 27700)
 
-      cycle_net = st_cast(cycle_net, "LINESTRING")  
-      cycle_net = cycle_net |> select(geometry)
-      cycle_net$length = st_length(cycle_net)
-      cycle_net_components = find_component(cycle_net, threshold = 1)
+    cycle_net = sf::st_cast(cycle_net, "LINESTRING")  
+    cycle_net = cycle_net |> dplyr::select(geometry)
+    cycle_net$length = sf::st_length(cycle_net)
+    cycle_net_components = find_component(cycle_net, threshold = 1)
 
-      # Get the list of all unique components
-      unique_components = unique(cycle_net_components$component)
-      # Initialize an empty list to store the cleaned components
-      cycle_net_components_clean = list()
+    # Get the list of all unique components
+    unique_components = unique(cycle_net_components$component)
+    # Initialize an empty list to store the cleaned components
+    cycle_net_components_clean = list()
 
-      # Loop over each unique component
-      for (comp in unique_components) {
-        # Filter for the current component and select the geometry column
-        component_data = cycle_net_components |>
-                          filter(component == comp) |>
-                          select(geometry)
+    # Loop over each unique component
+    for (comp in unique_components) {
+      # Filter for the current component and select the geometry column
+      component_data = cycle_net_components |>
+                        dplyr::filter(component == comp) |>
+                        dplyr::select(geometry)
 
-        # Calculate the total length after performing a spatial union of the geometries
-        total_length = sum(st_length(st_union(component_data)))
+      # Calculate the total length after performing a spatial union of the geometries
+      total_length = sum(sf::st_length(sf::st_union(component_data)))
 
-        tryCatch({
-          # Check if total length is more than 1000 meters
-          if (total_length > units::set_units(200, "meters")) {
-            # Clean the data by removing dangles if length condition is met
-            cleaned_data = remove_dangles(component_data)
-            # Store only the geometry data in the list
-            cycle_net_components_clean[[length(cycle_net_components_clean) + 1]] = cleaned_data
-          }
-        }, error = function(e) {
-          # If an error occurs, print a custom error message
-          print(sprintf("Failed to process component %d due to error: %s", comp, e$message))
-        })
+      tryCatch({
+        # Check if total length is more than 1000 meters
+        if (total_length > units::set_units(200, "meters")) {
+          # Clean the data by removing dangles if length condition is met
+          cleaned_data = remove_dangles(component_data)
+          # Store only the geometry data in the list
+          cycle_net_components_clean[[length(cycle_net_components_clean) + 1]] = cleaned_data
+        }
+      }, error = function(e) {
+        # If an error occurs, print a custom error message
+        print(sprintf("Failed to process component %d due to error: %s", comp, e$message))
+      })
+    }
 
-      }
+    cycle_net_clean = do.call(rbind, cycle_net_components_clean)
+    snapped_lines = sf::st_snap(cycle_net_clean, cycle_net_clean, tolerance = 20)
+    snapped_lines_compoenet = find_component(snapped_lines, threshold = 1)
+    snapped_lines_compoenet_buffer = sf::st_buffer(snapped_lines_compoenet, dist = 30)
+    cycle_net_clean_components = sf::st_join(cycle_net_clean, snapped_lines_compoenet_buffer, join = sf::st_intersects)
 
-      cycle_net_clean = do.call(rbind, cycle_net_components_clean)
-      snapped_lines = sf::st_snap(cycle_net_clean, cycle_net_clean, tolerance = 20)
-      snapped_lines_compoenet = find_component(snapped_lines, threshold = 1)
-      snapped_lines_compoenet_buffer = sf::st_buffer(snapped_lines_compoenet, dist = 30)
-      cycle_net_clean_components = st_join(cycle_net_clean, snapped_lines_compoenet_buffer, join = st_intersects)
+    cycle_net_clean_length = cycle_net_clean_components |>
+        dplyr::group_by(component) |>
+        dplyr::summarize(
+                          total_length = sum(as.numeric(sf::st_length(geometry)), na.rm = TRUE)
+                        )  
 
+    min_percentile_value = stats::quantile(cycle_net_clean_length$total_length, probs = 0.8, na.rm = TRUE)
+    cycle_net_f = cycle_net_clean_length |> 
+                  dplyr::filter(total_length > min_percentile_value)
 
-      cycle_net_clean_length = cycle_net_clean_components |>
-          dplyr::group_by(component) |>
-          dplyr::summarize(
-                            total_length = sum(as.numeric(sf::st_length(geometry)), na.rm = TRUE)
-                          )  
-
-      min_percentile_value = stats::quantile(cycle_net_clean_length$total_length, probs = 0.8, na.rm = TRUE)
-      cycle_net_f = cycle_net_clean_length |> 
-                    dplyr::filter(total_length > min_percentile_value)
-
-      filtered_OS_zones = cycle_net_f |> 
-                          sf::st_transform(27700) |> 
-                          sf::st_zm()
+    filtered_OS_zones = cycle_net_f |> 
+                        sf::st_transform(27700) |> 
+                        sf::st_zm()
 
     NPT_zones = sf::st_cast(NPT_zones, "LINESTRING")
     filtered_OS_zones = sf::st_cast(filtered_OS_zones, "LINESTRING")
     NPT_zones$id = 1:nrow(NPT_zones)
     filtered_OS_zones$id = 1:nrow(filtered_OS_zones)
-                              
-      params = list(
-          list(
-            source = NPT_zones,
-            target = filtered_OS_zones,
-            attribute = "all_fastest_bicycle_go_dutch",
-            new_name = "all_fastest_bicycle_go_dutch",
-            agg_fun = sum,
-            weights = c("target_weighted")
-          )
+                            
+    params = list(
+        list(
+          source = NPT_zones,
+          target = filtered_OS_zones,
+          attribute = "all_fastest_bicycle_go_dutch",
+          new_name = "all_fastest_bicycle_go_dutch",
+          agg_fun = sum,
+          weights = c("target_weighted")
         )
+      )
 
-      results_list = purrr::map(params, function(p) {
-          corenet::anime_join(
-          source_data = p$source,
-          target_data = p$target,
-          attribute = p$attribute,
-          new_name = p$new_name,
-          agg_fun = p$agg_fun,
-          weights = p$weights,
-          angle_tolerance = 35,
-          distance_tolerance = 15
-        )
-      })
+    results_list = purrr::map(params, function(p) {
+        corenet::anime_join(
+        source_data = p$source,
+        target_data = p$target,
+        attribute = p$attribute,
+        new_name = p$new_name,
+        agg_fun = p$agg_fun,
+        weights = p$weights,
+        angle_tolerance = 35,
+        distance_tolerance = 15
+      )
+    })
 
+    cycle_net_NPT = purrr::reduce(results_list, function(x, y) {
+      dplyr::left_join(x, y, by = "id")
+    }, .init = filtered_OS_zones)
 
-      cycle_net_NPT = reduce(results_list, function(x, y) {
-        left_join(x, y, by = "id")
-      }, .init = filtered_OS_zones)
+    cycle_net_NPT = stplanr::rnet_merge(filtered_OS_zones, NPT_zones, max_angle_diff = 10, dist = 1, segment_length = 5, funs = list(all_fastest_bicycle_go_dutch = mean))       
 
-      cycle_net_NPT = stplanr::rnet_merge(filtered_OS_zones, NPT_zones,max_angle_diff = 10, dist = 1, segment_length = 5, funs = list(all_fastest_bicycle_go_dutch = mean))       
+    # cycle_net_NPT = sf::st_join(filtered_OS_zones, NPT_zones, join = st_intersects)
 
-      # cycle_net_NPT = sf::st_join(filtered_OS_zones, NPT_zones, join = st_intersects)
+    summarized_data = cycle_net_NPT |>
+        dplyr::group_by(component) |>
+        dplyr::summarize(all_fastest_bicycle_go_dutch = mean(all_fastest_bicycle_go_dutch, na.rm = TRUE),
+                        total_length = sum(as.numeric(sf::st_length(geometry)), na.rm = TRUE))
 
-      summarized_data = cycle_net_NPT |>
-          dplyr::group_by(component) |>
-          dplyr::summarize(all_fastest_bicycle_go_dutch = mean(all_fastest_bicycle_go_dutch, na.rm = TRUE),
-                          total_length = sum(as.numeric(sf::st_length(geometry)), na.rm = TRUE))
-
-      min_percentile_value = stats::quantile(summarized_data$all_fastest_bicycle_go_dutch, probs = 0.5, na.rm = TRUE)
-      
-      summarized_data = summarized_data |> dplyr::filter(all_fastest_bicycle_go_dutch >= min_percentile_value)
+    min_percentile_value = stats::quantile(summarized_data$all_fastest_bicycle_go_dutch, probs = 0.5, na.rm = TRUE)
+    
+    summarized_data = summarized_data |> dplyr::filter(all_fastest_bicycle_go_dutch >= min_percentile_value)
 
     return(summarized_data)
   }, error = function(e) {
