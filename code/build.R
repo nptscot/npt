@@ -56,7 +56,7 @@ GENERATE_CDB = TRUE
 
 if (GENERATE_CDB) {
   # See https://github.com/nptscot/osmactive/blob/main/code/classify-roads.R and traffic-volumes.R
-  f_traffic = "scottraffic/final_estimates_Scotland_higherror_discarded_2025-03.gpkg"
+  f_traffic = "scottraffic/final_estimates_Scotland_2025-04-15_correct.gpkg"
   if (!file.exists(f_traffic)) {
     system("gh repo clone nptscot/scottraffic")
     setwd("scottraffic")
@@ -117,7 +117,7 @@ if (GENERATE_CDB) {
       cycle_net = osmactive::distance_to_road(cycle_net, drive_net)
       cycle_net = osmactive::classify_cycle_infrastructure(cycle_net, include_mixed_traffic = TRUE)
       drive_net = osmactive::clean_speeds(drive_net)
-      # summary(drive_net$maxspeed_clean) # TODO: move to osmactive?
+      cycle_net = find_nearby_speeds(cycle_net, drive_net)
       cycle_net = osmactive::clean_speeds(cycle_net)      
       drive_net = osmactive::estimate_traffic(drive_net)
       cycle_net = osmactive::estimate_traffic(cycle_net) |> 
@@ -169,11 +169,46 @@ if (GENERATE_CDB) {
             TRUE ~ assumed_traffic_drivenet
           )
         )
-      
-      traffic_volumes_region = traffic_volumes_scotland[district_geom, ] # this is now a simple district outline
+
+      traffic_volumes_region = traffic_volumes_scotland[district_geom, ] |>
+          transmute(
+            name_1, road_classification, pred_flows
+          ) |>
+          sf::st_cast(to = "LINESTRING")
+
+      cycle_net_joined$id = cycle_net_joined$osm_id
+      params = list(
+          list(
+            source = traffic_volumes_region ,
+            target = cycle_net_joined |>
+          sf::st_cast(to = "LINESTRING"),
+            attribute = "pred_flows",
+            new_name = "pred_flows",
+            agg_fun = sum,
+            weights = c("target_weighted")
+          )
+        )
+
+      results_list = purrr::map(params, function(p) {
+          corenet::anime_join(
+          source_data = p$source,
+          target_data = p$target,
+          attribute = p$attribute,
+          new_name = p$new_name,
+          agg_fun = p$agg_fun,
+          weights = p$weights,
+          angle_tolerance = 35,
+          distance_tolerance = 15
+        )
+      })
+
+      cycle_net_traffic = purrr::reduce(results_list, function(x, y) {
+        dplyr::left_join(x, y, by = "id")
+      }, .init = cycle_net_joined)
+
       cycle_net_traffic_polygons = stplanr::rnet_join(
         max_angle_diff = 30,
-        rnet_x = cycle_net_joined,
+        rnet_x = cycle_net_traffic,
         rnet_y = traffic_volumes_region |>
           transmute(
             name_1, road_classification, pred_flows
@@ -223,7 +258,8 @@ if (GENERATE_CDB) {
           `Infrastructure type` = cycle_segregation,
           `Level of Service`,
           `Traffic volume category` = case_when(
-           final_traffic >= 0 & final_traffic < 1999.5 ~ "0 to 1999",
+            final_traffic >= 0 & final_traffic < 999.5 ~ "0 to 999",
+            final_traffic >= 1000 & final_traffic < 2999.5 ~ "1000 to 1999",
             final_traffic >= 1999.5 & final_traffic < 3999.5 ~ "2000 to 3999",
             final_traffic >= 3999.5 ~ "4000+",
             TRUE ~ NA_character_
