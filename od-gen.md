@@ -5,7 +5,10 @@
 
 The notes presented here are part of the quality assurance process for
 the Network Planning Tool (NPT) project. They should also form the basis
-of a more efficient data processing pipeline for the project.
+of a more efficient data processing pipeline for the project. You can
+download the input OD datasets, after removing OD pairs that are too
+long or otherwise not included in the routing, from
+[here](https://github.com/nptscot/outputdata/releases/tag/od-data-2025-05).
 
 # Current set-up
 
@@ -13,23 +16,24 @@ The OD datasets which form the basis of the NPT are presented below:
 
 | dataset  |   nrow |   trips | mean_lenth | trips_per_row |
 |:---------|-------:|--------:|-----------:|--------------:|
-| commute  | 433259 | 1271788 |       7064 |             3 |
-| school   |  55975 |  321955 |       3574 |             6 |
-| shopping |  94474 | 2675530 |       2898 |            28 |
-| visiting |  28538 | 1205857 |       2764 |            42 |
-| leisure  | 124168 |  679334 |       3056 |             5 |
+| commute  |   1000 |   58623 |       4516 |            59 |
+| school   |   1000 |   28978 |       2766 |            29 |
+| shopping | 233215 | 2517524 |      11126 |            11 |
+| visiting | 219025 |  948228 |       9428 |             4 |
+| leisure  | 233221 |  563850 |      10093 |             2 |
 
 Their distance-frequency distributions are presented below:
 
 
      commute  leisure   school shopping visiting 
-      433259   124168    55975    94474    28538 
+        1000   233221     1000   233215   219025 
 
-![](od-gen_files/figure-commonmark/unnamed-chunk-4-1.png)
+![Distance-frequency distribution of origin-destination
+datasets](od-gen_files/figure-commonmark/od-distance-freq-1.png)
 
 In terms of number of trips:
 
-![](od-gen_files/figure-commonmark/unnamed-chunk-5-1.png)
+![](od-gen_files/figure-commonmark/unnamed-chunk-4-1.png)
 
 # Proposed set-up
 
@@ -47,3 +51,6 @@ routing.
 The proportion of trips made by bike under the baseline scenario for
 each origin zone should depend on the proportion of trips made by bike
 according to official datasets.
+
+OD datasets can be aggregated to grid cells to reduce routing
+requirements.

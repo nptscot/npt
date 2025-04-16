@@ -16,6 +16,7 @@ library(targets)
 
 The notes presented here are part of the quality assurance process for the Network Planning Tool (NPT) project.
 They should also form the basis of a more efficient data processing pipeline for the project.
+You can download the input OD datasets, after removing OD pairs that are too long or otherwise not included in the routing, from [here](https://github.com/nptscot/outputdata/releases/tag/od-data-2025-05).
 
 # Current set-up
 

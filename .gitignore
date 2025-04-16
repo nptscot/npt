@@ -47,3 +47,6 @@ scottraffic/
 *.geojson
 osm_os/
 nptscot.github.io/
+*.quarto*
+
+/.quarto/
