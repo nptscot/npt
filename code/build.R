@@ -224,7 +224,8 @@ if (GENERATE_CDB) {
       cycle_net_traffic = left_join(cycle_net_joined, cycleways_with_traffic_df)
 
       cycle_net_traffic_na = cycle_net_traffic |>
-        filter(highway %in% c("residential", "tertiary", "service", "primary", "tertiary_link", "secondary", "trunk","primary_link","living_street", "unclassified"))
+        filter(str_detect(highway, "residential|tertiary|service|primary|secondary|trunk|living"))
+
       cycle_net_traffic_na = osmactive::estimate_traffic(cycle_net_traffic_na)
 
       cycle_net_traffic = cycle_net_traffic |>
@@ -260,14 +261,14 @@ if (GENERATE_CDB) {
         transmute(
           osm_id,
           highway,
-          `Speed limit` = final_speed,
+          `Speed limit` = "Speed Limit (mph)",
           `Infrastructure type` = cycle_segregation,
           `Level of Service`,
           `Traffic volume category` = case_when(
-            final_traffic >= 0 & final_traffic < 999.5 ~ "0 to 999",
-            final_traffic >= 1000 & final_traffic < 2999.5 ~ "1000 to 1999",
-            final_traffic >= 1999.5 & final_traffic < 3999.5 ~ "2000 to 3999",
-            final_traffic >= 3999.5 ~ "4000+",
+            pred_flows >= 0 & pred_flows < 999.5 ~ "0 to 999",
+            pred_flows >= 1000 & pred_flows < 2999.5 ~ "1000 to 1999",
+            pred_flows >= 1999.5 & pred_flows < 3999.5 ~ "2000 to 3999",
+            pred_flows >= 3999.5 ~ "4000+",
             TRUE ~ NA_character_
           )
         )
