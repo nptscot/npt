@@ -875,6 +875,13 @@ list(
           sf::st_drop_geometry(),
         file = "outputdata/od_utility_combined.csv"
       )
+      # Upload to nptscot/outputdata as od-data-2025-05 release:
+      setwd("outputdata")
+      # system("gh release create od-data-2025-05")
+      # Upload csv files:
+      system("gh release upload od-data-2025-05 od_utility_combined.csv od_commute_subset.csv od_school.csv")
+      # Upload gpkg files:
+      system("gh release upload od-data-2025-05 od_utility_combined.gpkg od_commute_subset.gpkg od_school.gpkg")
     }
   )
 )
