@@ -104,7 +104,7 @@ if (GENERATE_CDB) {
     
     # Run for each district within each Scottish region
     district = district_names[1]
-    for (district in district_names[6]) {
+    for (district in district_names) {
       message("Processing district: ", district)
       district_geom = region_geom |> 
         filter(LAD23NM == district)
