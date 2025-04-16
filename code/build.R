@@ -108,21 +108,32 @@ if (GENERATE_CDB) {
       message("Processing district: ", district)
       district_geom = region_geom |> 
         filter(LAD23NM == district)
+      # For testing, create a minimal dataset:
+      test_region_name = "George Watson's college, edinburgh"
+      test_region = zonebuilder::zb_zone(
+        test_region_name,
+        n_circles = 1
+      )
+      district_geom = sf::st_union(test_region)
+
       district_centroids = osm_centroids[district_geom, ]
       osm_district = osm_national |>
         filter(osm_id %in% district_centroids$osm_id)
       nrow(osm_district) / nrow(osm_national)
+
       cycle_net = osmactive::get_cycling_network(osm_district)
       drive_net = osmactive::get_driving_network_major(osm_district)
       cycle_net = osmactive::distance_to_road(cycle_net, drive_net)
       cycle_net = osmactive::classify_cycle_infrastructure(cycle_net, include_mixed_traffic = TRUE)
       drive_net = osmactive::clean_speeds(drive_net)
-      cycle_net = find_nearby_speeds(cycle_net, drive_net)
+      cycle_net = osmactive::get_parallel_values(cycle_net, drive_net, column = "maxspeed",
+                                buffer_dist = 10, angle_threshold = 20,
+                                value_pattern = " mph", value_replacement = "",
+                                add_suffix = " mph")
       cycle_net = osmactive::clean_speeds(cycle_net)      
       drive_net = osmactive::estimate_traffic(drive_net)
       cycle_net = osmactive::estimate_traffic(cycle_net) |> 
-        rename(assumed_traffic_cyclenet = assumed_volume)
-      
+        rename(assumed_traffic_cyclenet = assumed_volume)    
       # See https://github.com/acteng/network-join-demos
       # Do we really need this?
       cycle_net_joined_polygons = stplanr::rnet_join(
