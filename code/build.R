@@ -224,7 +224,7 @@ if (GENERATE_CDB) {
       cycle_net_traffic = left_join(cycle_net_joined, cycleways_with_traffic_df)
 
       cycle_net_traffic_na = cycle_net_traffic |>
-        filter(str_detect(highway, "residential|tertiary|service|primary|secondary|trunk|living"))
+        filter(str_detect(highway, "residential|service|living"))
 
       cycle_net_traffic_na = osmactive::estimate_traffic(cycle_net_traffic_na)
 
