@@ -22,14 +22,16 @@ They should also form the basis of a more efficient data processing pipeline for
 The OD datasets which form the basis of the NPT are presented below:
 
 ```{r}
+d = getwd()
 if (!dir.exists("_targets")) {
-    setwd("../..")
+    d = setwd("../..")
 }
 tar_load(od_commute_subset)
 tar_load(od_school)
 tar_load(od_shopping)
 tar_load(od_visiting)
 tar_load(od_leisure)
+setwd(d)
 ```
 
 ```{r}
@@ -60,6 +62,8 @@ od_summary |>
 Their distance-frequency distributions are presented below:
 
 ```{r}
+#| label: od-distance-freq
+#| fig-cap: "Distance-frequency distribution of origin-destination datasets"
 od_list_selected = map(
     od_list,
     ~{
