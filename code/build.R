@@ -92,7 +92,7 @@ if (GENERATE_CDB) {
   # Set the number of cores to use
   num_cores = min(parallel::detectCores() - 1, 10)
   registerDoParallel(num_cores)
-  region = region_names[5]
+  region = region_names[1]
   cbd_filename = glue::glue(output_folder, "/cbd_layer_{date_folder}.geojson")
 
   for (region in region_names) {
@@ -103,8 +103,8 @@ if (GENERATE_CDB) {
     district_names = region_geom$LAD23NM
     
     # Run for each district within each Scottish region
-    district = district_names[6]
-    for (district in district_names[6]) {
+    district = district_names[1]
+    for (district in district_names) {
       message("Processing district: ", district)
       district_geom = region_geom |> 
         filter(LAD23NM == district)
