@@ -879,9 +879,9 @@ list(
       setwd("outputdata")
       # system("gh release create od-data-2025-05")
       # Upload csv files:
-      system("gh release upload od-data-2025-05 od_utility_combined.csv od_commute_subset.csv od_school.csv")
+      system("gh release upload od-data-2025-05 od_utility_combined.csv od_commute_subset.csv od_school.csv --clobber")
       # Upload gpkg files:
-      system("gh release upload od-data-2025-05 od_utility_combined.gpkg od_commute_subset.gpkg od_school.gpkg")
+      system("gh release upload od-data-2025-05 od_utility_combined.gpkg od_commute_subset.gpkg od_school.gpkg --clobber")
     }
   )
 )
