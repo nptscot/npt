@@ -108,30 +108,37 @@ if (GENERATE_CDB) {
       message("Processing district: ", district)
       district_geom = region_geom |> 
         filter(LAD23NM == district)
+      # For testing, create a minimal dataset:
+      # test_region_name = "George Watson's college, edinburgh"
+      # test_region = zonebuilder::zb_zone(
+      #   test_region_name,
+      #   n_circles = 1
+      # )
+      # district_geom = sf::st_union(test_region)
+
       district_centroids = osm_centroids[district_geom, ]
       osm_district = osm_national |>
         filter(osm_id %in% district_centroids$osm_id)
       nrow(osm_district) / nrow(osm_national)
+
       cycle_net = osmactive::get_cycling_network(osm_district)
       drive_net = osmactive::get_driving_network_major(osm_district)
       cycle_net = osmactive::distance_to_road(cycle_net, drive_net)
       cycle_net = osmactive::classify_cycle_infrastructure(cycle_net, include_mixed_traffic = TRUE)
       drive_net = osmactive::clean_speeds(drive_net)
-      cycle_net = find_nearby_speeds(cycle_net, drive_net)
-      cycle_net = osmactive::clean_speeds(cycle_net)      
-      drive_net = osmactive::estimate_traffic(drive_net)
-      cycle_net = osmactive::estimate_traffic(cycle_net) |> 
-        rename(assumed_traffic_cyclenet = assumed_volume)
-      
+      cycle_net = osmactive::get_parallel_values(cycle_net, drive_net, column = "maxspeed",
+                                buffer_dist = 10, angle_threshold = 20,
+                                value_pattern = " mph", value_replacement = "",
+                                add_suffix = " mph")
+      cycle_net = osmactive::clean_speeds(cycle_net)   
+
       # See https://github.com/acteng/network-join-demos
-      # Do we really need this?
       cycle_net_joined_polygons = stplanr::rnet_join(
         rnet_x = cycle_net,
         rnet_y = drive_net |>
           transmute(
             maxspeed_drivenet = maxspeed_clean,
-            highway_drivenet = highway,
-            assumed_traffic_drivenet = assumed_volume
+            highway_drivenet = highway
           ) |>
           sf::st_cast(to = "LINESTRING"),
         dist = 20,
@@ -144,31 +151,16 @@ if (GENERATE_CDB) {
         group_by(osm_id) |>
         summarise(
           maxspeed_drivenet = osmactive:::most_common_value(maxspeed_drivenet),
-          highway_drivenet = osmactive:::most_common_value(highway_drivenet),
-          assumed_traffic_drivenet = osmactive:::most_common_value(assumed_traffic_drivenet)
+          highway_drivenet = osmactive:::most_common_value(highway_drivenet)
         ) |>
         mutate(
-          maxspeed_drivenet = as.numeric(maxspeed_drivenet),
-          assumed_traffic_drivenet = as.numeric(assumed_traffic_drivenet)
+          maxspeed_drivenet = as.numeric(maxspeed_drivenet)
         )
-      
       # join back onto cycle_net
       cycle_net_joined = left_join(
         cycle_net,
         cycleways_with_road_data_df
       )
-      
-      cycle_net_joined = cycle_net_joined |>
-        mutate(
-          final_speed = case_when(
-            !is.na(maxspeed_clean) ~ maxspeed_clean,
-            TRUE ~ maxspeed_drivenet
-          ),
-          assumed_traffic = case_when(
-            !is.na(assumed_traffic_cyclenet) ~ assumed_traffic_cyclenet,
-            TRUE ~ assumed_traffic_drivenet
-          )
-        )
 
       traffic_volumes_region = traffic_volumes_scotland[district_geom, ] |>
           transmute(
@@ -181,7 +173,7 @@ if (GENERATE_CDB) {
           list(
             source = traffic_volumes_region ,
             target = cycle_net_joined |>
-          sf::st_cast(to = "LINESTRING"),
+               sf::st_cast(to = "LINESTRING"),
             attribute = "pred_flows",
             new_name = "pred_flows",
             agg_fun = sum,
@@ -207,14 +199,14 @@ if (GENERATE_CDB) {
       }, .init = cycle_net_joined)
 
       cycle_net_traffic_polygons = stplanr::rnet_join(
-        max_angle_diff = 30,
+        max_angle_diff = 20,
         rnet_x = cycle_net_traffic,
         rnet_y = traffic_volumes_region |>
           transmute(
             name_1, road_classification, pred_flows
           ) |>
           sf::st_cast(to = "LINESTRING"),
-        dist = 15,
+        dist = 10,
         segment_length = 10
       )
       
@@ -230,38 +222,53 @@ if (GENERATE_CDB) {
       
       # join back onto cycle_net
       cycle_net_traffic = left_join(cycle_net_joined, cycleways_with_traffic_df)
-      
+
+      cycle_net_traffic_na = cycle_net_traffic |>
+        filter(str_detect(highway, "residential|service|living"))
+
+      cycle_net_traffic_na = osmactive::estimate_traffic(cycle_net_traffic_na)
+
+      cycle_net_traffic = cycle_net_traffic |>
+        left_join(
+          cycle_net_traffic_na |> st_drop_geometry() |> select(osm_id, assumed_volume),
+          by = "osm_id"
+        ) |>
+        mutate(
+          pred_flows = if_else(!is.na(assumed_volume), assumed_volume, pred_flows)
+        ) |>
+        select(-assumed_volume)
+
       # Use original traffic estimates in some cases
       # e.g. where residential/service roads have been misclassified as A/B/C roads
-      cycle_net_traffic = cycle_net_traffic |>
-        mutate(
-          final_traffic = case_when(
-            cycle_segregation == "Off Road Cycleway" ~ NA,
-            # TODO: Check if shared footways or tracks should be NA
-            # Default: no, because it's useful to know the traffic level on parallel road
-            # cycle_segregation == "Segregated Track (Wide)" ~ NA,
-            # cycle_segregation == "Segregated Track (Narrow)" ~ NA,
-            # cycle_segregation == "Shared Footway" ~ NA,
-            highway %in% c("residential", "service") & road_classification %in% c("A Road", "B Road", "Classified Unnumbered") & pred_flows >= 4000 ~ assumed_traffic,
-            !is.na(pred_flows) ~ pred_flows,
-            TRUE ~ assumed_traffic
-          )
-        )
+      # cycle_net_traffic = cycle_net_traffic |>
+      #   mutate(
+      #     final_traffic = case_when(
+      #       cycle_segregation == "Off Road Cycleway" ~ NA,
+      #       # TODO: Check if shared footways or tracks should be NA
+      #       # Default: no, because it's useful to know the traffic level on parallel road
+      #       # cycle_segregation == "Segregated Track (Wide)" ~ NA,
+      #       # cycle_segregation == "Segregated Track (Narrow)" ~ NA,
+      #       # cycle_segregation == "Shared Footway" ~ NA,
+      #       highway %in% c("residential", "service") & road_classification %in% c("A Road", "B Road", "Classified Unnumbered") & pred_flows >= 4000 ~ assumed_traffic,
+      #       !is.na(pred_flows) ~ pred_flows,
+      #       TRUE ~ NA_real_
+      #     )
+      #   )
 
       cycle_net_traffic = level_of_service(cycle_net_traffic)
-            
+
       cbd_layer = cycle_net_traffic |>
         transmute(
           osm_id,
           highway,
-          `Speed limit` = final_speed,
+          `Speed limit` = "Speed Limit (mph)",
           `Infrastructure type` = cycle_segregation,
           `Level of Service`,
           `Traffic volume category` = case_when(
-            final_traffic >= 0 & final_traffic < 999.5 ~ "0 to 999",
-            final_traffic >= 1000 & final_traffic < 2999.5 ~ "1000 to 1999",
-            final_traffic >= 1999.5 & final_traffic < 3999.5 ~ "2000 to 3999",
-            final_traffic >= 3999.5 ~ "4000+",
+            pred_flows >= 0 & pred_flows < 999.5 ~ "0 to 999",
+            pred_flows >= 1000 & pred_flows < 2999.5 ~ "1000 to 1999",
+            pred_flows >= 1999.5 & pred_flows < 3999.5 ~ "2000 to 3999",
+            pred_flows >= 3999.5 ~ "4000+",
             TRUE ~ NA_character_
           )
         )
