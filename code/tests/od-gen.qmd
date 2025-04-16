@@ -25,7 +25,6 @@ The OD datasets which form the basis of the NPT are presented below:
 if (!dir.exists("_targets")) {
     setwd("../..")
 }
-tar_load(od_data)
 tar_load(od_commute_subset)
 tar_load(od_school)
 tar_load(od_shopping)
