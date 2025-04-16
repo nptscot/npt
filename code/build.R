@@ -104,7 +104,7 @@ if (GENERATE_CDB) {
     
     # Run for each district within each Scottish region
     district = district_names[6]
-    for (district in district_names) {
+    for (district in district_names[6]) {
       message("Processing district: ", district)
       district_geom = region_geom |> 
         filter(LAD23NM == district)
@@ -155,7 +155,7 @@ if (GENERATE_CDB) {
         mutate(
           maxspeed_drivenet = as.numeric(maxspeed_drivenet)
         )
-      
+      )
       # join back onto cycle_net
       cycle_net_joined = left_join(
         cycle_net,
