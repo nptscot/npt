@@ -104,7 +104,7 @@ if (GENERATE_CDB) {
     
     # Run for each district within each Scottish region
     district = district_names[1]
-    for (district in district_names) {
+    for (district in district_names[6]) {
       message("Processing district: ", district)
       district_geom = region_geom |> 
         filter(LAD23NM == district)
@@ -152,10 +152,10 @@ if (GENERATE_CDB) {
         summarise(
           maxspeed_drivenet = osmactive:::most_common_value(maxspeed_drivenet),
           highway_drivenet = osmactive:::most_common_value(highway_drivenet)
+        ) |>
         mutate(
           maxspeed_drivenet = as.numeric(maxspeed_drivenet)
         )
-      )
       # join back onto cycle_net
       cycle_net_joined = left_join(
         cycle_net,
@@ -224,7 +224,7 @@ if (GENERATE_CDB) {
       cycle_net_traffic = left_join(cycle_net_joined, cycleways_with_traffic_df)
 
       cycle_net_traffic_na = cycle_net_traffic |>
-        filter(highway %in% c("residential", "tertiary", "service"))
+        filter(highway %in% c("residential", "tertiary", "service", "primary", "tertiary_link", "secondary", "trunk","primary_link","living_street", "unclassified"))
       cycle_net_traffic_na = osmactive::estimate_traffic(cycle_net_traffic_na)
 
       cycle_net_traffic = cycle_net_traffic |>
@@ -255,7 +255,7 @@ if (GENERATE_CDB) {
       #   )
 
       cycle_net_traffic = level_of_service(cycle_net_traffic)
-               
+
       cbd_layer = cycle_net_traffic |>
         transmute(
           osm_id,
