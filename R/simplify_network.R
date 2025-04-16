@@ -36,8 +36,8 @@ simplify_network = function(rnet_y, parameters, region_boundary) {
     }
   }
 
-  dist = 20
-  angle = 15
+  dist = 25
+  angle = 25
   rnet_merged_all = stplanr::rnet_merge(rnet_xp, rnet_yp, dist = dist, funs = funs, max_angle_diff = angle, segment_length = 20)
 
   rnet_merged_all = rnet_merged_all[, !(names(rnet_merged_all) %in% c("identifier", "length_x"))]
