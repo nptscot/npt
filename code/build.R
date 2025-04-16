@@ -224,7 +224,7 @@ if (GENERATE_CDB) {
       cycle_net_traffic = left_join(cycle_net_joined, cycleways_with_traffic_df)
 
       cycle_net_traffic_na = cycle_net_traffic |>
-        filter(highway %in% c("residential", "tertiary"))
+        filter(highway %in% c("residential", "tertiary", "service"))
       cycle_net_traffic_na = osmactive::estimate_traffic(cycle_net_traffic_na)
 
       cycle_net_traffic = cycle_net_traffic |>
@@ -255,7 +255,7 @@ if (GENERATE_CDB) {
       #   )
 
       cycle_net_traffic = level_of_service(cycle_net_traffic)
-                
+               
       cbd_layer = cycle_net_traffic |>
         transmute(
           osm_id,
