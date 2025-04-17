@@ -171,25 +171,24 @@ if (GENERATE_CDB) {
 
       cycle_net_joined$id = cycle_net_joined$osm_id
 
-      funs = list()
-      funs[["pred_flows"]] = sum
+      cycle_net_traffic_polygons = stplanr::rnet_join(
+        max_angle_diff = 20,
+        rnet_x = cycle_net_joined,
+        rnet_y = traffic_volumes_region |>
+          transmute(
+            name_1,
+            road_classification,
+            pred_flows
+          ) |>
+          sf::st_cast(to = "LINESTRING"),
+        dist = 12,
+        segment_length = 10
+      )
 
-      cycle_net_traffic = stplanr::rnet_merge(cycle_net_joined, traffic_volumes_region, dist = 10, segment_length = 5, funs = funs, max_angle_diff = 35) 
+      cycleways_with_traffic_df = cycle_net_traffic_polygons |>
+        st_drop_geometry() 
 
-      cycle_net_traffic_na = cycle_net_traffic |>
-        filter(str_detect(highway, "residential|service|living"), is.na(pred_flows))
-
-      cycle_net_traffic_na = osmactive::estimate_traffic(cycle_net_traffic_na)
-
-      cycle_net_traffic = cycle_net_traffic |>
-        left_join(
-          cycle_net_traffic_na |> st_drop_geometry() |> select(osm_id, assumed_volume),
-          by = "osm_id"
-        ) |>
-        mutate(
-          pred_flows = if_else(!is.na(assumed_volume), assumed_volume, pred_flows)
-        ) |>
-        select(-assumed_volume)
+      cycle_net_traffic = left_join(cycle_net_joined, cycle_net_traffic_polygons |>st_drop_geometry())
 
       cycle_net_traffic = level_of_service(cycle_net_traffic)
 
