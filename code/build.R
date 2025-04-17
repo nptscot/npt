@@ -114,6 +114,7 @@ if (GENERATE_CDB) {
       #   test_region_name,
       #   n_circles = 1
       # )
+      # test_region = zonebuilder::zb_zone("Edinburgh", n_circles = 2)
       # district_geom = sf::st_union(test_region)
 
       district_centroids = osm_centroids[district_geom, ]
@@ -169,62 +170,14 @@ if (GENERATE_CDB) {
           sf::st_cast(to = "LINESTRING")
 
       cycle_net_joined$id = cycle_net_joined$osm_id
-      params = list(
-          list(
-            source = traffic_volumes_region ,
-            target = cycle_net_joined |>
-               sf::st_cast(to = "LINESTRING"),
-            attribute = "pred_flows",
-            new_name = "pred_flows",
-            agg_fun = sum,
-            weights = c("target_weighted")
-          )
-        )
 
-      results_list = purrr::map(params, function(p) {
-          corenet::anime_join(
-          source_data = p$source,
-          target_data = p$target,
-          attribute = p$attribute,
-          new_name = p$new_name,
-          agg_fun = p$agg_fun,
-          weights = p$weights,
-          angle_tolerance = 35,
-          distance_tolerance = 15
-        )
-      })
+      funs = list()
+      funs[["pred_flows"]] = sum
 
-      cycle_net_traffic = purrr::reduce(results_list, function(x, y) {
-        dplyr::left_join(x, y, by = "id")
-      }, .init = cycle_net_joined)
-
-      cycle_net_traffic_polygons = stplanr::rnet_join(
-        max_angle_diff = 20,
-        rnet_x = cycle_net_traffic,
-        rnet_y = traffic_volumes_region |>
-          transmute(
-            name_1, road_classification, pred_flows
-          ) |>
-          sf::st_cast(to = "LINESTRING"),
-        dist = 10,
-        segment_length = 10
-      )
-      
-      # group by + summarise stage
-      cycleways_with_traffic_df = cycle_net_traffic_polygons |>
-        st_drop_geometry() |>
-        group_by(osm_id) |>
-        summarise(
-          pred_flows = median(pred_flows),
-          road_classification = osmactive:::most_common_value(road_classification),
-          name_1 = osmactive:::most_common_value(name_1)
-        )
-      
-      # join back onto cycle_net
-      cycle_net_traffic = left_join(cycle_net_joined, cycleways_with_traffic_df)
+      cycle_net_traffic = stplanr::rnet_merge(cycle_net_joined, traffic_volumes_region, dist = 10, segment_length = 5, funs = funs, max_angle_diff = 35) 
 
       cycle_net_traffic_na = cycle_net_traffic |>
-        filter(str_detect(highway, "residential|service|living"))
+        filter(str_detect(highway, "residential|service|living"), is.na(pred_flows))
 
       cycle_net_traffic_na = osmactive::estimate_traffic(cycle_net_traffic_na)
 
@@ -238,30 +191,13 @@ if (GENERATE_CDB) {
         ) |>
         select(-assumed_volume)
 
-      # Use original traffic estimates in some cases
-      # e.g. where residential/service roads have been misclassified as A/B/C roads
-      # cycle_net_traffic = cycle_net_traffic |>
-      #   mutate(
-      #     final_traffic = case_when(
-      #       cycle_segregation == "Off Road Cycleway" ~ NA,
-      #       # TODO: Check if shared footways or tracks should be NA
-      #       # Default: no, because it's useful to know the traffic level on parallel road
-      #       # cycle_segregation == "Segregated Track (Wide)" ~ NA,
-      #       # cycle_segregation == "Segregated Track (Narrow)" ~ NA,
-      #       # cycle_segregation == "Shared Footway" ~ NA,
-      #       highway %in% c("residential", "service") & road_classification %in% c("A Road", "B Road", "Classified Unnumbered") & pred_flows >= 4000 ~ assumed_traffic,
-      #       !is.na(pred_flows) ~ pred_flows,
-      #       TRUE ~ NA_real_
-      #     )
-      #   )
-
       cycle_net_traffic = level_of_service(cycle_net_traffic)
 
       cbd_layer = cycle_net_traffic |>
         transmute(
           osm_id,
           highway,
-          `Speed limit` = "Speed Limit (mph)",
+          `Speed limit` = maxspeed_clean,
           `Infrastructure type` = cycle_segregation,
           `Level of Service`,
           `Traffic volume category` = case_when(
@@ -272,6 +208,7 @@ if (GENERATE_CDB) {
             TRUE ~ NA_character_
           )
         )
+
       # save file for individual district
       district_name = district_geom$LAD23NM |> 
         snakecase::to_snake_case()
