@@ -19,26 +19,22 @@ simplify_network = function(rnet_y, parameters, region_boundary) {
   rnet_x = sf::read_sf(rnet_x_f) |>
     sf::st_transform(crs = "EPSG:27700")
 
-  rnet_xp = sf::st_transform(rnet_x, "EPSG:27700")
-  rnet_yp = sf::st_transform(rnet_y, "EPSG:27700")
+  rnet_y = rnet_y |> select(geometry)
+  rnet_x = rnet_x |> select(all_fastest_bicycle_go_dutch)
 
+  rnet_xp = sf::st_transform(rnet_x, "EPSG:27700") |> mutate(id = 1:n()) 
+  rnet_yp = sf::st_transform(rnet_y, "EPSG:27700") |> mutate(id = 1:n())
 
-  name_list = names(rnet_yp)
-  funs = list()
+  rnet_joined  = stplanr::rnet_join(rnet_xp, rnet_yp, dist = 25, segment_length = 20, max_angle_diff = 35)
 
-  for (name in name_list) {
-    if (name == "geometry") {
-      next 
-    } else if (name %in% c("gradient", "quietness")) {
-      funs[[name]] = mean
-    } else {
-      funs[[name]] = sum
-    }
-  }
+  rnet_joined_values = rnet_joined |>
+    sf::st_drop_geometry() |>
+    group_by(id) |>
+    summarise(
+      all_fastest_bicycle_go_dutch = sum(all_fastest_bicycle_go_dutch, na.rm = TRUE),
+      )
 
-  dist = 25
-  angle = 35
-  rnet_merged_all = stplanr::rnet_merge(rnet_xp, rnet_yp, dist = dist, funs = funs, max_angle_diff = angle, segment_length = 20)
+  rnet_merged_all  = left_join(rnet_xp, rnet_joined_values)
 
   rnet_merged_all = rnet_merged_all[, !(names(rnet_merged_all) %in% c("identifier", "length_x"))]
 
