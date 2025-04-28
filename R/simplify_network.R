@@ -15,22 +15,27 @@ simplify_network = function(rnet_y, parameters, region_boundary) {
   if (!file.exists(rnet_x_f)) {
     stop("Download the latest inputdata")
   }
-
+  rnet_y = sf::read_sf("outputdata/2025-04-01/sestran/combined_network_tile.geojson") |> st_transform(crs = "EPSG:27700")
   rnet_x = sf::read_sf(rnet_x_f) 
 
-  rnet_xp = sf::st_transform(rnet_x, "EPSG:27700")
-  rnet_yp = sf::st_transform(rnet_y, "EPSG:27700") 
+  rnet_xp = rnet_x |>
+    sf::st_transform("EPSG:27700") |>
+    dplyr::mutate(idx = uuid::UUIDgenerate(n = n(), output = "string")) |>
+    dplyr::relocate(idx)
 
-  rnet_joined  = stplanr::rnet_join(rnet_xp, rnet_yp, dist = 25, segment_length = 20, max_angle_diff = 35)
+  rnet_yp = sf::st_transform(rnet_y, "EPSG:27700") 
+  rnet_yp_fix = post_overline(rnet = rnet_yp)
+
+  rnet_joined = stplanr::rnet_join(rnet_xp, rnet_yp_fix, dist = 25, max_angle_diff = 35)
 
   rnet_joined_values = rnet_joined |>
     sf::st_drop_geometry() |>
-    group_by(id) |>
+    group_by(idx) |>
     summarise(
-      all_fastest_bicycle_go_dutch = sum(all_fastest_bicycle_go_dutch, na.rm = TRUE),
+      all_fastest_bicycle_go_dutch = sum(all_fastest_bicycle_go_dutch, na.rm = TRUE)
       )
 
-  rnet_merged_all  = left_join(rnet_xp, rnet_joined_values)
+  rnet_merged_all  = left_join(rnet_xp, rnet_joined_values, by = "idx")
 
   rnet_merged_all = rnet_merged_all[, !(names(rnet_merged_all) %in% c("identifier", "length_x"))]
 
