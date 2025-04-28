@@ -6,6 +6,11 @@ post_overline = function(
   osm_net = osmactive::get_travel_network("scotland")
   osm_net = get_cycling_network(osm_net)  
 
+  rnet = rnet |>
+    sf::st_transform(27700)
+  osm_net = osm_net |>
+    sf::st_transform(sf::st_crs(rnet))
+
   bounds = rnet |>
     sf::st_union() |>
     sf::st_convex_hull() |>
