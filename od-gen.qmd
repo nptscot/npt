@@ -52,7 +52,31 @@ od_utility_end_df = od_utility_endpoints |>
     destination_lat = Y
   )
 head(od_utility_end_df)
+od_utility_minimal = od_utility_combined |>
+  transmute(
+    geo_code1,
+    count = round(all)
+  ) |>
+  sf::st_drop_geometry()
+od_utility_simple = bind_cols(
+    od_utility_minimal,
+    od_utility_end_df 
+) 
+head(od_utility_simple)
+nrow(od_utility_simple) # 685k
+od_utility_simple = od_utility_simple |>
+  group_by(geo_code1, destination_lon, destination_lat) |>
+  summarise(
+    count = sum(count)
+  )
+nrow(od_utility_simple) # 660k
+sum(od_utility_simple$count)
+summary(od_utility_simple$count)
 
+write_csv(od_utility_simple, "od_utility_simple.csv")
+system("gh release list")
+system("gh release create")
+system("gh release upload od-data-2025-05 od_utility_simple.csv --clobber")
 ```
 
 ```{r}
