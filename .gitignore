@@ -50,3 +50,4 @@ nptscot.github.io/
 *.quarto*
 
 /.quarto/
+*.csv
