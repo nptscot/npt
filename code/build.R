@@ -9,6 +9,8 @@ library(iterators)
 library(parallel)
 library(doParallel)
 library(osmactive)
+library(mapview)
+library(sf)
 tar_source()
 
 month = Sys.Date() |>
@@ -74,7 +76,7 @@ if (GENERATE_CDB) {
     osm_national = osmactive::get_travel_network("Scotland")
     sf::write_sf(osm_national, osm_national_file)
   } else {
-    osm_national = read_sf(osm_national_file)
+    osm_national = sf::read_sf(osm_national_file)
   }
   if (nrow(osm_national) < 100000) {
     stop("The current OSM data for Scotland might be incomplete. Please re-downloading with force_download = TRUE.")
@@ -169,15 +171,40 @@ if (GENERATE_CDB) {
           ) |>
           sf::st_cast(to = "LINESTRING")
 
-      cycle_net_joined$id = cycle_net_joined$osm_id
+      cycle_net_joined = sf::st_cast(cycle_net_joined, "LINESTRING")
+      traffic_volumes_region = sf::st_cast(traffic_volumes_region, "LINESTRING")
 
-      funs = list()
-      funs[["pred_flows"]] = sum
+      traffic_net_joined_polygons = stplanr::rnet_join(
+        rnet_x = cycle_net_joined,
+        rnet_y = traffic_volumes_region,
+        dist = 20,
+        segment_length = 10,
+        max_angle_diff = 30
+      )
+      
+      # group by + summarise stage
+      traffic_net_df = traffic_net_joined_polygons |>
+        sf::st_drop_geometry() |>
+        group_by(osm_id) |>
+        summarise(
+          road_classification = osmactive:::most_common_value(road_classification),
+          pred_flows = osmactive:::most_common_value(pred_flows)
+        ) |>
+        mutate(
+          pred_flows = as.numeric(pred_flows)
+        )
+      # join back onto cycle_net
+      cycle_net_traffic = left_join(
+        cycle_net_joined,
+        traffic_net_df
+      )
 
-      cycle_net_traffic = stplanr::rnet_merge(cycle_net_joined, traffic_volumes_region, dist = 10, segment_length = 5, funs = funs, max_angle_diff = 35) 
-
-      cycle_net_traffic_na = cycle_net_traffic |>
-        filter(str_detect(highway, "residential|service|living"), is.na(pred_flows))
+      cycle_net_traffic_na =
+        cycle_net_traffic |>
+        filter(
+          (str_detect(highway, "residential|service|living") & is.na(pred_flows))
+          | (str_detect(highway, "residential|service|living") & pred_flows > 1000) 
+        )
 
       cycle_net_traffic_na = osmactive::estimate_traffic(cycle_net_traffic_na)
 
@@ -190,6 +217,8 @@ if (GENERATE_CDB) {
           pred_flows = if_else(!is.na(assumed_volume), assumed_volume, pred_flows)
         ) |>
         select(-assumed_volume)
+
+      cycle_net_traffic$AADT = npt_to_cbd_aadt_numeric(cycle_net_traffic$pred_flows)
 
       cycle_net_traffic = level_of_service(cycle_net_traffic)
 
