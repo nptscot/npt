@@ -16,8 +16,7 @@ simplify_network = function(rnet_y, parameters, region_boundary) {
     stop("Download the latest inputdata")
   }
 
-  rnet_x = sf::read_sf(rnet_x_f) |>
-    sf::st_transform(crs = "EPSG:27700") 
+  rnet_x = sf::read_sf(rnet_x_f) 
 
   rnet_xp = sf::st_transform(rnet_x, "EPSG:27700")
   rnet_yp = sf::st_transform(rnet_y, "EPSG:27700") 
