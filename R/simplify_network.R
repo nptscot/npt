@@ -17,13 +17,10 @@ simplify_network = function(rnet_y, parameters, region_boundary) {
   }
 
   rnet_x = sf::read_sf(rnet_x_f) |>
-    sf::st_transform(crs = "EPSG:27700")
+    sf::st_transform(crs = "EPSG:27700") 
 
-  rnet_y = rnet_y |> select(geometry)
-  rnet_x = rnet_x |> select(all_fastest_bicycle_go_dutch)
-
-  rnet_xp = sf::st_transform(rnet_x, "EPSG:27700") |> mutate(id = 1:n()) 
-  rnet_yp = sf::st_transform(rnet_y, "EPSG:27700") |> mutate(id = 1:n())
+  rnet_xp = sf::st_transform(rnet_x, "EPSG:27700")
+  rnet_yp = sf::st_transform(rnet_y, "EPSG:27700") 
 
   rnet_joined  = stplanr::rnet_join(rnet_xp, rnet_yp, dist = 25, segment_length = 20, max_angle_diff = 35)
 
