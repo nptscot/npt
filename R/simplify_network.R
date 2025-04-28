@@ -15,7 +15,7 @@ simplify_network = function(rnet_y, parameters, region_boundary) {
   if (!file.exists(rnet_x_f)) {
     stop("Download the latest inputdata")
   }
-  rnet_y = sf::read_sf("outputdata/2025-04-01/sestran/combined_network_tile.geojson") |> st_transform(crs = "EPSG:27700")
+
   rnet_x = sf::read_sf(rnet_x_f) 
 
   rnet_xp = rnet_x |>
