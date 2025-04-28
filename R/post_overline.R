@@ -26,6 +26,7 @@ post_overline = function(
   overlapping_joined = stplanr::rnet_join(
     base_short,
     rnet,
+    dist = 1,
     segment_length = segment_length
   )
 
