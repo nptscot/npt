@@ -41,6 +41,11 @@ library(sf)
 head(od_school)
 head(od_utility_combined)
 head(od_utility_combined$geometry)
+# Sanity check of 1000 OD pairs:
+od_utility_combined |>
+  sample_n(1000) |>
+  select(all) |>
+  mapview::mapview()
 od_utility_endpoints = sf::st_coordinates(od_utility_combined)
 od_utility_end_df = od_utility_endpoints |>
   tibble::as_tibble() |>
@@ -77,6 +82,89 @@ write_csv(od_utility_simple, "od_utility_simple.csv")
 system("gh release list")
 system("gh release create")
 system("gh release upload od-data-2025-05 od_utility_simple.csv --clobber")
+
+# Explore and export the other datasets
+nrow(od_commute_subset) # 436k
+sum(od_commute_subset$all) # 1.3m
+# Plot random sample of 1000 OD pairs
+od_commute_subset |>
+  sample_n(1000) |>
+  select(all) |>
+  mapview::mapview()
+# Check for duplicated origin-destination pairs
+od_commute_subset |>
+  sf::st_drop_geometry() |>
+  group_by(geo_code1, geo_code2) |>
+  summarise(
+    n = n(),
+    all = sum(all)
+  ) |>
+  filter(n > 1) |>
+  arrange(desc(n)) |>
+  head(10)
+# Simple version with count to save:
+od_commute_simple = od_commute_subset |>
+  transmute(
+    geo_code1,
+    geo_code2,
+    count = round(all)
+  ) |>
+  sf::st_drop_geometry()
+write_csv(od_commute_simple, "od_commute_simple.csv")
+system("gh release upload od-data-2025-05 od_commute_simple.csv --clobber")
+
+# And for schools (need to get destination_lat/lon):
+nrow(od_school) # 56k
+sum(od_school$all) # 322k
+od_school |>
+  sample_n(1000) |>
+  select(all) |>
+  mapview::mapview()
+
+# Destination lat/lon
+od_school_endpoints = sf::st_coordinates(od_school)
+od_school_end_df = od_school_endpoints |>
+  tibble::as_tibble() |>
+  group_by(L1) |>
+  slice(2) |>
+  ungroup() |>
+  transmute(
+    destination_lon = X,
+    destination_lat = Y
+  )
+
+od_school_simple = od_school |>
+  transmute(
+    geo_code1 = DataZone,
+    count = round(all)
+  )
+# bind_cols(
+od_school_simple = bind_cols(
+    od_school_simple |>
+      sf::st_drop_geometry(),
+    od_school_end_df 
+)
+head(od_school_simple) # Check the structure of the updated data frame
+# Check for duplicated origin-destination pairs
+od_school_simple |>
+  group_by(geo_code1, destination_lon, destination_lat) |>
+  summarise(
+    n = n(),
+    all = sum(count)
+  ) |>
+  filter(n > 1) |>
+  arrange(desc(n)) |>
+  head(10)
+# aggregate to unique pairs
+od_school_simple = od_school_simple |>
+  group_by(geo_code1, destination_lon, destination_lat) |>
+  summarise(
+    count = sum(count)
+  )
+sum(od_school_simple$count) # 322k
+summary(od_school_simple$count)
+write_csv(od_school_simple, "od_school_simple.csv")
+system("gh release upload od-data-2025-05 od_school_simple.csv --clobber")
 ```
 
 ```{r}
