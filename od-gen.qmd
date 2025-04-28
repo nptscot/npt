@@ -29,10 +29,30 @@ if (!dir.exists("_targets")) {
 }
 tar_load(od_commute_subset)
 tar_load(od_school)
+tar_load(od_utility_combined)
 tar_load(od_shopping)
 tar_load(od_visiting)
 tar_load(od_leisure)
 setwd(d)
+```
+
+```{r}
+library(sf)
+head(od_school)
+head(od_utility_combined)
+head(od_utility_combined$geometry)
+od_utility_endpoints = sf::st_coordinates(od_utility_combined)
+od_utility_end_df = od_utility_endpoints |>
+  tibble::as_tibble() |>
+  group_by(L1) |>
+  slice(2) |>
+  ungroup() |>
+  transmute(
+    destination_lon = X,
+    destination_lat = Y
+  )
+head(od_utility_end_df)
+
 ```
 
 ```{r}
