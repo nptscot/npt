@@ -38,7 +38,7 @@ simplify_network = function(rnet_y, parameters, region_boundary) {
     dplyr::group_by(idx) |>
     dplyr::summarise(across(matches("bicycle"), \(x) sum(x, na.rm = TRUE)), .groups = "drop")
 
-  rnet_merged_all  = sf::left_join(rnet_xp, rnet_joined_values, by = "idx")
+  rnet_merged_all  = dplyr::left_join(rnet_xp, rnet_joined_values, by = "idx")
 
   rnet_merged_all = rnet_merged_all |>
   dplyr::mutate(across(matches("bicycle"), \(x) x / length_x))  
@@ -60,8 +60,8 @@ simplify_network = function(rnet_y, parameters, region_boundary) {
   rnet_yp_list = as.list(names(rnet_yp))
   columns_to_check = unlist(rnet_yp_list[rnet_yp_list != "geometry"])
 
-  rnet_merged_all = rnet_merged_all |>
-    dplyr::filter_at(columns_to_check, any_vars(!is.na(.)))
+  # rnet_merged_all = rnet_merged_all |>
+  #   dplyr::filter_at(columns_to_check, any_vars(!is.na(.)))
 
   rnet_merged_all_geos = geos::as_geos_geometry(rnet_merged_all)
 

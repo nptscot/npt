@@ -4,7 +4,7 @@ post_overline = function(
 
   message("Downloading active‑travel network…")
   osm_net = osmactive::get_travel_network("scotland")
-  osm_net = get_cycling_network(osm_net)  
+  osm_net = osmactive::get_cycling_network(osm_net)  
 
   rnet = rnet |>
     sf::st_transform(27700)
