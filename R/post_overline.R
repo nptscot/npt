@@ -1,9 +1,11 @@
 post_overline = function(
-                      rnet,
-                      segment_length     = 10) {
+  rnet,
+  segment_length = 10,
+  place = "scotland"
+  ) {
 
   message("Downloading active‑travel network…")
-  osm_net = osmactive::get_travel_network("scotland")
+  osm_net = osmactive::get_travel_network(place)
   osm_net = osmactive::get_cycling_network(osm_net)  
 
   rnet = rnet |>
