@@ -17,7 +17,6 @@ simplify_network = function(rnet_y, parameters, region_boundary) {
   }
 
   rnet_x = sf::read_sf(rnet_x_f) 
-  rnet_y = sf::read_sf("outputdata/2025-04-01/sestran/combined_network_tile.geojson")
 
   rnet_xp = rnet_x |>
     sf::st_transform("EPSG:27700") |>
