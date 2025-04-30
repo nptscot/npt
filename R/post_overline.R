@@ -10,7 +10,7 @@ post_overline = function(
 
   rnet = rnet |>
     sf::st_transform(27700) |>
-    dplyr::select(geometry, contains("bicycle"))
+    dplyr::select(matches("bicycle"))
   osm_net = osm_net |>
     sf::st_transform(sf::st_crs(rnet))
 
