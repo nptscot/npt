@@ -33,14 +33,14 @@ simplify_network = function(rnet_y, parameters, region_boundary) {
 
   rnet_joined_values = rnet_joined  |>
     sf::st_drop_geometry() |>
-    dplyr::mutate(across(matches("bicycle"), function(x) x * length_y)) |>
+    dplyr::mutate(across(matches("bicycle|gradient|quietness"), function(x) x * length_y)) |>
     dplyr::group_by(idx) |>
-    dplyr::summarise(across(matches("bicycle"), \(x) sum(x, na.rm = TRUE)), .groups = "drop")
+    dplyr::summarise(across(matches("bicycle|gradient|quietness"), \(x) sum(x, na.rm = TRUE)), .groups = "drop")
 
   rnet_merged_all  = dplyr::left_join(rnet_xp, rnet_joined_values, by = "idx")
 
   rnet_merged_all = rnet_merged_all |>
-  dplyr::mutate(across(matches("bicycle"), \(x) x / length_x))  
+  dplyr::mutate(across(matches("bicycle|gradient|quietness"), \(x) x / length_x))  
 
   rnet_merged_all = rnet_merged_all[, !(names(rnet_merged_all) %in% c("identifier", "length_x"))]
 
