@@ -56,7 +56,7 @@ simplify_network = function(rnet_y, parameters, region_boundary) {
   rnet_merged_all = rnet_merged_all |>
     mutate(across(where(is.numeric), ~ round(.x, 0)))
 
-  columns_to_check = grep("bicycle", columns_to_check, value = TRUE)
+  columns_to_check = grep("bicycle", as.list(names(rnet_yp)), value = TRUE)
 
   rnet_merged_all = rnet_merged_all |>
     dplyr::filter_at(columns_to_check, any_vars(!is.na(.)))
