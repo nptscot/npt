@@ -56,11 +56,10 @@ simplify_network = function(rnet_y, parameters, region_boundary) {
   rnet_merged_all = rnet_merged_all |>
     mutate(across(where(is.numeric), ~ round(.x, 0)))
 
-  rnet_yp_list = as.list(names(rnet_yp))
-  columns_to_check = unlist(rnet_yp_list[rnet_yp_list != "geometry"])
+  columns_to_check = grep("bicycle", columns_to_check, value = TRUE)
 
-  # rnet_merged_all = rnet_merged_all |>
-  #   dplyr::filter_at(columns_to_check, any_vars(!is.na(.)))
+  rnet_merged_all = rnet_merged_all |>
+    dplyr::filter_at(columns_to_check, any_vars(!is.na(.)))
 
   rnet_merged_all_geos = geos::as_geos_geometry(rnet_merged_all)
 

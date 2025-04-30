@@ -9,7 +9,8 @@ post_overline = function(
   osm_net = osmactive::get_cycling_network(osm_net)  
 
   rnet = rnet |>
-    sf::st_transform(27700)
+    sf::st_transform(27700) |>
+    dplyr::select(geometry, contains("bicycle"))
   osm_net = osm_net |>
     sf::st_transform(sf::st_crs(rnet))
 
@@ -38,7 +39,6 @@ post_overline = function(
     dplyr::group_by(osm_id) |>
     dplyr::summarise(across(matches("bicycle"), \(x) sum(x, na.rm = TRUE)), .groups = "drop")
 
-  # 4. Length‑normalise -------------------------------------------------------------
   base_net$length_x = sf::st_length(base_net) |> as.numeric()
 
   rnet_joined = dplyr::left_join(
