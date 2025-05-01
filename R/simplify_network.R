@@ -22,14 +22,15 @@ simplify_network = function(rnet_y, parameters, region_boundary) {
     sf::st_transform("EPSG:27700") |>
     dplyr::mutate(idx = uuid::UUIDgenerate(n = n(), output = "string")) |>
     dplyr::relocate(idx) 
-    
+
   rnet_xp$length_x = sf::st_length(rnet_xp) |> as.numeric()
 
   rnet_yp = sf::st_transform(rnet_y, "EPSG:27700") 
 
+
   rnet_yp_fix = post_overline(rnet_yp)  |> dplyr::select(-length_x)
 
-  rnet_joined = stplanr::rnet_join(rnet_xp, rnet_yp_fix, dist = 25, max_angle_diff = 35)
+  rnet_joined = stplanr::rnet_join(rnet_xp, rnet_yp_fix, dist = 25, max_angle_diff = 35, segment_length = 20)
 
   rnet_joined_values = rnet_joined  |>
     sf::st_drop_geometry() |>
