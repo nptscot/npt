@@ -202,8 +202,8 @@ if (GENERATE_CDB) {
       cycle_net_traffic_na =
         cycle_net_traffic |>
         filter(
-          (str_detect(highway, "residential|service|living") & is.na(pred_flows))
-          | (str_detect(highway, "residential|service|living") & pred_flows > 1000) 
+          (str_detect(highway, "residential|service|living|unclassified|pedestrian|cycleway|footway|path") & is.na(pred_flows))
+          | (str_detect(highway, "residential|service|living|unclassified|pedestrian|cycleway|footway|path") & pred_flows > 1000) 
         )
 
       cycle_net_traffic_na = osmactive::estimate_traffic(cycle_net_traffic_na)
