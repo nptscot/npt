@@ -35,9 +35,13 @@ post_overline = function(
 
   overlapping_aggregated = overlapping_joined |>
     sf::st_drop_geometry() |>
-    dplyr::mutate(across(matches("bicycle|gradient|quietness"), function(x) x * length_y)) |>
+    dplyr::mutate(across(matches("bicycle"), function(x) x * length_y)) |>
     dplyr::group_by(osm_id) |>
-    dplyr::summarise(across(matches("bicycle|gradient|quietness"), \(x) sum(x, na.rm = TRUE)), .groups = "drop")
+    dplyr::summarise(
+      across(matches("bicycle"), \(x) sum(x, na.rm = TRUE)),
+      across(matches("gradient|quietness"), \(x) max(x, na.rm = TRUE)),
+      .groups = "drop"
+      )
 
   base_net$length_x = sf::st_length(base_net) |> as.numeric()
 
@@ -48,7 +52,7 @@ post_overline = function(
   )
 
   rnet_final = rnet_joined |>
-    dplyr::mutate(across(matches("bicycle|gradient|quietness"), \(x) x / length_x))
+    dplyr::mutate(across(matches("bicycle"), \(x) x / length_x))
 
   rnet_final
 }

@@ -381,7 +381,7 @@ if (GENERATE_PMTILES) {
       network = sf::read_sf(simplified_network_file)
     }
   })
-  simplified_network = dplyr::bind_rows(simplified_network_list)
+  simplified_network = dplyr::bind_rows(simplified_network_list) |> select(-length_x, idx)
 
   columns_to_check = grep("bicycle", names(simplified_network), value = TRUE)
   simplified_network = simplified_network[, columns_to_check, drop = FALSE]
