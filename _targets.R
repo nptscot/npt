@@ -1227,7 +1227,7 @@ list(
     nms_end = c("gradient", "quietness", "geometry")
     nms = names(rnet_tile)[!names(rnet_tile) %in% nms_end]
     rnet_tile = rnet_tile[c(nms[order(nms)], nms_end)]
-    rnet_tile = post_overline(rnet_tile)
+    # rnet_tile = post_overline(rnet_tile)
     make_geojson_zones(rnet_tile, paste0(region_folder, "/combined_network_tile.geojson"))
 
     rnet_tile
