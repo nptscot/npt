@@ -18,19 +18,34 @@ simplify_network = function(rnet_y, parameters, region_boundary) {
 
   rnet_x = sf::read_sf(rnet_x_f) 
 
-  rnet_xp = sf::st_transform(rnet_x, "EPSG:27700")
+  rnet_xp = rnet_x |>
+    sf::st_transform("EPSG:27700") |>
+    dplyr::mutate(idx = uuid::UUIDgenerate(n = n(), output = "string")) |>
+    dplyr::relocate(idx) 
+
+  rnet_xp$length_x = sf::st_length(rnet_xp) |> as.numeric()
+
   rnet_yp = sf::st_transform(rnet_y, "EPSG:27700") 
 
-  rnet_joined  = stplanr::rnet_join(rnet_xp, rnet_yp, dist = 25, segment_length = 20, max_angle_diff = 35)
 
-  rnet_joined_values = rnet_joined |>
+  rnet_yp_fix = post_overline(rnet_yp)  |> dplyr::select(-length_x)
+
+  rnet_joined = stplanr::rnet_join(rnet_xp, rnet_yp_fix, dist = 25, max_angle_diff = 35, segment_length = 20)
+
+  rnet_joined_values = rnet_joined  |>
     sf::st_drop_geometry() |>
-    group_by(id) |>
-    summarise(
-      all_fastest_bicycle_go_dutch = sum(all_fastest_bicycle_go_dutch, na.rm = TRUE),
+    dplyr::mutate(across(matches("bicycle"), function(x) x * length_y)) |>
+    dplyr::group_by(idx) |>
+    dplyr::summarise(
+      across(matches("bicycle"), \(x) sum(x, na.rm = TRUE)),
+      across(matches("gradient|quietness"), \(x) max(x, na.rm = TRUE)), 
+      .groups = "drop"
       )
 
-  rnet_merged_all  = left_join(rnet_xp, rnet_joined_values)
+  rnet_merged_all  = dplyr::left_join(rnet_xp, rnet_joined_values, by = "idx")
+
+  rnet_merged_all = rnet_merged_all |>
+      dplyr::mutate(across(matches("bicycle"), \(x) x / length_x))  
 
   rnet_merged_all = rnet_merged_all[, !(names(rnet_merged_all) %in% c("identifier", "length_x"))]
 
@@ -46,8 +61,7 @@ simplify_network = function(rnet_y, parameters, region_boundary) {
   rnet_merged_all = rnet_merged_all |>
     mutate(across(where(is.numeric), ~ round(.x, 0)))
 
-  rnet_yp_list = as.list(names(rnet_yp))
-  columns_to_check = unlist(rnet_yp_list[rnet_yp_list != "geometry"])
+  columns_to_check = grep("bicycle", as.list(names(rnet_yp)), value = TRUE)
 
   rnet_merged_all = rnet_merged_all |>
     dplyr::filter_at(columns_to_check, any_vars(!is.na(.)))

@@ -202,8 +202,8 @@ if (GENERATE_CDB) {
       cycle_net_traffic_na =
         cycle_net_traffic |>
         filter(
-          (str_detect(highway, "residential|service|living") & is.na(pred_flows))
-          | (str_detect(highway, "residential|service|living") & pred_flows > 1000) 
+          (str_detect(highway, "residential|service|living|unclassified|pedestrian|cycleway|footway|path") & is.na(pred_flows))
+          | (str_detect(highway, "residential|service|living|unclassified|pedestrian|cycleway|footway|path") & pred_flows > 1000) 
         )
 
       cycle_net_traffic_na = osmactive::estimate_traffic(cycle_net_traffic_na)
@@ -367,6 +367,10 @@ if (GENERATE_PMTILES) {
     sample_n(10000) |>
     sf::st_geometry() |>
     plot()
+  
+  columns_to_check = grep("bicycle", names(combined_network), value = TRUE)
+  combined_network = combined_network[, columns_to_check, drop = FALSE]
+
   dim(combined_network) # ~700k rows for full build, 33 columns
   sf::write_sf(combined_network, file.path(output_folder, "combined_network_tile.geojson"), delete_dsn = TRUE)
 
@@ -377,7 +381,11 @@ if (GENERATE_PMTILES) {
       network = sf::read_sf(simplified_network_file)
     }
   })
-  simplified_network = dplyr::bind_rows(simplified_network_list)
+  simplified_network = dplyr::bind_rows(simplified_network_list) |> select(-length_x, idx)
+
+  columns_to_check = grep("bicycle", names(simplified_network), value = TRUE)
+  simplified_network = simplified_network[, columns_to_check, drop = FALSE]
+
   dim(simplified_network) # ~400k rows for full build, 33 columns
   sf::write_sf(simplified_network, file.path(output_folder, "simplified_network.geojson"), delete_dsn = TRUE)
 
