@@ -1,4 +1,15 @@
 nrow,plan,purpose,region,date,id
+93539,ebike,utility,SPT,2025-05-01,12944
+93539,quietest,utility,SPT,2025-05-01,12943
+93539,balanced,utility,SPT,2025-05-01,12942
+93539,fastest,utility,SPT,2025-05-01,12939
+219054,balanced,commute,SPT,2025-05-01,12938
+219054,ebike,commute,SPT,2025-05-01,12937
+219054,quietest,commute,SPT,2025-05-01,12936
+219054,fastest,commute,SPT,2025-05-01,12935
+29062,ebike,school,SPT,2025-05-01,12934
+29062,balanced,school,SPT,2025-05-01,12933
+29062,quietest,school,SPT,2025-05-01,12932
 29062,fastest,school,SPT,2025-05-01,12931
 18488,ebike,utility,HITRANS,2025-05-01,12930
 18488,quietest,utility,HITRANS,2025-05-01,12929
