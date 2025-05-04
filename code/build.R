@@ -46,7 +46,7 @@ region_names_lowercase = snakecase::to_snake_case(region_names)
 
 # Build route networks:
 region = region_names[1]
-for (region in region_names[7]) {
+for (region in region_names) {
   message("Processing region: ", region)
   parameters$region = region
   jsonlite::write_json(parameters, "parameters.json", pretty = TRUE)
@@ -198,46 +198,24 @@ if (GENERATE_CDB) {
         cycle_net_joined,
         traffic_net_df
       )
-      
+  
       cycle_net_traffic = cycle_net_traffic |> 
           dplyr::mutate(idx = uuid::UUIDgenerate(n = n(), output = "string")) |>
           dplyr::relocate(idx) 
 
-      cycle_net_traffic_na =
-        cycle_net_traffic |>
-        filter(
-          str_detect(highway, "residential|service|living|unclassified|pedestrian|cycleway|footway|path") &
-          (is.na(pred_flows) | pred_flows > 1000)
-        )
-
-      cycle_net_traffic_na = osmactive::estimate_traffic(cycle_net_traffic_na)
-
-cycle_net_traffic = rows_update(
-  cycle_net_traffic,
-  cycle_net_traffic_na |> 
-    st_drop_geometry() |> 
-    select(idx, pred_flows),  # Ensure both idx and pred_flows are kept, but only these two are passed
-  by = "idx"
-)
-
       cycle_net_traffic = cycle_net_traffic |>
-        left_join(
-          cycle_net_traffic_na |> st_drop_geometry() |> select(idx, new_pred_flows = pred_flows),
-          by = "idx"
-        ) |>
         mutate(
-          pred_flows = if_else(
-            !is.na(new_pred_flows),  
-            new_pred_flows,         
-            pred_flows               
+          pred_flows = case_when(
+            str_detect(highway, "service") & (is.na(pred_flows) | pred_flows > 1000) ~ 500,
+            str_detect(highway, "pedestrian|cycleway|footway") & (is.na(pred_flows) | pred_flows > 1000) ~ NA_real_,
+            TRUE ~ pred_flows
           )
-        ) |>
-        select(-new_pred_flows)  
+        )
 
       cycle_net_traffic$AADT = npt_to_cbd_aadt_numeric(cycle_net_traffic$pred_flows)
 
       cycle_net_traffic = level_of_service(cycle_net_traffic)
-mapview(cycle_net_traffic, zcol = "pred_flows")
+
       cbd_layer = cycle_net_traffic |>
         transmute(
           osm_id,
