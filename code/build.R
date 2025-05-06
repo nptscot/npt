@@ -775,8 +775,8 @@ if (PUSH_TO_GITHUB) {
   }
 
   system("gh release list --repo nptscot/npt")
-  v = glue("v{date_folder}")
-  msg = glue("gh release create {v} --generate-notes --repo nptscot/npt")
+  v = glue::glue("v{date_folder}")
+  msg = glue::glue("gh release create {v} --generate-notes --repo nptscot/npt")
 
   message("Going to try to upload the following files: ", paste0(f_gpkg, collapse = ", "))
   message("With sizes: ", paste0(file_size(f_gpkg), collapse = ", "))
