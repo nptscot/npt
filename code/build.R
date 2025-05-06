@@ -752,6 +752,43 @@ if (PUSH_TO_GITHUB) {
     message("Not uploading files: manually move contents of outputdata (see upload_data target for details)")
   }
 
+  # push data to nptscot/npt
+  setwd(output_folder)
+  
+  file.rename("simplified_network.geojson", glue::glue("simplified_network_{month_str}-01.geojson"))
+  file.rename("combined_network_tile.geojson", glue::glue("combined_network_tile_{month_str}-01.geojson"))
+
+  f_geojson = c(
+    glue::glue("simplified_network_{month_str}-01.geojson"),
+    glue::glue("combined_network_tile_{month_str}-01.geojson"),
+    "cbd_layer_2025-05-01.geojson",
+    "combined_CN_4_2025-05-01_OS.geojson",
+    "data_zones_2025-05-01.geojson"
+  )
+
+  f_gpkg = character()
+  for (geojson_file in f_geojson) {
+    gpkg_file = sub("\\.geojson$", ".gpkg", geojson_file)
+    sf::st_read(geojson_file, quiet = TRUE) |> 
+      sf::st_write(gpkg_file, delete_dsn = TRUE, quiet = TRUE)
+    f_gpkg = c(f_gpkg, gpkg_file)
+  }
+
+  system("gh release list --repo nptscot/npt")
+  v = glue("v{date_folder}")
+  msg = glue("gh release create {v} --generate-notes --repo nptscot/npt")
+
+  message("Going to try to upload the following files: ", paste0(f_gpkg, collapse = ", "))
+  message("With sizes: ", paste0(file_size(f_gpkg), collapse = ", "))
+
+  system(msg)
+
+  dir.create(v, showWarnings = FALSE)
+  for (i in f_gpkg) {
+    system(glue::glue("gh release upload {v} '{i}' --repo nptscot/npt"))
+    file.copy(from = i, to = file.path(v, i))
+  }
+
 }
 # # Copy pmtiles into app folder (optional)
 # app_tiles_directory = "../nptscot.github.io/tiles"
