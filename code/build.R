@@ -207,6 +207,7 @@ if (GENERATE_CDB) {
         mutate(
           pred_flows = case_when(
             str_detect(highway, "service") & (is.na(pred_flows) | pred_flows > 1000) ~ 500,
+            (str_detect(highway, "unclassified") & (maxspeed_clean == 10)) | (pred_flows > 1000) ~ 500,
             str_detect(highway, "pedestrian|cycleway|footway") & (is.na(pred_flows) | pred_flows > 1000) ~ NA_real_,
             TRUE ~ pred_flows
           )
