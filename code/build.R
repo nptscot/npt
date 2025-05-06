@@ -199,24 +199,19 @@ if (GENERATE_CDB) {
         traffic_net_df
       )
 
-      cycle_net_traffic_na =
-        cycle_net_traffic |>
-        filter(
-          (str_detect(highway, "residential|service|living|unclassified|pedestrian|cycleway|footway|path") & is.na(pred_flows))
-          | (str_detect(highway, "residential|service|living|unclassified|pedestrian|cycleway|footway|path") & pred_flows > 1000) 
-        )
-
-      cycle_net_traffic_na = osmactive::estimate_traffic(cycle_net_traffic_na)
+      cycle_net_traffic = cycle_net_traffic |> 
+          dplyr::mutate(idx = uuid::UUIDgenerate(n = n(), output = "string")) |>
+          dplyr::relocate(idx) 
 
       cycle_net_traffic = cycle_net_traffic |>
-        left_join(
-          cycle_net_traffic_na |> st_drop_geometry() |> select(osm_id, assumed_volume),
-          by = "osm_id"
-        ) |>
         mutate(
-          pred_flows = if_else(!is.na(assumed_volume), assumed_volume, pred_flows)
-        ) |>
-        select(-assumed_volume)
+          pred_flows = case_when(
+            str_detect(highway, "service") & (is.na(pred_flows) | pred_flows > 1000) ~ 500,
+            (str_detect(highway, "unclassified") & (maxspeed_clean == 10)) | (pred_flows > 1000) ~ 500,
+            str_detect(highway, "pedestrian|cycleway|footway") & (is.na(pred_flows) | pred_flows > 1000) ~ NA_real_,
+            TRUE ~ pred_flows
+          )
+        )
 
       cycle_net_traffic$AADT = npt_to_cbd_aadt_numeric(cycle_net_traffic$pred_flows)
 
@@ -299,6 +294,7 @@ if (GENERATE_CDB) {
 # Read the open roads data outside the loop for only once
 
 if (parameters$generate_CN_start) {
+  path_cache_env = new.env(parent = emptyenv())
   os_file_path = "inputdata/open_roads_scotland.gpkg"
   if (!file.exists(os_file_path)) {
     setwd("inputdata")
@@ -367,9 +363,6 @@ if (GENERATE_PMTILES) {
     sample_n(10000) |>
     sf::st_geometry() |>
     plot()
-  
-  columns_to_check = grep("bicycle", names(combined_network), value = TRUE)
-  combined_network = combined_network[, columns_to_check, drop = FALSE]
 
   dim(combined_network) # ~700k rows for full build, 33 columns
   sf::write_sf(combined_network, file.path(output_folder, "combined_network_tile.geojson"), delete_dsn = TRUE)
@@ -381,10 +374,7 @@ if (GENERATE_PMTILES) {
       network = sf::read_sf(simplified_network_file)
     }
   })
-  simplified_network = dplyr::bind_rows(simplified_network_list) |> select(-length_x, idx)
-
-  columns_to_check = grep("bicycle", names(simplified_network), value = TRUE)
-  simplified_network = simplified_network[, columns_to_check, drop = FALSE]
+  simplified_network = dplyr::bind_rows(simplified_network_list) |> select(-idx)
 
   dim(simplified_network) # ~400k rows for full build, 33 columns
   sf::write_sf(simplified_network, file.path(output_folder, "simplified_network.geojson"), delete_dsn = TRUE)
