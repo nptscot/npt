@@ -198,7 +198,7 @@ if (GENERATE_CDB) {
         cycle_net_joined,
         traffic_net_df
       )
-  
+
       cycle_net_traffic = cycle_net_traffic |> 
           dplyr::mutate(idx = uuid::UUIDgenerate(n = n(), output = "string")) |>
           dplyr::relocate(idx) 
