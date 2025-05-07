@@ -20,26 +20,33 @@ make_od = function(oas, os_pois, grid, purpose, trip_purposes, zones, parameters
   if (purpose == "leisure") {
     purpose_nts = "Sport/Entertainment"
     # add in park points
-    parks = make_parks(grid)
+    parks = make_parks(grid$geometry)
     os_pois = bind_rows(
-      os_pois |> transmute(ref_no = as.character(ref_no)),
-      parks |> transmute(ref_no = id)
+      os_pois |> transmute(
+        ref_no = as.character(ref_no),
+        classname = classname
+      ),
+      parks |> transmute(
+        ref_no = as.character(id),
+        classname = "Parks"
+      )
     )
   }
   if (purpose == "visiting") {
     purpose_nts = "Visiting friends or relatives"
   }
 
-  os_pois = os_pois |>
-    dplyr::mutate(grid_id = sf::st_nearest_feature(os_pois, grid))
+  os_pois = sf::st_join(os_pois, grid, join = sf::st_nearest_feature)
 
-  # calculate weighting of each grid point
-  p_grid = os_pois |>
+  # calculate weighting of each grid point  
+  os_pois = poi_weights(pois = os_pois)
+  os_pois_aggregated = os_pois |>
     sf::st_drop_geometry() |>
     dplyr::group_by(grid_id) |>
-    dplyr::summarise(size = n())
-  p_grid = sf::st_as_sf(p_grid, geometry = grid[p_grid$grid_id])
+    dplyr::summarise(size = sum(poi_weights))
+  p_grid = inner_join(grid, os_pois_aggregated)
   p_grid = sf::st_transform(p_grid, 4326)
+  os_pois = sf::st_transform(os_pois, 4326)
 
   # Calculate number of trips / number of cyclists
   proportion_all_distances = trip_purposes |>
@@ -202,4 +209,20 @@ make_parks = function(grid) {
   study_area = sf::st_convex_hull(sf::st_union(grid))
   park_points = sf::st_transform(park_points, sf::st_crs(grid))
   park_points[study_area, ]
+}
+
+poi_weights = function(pois) {
+  pois = pois |> 
+    mutate(
+      poi_weights = case_when(
+        classname == "Department Stores" ~ 5,
+        classname == "Supermarket Chains" ~ 5,
+        classname == "Convenience Stores and Independent Supermarkets" ~ 3,
+        classname == "Swimming Pools" ~ 5,
+        classname == "Cinemas" ~ 5,
+        classname == "Gymnasiums, Sports Halls and Leisure Centres" ~ 3,
+        classname == "Sports Grounds, Stadia and Pitches" ~ 3,
+        TRUE ~ 1
+      )
+    )
 }
