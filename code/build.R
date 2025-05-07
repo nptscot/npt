@@ -715,6 +715,20 @@ if (PUSH_TO_GITHUB) {
   outputdata_files = list.files(output_folder)
   outputdata_files
 
+  file.rename(glue::glue("simplified_network_{month}-01.pmtiles"), glue::glue("rnet_simplified_{month}-01.pmtiles"))
+  file.rename(glue::glue("combined_network_tile_{month}-01.pmtiles"), glue::glue("rnet_{month}-01.pmtiles"))
+  file.rename(glue::glue("combined_CN_4_{month}-01_OS.pmtiles"), glue::glue("coherentnetwork_{month}-01.pmtiles"))
+  file.rename(glue::glue("cbd_layer_{month}-01.pmtiles"), glue::glue("clos_{month}-01.pmtiles"))
+  
+  download_files = c(
+    glue::glue("streetspace_{month}-01.gpkg"),
+    glue::glue("streetspace_{month}-01.pmtiles")
+  )
+
+  for (file in download_files) {
+    system(glue::glue("gh release download --repo nptscot/outputdata v{month}-01 -p '{file}'"))
+  }
+
   commit = gert::git_log(max = 1)
   message("Commit: ", commit)
   full_build =
@@ -754,16 +768,18 @@ if (PUSH_TO_GITHUB) {
 
   # push data to nptscot/npt
   setwd(output_folder)
-  
-  file.rename("simplified_network.geojson", glue::glue("simplified_network_{month_str}-01.geojson"))
-  file.rename("combined_network_tile.geojson", glue::glue("combined_network_tile_{month_str}-01.geojson"))
+
+  file.rename(glue::glue("simplified_network_{month}-01.geojson"), glue::glue("rnet_simplified_{month}-01.geojson"))
+  file.rename(glue::glue("combined_network_tile_{month}-01.geojson"), glue::glue("rnet_{month}-01.geojson"))
+  file.rename(glue::glue("combined_CN_4_{month}-01_OS.geojson"), glue::glue("coherentnetwork_{month}-01.geojson"))
+  file.rename(glue::glue("cbd_layer_{month}-01.geojson"), glue::glue("clos_{month}-01.geojson"))
 
   f_geojson = c(
-    glue::glue("simplified_network_{month_str}-01.geojson"),
-    glue::glue("combined_network_tile_{month_str}-01.geojson"),
-    "cbd_layer_2025-05-01.geojson",
-    "combined_CN_4_2025-05-01_OS.geojson",
-    "data_zones_2025-05-01.geojson"
+    glue::glue("rnet_simplified_{month}-01.geojson"),
+    glue::glue("rnet_{month}-01.geojson"),
+    glue::glue("clos_{month}-01.geojson"),
+    glue::glue("coherentnetwork_{month}-01.geojson"),
+    glue::glue("data_zones_{month}-01.geojson")
   )
 
   f_gpkg = character()
