@@ -130,7 +130,7 @@ if (GENERATE_CDB) {
       cycle_net = osmactive::classify_cycle_infrastructure(cycle_net, include_mixed_traffic = TRUE)
       drive_net = osmactive::clean_speeds(drive_net)
       cycle_net = osmactive::get_parallel_values(cycle_net, drive_net, column = "maxspeed",
-                                buffer_dist = 10, angle_threshold = 20,
+                                buffer_dist = 10, angle_threshold = 30,
                                 value_pattern = " mph", value_replacement = "",
                                 add_suffix = " mph")
       cycle_net = osmactive::clean_speeds(cycle_net)   
@@ -207,7 +207,7 @@ if (GENERATE_CDB) {
         mutate(
           pred_flows = case_when(
             str_detect(highway, "service") & (is.na(pred_flows) | pred_flows > 1000) ~ 500,
-            (str_detect(highway, "unclassified") & (maxspeed_clean == 10)) | (pred_flows > 1000) ~ 500,
+            str_detect(highway, "unclassified") & maxspeed_clean == 10 & (is.na(pred_flows) | pred_flows > 1000) ~ 500,
             str_detect(highway, "pedestrian|cycleway|footway") & (is.na(pred_flows) | pred_flows > 1000) ~ NA_real_,
             TRUE ~ pred_flows
           )
@@ -216,6 +216,15 @@ if (GENERATE_CDB) {
       cycle_net_traffic$AADT = npt_to_cbd_aadt_numeric(cycle_net_traffic$pred_flows)
 
       cycle_net_traffic = level_of_service(cycle_net_traffic)
+
+      expect_category = function(highway) {
+        case_when(
+          highway %in% c("motorway", "motorway_link", "trunk", "trunk_link", "primary", "primary_link", "secondary", "secondary_link", "tertiary", "tertiary_link") ~ "4000+",
+          highway %in% c("service") ~ "0 to 999",
+          str_detect(highway, "living") ~ "0 to 999",
+          TRUE ~ NA_character_
+        )
+      }
 
       cbd_layer = cycle_net_traffic |>
         transmute(
@@ -231,7 +240,16 @@ if (GENERATE_CDB) {
             pred_flows >= 3999.5 ~ "4000+",
             TRUE ~ NA_character_
           )
-        )
+        ) |>
+        mutate(
+          expected_category = expect_category(highway),
+          `Traffic volume category` = if_else(
+            !is.na(expected_category) & `Traffic volume category` != expected_category,
+            expected_category,
+            `Traffic volume category`
+          )
+        ) |>
+        select(-expected_category)
 
       # save file for individual district
       district_name = district_geom$LAD23NM |> 
