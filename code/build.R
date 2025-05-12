@@ -130,7 +130,7 @@ if (GENERATE_CDB) {
       cycle_net = osmactive::classify_cycle_infrastructure(cycle_net, include_mixed_traffic = TRUE)
       drive_net = osmactive::clean_speeds(drive_net)
       cycle_net = osmactive::get_parallel_values(cycle_net, drive_net, column = "maxspeed",
-                                buffer_dist = 10, angle_threshold = 20,
+                                buffer_dist = 10, angle_threshold = 30,
                                 value_pattern = " mph", value_replacement = "",
                                 add_suffix = " mph")
       cycle_net = osmactive::clean_speeds(cycle_net)   
@@ -171,53 +171,171 @@ if (GENERATE_CDB) {
           ) |>
           sf::st_cast(to = "LINESTRING")
 
-      cycle_net_joined = sf::st_cast(cycle_net_joined, "LINESTRING")
-      traffic_volumes_region = sf::st_cast(traffic_volumes_region, "LINESTRING")
+      cycle_net_joined = sf::st_cast(cycle_net_joined, "LINESTRING") |> sf::st_transform("EPSG:27700")
+      traffic_volumes_region = sf::st_cast(traffic_volumes_region, "LINESTRING") |> sf::st_transform("EPSG:27700")
 
-      traffic_net_joined_polygons = stplanr::rnet_join(
-        rnet_x = cycle_net_joined,
-        rnet_y = traffic_volumes_region,
-        dist = 20,
-        segment_length = 10,
-        max_angle_diff = 30
-      )
-      
-      # group by + summarise stage
-      traffic_net_df = traffic_net_joined_polygons |>
-        sf::st_drop_geometry() |>
-        group_by(osm_id) |>
-        summarise(
-          road_classification = osmactive:::most_common_value(road_classification),
-          pred_flows = osmactive:::most_common_value(pred_flows)
-        ) |>
-        mutate(
-          pred_flows = as.numeric(pred_flows)
+      cycle_net_joined = cycle_net_joined |> 
+          dplyr::mutate(id = uuid::UUIDgenerate(n = n(), output = "string")) |>
+          dplyr::relocate(id) 
+
+      osm_main_roads_list = c("primary", "secondary", "primary_link", "secondary_link", "tertiary", "tertiary_link", "trunk", "unclassified", "path")
+    
+      cycle_net_joined_main = cycle_net_joined |> 
+        filter(highway %in% osm_main_roads_list)
+      cycle_net_joined_remaining = cycle_net_joined |> 
+        filter(!(id %in% cycle_net_joined_main$id))
+      # # use anime
+      params = list(
+        list(
+          source = traffic_volumes_region,
+          target = cycle_net_joined_main,
+          attribute = "pred_flows",
+          new_name = "pred_flows",
+          agg_fun = sum,
+          weights = c("target_weighted")
         )
-      # join back onto cycle_net
-      cycle_net_traffic = left_join(
-        cycle_net_joined,
-        traffic_net_df
-      )
+      )      
 
-      cycle_net_traffic = cycle_net_traffic |> 
-          dplyr::mutate(idx = uuid::UUIDgenerate(n = n(), output = "string")) |>
-          dplyr::relocate(idx) 
+
+      results_list = map(params, function(p) {
+        corenet::anime_join(
+          source_data = p$source,
+          target_data = p$target,
+          attribute = p$attribute,
+          new_name = p$new_name,
+          agg_fun = p$agg_fun,
+          weights = p$weights,
+          angle_tolerance = 35,
+          distance_tolerance = 15
+        )
+      })
+
+      cycle_net_traffic_main = reduce(results_list, function(x, y) {
+        left_join(x, y, by = "id")
+      }, .init = cycle_net_joined_main)
+
+      params = list(
+        list(
+          source = traffic_volumes_region,
+          target = cycle_net_joined_remaining,
+          attribute = "pred_flows",
+          new_name = "pred_flows",
+          agg_fun = sum,
+          weights = c("target_weighted")
+        )
+      )      
+
+
+      results_list = map(params, function(p) {
+        corenet::anime_join(
+          source_data = p$source,
+          target_data = p$target,
+          attribute = p$attribute,
+          new_name = p$new_name,
+          agg_fun = p$agg_fun,
+          weights = p$weights,
+          angle_tolerance = 35,
+          distance_tolerance = 5
+        )
+      })
+
+      cycle_net_traffic_remaining = reduce(results_list, function(x, y) {
+        left_join(x, y, by = "id")
+      }, .init = cycle_net_joined_remaining)      
+     
+      cycle_net_traffic = bind_rows(cycle_net_traffic_main, cycle_net_traffic_remaining)
+
+      # cycle_net_joined$length_x = sf::st_length(cycle_net_joined) |> as.numeric()
+
+      # traffic_net_joined_polygons = stplanr::rnet_join(
+      #   rnet_x = cycle_net_joined |> sf::st_transform("EPSG:27700"),
+      #   rnet_y = traffic_volumes_region |> sf::st_transform("EPSG:27700"),
+      #   dist = 20,
+      #   segment_length = 10,
+      #   max_angle_diff = 35
+      # )
+      
+      # # group by + summarise stage
+      # traffic_net_df = traffic_net_joined_polygons |>
+      #   sf::st_drop_geometry() |>
+      #   dplyr::mutate(pred_flows = pred_flows * length_y) |>
+      #   group_by(id) |>
+      #   summarise(
+      #     road_classification = osmactive:::most_common_value(road_classification),
+      #     pred_flows = sum(pred_flows, na.rm = TRUE)
+      #   )
+      # # join back onto cycle_net
+      # cycle_net_traffic = left_join(
+      #   cycle_net_joined,
+      #   traffic_net_df
+      # )
+
+      # cycle_net_traffic = cycle_net_traffic |>
+      #   dplyr::mutate(pred_flows = pred_flows / length_x)
 
       cycle_net_traffic = cycle_net_traffic |>
         mutate(
           pred_flows = case_when(
             str_detect(highway, "service") & (is.na(pred_flows) | pred_flows > 1000) ~ 500,
-            (str_detect(highway, "unclassified") & (maxspeed_clean == 10)) | (pred_flows > 1000) ~ 500,
+            str_detect(highway, "unclassified") & maxspeed_clean == 10 & (is.na(pred_flows) | pred_flows > 1000) ~ 500,
             str_detect(highway, "pedestrian|cycleway|footway") & (is.na(pred_flows) | pred_flows > 1000) ~ NA_real_,
             TRUE ~ pred_flows
           )
         )
-
       cycle_net_traffic$AADT = npt_to_cbd_aadt_numeric(cycle_net_traffic$pred_flows)
 
-      cycle_net_traffic = level_of_service(cycle_net_traffic)
+      cycle_net_traffic_los = level_of_service(cycle_net_traffic)
 
-      cbd_layer = cycle_net_traffic |>
+      # for examine the cycle_net_traffic_los in table format
+      # los_levels = c("High", "Medium", "Low", "Should not be used (mixed traffic)", "Should not be used (non-compliant intervention)")
+
+      # cycle_net_traffic_los = cycle_net_traffic_los |>
+      #   mutate(
+      #     LOS_Score = case_when(
+      #       `Level of Service` == "High" ~ 3,
+      #       `Level of Service` == "Medium" ~ 2,
+      #       `Level of Service` == "Low" ~ 1,
+      #       `Level of Service` %in% c("Should not be used (mixed traffic)", "Should not be used (non-compliant intervention)") ~ 0,
+      #       TRUE ~ NA_real_
+      #     )
+      #   )
+
+      # summary_table = cycle_net_traffic_los |>
+      #   st_drop_geometry() |>
+      #   group_by(`Speed (85th kph)`, `Speed Limit (mph)`, `Speed Limit (kph)`, AADT, infrastructure) |>
+      #   summarise(
+      #     `Level of Service` = max(LOS_Score, na.rm = TRUE),
+      #     .groups = "drop"
+      #   ) |>
+      #   arrange(`Speed (85th kph)`, `Speed Limit (kph)`, AADT, infrastructure)
+
+      # summary_table |> as.data.frame() |> View()
+
+      # # introduce error for testing
+      # summary_table[c(1, 7, 10), "Level of Service"] = 1
+
+      # # Read the reference LOS table
+      # los_table = read_csv("https://github.com/nptscot/osmactive/raw/refs/heads/main/inst/extdata/los_table_complete.csv") |>
+      #   mutate(across(c("Speed (85th kph)", "Speed Limit (mph)", "Speed Limit (kph)", "AADT"), as.character))
+      
+      # # Join with reference table and compare
+      # comparison_table = summary_table |>
+      #   left_join(los_table, 
+      #             by = c("Speed (85th kph)", "Speed Limit (mph)", "Speed Limit (kph)", "AADT", "infrastructure")) |>
+      #   rename(
+      #     LOS_calculated = `Level of Service`,
+      #     LOS_reference = level_of_service
+      #   ) |>
+      #   mutate(
+      #     is_different = LOS_calculated != LOS_reference,
+      #     difference = LOS_calculated - LOS_reference
+      #   ) |>
+      #   filter(is_different == TRUE)
+      
+      # # View only the differences
+      # comparison_table |> as.data.frame() |> View()
+
+      cbd_layer = cycle_net_traffic_los |>
         transmute(
           osm_id,
           highway,
@@ -231,7 +349,7 @@ if (GENERATE_CDB) {
             pred_flows >= 3999.5 ~ "4000+",
             TRUE ~ NA_character_
           )
-        )
+        ) 
 
       # save file for individual district
       district_name = district_geom$LAD23NM |> 
@@ -257,7 +375,8 @@ if (GENERATE_CDB) {
   cbd_layer_f = sf::st_sf(geometry = st_sfc())
   cbd_layers = lapply(cbd_files, sf::read_sf)
   cbd_layer_f = do.call(rbind, cbd_layers)
-  cbd_filename = paste0(output_folder, "/cbd_layer_", date_folder, ".geojson")
+  cbd_filename_geojson = paste0(output_folder, "/cbd_layer_", date_folder, ".geojson")
+  cbd_filename_gpkg = paste0(output_folder, "/cbd_layer_", date_folder, ".gpkg")
   # Update traffic volumes for off road cycleways
   cbd_layer_f = cbd_layer_f |>
     mutate(
@@ -266,9 +385,10 @@ if (GENERATE_CDB) {
         # highway %in% c("footway", "pedestrian", "steps") ~ NA_character_,
         TRUE ~ `Traffic volume category`
       )
-    )
-  sf::write_sf(cbd_layer_f, cbd_filename, delete_dsn = FALSE)
-  fs::file_size(cbd_filename)
+    ) 
+  sf::write_sf(cbd_layer_f |> sf::st_transform("EPSG:4326"), cbd_filename_geojson, delete_dsn = FALSE)
+  fs::file_size(cbd_filename_geojson)
+  sf::write_sf(cbd_layer_f |> sf::st_transform("EPSG:4326"), cbd_filename_gpkg, delete_dsn = FALSE)
 
   # PMTiles:
   pmtiles_msg = paste(
