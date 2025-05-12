@@ -178,7 +178,7 @@ if (GENERATE_CDB) {
           dplyr::mutate(id = uuid::UUIDgenerate(n = n(), output = "string")) |>
           dplyr::relocate(id) 
 
-      osm_main_roads_list = c("primary", "secondary", "primary_link", "secondary_link", "tertiary", "tertiary_link", "trunk")
+      osm_main_roads_list = c("primary", "secondary", "primary_link", "secondary_link", "tertiary", "tertiary_link", "trunk", "unclassified", "path")
     
       cycle_net_joined_main = cycle_net_joined |> 
         filter(highway %in% osm_main_roads_list)
@@ -375,7 +375,8 @@ if (GENERATE_CDB) {
   cbd_layer_f = sf::st_sf(geometry = st_sfc())
   cbd_layers = lapply(cbd_files, sf::read_sf)
   cbd_layer_f = do.call(rbind, cbd_layers)
-  cbd_filename = paste0(output_folder, "/cbd_layer_", date_folder, ".geojson")
+  cbd_filename_geojson = paste0(output_folder, "/cbd_layer_", date_folder, ".geojson")
+  cbd_filename_gpkg = paste0(output_folder, "/cbd_layer_", date_folder, ".gpkg")
   # Update traffic volumes for off road cycleways
   cbd_layer_f = cbd_layer_f |>
     mutate(
@@ -384,9 +385,10 @@ if (GENERATE_CDB) {
         # highway %in% c("footway", "pedestrian", "steps") ~ NA_character_,
         TRUE ~ `Traffic volume category`
       )
-    )
-  sf::write_sf(cbd_layer_f |> sf::st_transform("EPSG:4326"), cbd_filename, delete_dsn = FALSE)
-  fs::file_size(cbd_filename)
+    ) 
+  sf::write_sf(cbd_layer_f |> sf::st_transform("EPSG:4326"), cbd_filename_geojson, delete_dsn = FALSE)
+  fs::file_size(cbd_filename_geojson)
+  sf::write_sf(cbd_layer_f |> sf::st_transform("EPSG:4326"), cbd_filename_gpkg, delete_dsn = FALSE)
 
   # PMTiles:
   pmtiles_msg = paste(
