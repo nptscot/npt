@@ -267,7 +267,7 @@ if (GENERATE_CDB) {
 
       cycle_net_traffic_los = level_of_service(cycle_net_traffic)
 
-      # examine the cycle_net_traffic_los in table format
+      # for examine the cycle_net_traffic_los in table format
       # los_levels = c("High", "Medium", "Low", "Should not be used (mixed traffic)", "Should not be used (non-compliant intervention)")
 
       # cycle_net_traffic_los = cycle_net_traffic_los |>
@@ -291,19 +291,13 @@ if (GENERATE_CDB) {
       #   arrange(`Speed (85th kph)`, `Speed Limit (kph)`, AADT, infrastructure)
 
       # summary_table |> as.data.frame() |> View()
+
+      # # introduce error for testing
+      # summary_table[c(1, 7, 10), "Level of Service"] = 1
+
       # # Read the reference LOS table
-      # los_table = read_csv("https://github.com/nptscot/osmactive/raw/refs/heads/main/inst/extdata/los_table_complete.csv")
-      
-      # # Convert character columns to the same type for proper joining
-      # los_table = los_table |>
+      # los_table = read_csv("https://github.com/nptscot/osmactive/raw/refs/heads/main/inst/extdata/los_table_complete.csv") |>
       #   mutate(across(c("Speed (85th kph)", "Speed Limit (mph)", "Speed Limit (kph)", "AADT"), as.character))
-      
-      # summary_table = summary_table |>
-      #   mutate(across(c("Speed (85th kph)", "Speed Limit (mph)", "Speed Limit (kph)", "AADT"), as.character))
-      
-      # # Check column names to ensure proper naming
-      # print(names(los_table))
-      # print(names(summary_table))
       
       # # Join with reference table and compare
       # comparison_table = summary_table |>
