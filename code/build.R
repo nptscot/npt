@@ -175,41 +175,59 @@ if (GENERATE_CDB) {
       traffic_volumes_region = sf::st_cast(traffic_volumes_region, "LINESTRING")
 
 
-      # use anime
-      cycle_net_joined = cycle_net_joined |> 
-          dplyr::mutate(id = uuid::UUIDgenerate(n = n(), output = "string")) |>
-          dplyr::relocate(id) 
-      params = list(
-        list(
-          source = traffic_volumes_region,
-          target = cycle_net_joined,
-          attribute = "pred_flows",
-          new_name = "pred_flows",
-          agg_fun = sum,
-          weights = c("target_weighted")
-        ))
+      # # use anime
+      # cycle_net_joined = cycle_net_joined |> 
+      #     dplyr::mutate(id = uuid::UUIDgenerate(n = n(), output = "string")) |>
+      #     dplyr::relocate(id) 
+      # params = list(
+      #   list(
+      #     source = traffic_volumes_region,
+      #     target = cycle_net_joined,
+      #     attribute = "pred_flows",
+      #     new_name = "pred_flows_sum",
+      #     agg_fun = sum,
+      #     weights = c("target_weighted")
+      #   ),
+      #     list(
+      #     source = traffic_volumes_region,
+      #     target = cycle_net_joined,
+      #     attribute = "pred_flows",
+      #     new_name = "pred_flows_mean",
+      #     agg_fun = mean,
+      #     weights = c("target_weighted", "source_weighted")
+      #   )
+      # )      
 
-      results_list = map(params, function(p) {
-        corenet::anime_join(
-          source_data = p$source,
-          target_data = p$target,
-          attribute = p$attribute,
-          new_name = p$new_name,
-          agg_fun = p$agg_fun,
-          weights = p$weights,
-          angle_tolerance = 35,
-          distance_tolerance = 15
-        )
-      })
 
-      cycle_net_traffic = reduce(results_list, function(x, y) {
-        left_join(x, y, by = "id")
-      }, .init = cycle_net_joined)
+      # results_list = map(params, function(p) {
+      #   corenet::anime_join(
+      #     source_data = p$source,
+      #     target_data = p$target,
+      #     attribute = p$attribute,
+      #     new_name = p$new_name,
+      #     agg_fun = p$agg_fun,
+      #     weights = p$weights,
+      #     angle_tolerance = 35,
+      #     distance_tolerance = 15
+      #   )
+      # })
+
+      # cycle_net_traffic = reduce(results_list, function(x, y) {
+      #   left_join(x, y, by = "id")
+      # }, .init = cycle_net_joined)
+
+      # compare results
+      # summary(traffic_volumes_region$pred_flows)
+          #  Min.   1st Qu.    Median      Mean   3rd Qu.      Max.      NA's 
+          #  6.35    386.67    710.04   3398.08   2360.28 138143.55         5 
+      # summary(cycle_net_traffic$pred_flows_sum)
+        #  Min. 1st Qu.  Median    Mean 3rd Qu.    Max. 
+        #     0   75677  164646  173425  245134  660932 
 
       traffic_net_joined_polygons = stplanr::rnet_join(
         rnet_x = cycle_net_joined,
         rnet_y = traffic_volumes_region,
-        dist = 15,
+        dist = 20,
         segment_length = 10,
         max_angle_diff = 30
       )
@@ -240,7 +258,6 @@ if (GENERATE_CDB) {
           pred_flows = case_when(
             str_detect(highway, "service") & (is.na(pred_flows) | pred_flows > 1000) ~ 500,
             str_detect(highway, "unclassified") & maxspeed_clean == 10 & (is.na(pred_flows) | pred_flows > 1000) ~ 500,
-            str_detect(highway, "residential") & maxspeed_clean %in% c(10, 20, 30) & (is.na(pred_flows) | pred_flows > 1000) ~ 500,
             str_detect(highway, "pedestrian|cycleway|footway") & (is.na(pred_flows) | pred_flows > 1000) ~ NA_real_,
             TRUE ~ pred_flows
           )
@@ -248,19 +265,64 @@ if (GENERATE_CDB) {
 
       cycle_net_traffic$AADT = npt_to_cbd_aadt_numeric(cycle_net_traffic$pred_flows)
 
-      cycle_net_traffic = level_of_service(cycle_net_traffic)
+      cycle_net_traffic_los = level_of_service(cycle_net_traffic)
 
-      # expect_category = function(highway) {
-      #   case_when(
-      #     highway %in% c("motorway", "motorway_link", "trunk", "trunk_link", "primary", "primary_link", "secondary", "secondary_link", "tertiary", "tertiary_link") ~ "4000+",
-      #     highway %in% c("service") ~ "0 to 999",
-      #     highway %in% c("residential") ~ "0 to 999",
-      #     str_detect(highway, "living") ~ "0 to 999",
-      #     TRUE ~ NA_character_
+      # examine the cycle_net_traffic_los in table format
+      # los_levels = c("High", "Medium", "Low", "Should not be used (mixed traffic)", "Should not be used (non-compliant intervention)")
+
+      # cycle_net_traffic_los = cycle_net_traffic_los |>
+      #   mutate(
+      #     LOS_Score = case_when(
+      #       `Level of Service` == "High" ~ 3,
+      #       `Level of Service` == "Medium" ~ 2,
+      #       `Level of Service` == "Low" ~ 1,
+      #       `Level of Service` %in% c("Should not be used (mixed traffic)", "Should not be used (non-compliant intervention)") ~ 0,
+      #       TRUE ~ NA_real_
+      #     )
       #   )
-      # }
 
-      cbd_layer = cycle_net_traffic |>
+      # summary_table = cycle_net_traffic_los |>
+      #   st_drop_geometry() |>
+      #   group_by(`Speed (85th kph)`, `Speed Limit (mph)`, `Speed Limit (kph)`, AADT, infrastructure) |>
+      #   summarise(
+      #     `Level of Service` = max(LOS_Score, na.rm = TRUE),
+      #     .groups = "drop"
+      #   ) |>
+      #   arrange(`Speed (85th kph)`, `Speed Limit (kph)`, AADT, infrastructure)
+
+      # summary_table |> as.data.frame() |> View()
+      # # Read the reference LOS table
+      # los_table = read_csv("https://github.com/nptscot/osmactive/raw/refs/heads/main/inst/extdata/los_table_complete.csv")
+      
+      # # Convert character columns to the same type for proper joining
+      # los_table = los_table |>
+      #   mutate(across(c("Speed (85th kph)", "Speed Limit (mph)", "Speed Limit (kph)", "AADT"), as.character))
+      
+      # summary_table = summary_table |>
+      #   mutate(across(c("Speed (85th kph)", "Speed Limit (mph)", "Speed Limit (kph)", "AADT"), as.character))
+      
+      # # Check column names to ensure proper naming
+      # print(names(los_table))
+      # print(names(summary_table))
+      
+      # # Join with reference table and compare
+      # comparison_table = summary_table |>
+      #   left_join(los_table, 
+      #             by = c("Speed (85th kph)", "Speed Limit (mph)", "Speed Limit (kph)", "AADT", "infrastructure")) |>
+      #   rename(
+      #     LOS_calculated = `Level of Service`,
+      #     LOS_reference = level_of_service
+      #   ) |>
+      #   mutate(
+      #     is_different = LOS_calculated != LOS_reference,
+      #     difference = LOS_calculated - LOS_reference
+      #   ) |>
+      #   filter(is_different == TRUE)
+      
+      # # View only the differences
+      # comparison_table |> as.data.frame() |> View()
+
+      cbd_layer = cycle_net_traffic_los |>
         transmute(
           osm_id,
           highway,
@@ -275,16 +337,6 @@ if (GENERATE_CDB) {
             TRUE ~ NA_character_
           )
         ) 
-        # |>
-        # mutate(
-        #   expected_category = expect_category(highway),
-        #   `Traffic volume category` = if_else(
-        #     !is.na(expected_category) & `Traffic volume category` != expected_category,
-        #     expected_category,
-        #     `Traffic volume category`
-        #   )
-        # ) |>
-        # select(-expected_category)
 
       # save file for individual district
       district_name = district_geom$LAD23NM |> 
@@ -322,7 +374,8 @@ if (GENERATE_CDB) {
     )
   sf::write_sf(cbd_layer_f, cbd_filename, delete_dsn = FALSE)
   fs::file_size(cbd_filename)
-
+cbd_layer_f_one = cbd_layer_f |>
+  filter(osm_id == 72068766) 
   # PMTiles:
   pmtiles_msg = paste(
     glue::glue("tippecanoe -o {output_folder}/cbd_layer_{date_folder}.pmtiles"),
