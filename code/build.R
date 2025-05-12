@@ -174,10 +174,42 @@ if (GENERATE_CDB) {
       cycle_net_joined = sf::st_cast(cycle_net_joined, "LINESTRING")
       traffic_volumes_region = sf::st_cast(traffic_volumes_region, "LINESTRING")
 
+
+      # use anime
+      cycle_net_joined = cycle_net_joined |> 
+          dplyr::mutate(id = uuid::UUIDgenerate(n = n(), output = "string")) |>
+          dplyr::relocate(id) 
+      params = list(
+        list(
+          source = traffic_volumes_region,
+          target = cycle_net_joined,
+          attribute = "pred_flows",
+          new_name = "pred_flows",
+          agg_fun = sum,
+          weights = c("target_weighted")
+        ))
+
+      results_list = map(params, function(p) {
+        corenet::anime_join(
+          source_data = p$source,
+          target_data = p$target,
+          attribute = p$attribute,
+          new_name = p$new_name,
+          agg_fun = p$agg_fun,
+          weights = p$weights,
+          angle_tolerance = 35,
+          distance_tolerance = 15
+        )
+      })
+
+      cycle_net_traffic = reduce(results_list, function(x, y) {
+        left_join(x, y, by = "id")
+      }, .init = cycle_net_joined)
+
       traffic_net_joined_polygons = stplanr::rnet_join(
         rnet_x = cycle_net_joined,
         rnet_y = traffic_volumes_region,
-        dist = 20,
+        dist = 15,
         segment_length = 10,
         max_angle_diff = 30
       )
@@ -208,6 +240,7 @@ if (GENERATE_CDB) {
           pred_flows = case_when(
             str_detect(highway, "service") & (is.na(pred_flows) | pred_flows > 1000) ~ 500,
             str_detect(highway, "unclassified") & maxspeed_clean == 10 & (is.na(pred_flows) | pred_flows > 1000) ~ 500,
+            str_detect(highway, "residential") & maxspeed_clean %in% c(10, 20, 30) & (is.na(pred_flows) | pred_flows > 1000) ~ 500,
             str_detect(highway, "pedestrian|cycleway|footway") & (is.na(pred_flows) | pred_flows > 1000) ~ NA_real_,
             TRUE ~ pred_flows
           )
@@ -217,14 +250,15 @@ if (GENERATE_CDB) {
 
       cycle_net_traffic = level_of_service(cycle_net_traffic)
 
-      expect_category = function(highway) {
-        case_when(
-          highway %in% c("motorway", "motorway_link", "trunk", "trunk_link", "primary", "primary_link", "secondary", "secondary_link", "tertiary", "tertiary_link") ~ "4000+",
-          highway %in% c("service") ~ "0 to 999",
-          str_detect(highway, "living") ~ "0 to 999",
-          TRUE ~ NA_character_
-        )
-      }
+      # expect_category = function(highway) {
+      #   case_when(
+      #     highway %in% c("motorway", "motorway_link", "trunk", "trunk_link", "primary", "primary_link", "secondary", "secondary_link", "tertiary", "tertiary_link") ~ "4000+",
+      #     highway %in% c("service") ~ "0 to 999",
+      #     highway %in% c("residential") ~ "0 to 999",
+      #     str_detect(highway, "living") ~ "0 to 999",
+      #     TRUE ~ NA_character_
+      #   )
+      # }
 
       cbd_layer = cycle_net_traffic |>
         transmute(
@@ -240,16 +274,17 @@ if (GENERATE_CDB) {
             pred_flows >= 3999.5 ~ "4000+",
             TRUE ~ NA_character_
           )
-        ) |>
-        mutate(
-          expected_category = expect_category(highway),
-          `Traffic volume category` = if_else(
-            !is.na(expected_category) & `Traffic volume category` != expected_category,
-            expected_category,
-            `Traffic volume category`
-          )
-        ) |>
-        select(-expected_category)
+        ) 
+        # |>
+        # mutate(
+        #   expected_category = expect_category(highway),
+        #   `Traffic volume category` = if_else(
+        #     !is.na(expected_category) & `Traffic volume category` != expected_category,
+        #     expected_category,
+        #     `Traffic volume category`
+        #   )
+        # ) |>
+        # select(-expected_category)
 
       # save file for individual district
       district_name = district_geom$LAD23NM |> 
