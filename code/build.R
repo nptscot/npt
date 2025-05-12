@@ -174,74 +174,28 @@ if (GENERATE_CDB) {
       cycle_net_joined = sf::st_cast(cycle_net_joined, "LINESTRING")
       traffic_volumes_region = sf::st_cast(traffic_volumes_region, "LINESTRING")
 
-
-      # # use anime
-      # cycle_net_joined = cycle_net_joined |> 
-      #     dplyr::mutate(id = uuid::UUIDgenerate(n = n(), output = "string")) |>
-      #     dplyr::relocate(id) 
-      # params = list(
-      #   list(
-      #     source = traffic_volumes_region,
-      #     target = cycle_net_joined,
-      #     attribute = "pred_flows",
-      #     new_name = "pred_flows_sum",
-      #     agg_fun = sum,
-      #     weights = c("target_weighted")
-      #   ),
-      #     list(
-      #     source = traffic_volumes_region,
-      #     target = cycle_net_joined,
-      #     attribute = "pred_flows",
-      #     new_name = "pred_flows_mean",
-      #     agg_fun = mean,
-      #     weights = c("target_weighted", "source_weighted")
-      #   )
-      # )      
-
-
-      # results_list = map(params, function(p) {
-      #   corenet::anime_join(
-      #     source_data = p$source,
-      #     target_data = p$target,
-      #     attribute = p$attribute,
-      #     new_name = p$new_name,
-      #     agg_fun = p$agg_fun,
-      #     weights = p$weights,
-      #     angle_tolerance = 35,
-      #     distance_tolerance = 15
-      #   )
-      # })
-
-      # cycle_net_traffic = reduce(results_list, function(x, y) {
-      #   left_join(x, y, by = "id")
-      # }, .init = cycle_net_joined)
-
-      # compare results
-      # summary(traffic_volumes_region$pred_flows)
-          #  Min.   1st Qu.    Median      Mean   3rd Qu.      Max.      NA's 
-          #  6.35    386.67    710.04   3398.08   2360.28 138143.55         5 
-      # summary(cycle_net_traffic$pred_flows_sum)
-        #  Min. 1st Qu.  Median    Mean 3rd Qu.    Max. 
-        #     0   75677  164646  173425  245134  660932 
+      cycle_net_joined = cycle_net_joined |> 
+          dplyr::mutate(idx = uuid::UUIDgenerate(n = n(), output = "string")) |>
+          dplyr::relocate(idx) 
+   
+      cycle_net_joined$length_x = sf::st_length(cycle_net_joined) |> as.numeric()
 
       traffic_net_joined_polygons = stplanr::rnet_join(
-        rnet_x = cycle_net_joined,
-        rnet_y = traffic_volumes_region,
+        rnet_x = cycle_net_joined |> sf::st_transform("EPSG:27700"),
+        rnet_y = traffic_volumes_region |> sf::st_transform("EPSG:27700"),
         dist = 20,
-        segment_length = 10,
-        max_angle_diff = 30
+        segment_length = 20,
+        max_angle_diff = 35
       )
       
       # group by + summarise stage
       traffic_net_df = traffic_net_joined_polygons |>
         sf::st_drop_geometry() |>
-        group_by(osm_id) |>
+        dplyr::mutate(pred_flows = pred_flows * length_y) |>
+        group_by(idx) |>
         summarise(
           road_classification = osmactive:::most_common_value(road_classification),
-          pred_flows = osmactive:::most_common_value(pred_flows)
-        ) |>
-        mutate(
-          pred_flows = as.numeric(pred_flows)
+          pred_flows = sum(pred_flows, na.rm = TRUE)
         )
       # join back onto cycle_net
       cycle_net_traffic = left_join(
@@ -249,9 +203,8 @@ if (GENERATE_CDB) {
         traffic_net_df
       )
 
-      cycle_net_traffic = cycle_net_traffic |> 
-          dplyr::mutate(idx = uuid::UUIDgenerate(n = n(), output = "string")) |>
-          dplyr::relocate(idx) 
+      cycle_net_traffic = cycle_net_traffic |>
+        dplyr::mutate(pred_flows = pred_flows / length_x)
 
       cycle_net_traffic = cycle_net_traffic |>
         mutate(
