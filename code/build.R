@@ -183,12 +183,12 @@ if (GENERATE_CDB) {
       cycle_net_joined_main = cycle_net_joined |> 
         filter(highway %in% osm_main_roads_list)
       cycle_net_joined_remaining = cycle_net_joined |> 
-        filter(!id %in% cycle_net_joined_main$id)
+        filter(!(id %in% cycle_net_joined_main$id))
       # # use anime
       params = list(
         list(
           source = traffic_volumes_region,
-          target = cycle_net_joined,
+          target = cycle_net_joined_main,
           attribute = "pred_flows",
           new_name = "pred_flows",
           agg_fun = sum,
@@ -210,10 +210,41 @@ if (GENERATE_CDB) {
         )
       })
 
-      cycle_net_traffic = reduce(results_list, function(x, y) {
+      cycle_net_traffic_main = reduce(results_list, function(x, y) {
         left_join(x, y, by = "id")
-      }, .init = cycle_net_joined)
+      }, .init = cycle_net_joined_main)
+
+      params = list(
+        list(
+          source = traffic_volumes_region,
+          target = cycle_net_joined_remaining,
+          attribute = "pred_flows",
+          new_name = "pred_flows",
+          agg_fun = sum,
+          weights = c("target_weighted")
+        )
+      )      
+
+
+      results_list = map(params, function(p) {
+        corenet::anime_join(
+          source_data = p$source,
+          target_data = p$target,
+          attribute = p$attribute,
+          new_name = p$new_name,
+          agg_fun = p$agg_fun,
+          weights = p$weights,
+          angle_tolerance = 35,
+          distance_tolerance = 5
+        )
+      })
+
+      cycle_net_traffic_remaining = reduce(results_list, function(x, y) {
+        left_join(x, y, by = "id")
+      }, .init = cycle_net_joined_remaining)      
      
+      cycle_net_traffic = bind_rows(cycle_net_traffic_main, cycle_net_traffic_remaining)
+
       # cycle_net_joined$length_x = sf::st_length(cycle_net_joined) |> as.numeric()
 
       # traffic_net_joined_polygons = stplanr::rnet_join(
