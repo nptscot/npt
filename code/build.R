@@ -402,7 +402,7 @@ if (GENERATE_CDB) {
     "--maximum-tile-bytes=2000000",
     # "--simplification=10",
     "--buffer=5",
-    glue::glue("--force  {cbd_filename}"),
+    glue::glue("--force  {cbd_filename_geojson}"),
     collapse = " "
   )
   system(pmtiles_msg)
