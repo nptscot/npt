@@ -125,7 +125,7 @@ if (GENERATE_CDB) {
       nrow(osm_district) / nrow(osm_national)
 
       cycle_net = osmactive::get_cycling_network(osm_district)
-      drive_net = osmactive::get_driving_network_major(osm_district)
+      drive_net = osmactive::get_driving_network(osm_district)
       cycle_net = osmactive::distance_to_road(cycle_net, drive_net)
       cycle_net = osmactive::classify_cycle_infrastructure(cycle_net, include_mixed_traffic = TRUE)
       drive_net = osmactive::clean_speeds(drive_net)
@@ -339,6 +339,7 @@ if (GENERATE_CDB) {
         transmute(
           osm_id,
           highway,
+          `Distance to nearest road` = round(distance_to_road, 0),
           `Speed limit` = maxspeed_clean,
           `Infrastructure type` = cycle_segregation,
           `Level of Service`,
