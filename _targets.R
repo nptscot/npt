@@ -17,7 +17,7 @@ if (!"corenet" %in% installed.packages()) {
 
 # Load minimum of libraries (Should use package::function in most cases)
 library(targets) # Needed to make targets work
-library(magrittr) # Light load of |>
+library(tidyverse) # Light load of |>
 library(sf) # Needed for sf support
 set.seed(2023)
 httr::set_config(httr::timeout(seconds = 60000))
@@ -25,15 +25,15 @@ tar_source()
 pkgs = get_pkgs()
 
 
-tar_option_set(
-  controller = crew::crew_controller_local(workers = 1),
-  memory = "transient",
-  garbage_collection = TRUE,
-  storage = "worker",
-  retrieval = "worker",
-  packages = pkgs,
-  format = "rds" # default storage format
-)
+# tar_option_set(
+#   controller = crew::crew_controller_local(workers = 1),
+#   memory = "transient",
+#   garbage_collection = TRUE,
+#   storage = "worker",
+#   retrieval = "worker",
+#   packages = pkgs,
+#   format = "rds" # default storage format
+# )
 
 # Targets -----------------------------------------------------------------
 if (!file.exists("outputdata")) {
